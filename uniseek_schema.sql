@@ -2,7 +2,7 @@
 -- UniSeek 兼职招聘平台 - MySQL 8 数据库初始化脚本
 -- 版本: V1.0
 -- 创建日期: 2026-07-13
--- 说明: 包含 13 张业务表、完整外键约束、索引、中文注释及种子数据
+-- 说明: 包含 14 张业务表、完整外键约束、索引、中文注释及种子数据
 -- 使用: mysql -u root -p < uniseek_schema.sql
 -- ====================================================================
 
@@ -16,35 +16,34 @@ USE `uniseek`;
 -- 第一部分: 清理现有表（按外键逆向依赖顺序删除）
 -- ====================================================================
 
-DROP TABLE IF EXISTS `t_operation_log`;
-DROP TABLE IF EXISTS `t_complaint`;
-DROP TABLE IF EXISTS `t_statistics_daily`;
-DROP TABLE IF EXISTS `t_chat_message`;
-DROP TABLE IF EXISTS `t_chat_session`;
-DROP TABLE IF EXISTS `t_message`;
-DROP TABLE IF EXISTS `t_task_application`;
-DROP TABLE IF EXISTS `t_task`;
-DROP TABLE IF EXISTS `t_region`;
-DROP TABLE IF EXISTS `t_category`;
-DROP TABLE IF EXISTS `t_resume`;
-DROP TABLE IF EXISTS `t_enterprise`;
-DROP TABLE IF EXISTS `t_user`;
+DROP TABLE IF EXISTS `operation_log`;
+DROP TABLE IF EXISTS `complaint`;
+DROP TABLE IF EXISTS `daily_statistics`;
+DROP TABLE IF EXISTS `chat_message`;
+DROP TABLE IF EXISTS `chat_session`;
+DROP TABLE IF EXISTS `notification`;
+DROP TABLE IF EXISTS `task_application`;
+DROP TABLE IF EXISTS `task`;
+DROP TABLE IF EXISTS `region`;
+DROP TABLE IF EXISTS `category`;
+DROP TABLE IF EXISTS `resume`;
+DROP TABLE IF EXISTS `enterprise`;
+DROP TABLE IF EXISTS `real_name_auth`;
+DROP TABLE IF EXISTS `user`;
 
 -- ====================================================================
 -- 第二部分: 建表语句（按外键正序依赖顺序创建）
 -- ====================================================================
 
 -- -------------------------------------------------------------------
--- 1. t_user - 用户表
+-- 1. user - 用户表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_user` (
+CREATE TABLE `user` (
     `id`              BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '用户ID',
     `phone`           VARCHAR(11)  NOT NULL                 COMMENT '手机号（登录账号）',
     `password`        VARCHAR(64)  NOT NULL                 COMMENT '密码（MD5+盐加密后）',
     `salt`            VARCHAR(32)  NOT NULL                 COMMENT '随机盐值',
     `nickname`        VARCHAR(50)  DEFAULT NULL             COMMENT '昵称',
-    `real_name`       VARCHAR(20)  DEFAULT NULL             COMMENT '实名认证真实姓名',
-    `id_card`         VARCHAR(18)  DEFAULT NULL             COMMENT '身份证号，建议加密存储',
     `avatar_url`      VARCHAR(255) DEFAULT NULL             COMMENT '头像URL',
     `role`            TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '角色：0-求职者, 1-企业HR, 9-管理员',
     `credit_score`    INT(10)      NOT NULL DEFAULT 100     COMMENT '信用积分，业务规则待补充',
@@ -54,14 +53,32 @@ CREATE TABLE `t_user` (
     `update_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_phone` (`phone`),
-    UNIQUE KEY `uk_id_card` (`id_card`),
     KEY `idx_role` (`role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- -------------------------------------------------------------------
--- 2. t_enterprise - 企业信息表
+-- 2. real_name_auth - 实名认证表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_enterprise` (
+CREATE TABLE `real_name_auth` (
+    `id`          BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '认证记录ID',
+    `user_id`     BIGINT(20)   NOT NULL                 COMMENT '用户ID',
+    `real_name`   VARCHAR(20)  NOT NULL                 COMMENT '真实姓名',
+    `id_card`     VARCHAR(18)  NOT NULL                 COMMENT '身份证号（加密存储）',
+    `status`      TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '认证状态：0-未认证, 1-已认证',
+    `auth_time`   DATETIME     DEFAULT NULL             COMMENT '认证时间',
+    `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',
+    `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_id` (`user_id`),
+    UNIQUE KEY `uk_id_card` (`id_card`),
+    KEY `idx_status` (`status`),
+    CONSTRAINT `fk_real_name_auth_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='实名认证表';
+
+-- -------------------------------------------------------------------
+-- 3. enterprise - 企业信息表
+-- -------------------------------------------------------------------
+CREATE TABLE `enterprise` (
     `id`              BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '企业ID',
     `user_id`         BIGINT(20)   NOT NULL                 COMMENT '关联用户ID',
     `company_name`    VARCHAR(100) NOT NULL                 COMMENT '公司全称',
@@ -76,16 +93,15 @@ CREATE TABLE `t_enterprise` (
     UNIQUE KEY `uk_user_id` (`user_id`),
     UNIQUE KEY `uk_credit_code` (`credit_code`),
     KEY `idx_audit_status` (`audit_status`),
-    CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业信息表';
 
 -- -------------------------------------------------------------------
--- 3. t_resume - 在线简历表
+-- 4. resume - 在线简历表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_resume` (
+CREATE TABLE `resume` (
     `id`             BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '简历ID',
-    `user_id`        BIGINT(20)   NOT NULL                 COMMENT '关联用户ID',
-    `real_name`      VARCHAR(20)  DEFAULT NULL             COMMENT '真实姓名',
+    `user_id`        BIGINT(20)   NOT NULL                 COMMENT '关联用户ID（FK→user，实名信息从 real_name_auth 获取）',
     `gender`         TINYINT(1)   DEFAULT NULL             COMMENT '性别：0-男, 1-女',
     `birth_date`     DATE         DEFAULT NULL             COMMENT '出生日期',
     `education`      VARCHAR(20)  DEFAULT NULL             COMMENT '学历',
@@ -98,13 +114,13 @@ CREATE TABLE `t_resume` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_id` (`user_id`),
     FULLTEXT KEY `ft_experience` (`experience`),
-    CONSTRAINT `fk_resume_user` FOREIGN KEY (`user_id`) REFERENCES `t_user` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_resume_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线简历表';
 
 -- -------------------------------------------------------------------
--- 4. t_category - 职位分类表（自关联树形结构）
+-- 5. category - 职位分类表（自关联树形结构）
 -- -------------------------------------------------------------------
-CREATE TABLE `t_category` (
+CREATE TABLE `category` (
     `id`          BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '分类ID',
     `parent_id`   BIGINT(20)  DEFAULT NULL             COMMENT '父级ID(NULL表示顶级分类)',
     `name`        VARCHAR(50) NOT NULL                 COMMENT '分类名称',
@@ -112,13 +128,13 @@ CREATE TABLE `t_category` (
     `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_parent_id` (`parent_id`),
-    CONSTRAINT `fk_category_parent` FOREIGN KEY (`parent_id`) REFERENCES `t_category` (`id`) ON DELETE SET NULL
+    CONSTRAINT `fk_category_parent` FOREIGN KEY (`parent_id`) REFERENCES `category` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='职位分类表';
 
 -- -------------------------------------------------------------------
--- 5. t_region - 行政区划表（省/市/区三级）
+-- 6. region - 行政区划表（省/市/区三级）
 -- -------------------------------------------------------------------
-CREATE TABLE `t_region` (
+CREATE TABLE `region` (
     `id`          BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '行政区划代码',
     `parent_id`   BIGINT(20)  DEFAULT NULL             COMMENT '父级ID(NULL表示省级)',
     `name`        VARCHAR(50) NOT NULL                 COMMENT '行政区划名称',
@@ -128,13 +144,13 @@ CREATE TABLE `t_region` (
     PRIMARY KEY (`id`),
     KEY `idx_parent_id` (`parent_id`),
     KEY `idx_level_parent` (`level`, `parent_id`),
-    CONSTRAINT `fk_region_parent` FOREIGN KEY (`parent_id`) REFERENCES `t_region` (`id`) ON DELETE SET NULL
+    CONSTRAINT `fk_region_parent` FOREIGN KEY (`parent_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='行政区划表';
 
 -- -------------------------------------------------------------------
--- 6. t_task - 职位/岗位表（核心业务表）
+-- 7. task - 职位/岗位表（核心业务表）
 -- -------------------------------------------------------------------
-CREATE TABLE `t_task` (
+CREATE TABLE `task` (
     `id`              BIGINT(20)    NOT NULL AUTO_INCREMENT  COMMENT '职位ID',
     `enterprise_id`   BIGINT(20)    NOT NULL                 COMMENT '发布企业ID',
     `category_id`     BIGINT(20)    NOT NULL                 COMMENT '所属分类ID',
@@ -144,6 +160,7 @@ CREATE TABLE `t_task` (
     `salary_min`      DECIMAL(10,2) NOT NULL                 COMMENT '薪资范围最低（业务约束: salary_min ≤ salary_max）',
     `salary_max`      DECIMAL(10,2) NOT NULL                 COMMENT '薪资范围最高',
     `salary_unit`     TINYINT(1)    NOT NULL DEFAULT 0       COMMENT '薪资单位：0-日结, 1-时薪, 2-月结',
+    `job_type`        TINYINT(1)    NOT NULL DEFAULT 2       COMMENT '岗位类型：1-全职, 2-兼职, 3-实习',
     `total_quota`     INT(10)       NOT NULL                 COMMENT '招聘总人数',
     `remaining_quota` INT(10)       NOT NULL                 COMMENT '剩余名额（业务约束: ≥ 0）',
     `address`         VARCHAR(200)  DEFAULT NULL             COMMENT '工作地址',
@@ -162,15 +179,15 @@ CREATE TABLE `t_task` (
     KEY `idx_region_id` (`region_id`),
     KEY `idx_category_status` (`category_id`, `status`),
     KEY `idx_region_status` (`region_id`, `status`),
-    CONSTRAINT `fk_task_enterprise` FOREIGN KEY (`enterprise_id`) REFERENCES `t_enterprise` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_task_category`   FOREIGN KEY (`category_id`)   REFERENCES `t_category` (`id`)   ON DELETE RESTRICT,
-    CONSTRAINT `fk_task_region`     FOREIGN KEY (`region_id`)     REFERENCES `t_region` (`id`)     ON DELETE SET NULL
+    CONSTRAINT `fk_task_enterprise` FOREIGN KEY (`enterprise_id`) REFERENCES `enterprise` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_task_category`   FOREIGN KEY (`category_id`)   REFERENCES `category` (`id`)   ON DELETE RESTRICT,
+    CONSTRAINT `fk_task_region`     FOREIGN KEY (`region_id`)     REFERENCES `region` (`id`)     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='职位/岗位表';
 
 -- -------------------------------------------------------------------
--- 7. t_task_application - 投递报名表（最复杂核心表）
+-- 8. task_application - 投递报名表（最复杂核心表）
 -- -------------------------------------------------------------------
-CREATE TABLE `t_task_application` (
+CREATE TABLE `task_application` (
     `id`                 BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '投递记录ID',
     `task_id`            BIGINT(20)   NOT NULL                 COMMENT '关联职位ID',
     `applicant_id`       BIGINT(20)   NOT NULL                 COMMENT '求职者用户ID',
@@ -192,15 +209,15 @@ CREATE TABLE `t_task_application` (
     KEY `idx_status` (`status`),
     KEY `idx_hr_id` (`hr_id`),
     KEY `idx_task_status` (`task_id`, `status`),
-    CONSTRAINT `fk_application_task`      FOREIGN KEY (`task_id`)      REFERENCES `t_task` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_application_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `t_user` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_application_hr`        FOREIGN KEY (`hr_id`)        REFERENCES `t_user` (`id`) ON DELETE SET NULL
+    CONSTRAINT `fk_application_task`      FOREIGN KEY (`task_id`)      REFERENCES `task` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_application_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_application_hr`        FOREIGN KEY (`hr_id`)        REFERENCES `user` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='投递报名表';
 
 -- -------------------------------------------------------------------
--- 8. t_message - 消息通知表
+-- 9. notification - 消息通知表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_message` (
+CREATE TABLE `notification` (
     `id`          BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '消息ID',
     `receiver_id` BIGINT(20)   NOT NULL                 COMMENT '接收人用户ID',
     `sender_id`   BIGINT(20)   DEFAULT NULL             COMMENT '发送人用户ID（NULL表示系统通知）',
@@ -216,14 +233,14 @@ CREATE TABLE `t_message` (
     KEY `idx_receiver_read` (`receiver_id`, `is_read`),
     KEY `idx_biz_id` (`biz_id`),
     KEY `idx_receiver_time` (`receiver_id`, `create_time`),
-    CONSTRAINT `fk_message_receiver` FOREIGN KEY (`receiver_id`) REFERENCES `t_user` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_message_sender`   FOREIGN KEY (`sender_id`)   REFERENCES `t_user` (`id`) ON DELETE SET NULL
+    CONSTRAINT `fk_notification_receiver` FOREIGN KEY (`receiver_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_notification_sender`   FOREIGN KEY (`sender_id`)   REFERENCES `user` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息通知表';
 
 -- -------------------------------------------------------------------
--- 9. t_chat_session - 聊天会话表（HR与求职者一对一会话）
+-- 10. chat_session - 聊天会话表（HR与求职者一对一会话）
 -- -------------------------------------------------------------------
-CREATE TABLE `t_chat_session` (
+CREATE TABLE `chat_session` (
     `id`                  BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '会话ID',
     `task_application_id` BIGINT(20)   NOT NULL                 COMMENT '关联投递记录ID',
     `employer_id`         BIGINT(20)   NOT NULL                 COMMENT '企业方用户ID',
@@ -240,15 +257,15 @@ CREATE TABLE `t_chat_session` (
     KEY `idx_session_status` (`status`),
     KEY `idx_employer_status` (`employer_id`, `status`),
     KEY `idx_seeker_status` (`seeker_id`, `status`),
-    CONSTRAINT `fk_chat_session_application` FOREIGN KEY (`task_application_id`) REFERENCES `t_task_application` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_chat_session_employer`    FOREIGN KEY (`employer_id`)          REFERENCES `t_user` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_chat_session_seeker`      FOREIGN KEY (`seeker_id`)            REFERENCES `t_user` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_chat_session_application` FOREIGN KEY (`task_application_id`) REFERENCES `task_application` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_chat_session_employer`    FOREIGN KEY (`employer_id`)          REFERENCES `user` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_chat_session_seeker`      FOREIGN KEY (`seeker_id`)            REFERENCES `user` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话表';
 
 -- -------------------------------------------------------------------
--- 10. t_chat_message - 聊天消息表
+-- 11. chat_message - 聊天消息表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_chat_message` (
+CREATE TABLE `chat_message` (
     `id`           BIGINT(20) NOT NULL AUTO_INCREMENT  COMMENT '消息ID',
     `session_id`   BIGINT(20) NOT NULL                 COMMENT '关联会话ID',
     `sender_id`    BIGINT(20) NOT NULL                 COMMENT '发送方用户ID',
@@ -260,30 +277,34 @@ CREATE TABLE `t_chat_message` (
     KEY `idx_session_id` (`session_id`),
     KEY `idx_session_time` (`session_id`, `send_time`) COMMENT '聊天历史分页核心索引',
     KEY `idx_session_read` (`session_id`, `is_read`),
-    CONSTRAINT `fk_chat_message_session` FOREIGN KEY (`session_id`) REFERENCES `t_chat_session` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_chat_message_sender`  FOREIGN KEY (`sender_id`)  REFERENCES `t_user` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_chat_message_session` FOREIGN KEY (`session_id`) REFERENCES `chat_session` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_chat_message_sender`  FOREIGN KEY (`sender_id`)  REFERENCES `user` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
 
 -- -------------------------------------------------------------------
--- 11. t_statistics_daily - 运营日报统计表
+-- 12. daily_statistics - 运营日报统计表
+--     每日凌晨通过定时任务统计前一天的平台运营数据
 -- -------------------------------------------------------------------
-CREATE TABLE `t_statistics_daily` (
+CREATE TABLE `daily_statistics` (
     `id`                    BIGINT(20)    NOT NULL AUTO_INCREMENT  COMMENT '统计ID',
     `stat_date`             DATE          NOT NULL                 COMMENT '统计日期',
     `new_user_count`        INT(10)       NOT NULL DEFAULT 0       COMMENT '新增用户数',
     `new_enterprise_count`  INT(10)       NOT NULL DEFAULT 0       COMMENT '新增认证企业数',
     `new_task_count`        INT(10)       NOT NULL DEFAULT 0       COMMENT '新增职位数',
-    `completed_order_count` INT(10)       NOT NULL DEFAULT 0       COMMENT '完成结算单数',
-    `total_amount`          DECIMAL(12,2) NOT NULL DEFAULT 0.00    COMMENT '当日结算总金额',
+    `new_resume_count`      INT(10)       NOT NULL DEFAULT 0       COMMENT '新增简历数',
+    `new_delivery_count`    INT(10)       NOT NULL DEFAULT 0       COMMENT '新增投递数',
+    `new_interview_count`   INT(10)       NOT NULL DEFAULT 0       COMMENT '新增面试数',
+    `new_entry_count`       INT(10)       NOT NULL DEFAULT 0       COMMENT '新增入职数',
     `create_time`           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_stat_date` (`stat_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='运营日报统计表';
 
+
 -- -------------------------------------------------------------------
--- 12. t_complaint - 用户投诉处理表
+-- 13. complaint - 用户投诉处理表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_complaint` (
+CREATE TABLE `complaint` (
     `id`            BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '投诉ID',
     `complainant_id` BIGINT(20)  NOT NULL                 COMMENT '投诉人用户ID',
     `target_type`   TINYINT(1)  NOT NULL                 COMMENT '被投诉对象类型：0-职位, 1-企业, 2-用户',
@@ -300,14 +321,14 @@ CREATE TABLE `t_complaint` (
     KEY `idx_status` (`status`),
     KEY `idx_handler` (`handler_id`),
     KEY `idx_target` (`target_type`, `target_id`),
-    CONSTRAINT `fk_complaint_complainant` FOREIGN KEY (`complainant_id`) REFERENCES `t_user` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_complaint_handler`     FOREIGN KEY (`handler_id`)     REFERENCES `t_user` (`id`) ON DELETE SET NULL
+    CONSTRAINT `fk_complaint_complainant` FOREIGN KEY (`complainant_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_complaint_handler`     FOREIGN KEY (`handler_id`)     REFERENCES `user` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户投诉处理表';
 
 -- -------------------------------------------------------------------
--- 13. t_operation_log - 操作日志审计表
+-- 14. operation_log - 操作日志审计表
 -- -------------------------------------------------------------------
-CREATE TABLE `t_operation_log` (
+CREATE TABLE `operation_log` (
     `id`             BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '日志ID',
     `operator_id`   BIGINT(20)   DEFAULT NULL             COMMENT '操作人用户ID（NULL表示系统操作）',
     `operation_type` VARCHAR(50)  NOT NULL                 COMMENT '操作类型',
@@ -320,7 +341,7 @@ CREATE TABLE `t_operation_log` (
     KEY `idx_operator` (`operator_id`),
     KEY `idx_target` (`target_type`, `target_id`),
     KEY `idx_create_time` (`create_time`),
-    CONSTRAINT `fk_operation_log_operator` FOREIGN KEY (`operator_id`) REFERENCES `t_user` (`id`) ON DELETE SET NULL
+    CONSTRAINT `fk_operation_log_operator` FOREIGN KEY (`operator_id`) REFERENCES `user` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志审计表';
 
 -- ====================================================================
@@ -332,7 +353,7 @@ CREATE TABLE `t_operation_log` (
 -- -------------------------------------------------------------------
 
 -- 顶级分类（共15个）
-INSERT INTO `t_category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) VALUES
+INSERT INTO `category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) VALUES
 ( 1, NULL, '餐饮服务',  1, NOW()),
 ( 2, NULL, '家教辅导',  2, NOW()),
 ( 3, NULL, '快递物流',  3, NOW()),
@@ -350,7 +371,7 @@ INSERT INTO `t_category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`
 (15, NULL, '其他',     99, NOW());
 
 -- 子级分类（共15个）
-INSERT INTO `t_category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) VALUES
+INSERT INTO `category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) VALUES
 -- 餐饮服务子类（5个）
 (16, 1, '服务员',       1, NOW()),
 (17, 1, '后厨帮工',     2, NOW()),
@@ -377,7 +398,7 @@ INSERT INTO `t_category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`
 -- -------------------------------------------------------------------
 
 -- 省级行政区划（level=1, parent_id=NULL）
-INSERT INTO `t_region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_time`) VALUES
+INSERT INTO `region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_time`) VALUES
 (110000, NULL, '北京市', 1, 1, NOW()),
 (120000, NULL, '天津市', 1, 2, NOW()),
 (130000, NULL, '河北省', 1, 3, NOW()),
@@ -414,7 +435,7 @@ INSERT INTO `t_region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `creat
 (830000, NULL, '台湾省', 1, 34, NOW());
 
 -- 地级行政区划（level=2, 城市/自治州/盟）
-INSERT INTO `t_region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_time`) VALUES
+INSERT INTO `region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_time`) VALUES
 (130100, 130000, '石家庄市', 2, 1, NOW()),
 (130200, 130000, '唐山市', 2, 1, NOW()),
 (130300, 130000, '秦皇岛市', 2, 1, NOW()),
@@ -759,7 +780,7 @@ INSERT INTO `t_region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `creat
 (830900, 830000, '嘉义市', 2, 35, NOW());
 
 -- 区县级行政区划（level=3, 市辖区/县/县级市/旗）
-INSERT INTO `t_region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_time`) VALUES
+INSERT INTO `region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_time`) VALUES
 (110101, 110000, '东城区', 3, 1, NOW()),
 (110102, 110000, '西城区', 3, 1, NOW()),
 (110105, 110000, '朝阳区', 3, 1, NOW()),
