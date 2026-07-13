@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uniseek.dao.TaskApplicationMapper">
+
+    <resultMap id="BaseResultMap" type="com.uniseek.entity.TaskApplication">
+        <id column="id" property="id"/>
+        <result column="task_id" property="taskId"/>
+        <result column="applicant_id" property="applicantId"/>
+        <result column="resume_snapshot" property="resumeSnapshot"/>
+        <result column="attachment_url" property="attachmentUrl"/>
+        <result column="status" property="status"/>
+        <result column="hr_id" property="hrId"/>
+        <result column="interview_time" property="interviewTime"/>
+        <result column="interview_location" property="interviewLocation"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="hr_note" property="hrNote"/>
+        <result column="version" property="version"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uniseek.dao.DailyStatisticsMapper">
+
+    <resultMap id="BaseResultMap" type="com.uniseek.entity.DailyStatistics">
+        <id column="id" property="id"/>
+        <result column="stat_date" property="statDate"/>
+        <result column="new_user_count" property="newUserCount"/>
+        <result column="new_enterprise_count" property="newEnterpriseCount"/>
+        <result column="new_task_count" property="newTaskCount"/>
+        <result column="new_resume_count" property="newResumeCount"/>
+        <result column="new_delivery_count" property="newDeliveryCount"/>
+        <result column="new_interview_count" property="newInterviewCount"/>
+        <result column="new_entry_count" property="newEntryCount"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+</mapper>

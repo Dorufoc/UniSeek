@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uniseek.dao.EnterpriseMapper">
+
+    <resultMap id="BaseResultMap" type="com.uniseek.entity.Enterprise">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="company_name" property="companyName"/>
+        <result column="credit_code" property="creditCode"/>
+        <result column="license_img_url" property="licenseImgUrl"/>
+        <result column="industry" property="industry"/>
+        <result column="description" property="description"/>
+        <result column="audit_status" property="auditStatus"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+</mapper>
