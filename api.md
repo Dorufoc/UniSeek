@@ -3,7 +3,7 @@
 | 文档名称 | UniSeek API 接口文档 |
 |---|---|
 | 项目名称 | 基于 Spring Boot 的优寻（UniSeek）兼职招聘平台 |
-| 版本号 | V1.1 |
+| 版本号 | V1.2 |
 | 编写日期 | 2026-07-13 |
 | 基础路径 | `http://{host}:{port}/api` |
 
@@ -79,7 +79,7 @@
 
 ### 2.1 用户注册
 
-**接口描述**：手机号 + 密码注册，注册成功后自动登录并返回 JWT Token。
+**接口描述**：手机号 + 邮箱 + 密码注册，注册成功后自动登录并返回 JWT Token。
 
 | 项目 | 内容 |
 |---|---|
@@ -91,6 +91,7 @@
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | phone | String | 是 | 手机号（11 位数字，1 开头） |
+| email | String | 是 | 邮箱（标准邮箱格式，用于找回密码和通知） |
 | password | String | 是 | 密码（6~20 位） |
 | confirmPassword | String | 是 | 确认密码（需与 password 一致） |
 | nickname | String | 是 | 用户昵称（1~20 位） |
@@ -101,6 +102,7 @@
 ```json
 {
   "phone": "13800138000",
+  "email": "zhangsan@example.com",
   "password": "abc123456",
   "confirmPassword": "abc123456",
   "nickname": "张三",
@@ -119,6 +121,7 @@
     "userInfo": {
       "id": 1,
       "phone": "138****8000",
+      "email": "zha***@example.com",
       "nickname": "张三",
       "role": 0,
       "status": 1
@@ -132,7 +135,9 @@
 | 场景 | 响应 |
 |---|---|
 | 手机号格式错误 | `{ "code": 400, "message": "手机号格式不正确" }` |
+| 邮箱格式错误 | `{ "code": 400, "message": "邮箱格式不正确" }` |
 | 手机号已注册 | `{ "code": 409, "message": "该手机号已注册" }` |
+| 邮箱已注册 | `{ "code": 409, "message": "该邮箱已被注册" }` |
 | 密码长度不足 | `{ "code": 400, "message": "密码长度需为 6~20 位" }` |
 | 两次密码不一致 | `{ "code": 400, "message": "两次输入的密码不一致" }` |
 
@@ -174,6 +179,7 @@
     "userInfo": {
       "id": 1,
       "phone": "138****8000",
+      "email": "zha***@example.com",
       "nickname": "张三",
       "role": 0,
       "status": 1
@@ -234,6 +240,7 @@
   "data": {
     "id": 1,
     "phone": "138****8000",
+    "email": "zha***@example.com",
     "nickname": "张三",
     "avatar": null,
     "role": 0,
@@ -1844,6 +1851,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
       {
         "id": 1,
         "phone": "138****8000",
+        "email": "zha***@example.com",
         "nickname": "张三",
         "role": 0,
         "status": 1,
@@ -2817,7 +2825,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 序号 | 模块 | 方法 | 路径 | 权限 | 说明 |
 |---|---|---|---|---|---|
-| 1 | 认证 | POST | `/api/auth/register` | 公开 | 用户注册 |
+| 1 | 认证 | POST | `/api/auth/register` | 公开 | 用户注册（手机号+邮箱+密码） |
 | 2 | 认证 | POST | `/api/auth/login` | 公开 | 用户登录 |
 | 3 | 认证 | POST | `/api/auth/logout` | 登录 | 退出登录 |
 | 4 | 认证 | GET | `/api/auth/current-user` | 登录 | 获取当前用户信息 |
