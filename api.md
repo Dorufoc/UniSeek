@@ -1,0 +1,2063 @@
+# UniSeek 兼职招聘平台 API 接口文档
+
+| 文档名称 | UniSeek API 接口文档 |
+|---|---|
+| 项目名称 | 基于 Spring Boot 的优寻（UniSeek）兼职招聘平台 |
+| 版本号 | V1.0 |
+| 编写日期 | 2026-07-13 |
+| 基础路径 | `http://{host}:{port}/api` |
+
+---
+
+## 1. 通用约定
+
+### 1.1 请求格式
+- 所有请求体使用 `application/json` 格式
+- 文件上传使用 `multipart/form-data` 格式
+- 字符编码统一使用 `UTF-8`
+
+### 1.2 鉴权方式
+- 除注册、登录接口外，所有接口需在请求头携带 JWT Token
+- 请求头格式：`Authorization: Bearer {token}`
+- Token 有效期：30 分钟
+
+### 1.3 统一响应格式
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {}
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| code | Integer | 状态码，200 表示成功 |
+| message | String | 提示信息 |
+| data | Object | 响应数据，无数据时为 null |
+
+### 1.4 分页响应格式
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 5
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| records | Array | 当前页数据列表 |
+| total | Long | 总记录数 |
+| page | Integer | 当前页码 |
+| pageSize | Integer | 每页条数 |
+| totalPages | Integer | 总页数 |
+
+### 1.5 通用错误码
+
+| 错误码 | 说明 |
+|---|---|
+| 200 | 操作成功 |
+| 400 | 请求参数错误 |
+| 401 | 未认证（Token 无效或已过期） |
+| 403 | 无权限访问 |
+| 404 | 资源不存在 |
+| 409 | 数据冲突（如重复投递） |
+| 500 | 服务器内部错误 |
+
+---
+
+## 2. 认证模块（Auth）
+
+### 2.1 用户注册
+
+**接口描述**：手机号 + 密码注册，注册成功后自动登录并返回 JWT Token。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/auth/register` |
+| 鉴权 | 无需鉴权 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| phone | String | 是 | 手机号（11 位数字，1 开头） |
+| password | String | 是 | 密码（6~20 位） |
+| confirmPassword | String | 是 | 确认密码（需与 password 一致） |
+| nickname | String | 是 | 用户昵称（1~20 位） |
+| role | Integer | 是 | 角色：0 求职者 / 1 企业 HR（管理员由后台指定） |
+
+**请求示例**
+
+```json
+{
+  "phone": "13800138000",
+  "password": "abc123456",
+  "confirmPassword": "abc123456",
+  "nickname": "张三",
+  "role": 0
+}
+```
+
+**响应示例（成功）**
+
+```json
+{
+  "code": 200,
+  "message": "注册成功",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "userInfo": {
+      "id": 1,
+      "phone": "138****8000",
+      "nickname": "张三",
+      "role": 0,
+      "status": 1
+    }
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 手机号格式错误 | `{ "code": 400, "message": "手机号格式不正确" }` |
+| 手机号已注册 | `{ "code": 409, "message": "该手机号已注册" }` |
+| 密码长度不足 | `{ "code": 400, "message": "密码长度需为 6~20 位" }` |
+| 两次密码不一致 | `{ "code": 400, "message": "两次输入的密码不一致" }` |
+
+---
+
+### 2.2 用户登录
+
+**接口描述**：手机号 + 密码登录，校验通过后返回 JWT Token。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/auth/login` |
+| 鉴权 | 无需鉴权 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| phone | String | 是 | 手机号 |
+| password | String | 是 | 密码 |
+
+**请求示例**
+
+```json
+{
+  "phone": "13800138000",
+  "password": "abc123456"
+}
+```
+
+**响应示例（成功）**
+
+```json
+{
+  "code": 200,
+  "message": "登录成功",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "userInfo": {
+      "id": 1,
+      "phone": "138****8000",
+      "nickname": "张三",
+      "role": 0,
+      "status": 1
+    }
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 手机号或密码错误 | `{ "code": 400, "message": "手机号或密码错误" }` |
+| 账号已被禁用 | `{ "code": 403, "message": "账号已被禁用，请联系管理员" }` |
+
+---
+
+### 2.3 退出登录
+
+**接口描述**：退出当前登录状态，前端清除 Token。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/auth/logout` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "退出成功",
+  "data": null
+}
+```
+
+---
+
+### 2.4 获取当前用户信息
+
+**接口描述**：根据 Token 解析用户 ID，返回当前登录用户的基本信息。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/auth/current-user` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "phone": "138****8000",
+    "nickname": "张三",
+    "avatar": null,
+    "role": 0,
+    "status": 1,
+    "creditScore": 100,
+    "lastLoginTime": "2026-07-13 10:30:00",
+    "createTime": "2026-07-01 09:00:00"
+  }
+}
+```
+
+---
+
+### 2.5 修改密码
+
+**接口描述**：已登录用户修改自己的登录密码。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/auth/password` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| oldPassword | String | 是 | 原密码 |
+| newPassword | String | 是 | 新密码（6~20 位） |
+| confirmPassword | String | 是 | 确认新密码 |
+
+**请求示例**
+
+```json
+{
+  "oldPassword": "abc123456",
+  "newPassword": "xyz789012",
+  "confirmPassword": "xyz789012"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "密码修改成功",
+  "data": null
+}
+```
+
+---
+
+## 3. 用户模块（User）
+
+### 3.1 更新个人资料
+
+**接口描述**：更新当前登录用户的昵称、头像等基本信息。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/user/profile` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| nickname | String | 否 | 昵称（1~20 位） |
+| avatar | String | 否 | 头像 URL |
+
+**请求示例**
+
+```json
+{
+  "nickname": "张三丰",
+  "avatar": "https://cdn.uniseek.com/avatars/1.jpg"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "更新成功",
+  "data": {
+    "id": 1,
+    "nickname": "张三丰",
+    "avatar": "https://cdn.uniseek.com/avatars/1.jpg"
+  }
+}
+```
+
+---
+
+## 4. 简历模块（Resume）
+
+### 4.1 获取我的简历
+
+**接口描述**：求职者获取自己的在线简历信息。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/resume` |
+| 鉴权 | 需要鉴权，角色限制：求职者（0） |
+| 权限 | 求职者 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "userId": 1,
+    "realName": "张三",
+    "gender": 0,
+    "birthDate": "2000-01-15",
+    "education": "本科",
+    "school": "清华大学",
+    "skills": "[\"Java\",\"Spring Boot\",\"Vue\"]",
+    "experience": "<p>曾在某公司担任实习生...</p>",
+    "attachmentUrl": "https://cdn.uniseek.com/resumes/1.pdf",
+    "updateTime": "2026-07-10 14:00:00"
+  }
+}
+```
+
+---
+
+### 4.2 创建/更新简历
+
+**接口描述**：求职者创建或更新在线简历。若简历不存在则创建，存在则更新。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/resume` |
+| 鉴权 | 需要鉴权，角色限制：求职者（0） |
+| 权限 | 求职者 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| realName | String | 否 | 真实姓名 |
+| gender | Integer | 否 | 性别：0 男 / 1 女 |
+| birthDate | String | 否 | 出生日期（yyyy-MM-dd） |
+| education | String | 否 | 学历 |
+| school | String | 否 | 毕业院校 |
+| skills | String | 否 | 技能标签（JSON 数组字符串） |
+| experience | String | 否 | 工作/实践经历（富文本 HTML） |
+| attachmentUrl | String | 否 | 附件简历 URL |
+
+**请求示例**
+
+```json
+{
+  "realName": "张三",
+  "gender": 0,
+  "birthDate": "2000-01-15",
+  "education": "本科",
+  "school": "清华大学",
+  "skills": "[\"Java\",\"Spring Boot\",\"Vue\"]",
+  "experience": "<p>曾在某公司担任实习生，负责...</p>"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "简历保存成功",
+  "data": {
+    "id": 1,
+    "realName": "张三",
+    "gender": 0,
+    "birthDate": "2000-01-15",
+    "education": "本科",
+    "school": "清华大学",
+    "skills": "[\"Java\",\"Spring Boot\",\"Vue\"]",
+    "experience": "<p>曾在某公司担任实习生，负责...</p>",
+    "attachmentUrl": null,
+    "updateTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+---
+
+### 4.3 上传附件简历
+
+**接口描述**：求职者上传 PDF/Word 格式的附件简历。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/resume/upload-attachment` |
+| 鉴权 | 需要鉴权，角色限制：求职者（0） |
+| 权限 | 求职者 |
+| Content-Type | `multipart/form-data` |
+
+**请求参数（Form-Data）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| file | File | 是 | 简历文件，支持 PDF / Word 格式，最大 10MB |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "上传成功",
+  "data": {
+    "attachmentUrl": "https://cdn.uniseek.com/resumes/1_20260713.pdf"
+  }
+}
+```
+
+---
+
+## 5. 职位分类模块（Category）
+
+### 5.1 获取分类列表
+
+**接口描述**：获取所有职位分类，以树形结构返回。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/categories` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "parentId": 0,
+      "name": "餐饮服务",
+      "sortOrder": 1,
+      "children": [
+        {
+          "id": 16,
+          "parentId": 1,
+          "name": "服务员",
+          "sortOrder": 1,
+          "children": []
+        },
+        {
+          "id": 17,
+          "parentId": 1,
+          "name": "后厨帮工",
+          "sortOrder": 2,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "parentId": 0,
+      "name": "家教辅导",
+      "sortOrder": 2,
+      "children": []
+    }
+  ]
+}
+```
+
+---
+
+## 6. 职位模块（Task）
+
+### 6.1 职位列表（搜索 & 筛选）
+
+**接口描述**：分页查询职位列表，支持关键词搜索、分类筛选、薪资筛选、地点筛选、排序。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/tasks` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| keyword | String | 否 | 搜索关键词（匹配职位标题） |
+| categoryId | Long | 否 | 分类 ID |
+| salaryMin | BigDecimal | 否 | 最低薪资 |
+| salaryMax | BigDecimal | 否 | 最高薪资 |
+| salaryUnit | Integer | 否 | 薪资单位：0 日结 / 1 时薪 / 2 月结 |
+| address | String | 否 | 工作地点（模糊搜索） |
+| sortBy | String | 否 | 排序字段：create_time（最新）/ salary_max（薪资）/ 默认按 create_time |
+| sortOrder | String | 否 | 排序方向：asc / desc（默认 desc） |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20，最大 100） |
+
+**请求示例**
+
+```
+GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1&pageSize=20
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "enterpriseId": 1,
+        "enterpriseName": "某某餐饮有限公司",
+        "categoryId": 16,
+        "categoryName": "服务员",
+        "title": "周末餐厅服务员",
+        "salaryMin": 150.00,
+        "salaryMax": 200.00,
+        "salaryUnit": 0,
+        "totalQuota": 5,
+        "remainingQuota": 3,
+        "address": "北京市朝阳区某某路 100 号",
+        "status": 1,
+        "deadline": "2026-07-20 23:59:59",
+        "createTime": "2026-07-10 10:00:00"
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 5
+  }
+}
+```
+
+---
+
+### 6.2 职位详情
+
+**接口描述**：获取单个职位的完整信息。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/tasks/{id}` |
+| 鉴权 | 需要鉴权 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 职位 ID |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "enterpriseId": 1,
+    "enterpriseName": "某某餐饮有限公司",
+    "enterpriseIndustry": "餐饮",
+    "categoryId": 16,
+    "categoryName": "服务员",
+    "title": "周末餐厅服务员",
+    "description": "<p>负责餐厅日常服务工作...</p>",
+    "salaryMin": 150.00,
+    "salaryMax": 200.00,
+    "salaryUnit": 0,
+    "totalQuota": 5,
+    "remainingQuota": 3,
+    "address": "北京市朝阳区某某路 100 号",
+    "longitude": 116.4612345,
+    "latitude": 39.9012345,
+    "status": 1,
+    "deadline": "2026-07-20 23:59:59",
+    "createTime": "2026-07-10 10:00:00",
+    "updateTime": "2026-07-10 10:00:00",
+    "hasApplied": false
+  }
+}
+```
+
+---
+
+### 6.3 发布职位
+
+**接口描述**：企业 HR 发布新职位，提交后状态为「待审核」。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/tasks` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 企业 HR（需企业资质已认证） |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| categoryId | Long | 是 | 分类 ID |
+| title | String | 是 | 职位标题（1~100 位） |
+| description | String | 是 | 职位描述（富文本 HTML） |
+| salaryMin | BigDecimal | 是 | 薪资范围最低值 |
+| salaryMax | BigDecimal | 是 | 薪资范围最高值 |
+| salaryUnit | Integer | 是 | 薪资单位：0 日结 / 1 时薪 / 2 月结 |
+| totalQuota | Integer | 是 | 招聘总人数（≥1） |
+| address | String | 否 | 工作地址 |
+| longitude | BigDecimal | 否 | 经度 |
+| latitude | BigDecimal | 否 | 纬度 |
+| deadline | String | 否 | 报名截止时间（yyyy-MM-dd HH:mm:ss） |
+
+**请求示例**
+
+```json
+{
+  "categoryId": 16,
+  "title": "周末餐厅服务员",
+  "description": "<p>负责餐厅日常服务工作...</p>",
+  "salaryMin": 150.00,
+  "salaryMax": 200.00,
+  "salaryUnit": 0,
+  "totalQuota": 5,
+  "address": "北京市朝阳区某某路 100 号",
+  "longitude": 116.4612345,
+  "latitude": 39.9012345,
+  "deadline": "2026-07-20 23:59:59"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "职位发布成功，等待审核",
+  "data": {
+    "id": 1,
+    "status": 0,
+    "createTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 企业未认证 | `{ "code": 403, "message": "企业资质未认证，无法发布职位" }` |
+
+---
+
+### 6.4 更新职位
+
+**接口描述**：企业 HR 更新自己发布的职位信息（仅限「待审核」或「已下架」状态的职位）。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/tasks/{id}` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 仅限本企业发布的职位 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 职位 ID |
+
+**请求参数（Body）**：同 6.3 发布职位
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "职位更新成功",
+  "data": {
+    "id": 1,
+    "updateTime": "2026-07-13 11:00:00"
+  }
+}
+```
+
+---
+
+### 6.5 修改职位状态
+
+**接口描述**：企业 HR 下架自己的职位，或管理员强制下架/审核职位。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/tasks/{id}/status` |
+| 鉴权 | 需要鉴权 |
+| 权限 | 企业 HR：仅可下架本企业职位（→ 4）；管理员：可审核（→ 1）或下架（→ 4） |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 职位 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 是 | 目标状态：1 审核通过（管理员）/ 4 下架 |
+| reason | String | 否 | 操作原因（下架时必填） |
+
+**请求示例**
+
+```json
+{
+  "status": 4,
+  "reason": "招聘名额已满，提前下架"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "状态更新成功",
+  "data": {
+    "id": 1,
+    "status": 4,
+    "updateTime": "2026-07-13 12:00:00"
+  }
+}
+```
+
+---
+
+### 6.6 本企业职位列表
+
+**接口描述**：企业 HR 查看本企业发布的所有职位。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/enterprise/tasks` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 企业 HR |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 否 | 筛选状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "title": "周末餐厅服务员",
+        "categoryName": "服务员",
+        "status": 1,
+        "totalQuota": 5,
+        "remainingQuota": 3,
+        "applicationCount": 12,
+        "createTime": "2026-07-10 10:00:00"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+## 7. 投递模块（Application）
+
+### 7.1 投递职位
+
+**接口描述**：求职者对职位进行投递，系统生成简历快照并创建投递记录。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/applications` |
+| 鉴权 | 需要鉴权，角色限制：求职者（0） |
+| 权限 | 求职者 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| taskId | Long | 是 | 职位 ID |
+
+**请求示例**
+
+```json
+{
+  "taskId": 1
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "投递成功",
+  "data": {
+    "id": 1,
+    "taskId": 1,
+    "status": 0,
+    "createTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 简历未填写 | `{ "code": 400, "message": "请先完善您的在线简历" }` |
+| 已投递过该职位 | `{ "code": 409, "message": "您已投递过该职位，请勿重复投递" }` |
+| 职位不在招聘中 | `{ "code": 400, "message": "该职位当前不可投递" }` |
+| 职位已满员 | `{ "code": 400, "message": "该职位已满员" }` |
+
+---
+
+### 7.2 我的投递记录
+
+**接口描述**：求职者查看自己的所有投递记录及状态。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/applications/my` |
+| 鉴权 | 需要鉴权，角色限制：求职者（0） |
+| 权限 | 求职者 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 否 | 筛选状态：0 已投递 / 1 待面试 / 2 待定 / 3 已录用 / 4 已淘汰 / 5 已完成 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "taskId": 1,
+        "taskTitle": "周末餐厅服务员",
+        "enterpriseName": "某某餐饮有限公司",
+        "status": 0,
+        "interviewTime": null,
+        "interviewLocation": null,
+        "createTime": "2026-07-13 10:00:00",
+        "updateTime": "2026-07-13 10:00:00"
+      }
+    ],
+    "total": 10,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 7.3 投递详情
+
+**接口描述**：查看某条投递记录的完整详情，包括简历快照。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/applications/{id}` |
+| 鉴权 | 需要鉴权 |
+| 权限 | 求职者：仅限自己的投递；HR：仅限本企业职位的投递；管理员：全部 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 投递记录 ID |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "taskId": 1,
+    "taskTitle": "周末餐厅服务员",
+    "taskDescription": "<p>负责餐厅日常服务工作...</p>",
+    "enterpriseName": "某某餐饮有限公司",
+    "applicantId": 1,
+    "applicantName": "张三",
+    "resumeSnapshot": {
+      "realName": "张三",
+      "gender": 0,
+      "birthDate": "2000-01-15",
+      "education": "本科",
+      "school": "清华大学",
+      "skills": "[\"Java\",\"Spring Boot\",\"Vue\"]",
+      "experience": "<p>曾在某公司担任实习生...</p>"
+    },
+    "attachmentUrl": "https://cdn.uniseek.com/resumes/1.pdf",
+    "status": 0,
+    "interviewTime": null,
+    "interviewLocation": null,
+    "rejectReason": null,
+    "hrNote": null,
+    "hrId": null,
+    "createTime": "2026-07-13 10:00:00",
+    "updateTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+---
+
+### 7.4 职位投递列表（HR 视角）
+
+**接口描述**：企业 HR 查看某个职位的所有投递记录（简历池）。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/tasks/{taskId}/applications` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 仅限本企业职位的投递 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| taskId | Long | 职位 ID |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 否 | 筛选状态 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "applicantId": 1,
+        "applicantName": "张三",
+        "applicantEducation": "本科",
+        "applicantSchool": "清华大学",
+        "status": 0,
+        "interviewTime": null,
+        "createTime": "2026-07-13 10:00:00"
+      }
+    ],
+    "total": 12,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 7.5 修改投递状态（HR 处理投递）
+
+**接口描述**：企业 HR 对投递记录进行操作（邀请面试、录用、淘汰、待定等）。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/applications/{id}/status` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 仅限本企业职位下的投递 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 投递记录 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 是 | 目标状态：1 待面试 / 2 待定 / 3 已录用 / 4 已淘汰 |
+| interviewTime | String | 条件必填 | 面试时间，状态为 1（待面试）时必填 |
+| interviewLocation | String | 条件必填 | 面试地点，状态为 1（待面试）时必填 |
+| rejectReason | String | 条件必填 | 淘汰原因，状态为 4（已淘汰）时必填 |
+| hrNote | String | 否 | HR 内部备注（求职者不可见） |
+
+**请求示例（邀请面试）**
+
+```json
+{
+  "status": 1,
+  "interviewTime": "2026-07-15 14:00:00",
+  "interviewLocation": "北京市朝阳区某某路 100 号 3 楼会议室",
+  "hrNote": "该求职者经验丰富，优先面试"
+}
+```
+
+**请求示例（淘汰）**
+
+```json
+{
+  "status": 4,
+  "rejectReason": "技能不匹配岗位要求",
+  "hrNote": "缺乏餐饮行业经验"
+}
+```
+
+**请求示例（录用）**
+
+```json
+{
+  "status": 3,
+  "hrNote": "面试表现优秀，予以录用"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "status": 1,
+    "interviewTime": "2026-07-15 14:00:00",
+    "interviewLocation": "北京市朝阳区某某路 100 号 3 楼会议室",
+    "updateTime": "2026-07-13 11:00:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 状态流转不合法 | `{ "code": 400, "message": "不允许从当前状态转变到目标状态" }` |
+| 并发冲突（乐观锁） | `{ "code": 409, "message": "操作失败，该记录已被其他 HR 修改，请刷新后重试" }` |
+| 名额已满 | `{ "code": 400, "message": "该职位名额已满，无法录用" }` |
+
+---
+
+## 8. 企业模块（Enterprise）
+
+### 8.1 提交企业资质认证
+
+**接口描述**：企业 HR 提交企业资质信息进行认证。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/enterprise` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 企业 HR |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| companyName | String | 是 | 公司全称 |
+| creditCode | String | 是 | 统一社会信用代码（18 位） |
+| licenseImgUrl | String | 是 | 营业执照图片 URL |
+| industry | String | 否 | 所属行业 |
+| description | String | 否 | 公司简介 |
+
+**请求示例**
+
+```json
+{
+  "companyName": "某某餐饮有限公司",
+  "creditCode": "91110108MA01XXXXX",
+  "licenseImgUrl": "https://cdn.uniseek.com/licenses/1.jpg",
+  "industry": "餐饮",
+  "description": "某某餐饮有限公司成立于 2010 年，主营中式快餐..."
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "资质提交成功，等待审核",
+  "data": {
+    "id": 1,
+    "auditStatus": 0,
+    "createTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 已提交过认证 | `{ "code": 409, "message": "您已提交过企业认证，请勿重复提交" }` |
+| 信用代码已存在 | `{ "code": 409, "message": "该统一社会信用代码已被注册" }` |
+
+---
+
+### 8.2 获取我的企业信息
+
+**接口描述**：企业 HR 获取自己关联的企业信息及认证状态。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/enterprise/my` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 企业 HR |
+
+**请求参数**：无
+
+**响应示例（未认证）**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": null
+}
+```
+
+**响应示例（审核中）**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "companyName": "某某餐饮有限公司",
+    "creditCode": "91110108MA01XXXXX",
+    "licenseImgUrl": "https://cdn.uniseek.com/licenses/1.jpg",
+    "industry": "餐饮",
+    "description": "某某餐饮有限公司成立于 2010 年...",
+    "auditStatus": 0,
+    "createTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+---
+
+### 8.3 更新企业信息
+
+**接口描述**：企业 HR 更新已认证或已驳回的企业信息，更新后需重新审核。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/enterprise` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 企业 HR |
+
+**请求参数（Body）**：同 8.1
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "企业信息更新成功，等待审核",
+  "data": {
+    "id": 1,
+    "auditStatus": 0
+  }
+}
+```
+
+---
+
+## 9. 管理员模块（Admin）
+
+### 9.1 企业审核列表
+
+**接口描述**：管理员查看待审核的企业列表。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/enterprises` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| auditStatus | Integer | 否 | 筛选状态：0 待审 / 1 已认证 / 2 已驳回 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "userId": 2,
+        "contactPhone": "139****9000",
+        "companyName": "某某餐饮有限公司",
+        "creditCode": "91110108MA01XXXXX",
+        "licenseImgUrl": "https://cdn.uniseek.com/licenses/1.jpg",
+        "industry": "餐饮",
+        "auditStatus": 0,
+        "createTime": "2026-07-13 10:00:00"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 9.2 企业资质审核
+
+**接口描述**：管理员审核企业资质，通过或驳回。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/admin/enterprises/{id}/audit` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 企业 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| auditStatus | Integer | 是 | 审核结果：1 已认证 / 2 驳回 |
+| reason | String | 条件必填 | 驳回原因，驳回时必填 |
+
+**请求示例（通过）**
+
+```json
+{
+  "auditStatus": 1
+}
+```
+
+**请求示例（驳回）**
+
+```json
+{
+  "auditStatus": 2,
+  "reason": "营业执照图片模糊不清，请重新上传"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "审核完成",
+  "data": {
+    "id": 1,
+    "auditStatus": 1
+  }
+}
+```
+
+---
+
+### 9.3 待审核职位列表
+
+**接口描述**：管理员查看所有待审核的职位。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/tasks/pending` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "enterpriseName": "某某餐饮有限公司",
+        "categoryName": "服务员",
+        "title": "周末餐厅服务员",
+        "salaryMin": 150.00,
+        "salaryMax": 200.00,
+        "totalQuota": 5,
+        "status": 0,
+        "createTime": "2026-07-13 10:00:00"
+      }
+    ],
+    "total": 8,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 9.4 职位审核
+
+**接口描述**：管理员审核职位，通过或驳回。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/admin/tasks/{id}/audit` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 职位 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| auditStatus | Integer | 是 | 审核结果：1 通过（→ 招聘中）/ 2 驳回 |
+| reason | String | 条件必填 | 驳回原因，驳回时必填 |
+
+**请求示例（通过）**
+
+```json
+{
+  "auditStatus": 1
+}
+```
+
+**请求示例（驳回）**
+
+```json
+{
+  "auditStatus": 2,
+  "reason": "职位描述中包含不实信息，请修改后重新提交"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "审核完成",
+  "data": {
+    "id": 1,
+    "status": 1
+  }
+}
+```
+
+---
+
+### 9.5 数据统计看板
+
+**接口描述**：管理员查看运营数据统计。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/statistics` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| startDate | String | 否 | 开始日期（yyyy-MM-dd） |
+| endDate | String | 否 | 结束日期（yyyy-MM-dd） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "summary": {
+      "totalUsers": 1500,
+      "totalEnterprises": 120,
+      "totalTasks": 500,
+      "totalApplications": 3200,
+      "totalCompletedOrders": 800,
+      "totalAmount": 256000.00
+    },
+    "dailyStats": [
+      {
+        "statDate": "2026-07-12",
+        "newUserCount": 45,
+        "newEnterpriseCount": 3,
+        "newTaskCount": 18,
+        "completedOrderCount": 25,
+        "totalAmount": 8500.00
+      },
+      {
+        "statDate": "2026-07-11",
+        "newUserCount": 38,
+        "newEnterpriseCount": 2,
+        "newTaskCount": 15,
+        "completedOrderCount": 20,
+        "totalAmount": 7200.00
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 9.6 用户管理列表
+
+**接口描述**：管理员查看平台所有用户。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/users` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| keyword | String | 否 | 搜索（手机号/昵称） |
+| role | Integer | 否 | 角色筛选：0 求职者 / 1 企业 HR |
+| status | Integer | 否 | 状态：0 禁用 / 1 正常 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "phone": "138****8000",
+        "nickname": "张三",
+        "role": 0,
+        "status": 1,
+        "creditScore": 100,
+        "lastLoginTime": "2026-07-13 10:00:00",
+        "createTime": "2026-07-01 09:00:00"
+      }
+    ],
+    "total": 1500,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 75
+  }
+}
+```
+
+---
+
+### 9.7 禁用/启用用户
+
+**接口描述**：管理员禁用或启用用户账号。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/admin/users/{id}/status` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 用户 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 是 | 0 禁用 / 1 启用 |
+
+**请求示例**
+
+```json
+{
+  "status": 0
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "status": 0
+  }
+}
+```
+
+---
+
+## 10. 消息模块（Message）
+
+### 10.1 消息列表
+
+**接口描述**：用户查看自己的站内消息列表。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/messages` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| type | Integer | 否 | 类型筛选：0 系统通知 / 1 面试邀请 / 2 录用通知 / 3 淘汰通知 |
+| isRead | Integer | 否 | 已读状态筛选：0 未读 / 1 已读 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "title": "面试邀请通知",
+        "content": "恭喜您通过初筛，请于 2026-07-15 14:00 参加面试",
+        "type": 1,
+        "isRead": 0,
+        "bizId": 1,
+        "createTime": "2026-07-13 11:00:00"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 10.2 未读消息数
+
+**接口描述**：获取当前用户未读消息总数。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/messages/unread-count` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "totalUnread": 5,
+    "systemUnread": 1,
+    "interviewUnread": 2,
+    "offerUnread": 1,
+    "rejectUnread": 1
+  }
+}
+```
+
+---
+
+### 10.3 标记消息已读
+
+**接口描述**：将指定消息标记为已读。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/messages/{id}/read` |
+| 鉴权 | 需要鉴权 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 消息 ID |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": null
+}
+```
+
+---
+
+### 10.4 全部标记已读
+
+**接口描述**：将当前用户所有未读消息标记为已读。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/messages/read-all` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "全部消息已标记为已读",
+  "data": {
+    "affectedCount": 5
+  }
+}
+```
+
+---
+
+## 11. 聊天模块（Chat）
+
+### 11.1 聊天会话列表
+
+**接口描述**：获取当前用户的所有聊天会话，每个会话关联一条投递记录。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/chat/sessions` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "applicationId": 1,
+        "taskId": 1,
+        "taskTitle": "周末餐厅服务员",
+        "taskStatus": 1,
+        "counterpartId": 2,
+        "counterpartName": "李 HR",
+        "counterpartAvatar": "https://cdn.uniseek.com/avatars/2.jpg",
+        "lastMessage": "你好，请问工作时间是几点到几点？",
+        "lastMessageTime": "2026-07-13 11:30:00",
+        "unreadCount": 2
+      }
+    ],
+    "total": 3,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 11.2 加载聊天历史消息
+
+**接口描述**：加载指定会话的聊天历史消息，按时间正序排列，自动将对方消息标记为已读。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/chat/sessions/{applicationId}/messages` |
+| 鉴权 | 需要鉴权 |
+| 权限 | 求职者：仅限自己的投递；HR：仅限本企业职位的投递；管理员：全部 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| applicationId | Long | 投递记录 ID |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| beforeId | Long | 否 | 加载此 ID 之前的消息（向上翻页），不传则加载最新 20 条 |
+| pageSize | Integer | 否 | 每页条数（默认 20，最大 50） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "senderId": 1,
+        "senderName": "张三",
+        "senderAvatar": "https://cdn.uniseek.com/avatars/1.jpg",
+        "content": "您好，我对这个职位很感兴趣",
+        "isRead": 1,
+        "createTime": "2026-07-13 10:05:00"
+      },
+      {
+        "id": 2,
+        "senderId": 2,
+        "senderName": "李 HR",
+        "senderAvatar": "https://cdn.uniseek.com/avatars/2.jpg",
+        "content": "你好，请问你的工作经验是？",
+        "isRead": 1,
+        "createTime": "2026-07-13 10:10:00"
+      }
+    ],
+    "hasMore": false
+  }
+}
+```
+
+---
+
+### 11.3 发送聊天消息
+
+**接口描述**：在指定会话中发送聊天消息。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/chat/sessions/{applicationId}/messages` |
+| 鉴权 | 需要鉴权 |
+| 权限 | 求职者：仅限自己的投递；HR：仅限本企业职位的投递 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| applicationId | Long | 投递记录 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| content | String | 是 | 消息内容（1~2000 字） |
+
+**请求示例**
+
+```json
+{
+  "content": "你好，请问工作时间是几点到几点？"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "发送成功",
+  "data": {
+    "id": 3,
+    "senderId": 1,
+    "content": "你好，请问工作时间是几点到几点？",
+    "isRead": 0,
+    "createTime": "2026-07-13 11:30:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 权限校验失败 | `{ "code": 403, "message": "无权发送消息" }` |
+| 消息内容为空 | `{ "code": 400, "message": "消息内容不能为空" }` |
+| 消息内容超长 | `{ "code": 400, "message": "消息内容不能超过 2000 字" }` |
+
+---
+
+## 12. 文件上传模块（Upload）
+
+### 12.1 上传图片
+
+**接口描述**：上传图片文件，用于营业执照、头像等。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/upload/image` |
+| 鉴权 | 需要鉴权 |
+| Content-Type | `multipart/form-data` |
+
+**请求参数（Form-Data）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| file | File | 是 | 图片文件，支持 jpg / png / webp，最大 5MB |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "上传成功",
+  "data": {
+    "url": "https://cdn.uniseek.com/images/20260713/abc123.jpg"
+  }
+}
+```
+
+---
+
+### 12.2 上传文件
+
+**接口描述**：上传通用文件，用于附件简历等。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/upload/file` |
+| 鉴权 | 需要鉴权 |
+| Content-Type | `multipart/form-data` |
+
+**请求参数（Form-Data）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| file | File | 是 | 文件，支持 pdf / doc / docx，最大 10MB |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "上传成功",
+  "data": {
+    "url": "https://cdn.uniseek.com/files/20260713/xyz789.pdf"
+  }
+}
+```
+
+---
+
+## 13. API 接口汇总
+
+| 序号 | 模块 | 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|---|---|
+| 1 | 认证 | POST | `/api/auth/register` | 公开 | 用户注册 |
+| 2 | 认证 | POST | `/api/auth/login` | 公开 | 用户登录 |
+| 3 | 认证 | POST | `/api/auth/logout` | 登录 | 退出登录 |
+| 4 | 认证 | GET | `/api/auth/current-user` | 登录 | 获取当前用户信息 |
+| 5 | 认证 | PUT | `/api/auth/password` | 登录 | 修改密码 |
+| 6 | 用户 | PUT | `/api/user/profile` | 登录 | 更新个人资料 |
+| 7 | 简历 | GET | `/api/resume` | 求职者 | 获取我的简历 |
+| 8 | 简历 | PUT | `/api/resume` | 求职者 | 创建/更新简历 |
+| 9 | 简历 | POST | `/api/resume/upload-attachment` | 求职者 | 上传附件简历 |
+| 10 | 分类 | GET | `/api/categories` | 登录 | 获取分类列表 |
+| 11 | 职位 | GET | `/api/tasks` | 登录 | 职位列表（搜索&筛选） |
+| 12 | 职位 | GET | `/api/tasks/{id}` | 登录 | 职位详情 |
+| 13 | 职位 | POST | `/api/tasks` | 企业 HR | 发布职位 |
+| 14 | 职位 | PUT | `/api/tasks/{id}` | 企业 HR | 更新职位 |
+| 15 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员 | 修改职位状态 |
+| 16 | 职位 | GET | `/api/enterprise/tasks` | 企业 HR | 本企业职位列表 |
+| 17 | 投递 | POST | `/api/applications` | 求职者 | 投递职位 |
+| 18 | 投递 | GET | `/api/applications/my` | 求职者 | 我的投递记录 |
+| 19 | 投递 | GET | `/api/applications/{id}` | 登录 | 投递详情 |
+| 20 | 投递 | GET | `/api/tasks/{taskId}/applications` | 企业 HR | 职位投递列表 |
+| 21 | 投递 | PUT | `/api/applications/{id}/status` | 企业 HR | 修改投递状态 |
+| 22 | 企业 | POST | `/api/enterprise` | 企业 HR | 提交企业资质 |
+| 23 | 企业 | GET | `/api/enterprise/my` | 企业 HR | 获取我的企业信息 |
+| 24 | 企业 | PUT | `/api/enterprise` | 企业 HR | 更新企业信息 |
+| 25 | 管理 | GET | `/api/admin/enterprises` | 管理员 | 企业审核列表 |
+| 26 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员 | 企业资质审核 |
+| 27 | 管理 | GET | `/api/admin/tasks/pending` | 管理员 | 待审核职位列表 |
+| 28 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员 | 职位审核 |
+| 29 | 管理 | GET | `/api/admin/statistics` | 管理员 | 数据统计看板 |
+| 30 | 管理 | GET | `/api/admin/users` | 管理员 | 用户管理列表 |
+| 31 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员 | 禁用/启用用户 |
+| 32 | 消息 | GET | `/api/messages` | 登录 | 消息列表 |
+| 33 | 消息 | GET | `/api/messages/unread-count` | 登录 | 未读消息数 |
+| 34 | 消息 | PUT | `/api/messages/{id}/read` | 登录 | 标记消息已读 |
+| 35 | 消息 | PUT | `/api/messages/read-all` | 登录 | 全部标记已读 |
+| 36 | 聊天 | GET | `/api/chat/sessions` | 登录 | 聊天会话列表 |
+| 37 | 聊天 | GET | `/api/chat/sessions/{applicationId}/messages` | 登录 | 加载聊天历史 |
+| 38 | 聊天 | POST | `/api/chat/sessions/{applicationId}/messages` | 登录 | 发送聊天消息 |
+| 39 | 上传 | POST | `/api/upload/image` | 登录 | 上传图片 |
+| 40 | 上传 | POST | `/api/upload/file` | 登录 | 上传文件 |
+
+---
+
+## 14. 附录：状态枚举说明
+
+### 14.1 投递状态（Application Status）
+
+| 状态值 | 状态名称 | 说明 |
+|---|---|---|
+| 0 | 已投递 | 求职者已投递简历，等待 HR 处理 |
+| 1 | 待面试 | HR 已标记为待面试，已发送面试邀请 |
+| 2 | 待定 | HR 暂未做最终决定 |
+| 3 | 已录用 | HR 已录用该求职者 |
+| 4 | 已淘汰 | HR 已淘汰该求职者 |
+| 5 | 已完成 | 该兼职工作已结算完成 |
+
+### 14.2 职位状态（Task Status）
+
+| 状态值 | 状态名称 | 说明 |
+|---|---|---|
+| 0 | 待审核 | 企业已提交，等待运营审核 |
+| 1 | 招聘中 | 审核通过，求职者可浏览投递 |
+| 2 | 已满员 | 剩余名额为 0，自动变更 |
+| 3 | 已过期 | 报名截止时间已过 |
+| 4 | 已下架 | 企业手动下架或运营强制下架 |
+
+### 14.3 企业审核状态（Audit Status）
+
+| 状态值 | 状态名称 | 说明 |
+|---|---|---|
+| 0 | 待审核 | 企业已提交资质，等待审核 |
+| 1 | 已认证 | 审核通过 |
+| 2 | 驳回 | 审核驳回，需修改后重新提交 |
+
+### 14.4 薪资单位（Salary Unit）
+
+| 值 | 说明 |
+|---|---|
+| 0 | 日结 |
+| 1 | 时薪 |
+| 2 | 月结 |
+
+### 14.5 消息类型（Message Type）
+
+| 值 | 说明 |
+|---|---|
+| 0 | 系统通知 |
+| 1 | 面试邀请 |
+| 2 | 录用通知 |
+| 3 | 淘汰通知 |
+
+### 14.6 用户角色（Role）
+
+| 值 | 说明 |
+|---|---|
+| 0 | 求职者 |
+| 1 | 企业 HR |
+| 9 | 运营管理员 |
+
+### 14.7 用户状态（User Status）
+
+| 值 | 说明 |
+|---|---|
+| 0 | 禁用 |
+| 1 | 正常 |
