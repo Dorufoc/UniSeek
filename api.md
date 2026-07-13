@@ -286,6 +286,99 @@
 
 ---
 
+### 2.6 实名认证
+
+**接口描述**：用户提交真实姓名和身份证号进行实名认证。认证通过后，`t_user` 表的 `real_name` 和 `id_card` 字段被填充，后续投递职位或提交企业资质时不再重复认证。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/auth/real-name` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| realName | String | 是 | 真实姓名（1~20 位） |
+| idCard | String | 是 | 身份证号（18 位，末位可为 X） |
+
+**请求示例**
+
+```json
+{
+  "realName": "张三",
+  "idCard": "110101200001011234"
+}
+```
+
+**响应示例（成功）**
+
+```json
+{
+  "code": 200,
+  "message": "实名认证成功",
+  "data": {
+    "realName": "张三",
+    "idCard": "110101********1234",
+    "authTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 姓名或身份证号为空 | `{ "code": 400, "message": "姓名和身份证号不能为空" }` |
+| 身份证号格式不正确 | `{ "code": 400, "message": "身份证号格式不正确" }` |
+| 年龄不足 16 周岁 | `{ "code": 400, "message": "未满16周岁，无法完成实名认证" }` |
+| 已实名认证 | `{ "code": 409, "message": "您已完成实名认证，无需重复认证" }` |
+
+**后端校验逻辑**：使用 Hutool `IdcardUtil.isValidCard()` 校验身份证格式与校验码，使用 `IdcardUtil.getAgeByIdCard()` 校验年龄 ≥ 16 周岁。
+
+---
+
+### 2.7 获取实名认证状态
+
+**接口描述**：查询当前用户是否已完成实名认证。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/auth/real-name/status` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数**：无
+
+**响应示例（已认证）**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "isAuth": true,
+    "realName": "张三",
+    "idCard": "110101********1234"
+  }
+}
+```
+
+**响应示例（未认证）**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "isAuth": false,
+    "realName": null,
+    "idCard": null
+  }
+}
+```
+
+---
+
 ## 3. 用户模块（User）
 
 ### 3.1 更新个人资料
@@ -1113,6 +1206,62 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
+### 7.6 结算确认（已录用 → 已完成）
+
+**接口描述**：企业 HR 对已录用的求职者进行结算确认，将投递状态从"已录用(3)"变更为"已完成(5)"。该操作不可逆。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/applications/{id}/complete` |
+| 鉴权 | 需要鉴权，角色限制：企业 HR（1） |
+| 权限 | 仅限本企业职位下的投递 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 投递记录 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| settlementAmount | BigDecimal | 否 | 实际结算金额，不传则使用职位薪资范围上限 |
+| hrNote | String | 否 | 结算备注 |
+
+**请求示例**
+
+```json
+{
+  "settlementAmount": 800.00,
+  "hrNote": "兼职工作表现优秀，按约定结算"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "结算确认成功",
+  "data": {
+    "id": 1,
+    "status": 5,
+    "settlementAmount": 800.00,
+    "updateTime": "2026-07-20 18:00:00"
+  }
+}
+```
+
+**异常响应**
+
+| 场景 | 响应 |
+|---|---|
+| 当前状态不是"已录用" | `{ "code": 400, "message": "仅已录用状态的投递可进行结算确认" }` |
+| 并发冲突（乐观锁） | `{ "code": 409, "message": "操作失败，该记录已被其他 HR 修改，请刷新后重试" }` |
+
+---
+
 ## 8. 企业模块（Enterprise）
 
 ### 8.1 提交企业资质认证
@@ -1475,9 +1624,10 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
       "totalUsers": 1500,
       "totalEnterprises": 120,
       "totalTasks": 500,
-      "totalApplications": 3200,
-      "totalCompletedOrders": 800,
-      "totalAmount": 256000.00
+      "totalResumes": 2400,
+      "totalDeliveries": 3200,
+      "totalInterviews": 450,
+      "totalEntries": 180
     },
     "dailyStats": [
       {
@@ -1485,16 +1635,20 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "newUserCount": 45,
         "newEnterpriseCount": 3,
         "newTaskCount": 18,
-        "completedOrderCount": 25,
-        "totalAmount": 8500.00
+        "newResumeCount": 56,
+        "newDeliveryCount": 120,
+        "newInterviewCount": 15,
+        "newEntryCount": 8
       },
       {
         "statDate": "2026-07-11",
         "newUserCount": 38,
         "newEnterpriseCount": 2,
         "newTaskCount": 15,
-        "completedOrderCount": 20,
-        "totalAmount": 7200.00
+        "newResumeCount": 42,
+        "newDeliveryCount": 98,
+        "newInterviewCount": 12,
+        "newEntryCount": 5
       }
     ]
   }
@@ -1759,6 +1913,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "taskId": 1,
         "taskTitle": "周末餐厅服务员",
         "taskStatus": 1,
+        "applicationStatus": 0,
         "counterpartId": 2,
         "counterpartName": "李 HR",
         "counterpartAvatar": "https://cdn.uniseek.com/avatars/2.jpg",
@@ -1774,6 +1929,22 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
   }
 }
 ```
+
+| 响应字段 | 类型 | 说明 |
+|---|---|---|
+| applicationId | Long | 投递记录 ID（即会话标识） |
+| taskId | Long | 关联职位 ID |
+| taskTitle | String | 关联职位标题 |
+| taskStatus | Integer | 职位状态 |
+| applicationStatus | Integer | 投递状态（0~5），详见 14.1 |
+| counterpartId | Long | 对方用户 ID |
+| counterpartName | String | 对方昵称 |
+| counterpartAvatar | String | 对方头像 URL |
+| lastMessage | String | 最后一条消息摘要 |
+| lastMessageTime | String | 最后一条消息时间 |
+| unreadCount | Integer | 未读消息数（用于高亮标记） |
+
+**列表排序**：按 `lastMessageTime` 倒序排列，未读会话（`unreadCount > 0`）前端需加粗/高亮标记。
 
 ---
 
@@ -1813,6 +1984,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "senderId": 1,
         "senderName": "张三",
         "senderAvatar": "https://cdn.uniseek.com/avatars/1.jpg",
+        "messageType": 0,
         "content": "您好，我对这个职位很感兴趣",
         "isRead": 1,
         "createTime": "2026-07-13 10:05:00"
@@ -1822,6 +1994,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "senderId": 2,
         "senderName": "李 HR",
         "senderAvatar": "https://cdn.uniseek.com/avatars/2.jpg",
+        "messageType": 0,
         "content": "你好，请问你的工作经验是？",
         "isRead": 1,
         "createTime": "2026-07-13 10:10:00"
@@ -1854,13 +2027,24 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| content | String | 是 | 消息内容（1~2000 字） |
+| messageType | Integer | 否 | 消息类型：0 文本（默认）/ 1 图片 |
+| content | String | 是 | 消息内容（1~2000 字），图片类型时传图片 URL |
 
-**请求示例**
+**请求示例（文本消息）**
 
 ```json
 {
+  "messageType": 0,
   "content": "你好，请问工作时间是几点到几点？"
+}
+```
+
+**请求示例（图片消息）**
+
+```json
+{
+  "messageType": 1,
+  "content": "https://cdn.uniseek.com/chat/images/20260713/abc123.jpg"
 }
 ```
 
@@ -1873,6 +2057,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
   "data": {
     "id": 3,
     "senderId": 1,
+    "messageType": 0,
     "content": "你好，请问工作时间是几点到几点？",
     "isRead": 0,
     "createTime": "2026-07-13 11:30:00"
@@ -1887,6 +2072,230 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 权限校验失败 | `{ "code": 403, "message": "无权发送消息" }` |
 | 消息内容为空 | `{ "code": 400, "message": "消息内容不能为空" }` |
 | 消息内容超长 | `{ "code": 400, "message": "消息内容不能超过 2000 字" }` |
+
+---
+
+### 11.4 获取会话详情
+
+**接口描述**：获取指定聊天会话的详细信息，包括关联的职位信息、投递状态、对方信息等。用于聊天页面顶部信息栏展示及快捷操作入口。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/chat/sessions/{applicationId}` |
+| 鉴权 | 需要鉴权 |
+| 权限 | 求职者：仅限自己的投递；HR：仅限本企业职位的投递；管理员：全部 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| applicationId | Long | 投递记录 ID（即会话标识） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "applicationId": 1,
+    "applicationStatus": 1,
+    "taskId": 1,
+    "taskTitle": "周末餐厅服务员",
+    "taskStatus": 1,
+    "enterpriseName": "某某餐饮有限公司",
+    "counterpartId": 2,
+    "counterpartName": "李 HR",
+    "counterpartAvatar": "https://cdn.uniseek.com/avatars/2.jpg",
+    "applicantId": 1,
+    "applicantName": "张三",
+    "applicantAvatar": "https://cdn.uniseek.com/avatars/1.jpg",
+    "createTime": "2026-07-13 10:00:00"
+  }
+}
+```
+
+| 响应字段 | 类型 | 说明 |
+|---|---|---|
+| applicationId | Long | 投递记录 ID |
+| applicationStatus | Integer | 投递状态（0~5），详见 14.1 |
+| taskId | Long | 关联职位 ID（可点击跳转职位详情） |
+| taskTitle | String | 关联职位标题 |
+| taskStatus | Integer | 职位状态 |
+| enterpriseName | String | 企业名称 |
+| counterpartId | Long | 对方用户 ID |
+| counterpartName | String | 对方昵称 |
+| counterpartAvatar | String | 对方头像 URL |
+| applicantId | Long | 求职者用户 ID |
+| applicantName | String | 求职者昵称 |
+| applicantAvatar | String | 求职者头像 URL |
+| createTime | String | 会话创建时间 |
+
+**快捷操作说明**：HR 端在聊天页面可根据当前 `applicationStatus` 展示快捷操作按钮（调用 7.5 修改投递状态接口）：
+
+| 当前投递状态 | 可用的快捷操作 |
+|---|---|
+| 0（已投递） | 标记面试、待定、淘汰 |
+| 1（待面试） | 标记录用、待定、淘汰 |
+| 2（待定） | 标记面试、标记录用、淘汰 |
+| 3（已录用） | 结算确认（调用 7.6） |
+
+---
+
+### 11.5 标记会话已读
+
+**接口描述**：将指定会话中所有对方发送的未读消息标记为已读。接收方进入聊天页面时调用，作为 WebSocket 已读回执的 HTTP 补充方案。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/chat/sessions/{applicationId}/read` |
+| 鉴权 | 需要鉴权 |
+| 权限 | 求职者：仅限自己的投递；HR：仅限本企业职位的投递 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| applicationId | Long | 投递记录 ID |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "affectedCount": 3
+  }
+}
+```
+
+**说明**：标记已读后，发送方可通过 WebSocket `MESSAGE_READ` 事件或下次轮询时感知消息已读状态变更。
+
+---
+
+### 11.6 WebSocket 实时推送
+
+**概述**：聊天模块采用 WebSocket 协议实现实时消息推送。客户端与服务端建立长连接后，无需轮询即可实时接收新消息、消息已读状态变更等事件。
+
+#### 11.6.1 连接建立
+
+| 项目 | 内容 |
+|---|---|
+| 协议 | WebSocket（`ws://` 或 `wss://`） |
+| 连接地址 | `ws://{host}:{port}/ws/chat` |
+| 鉴权方式 | 连接时在 URL 参数中携带 JWT Token：`ws://{host}:{port}/ws/chat?token={jwt_token}` |
+| 心跳机制 | 客户端每 30 秒发送 Ping 帧，服务端回复 Pong 帧；若 90 秒内未收到心跳，服务端主动断开连接 |
+
+**连接流程**：
+1. 客户端携带 JWT Token 发起 WebSocket 握手请求
+2. 服务端验证 Token 有效性，解析用户身份
+3. 握手成功后，服务端将连接与用户 ID 绑定，存入连接池
+4. 同一用户可在多个设备建立连接，消息会广播到该用户的所有连接
+
+#### 11.6.2 消息推送格式
+
+所有 WebSocket 消息使用统一的 JSON 帧格式：
+
+```json
+{
+  "type": "MESSAGE_TYPE",
+  "data": {},
+  "timestamp": "2026-07-13 11:30:00"
+}
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| type | String | 消息类型（见下方枚举） |
+| data | Object | 消息载荷，不同类型结构不同 |
+| timestamp | String | 服务端推送时间 |
+
+#### 11.6.3 消息类型枚举（WebSocket 推送事件）
+
+| type 值 | 说明 | data 载荷 |
+|---|---|---|
+| `NEW_MESSAGE` | 新聊天消息 | `{ "messageId": 1, "applicationId": 1, "senderId": 2, "senderName": "李HR", "senderAvatar": "https://...", "content": "你好", "messageType": 0, "sendTime": "2026-07-13 11:30:00" }` |
+| `MESSAGE_READ` | 消息已读回执 | `{ "applicationId": 1, "readerId": 1, "lastReadMessageId": 5 }` |
+| `SESSION_UPDATE` | 会话列表更新 | `{ "applicationId": 1, "lastMessage": "你好", "lastMessageTime": "2026-07-13 11:30:00", "unreadCount": 2 }` |
+| `NOTIFICATION` | 系统通知（面试邀请/录用/淘汰等） | `{ "messageId": 1, "title": "面试邀请", "content": "...", "type": 1 }` |
+| `ERROR` | 错误通知 | `{ "code": 400, "message": "消息内容不能为空" }` |
+
+#### 11.6.4 客户端发送消息
+
+客户端可通过 WebSocket 直接发送聊天消息，无需通过 HTTP 接口：
+
+**发送格式**：
+
+```json
+{
+  "type": "SEND_MESSAGE",
+  "data": {
+    "applicationId": 1,
+    "messageType": 0,
+    "content": "你好，请问工作时间是几点？"
+  }
+}
+```
+
+**说明**：
+- `messageType`: 0 文本，1 图片（图片内容传 URL）
+- 内容长度限制：1~2000 字
+
+**服务端响应（成功）**：
+
+```json
+{
+  "type": "SEND_ACK",
+  "data": {
+    "messageId": 3,
+    "applicationId": 1,
+    "messageType": 0,
+    "content": "你好，请问工作时间是几点？",
+    "sendTime": "2026-07-13 11:30:00"
+  },
+  "timestamp": "2026-07-13 11:30:00"
+}
+```
+
+**服务端响应（失败）**：
+
+```json
+{
+  "type": "ERROR",
+  "data": {
+    "code": 400,
+    "message": "消息内容不能为空"
+  },
+  "timestamp": "2026-07-13 11:30:00"
+}
+```
+
+#### 11.6.5 已读回执
+
+接收方进入聊天页面时，客户端通过 WebSocket 发送已读回执：
+
+```json
+{
+  "type": "READ_RECEIPT",
+  "data": {
+    "applicationId": 1,
+    "lastReadMessageId": 5
+  }
+}
+```
+
+服务端收到后将该会话中 `messageId ≤ 5` 且 `sender_id ≠ 当前用户` 的消息标记为已读，并向发送方推送 `MESSAGE_READ` 事件。
+
+#### 11.6.6 断线重连
+
+| 策略 | 说明 |
+|---|---|
+| 重连间隔 | 首次 1 秒，指数退避，最大 30 秒 |
+| 重连次数 | 最多重连 5 次 |
+| 重连后操作 | 重新加载最近会话列表，补拉断线期间的消息 |
 
 ---
 
@@ -1961,41 +2370,47 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 3 | 认证 | POST | `/api/auth/logout` | 登录 | 退出登录 |
 | 4 | 认证 | GET | `/api/auth/current-user` | 登录 | 获取当前用户信息 |
 | 5 | 认证 | PUT | `/api/auth/password` | 登录 | 修改密码 |
-| 6 | 用户 | PUT | `/api/user/profile` | 登录 | 更新个人资料 |
-| 7 | 简历 | GET | `/api/resume` | 求职者 | 获取我的简历 |
-| 8 | 简历 | PUT | `/api/resume` | 求职者 | 创建/更新简历 |
-| 9 | 简历 | POST | `/api/resume/upload-attachment` | 求职者 | 上传附件简历 |
-| 10 | 分类 | GET | `/api/categories` | 登录 | 获取分类列表 |
-| 11 | 职位 | GET | `/api/tasks` | 登录 | 职位列表（搜索&筛选） |
-| 12 | 职位 | GET | `/api/tasks/{id}` | 登录 | 职位详情 |
-| 13 | 职位 | POST | `/api/tasks` | 企业 HR | 发布职位 |
-| 14 | 职位 | PUT | `/api/tasks/{id}` | 企业 HR | 更新职位 |
-| 15 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员 | 修改职位状态 |
-| 16 | 职位 | GET | `/api/enterprise/tasks` | 企业 HR | 本企业职位列表 |
-| 17 | 投递 | POST | `/api/applications` | 求职者 | 投递职位 |
-| 18 | 投递 | GET | `/api/applications/my` | 求职者 | 我的投递记录 |
-| 19 | 投递 | GET | `/api/applications/{id}` | 登录 | 投递详情 |
-| 20 | 投递 | GET | `/api/tasks/{taskId}/applications` | 企业 HR | 职位投递列表 |
-| 21 | 投递 | PUT | `/api/applications/{id}/status` | 企业 HR | 修改投递状态 |
-| 22 | 企业 | POST | `/api/enterprise` | 企业 HR | 提交企业资质 |
-| 23 | 企业 | GET | `/api/enterprise/my` | 企业 HR | 获取我的企业信息 |
-| 24 | 企业 | PUT | `/api/enterprise` | 企业 HR | 更新企业信息 |
-| 25 | 管理 | GET | `/api/admin/enterprises` | 管理员 | 企业审核列表 |
-| 26 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员 | 企业资质审核 |
-| 27 | 管理 | GET | `/api/admin/tasks/pending` | 管理员 | 待审核职位列表 |
-| 28 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员 | 职位审核 |
-| 29 | 管理 | GET | `/api/admin/statistics` | 管理员 | 数据统计看板 |
-| 30 | 管理 | GET | `/api/admin/users` | 管理员 | 用户管理列表 |
-| 31 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员 | 禁用/启用用户 |
-| 32 | 消息 | GET | `/api/messages` | 登录 | 消息列表 |
-| 33 | 消息 | GET | `/api/messages/unread-count` | 登录 | 未读消息数 |
-| 34 | 消息 | PUT | `/api/messages/{id}/read` | 登录 | 标记消息已读 |
-| 35 | 消息 | PUT | `/api/messages/read-all` | 登录 | 全部标记已读 |
-| 36 | 聊天 | GET | `/api/chat/sessions` | 登录 | 聊天会话列表 |
-| 37 | 聊天 | GET | `/api/chat/sessions/{applicationId}/messages` | 登录 | 加载聊天历史 |
-| 38 | 聊天 | POST | `/api/chat/sessions/{applicationId}/messages` | 登录 | 发送聊天消息 |
-| 39 | 上传 | POST | `/api/upload/image` | 登录 | 上传图片 |
-| 40 | 上传 | POST | `/api/upload/file` | 登录 | 上传文件 |
+| 6 | 认证 | POST | `/api/auth/real-name` | 登录 | 实名认证 |
+| 7 | 认证 | GET | `/api/auth/real-name/status` | 登录 | 获取实名认证状态 |
+| 8 | 用户 | PUT | `/api/user/profile` | 登录 | 更新个人资料 |
+| 9 | 简历 | GET | `/api/resume` | 求职者 | 获取我的简历 |
+| 10 | 简历 | PUT | `/api/resume` | 求职者 | 创建/更新简历 |
+| 11 | 简历 | POST | `/api/resume/upload-attachment` | 求职者 | 上传附件简历 |
+| 12 | 分类 | GET | `/api/categories` | 登录 | 获取分类列表 |
+| 13 | 职位 | GET | `/api/tasks` | 登录 | 职位列表（搜索&筛选） |
+| 14 | 职位 | GET | `/api/tasks/{id}` | 登录 | 职位详情 |
+| 15 | 职位 | POST | `/api/tasks` | 企业 HR | 发布职位 |
+| 16 | 职位 | PUT | `/api/tasks/{id}` | 企业 HR | 更新职位 |
+| 17 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员 | 修改职位状态 |
+| 18 | 职位 | GET | `/api/enterprise/tasks` | 企业 HR | 本企业职位列表 |
+| 19 | 投递 | POST | `/api/applications` | 求职者 | 投递职位 |
+| 20 | 投递 | GET | `/api/applications/my` | 求职者 | 我的投递记录 |
+| 21 | 投递 | GET | `/api/applications/{id}` | 登录 | 投递详情 |
+| 22 | 投递 | GET | `/api/tasks/{taskId}/applications` | 企业 HR | 职位投递列表 |
+| 23 | 投递 | PUT | `/api/applications/{id}/status` | 企业 HR | 修改投递状态 |
+| 24 | 投递 | PUT | `/api/applications/{id}/complete` | 企业 HR | 结算确认（已录用→已完成） |
+| 25 | 企业 | POST | `/api/enterprise` | 企业 HR | 提交企业资质 |
+| 26 | 企业 | GET | `/api/enterprise/my` | 企业 HR | 获取我的企业信息 |
+| 27 | 企业 | PUT | `/api/enterprise` | 企业 HR | 更新企业信息 |
+| 28 | 管理 | GET | `/api/admin/enterprises` | 管理员 | 企业审核列表 |
+| 29 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员 | 企业资质审核 |
+| 30 | 管理 | GET | `/api/admin/tasks/pending` | 管理员 | 待审核职位列表 |
+| 31 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员 | 职位审核 |
+| 32 | 管理 | GET | `/api/admin/statistics` | 管理员 | 数据统计看板 |
+| 33 | 管理 | GET | `/api/admin/users` | 管理员 | 用户管理列表 |
+| 34 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员 | 禁用/启用用户 |
+| 35 | 消息 | GET | `/api/messages` | 登录 | 消息列表 |
+| 36 | 消息 | GET | `/api/messages/unread-count` | 登录 | 未读消息数 |
+| 37 | 消息 | PUT | `/api/messages/{id}/read` | 登录 | 标记消息已读 |
+| 38 | 消息 | PUT | `/api/messages/read-all` | 登录 | 全部标记已读 |
+| 39 | 聊天 | GET | `/api/chat/sessions` | 登录 | 聊天会话列表 |
+| 40 | 聊天 | GET | `/api/chat/sessions/{applicationId}` | 登录 | 获取会话详情 |
+| 41 | 聊天 | GET | `/api/chat/sessions/{applicationId}/messages` | 登录 | 加载聊天历史 |
+| 42 | 聊天 | POST | `/api/chat/sessions/{applicationId}/messages` | 登录 | 发送聊天消息（HTTP） |
+| 43 | 聊天 | PUT | `/api/chat/sessions/{applicationId}/read` | 登录 | 标记会话已读 |
+| 44 | 聊天 | WS | `ws://{host}:{port}/ws/chat` | 登录 | WebSocket 实时推送 |
+| 45 | 上传 | POST | `/api/upload/image` | 登录 | 上传图片 |
+| 46 | 上传 | POST | `/api/upload/file` | 登录 | 上传文件 |
 
 ---
 
@@ -2046,6 +2461,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 1 | 面试邀请 |
 | 2 | 录用通知 |
 | 3 | 淘汰通知 |
+| 4 | 聊天消息 |
 
 ### 14.6 用户角色（Role）
 
@@ -2061,3 +2477,23 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 |---|---|
 | 0 | 禁用 |
 | 1 | 正常 |
+
+### 14.8 聊天消息类型（Chat Message Type）
+
+| 值 | 说明 |
+|---|---|
+| 0 | 文本 |
+| 1 | 图片 |
+
+### 14.9 WebSocket 事件类型（WebSocket Event Type）
+
+| type 值 | 方向 | 说明 |
+|---|---|---|
+| `SEND_MESSAGE` | 客户端 → 服务端 | 发送聊天消息 |
+| `SEND_ACK` | 服务端 → 客户端 | 消息发送确认 |
+| `NEW_MESSAGE` | 服务端 → 客户端 | 推送新聊天消息 |
+| `READ_RECEIPT` | 客户端 → 服务端 | 已读回执 |
+| `MESSAGE_READ` | 服务端 → 客户端 | 消息已读通知 |
+| `SESSION_UPDATE` | 服务端 → 客户端 | 会话列表更新 |
+| `NOTIFICATION` | 服务端 → 客户端 | 系统通知推送 |
+| `ERROR` | 服务端 → 客户端 | 错误通知 |
