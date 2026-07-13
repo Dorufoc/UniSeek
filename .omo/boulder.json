@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "active_work_id": "database-schema-a46638d3",
+  "works": {
+    "database-schema-a46638d3": {
+      "work_id": "database-schema-a46638d3",
+      "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\database-schema.md",
+      "plan_name": "database-schema",
+      "status": "completed",
+      "started_at": "2026-07-13T01:57:03.895Z",
+      "updated_at": "2026-07-13T02:01:48.448Z",
+      "session_ids": [
+        "opencode:ses_0a6f2ec70ffe2FYD3EKuU8nCtO"
+      ],
+      "session_origins": {
+        "opencode:ses_0a6f2ec70ffe2FYD3EKuU8nCtO": "direct"
+      },
+      "agent": "atlas",
+      "task_sessions": {
+        "todo:1": {
+          "task_key": "todo:1",
+          "task_label": "1",
+          "task_title": "**生成 uniseek_schema.sql 文件到项目根目录**",
+          "session_id": "opencode:ses_0a6ce2cf7ffeR5fey6chIJuqgB",
+          "agent": "general",
+          "updated_at": "2026-07-13T02:01:16.799Z",
+          "started_at": "2026-07-13T02:00:05.338Z",
+          "status": "completed",
+          "ended_at": "2026-07-13T02:01:16.799Z",
+          "elapsed_ms": 71461
+        }
+      },
+      "ended_at": "2026-07-13T02:01:48.447Z",
+      "elapsed_ms": 284552
+    }
+  },
+  "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\database-schema.md",
+  "started_at": "2026-07-13T01:57:03.895Z",
+  "status": "completed",
+  "updated_at": "2026-07-13T02:01:48.448Z",
+  "session_ids": [
+    "opencode:ses_0a6f2ec70ffe2FYD3EKuU8nCtO"
+  ],
+  "session_origins": {
+    "opencode:ses_0a6f2ec70ffe2FYD3EKuU8nCtO": "direct"
+  },
+  "plan_name": "database-schema",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "**生成 uniseek_schema.sql 文件到项目根目录**",
+      "session_id": "opencode:ses_0a6ce2cf7ffeR5fey6chIJuqgB",
+      "agent": "general",
+      "updated_at": "2026-07-13T02:01:16.799Z",
+      "started_at": "2026-07-13T02:00:05.338Z",
+      "status": "completed",
+      "ended_at": "2026-07-13T02:01:16.799Z",
+      "elapsed_ms": 71461
+    }
+  },
+  "agent": "atlas",
+  "ended_at": "2026-07-13T02:01:48.447Z",
+  "elapsed_ms": 284552
+}
