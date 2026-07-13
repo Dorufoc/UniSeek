@@ -1,7 +1,8 @@
 -- ====================================================================
 -- UniSeek 兼职招聘平台 - MySQL 8 数据库初始化脚本
--- 版本: V1.0
+-- 版本: V1.1
 -- 创建日期: 2026-07-13
+-- V1.1: user 表新增 email 字段（必填，用于找回密码和通知）及 uk_email 唯一索引
 -- 说明: 包含 14 张业务表、完整外键约束、索引、中文注释及种子数据
 -- 使用: mysql -u root -p < uniseek_schema.sql
 -- ====================================================================
@@ -41,6 +42,7 @@ DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
     `id`              BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '用户ID',
     `phone`           VARCHAR(11)  NOT NULL                 COMMENT '手机号（登录账号）',
+    `email`           VARCHAR(100) NOT NULL                 COMMENT '邮箱（找回密码、通知）',
     `password`        VARCHAR(64)  NOT NULL                 COMMENT '密码（MD5+盐加密后）',
     `salt`            VARCHAR(32)  NOT NULL                 COMMENT '随机盐值',
     `nickname`        VARCHAR(50)  DEFAULT NULL             COMMENT '昵称',
@@ -53,6 +55,7 @@ CREATE TABLE `user` (
     `update_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_phone` (`phone`),
+    UNIQUE KEY `uk_email` (`email`),
     KEY `idx_role` (`role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
