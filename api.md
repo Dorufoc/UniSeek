@@ -3,7 +3,7 @@
 | 文档名称 | UniSeek API 接口文档 |
 |---|---|
 | 项目名称 | 基于 Spring Boot 的优寻（UniSeek）兼职招聘平台 |
-| 版本号 | V1.0 |
+| 版本号 | V1.1 |
 | 编写日期 | 2026-07-13 |
 | 基础路径 | `http://{host}:{port}/api` |
 
@@ -606,9 +606,151 @@
 
 ---
 
-## 6. 职位模块（Task）
+## 6. 地区数据服务模块（Region）
 
-### 6.1 职位列表（搜索 & 筛选）
+> 平台内置全国行政区划数据（省/市/区三级，GB/T 2260 标准），通过 `region` 表提供统一的地区数据服务，支持职位发布时选择工作地区、职位搜索时按地区筛选。
+
+### 6.1 获取所有省级行政区划
+
+**接口描述**：获取所有省级行政区划列表。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/region/provinces` |
+| 鉴权 | 无需鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 110000,
+      "name": "北京市",
+      "level": 1
+    },
+    {
+      "id": 120000,
+      "name": "天津市",
+      "level": 1
+    },
+    {
+      "id": 310000,
+      "name": "上海市",
+      "level": 1
+    }
+  ]
+}
+```
+
+| 响应字段 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 行政区划代码 |
+| name | String | 行政区划名称 |
+| level | Integer | 层级：1 省 / 2 市 / 3 区县 |
+
+---
+
+### 6.2 获取子级行政区划
+
+**接口描述**：获取指定父级下的子级行政区划列表。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/region/children/{parentId}` |
+| 鉴权 | 无需鉴权 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| parentId | Long | 父级行政区划 ID |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 110101,
+      "name": "东城区",
+      "level": 3
+    },
+    {
+      "id": 110102,
+      "name": "西城区",
+      "level": 3
+    },
+    {
+      "id": 110105,
+      "name": "朝阳区",
+      "level": 3
+    }
+  ]
+}
+```
+
+---
+
+### 6.3 获取完整省/市/区三级树形结构
+
+**接口描述**：获取完整的省/市/区三级树形结构，用于级联选择器。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/region/tree` |
+| 鉴权 | 无需鉴权 |
+
+**请求参数**：无
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 110000,
+      "name": "北京市",
+      "level": 1,
+      "children": [
+        {
+          "id": 110100,
+          "name": "北京市",
+          "level": 2,
+          "children": [
+            { "id": 110101, "name": "东城区", "level": 3 },
+            { "id": 110102, "name": "西城区", "level": 3 },
+            { "id": 110105, "name": "朝阳区", "level": 3 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+| 响应字段 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 行政区划代码 |
+| name | String | 行政区划名称 |
+| level | Integer | 层级：1 省 / 2 市 / 3 区县 |
+| children | Array | 子级区划列表（仅省级和市级节点包含） |
+
+**数据规模说明**：数据基于 GB/T 2260 标准，种子数据共 3432 条记录（34 个省 + 342 个市 + 3056 个区县）。
+
+---
+
+## 7. 职位模块（Task）
+
+### 7.1 职位列表（搜索 & 筛选）
 
 **接口描述**：分页查询职位列表，支持关键词搜索、分类筛选、薪资筛选、地点筛选、排序。
 
@@ -623,6 +765,8 @@
 |---|---|---|---|
 | keyword | String | 否 | 搜索关键词（匹配职位标题） |
 | categoryId | Long | 否 | 分类 ID |
+| regionId | Long | 否 | 工作地区 ID（区县级） |
+| jobType | Integer | 否 | 岗位类型：1 全职 / 2 兼职 / 3 实习 |
 | salaryMin | BigDecimal | 否 | 最低薪资 |
 | salaryMax | BigDecimal | 否 | 最高薪资 |
 | salaryUnit | Integer | 否 | 薪资单位：0 日结 / 1 时薪 / 2 月结 |
@@ -652,10 +796,13 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "enterpriseName": "某某餐饮有限公司",
         "categoryId": 16,
         "categoryName": "服务员",
+        "regionId": 110105,
+        "regionName": "北京市朝阳区",
         "title": "周末餐厅服务员",
         "salaryMin": 150.00,
         "salaryMax": 200.00,
         "salaryUnit": 0,
+        "jobType": 2,
         "totalQuota": 5,
         "remainingQuota": 3,
         "address": "北京市朝阳区某某路 100 号",
@@ -702,11 +849,14 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
     "enterpriseIndustry": "餐饮",
     "categoryId": 16,
     "categoryName": "服务员",
+    "regionId": 110105,
+    "regionName": "北京市朝阳区",
     "title": "周末餐厅服务员",
     "description": "<p>负责餐厅日常服务工作...</p>",
     "salaryMin": 150.00,
     "salaryMax": 200.00,
     "salaryUnit": 0,
+    "jobType": 2,
     "totalQuota": 5,
     "remainingQuota": 3,
     "address": "北京市朝阳区某某路 100 号",
@@ -738,11 +888,13 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | categoryId | Long | 是 | 分类 ID |
+| regionId | Long | 否 | 工作地区 ID（区县级） |
 | title | String | 是 | 职位标题（1~100 位） |
 | description | String | 是 | 职位描述（富文本 HTML） |
 | salaryMin | BigDecimal | 是 | 薪资范围最低值 |
 | salaryMax | BigDecimal | 是 | 薪资范围最高值 |
 | salaryUnit | Integer | 是 | 薪资单位：0 日结 / 1 时薪 / 2 月结 |
+| jobType | Integer | 是 | 岗位类型：1 全职 / 2 兼职 / 3 实习 |
 | totalQuota | Integer | 是 | 招聘总人数（≥1） |
 | address | String | 否 | 工作地址 |
 | longitude | BigDecimal | 否 | 经度 |
@@ -754,11 +906,13 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 ```json
 {
   "categoryId": 16,
+  "regionId": 110105,
   "title": "周末餐厅服务员",
   "description": "<p>负责餐厅日常服务工作...</p>",
   "salaryMin": 150.00,
   "salaryMax": 200.00,
   "salaryUnit": 0,
+  "jobType": 2,
   "totalQuota": 5,
   "address": "北京市朝阳区某某路 100 号",
   "longitude": 116.4612345,
@@ -900,7 +1054,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "id": 1,
         "title": "周末餐厅服务员",
         "categoryName": "服务员",
+        "regionName": "北京市朝阳区",
         "status": 1,
+        "jobType": 2,
         "totalQuota": 5,
         "remainingQuota": 3,
         "applicationCount": 12,
@@ -917,9 +1073,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 7. 投递模块（Application）
+## 8. 投递模块（Application）
 
-### 7.1 投递职位
+### 8.1 投递职位
 
 **接口描述**：求职者对职位进行投递，系统生成简历快照并创建投递记录。
 
@@ -969,7 +1125,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 7.2 我的投递记录
+### 8.2 我的投递记录
 
 **接口描述**：求职者查看自己的所有投递记录及状态。
 
@@ -1017,7 +1173,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 7.3 投递详情
+### 8.3 投递详情
 
 **接口描述**：查看某条投递记录的完整详情，包括简历快照。
 
@@ -1071,7 +1227,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 7.4 职位投递列表（HR 视角）
+### 8.4 职位投递列表（HR 视角）
 
 **接口描述**：企业 HR 查看某个职位的所有投递记录（简历池）。
 
@@ -1124,7 +1280,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 7.5 修改投递状态（HR 处理投递）
+### 8.5 修改投递状态（HR 处理投递）
 
 **接口描述**：企业 HR 对投递记录进行操作（邀请面试、录用、淘汰、待定等）。
 
@@ -1206,7 +1362,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 7.6 结算确认（已录用 → 已完成）
+### 8.6 结算确认（已录用 → 已完成）
 
 **接口描述**：企业 HR 对已录用的求职者进行结算确认，将投递状态从"已录用(3)"变更为"已完成(5)"。该操作不可逆。
 
@@ -1262,9 +1418,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 8. 企业模块（Enterprise）
+## 9. 企业模块（Enterprise）
 
-### 8.1 提交企业资质认证
+### 9.1 提交企业资质认证
 
 **接口描述**：企业 HR 提交企业资质信息进行认证。
 
@@ -1319,7 +1475,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 8.2 获取我的企业信息
+### 9.2 获取我的企业信息
 
 **接口描述**：企业 HR 获取自己关联的企业信息及认证状态。
 
@@ -1362,7 +1518,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 8.3 更新企业信息
+### 9.3 更新企业信息
 
 **接口描述**：企业 HR 更新已认证或已驳回的企业信息，更新后需重新审核。
 
@@ -1389,9 +1545,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 9. 管理员模块（Admin）
+## 10. 管理员模块（Admin）
 
-### 9.1 企业审核列表
+### 10.1 企业审核列表
 
 **接口描述**：管理员查看待审核的企业列表。
 
@@ -1439,7 +1595,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 9.2 企业资质审核
+### 10.2 企业资质审核
 
 **接口描述**：管理员审核企业资质，通过或驳回。
 
@@ -1494,7 +1650,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 9.3 待审核职位列表
+### 10.3 待审核职位列表
 
 **接口描述**：管理员查看所有待审核的职位。
 
@@ -1541,7 +1697,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 9.4 职位审核
+### 10.4 职位审核
 
 **接口描述**：管理员审核职位，通过或驳回。
 
@@ -1596,7 +1752,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 9.5 数据统计看板
+### 10.5 数据统计看板
 
 **接口描述**：管理员查看运营数据统计。
 
@@ -1657,7 +1813,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 9.6 用户管理列表
+### 10.6 用户管理列表
 
 **接口描述**：管理员查看平台所有用户。
 
@@ -1706,7 +1862,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 9.7 禁用/启用用户
+### 10.7 禁用/启用用户
 
 **接口描述**：管理员禁用或启用用户账号。
 
@@ -1751,9 +1907,99 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 10. 消息模块（Message）
+### 10.8 操作审计日志
 
-### 10.1 消息列表
+**接口描述**：管理员查看系统操作审计日志，用于安全追溯。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/operation-logs` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| operatorId | Long | 否 | 操作人用户 ID |
+| operationType | String | 否 | 操作类型（如 LOGIN / REGISTER / APPLY / HIRE / AUDIT 等） |
+| targetType | String | 否 | 目标类型（如 USER / TASK / ENTERPRISE / APPLICATION 等） |
+| targetId | Long | 否 | 目标 ID |
+| startTime | String | 否 | 开始时间（yyyy-MM-dd HH:mm:ss） |
+| endTime | String | 否 | 结束时间（yyyy-MM-dd HH:mm:ss） |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "operatorId": 2,
+        "operatorName": "李 HR",
+        "operationType": "HIRE",
+        "targetType": "APPLICATION",
+        "targetId": 1,
+        "detail": {
+          "applicationId": 1,
+          "taskId": 1,
+          "taskTitle": "周末餐厅服务员",
+          "applicantName": "张三",
+          "fromStatus": 1,
+          "toStatus": 3
+        },
+        "ipAddress": "192.168.1.100",
+        "createTime": "2026-07-13 14:00:00"
+      },
+      {
+        "id": 2,
+        "operatorId": 9,
+        "operatorName": "系统",
+        "operationType": "AUDIT",
+        "targetType": "TASK",
+        "targetId": 1,
+        "detail": {
+          "taskId": 1,
+          "taskTitle": "周末餐厅服务员",
+          "auditResult": "通过",
+          "fromStatus": 0,
+          "toStatus": 1
+        },
+        "ipAddress": "192.168.1.1",
+        "createTime": "2026-07-13 10:30:00"
+      }
+    ],
+    "total": 156,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 8
+  }
+}
+```
+
+| 响应字段 | 类型 | 说明 |
+|---|---|---|
+| operatorId | Long | 操作人用户 ID（NULL 表示系统操作） |
+| operatorName | String | 操作人昵称 |
+| operationType | String | 操作类型 |
+| targetType | String | 目标类型 |
+| targetId | Long | 目标 ID |
+| detail | Object | 操作详情（JSON），记录操作前后的状态变更 |
+| ipAddress | String | 操作请求 IP 地址 |
+| createTime | String | 操作时间 |
+
+**日志记录范围**：所有涉及数据变更的关键操作，包括用户注册/登录、职位发布/审核/下架、投递/录用/淘汰、企业资质审核、投诉处理等。日志写入后不可修改，仅支持查询。
+
+---
+
+## 11. 消息模块（Message）
+
+### 11.1 消息列表
 
 **接口描述**：用户查看自己的站内消息列表。
 
@@ -1784,6 +2030,8 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "title": "面试邀请通知",
         "content": "恭喜您通过初筛，请于 2026-07-15 14:00 参加面试",
         "type": 1,
+        "senderId": 2,
+        "senderName": "李 HR",
         "isRead": 0,
         "bizId": 1,
         "createTime": "2026-07-13 11:00:00"
@@ -1799,7 +2047,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 10.2 未读消息数
+### 11.2 未读消息数
 
 **接口描述**：获取当前用户未读消息总数。
 
@@ -1828,7 +2076,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 10.3 标记消息已读
+### 11.3 标记消息已读
 
 **接口描述**：将指定消息标记为已读。
 
@@ -1857,7 +2105,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 10.4 全部标记已读
+### 11.4 全部标记已读
 
 **接口描述**：将当前用户所有未读消息标记为已读。
 
@@ -1882,9 +2130,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 11. 聊天模块（Chat）
+## 12. 聊天模块（Chat）
 
-### 11.1 聊天会话列表
+### 12.1 聊天会话列表
 
 **接口描述**：获取当前用户的所有聊天会话，每个会话关联一条投递记录。
 
@@ -1948,7 +2196,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 11.2 加载聊天历史消息
+### 12.2 加载聊天历史消息
 
 **接口描述**：加载指定会话的聊天历史消息，按时间正序排列，自动将对方消息标记为已读。
 
@@ -2007,7 +2255,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 11.3 发送聊天消息
+### 12.3 发送聊天消息
 
 **接口描述**：在指定会话中发送聊天消息。
 
@@ -2075,7 +2323,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 11.4 获取会话详情
+### 12.4 获取会话详情
 
 **接口描述**：获取指定聊天会话的详细信息，包括关联的职位信息、投递状态、对方信息等。用于聊天页面顶部信息栏展示及快捷操作入口。
 
@@ -2131,18 +2379,18 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | applicantAvatar | String | 求职者头像 URL |
 | createTime | String | 会话创建时间 |
 
-**快捷操作说明**：HR 端在聊天页面可根据当前 `applicationStatus` 展示快捷操作按钮（调用 7.5 修改投递状态接口）：
+**快捷操作说明**：HR 端在聊天页面可根据当前 `applicationStatus` 展示快捷操作按钮（调用 8.5 修改投递状态接口）：
 
 | 当前投递状态 | 可用的快捷操作 |
 |---|---|
 | 0（已投递） | 标记面试、待定、淘汰 |
 | 1（待面试） | 标记录用、待定、淘汰 |
 | 2（待定） | 标记面试、标记录用、淘汰 |
-| 3（已录用） | 结算确认（调用 7.6） |
+| 3（已录用） | 结算确认（调用 8.6） |
 
 ---
 
-### 11.5 标记会话已读
+### 12.5 标记会话已读
 
 **接口描述**：将指定会话中所有对方发送的未读消息标记为已读。接收方进入聊天页面时调用，作为 WebSocket 已读回执的 HTTP 补充方案。
 
@@ -2176,11 +2424,11 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 11.6 WebSocket 实时推送
+### 12.6 WebSocket 实时推送
 
 **概述**：聊天模块采用 WebSocket 协议实现实时消息推送。客户端与服务端建立长连接后，无需轮询即可实时接收新消息、消息已读状态变更等事件。
 
-#### 11.6.1 连接建立
+#### 12.6.1 连接建立
 
 | 项目 | 内容 |
 |---|---|
@@ -2195,7 +2443,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 3. 握手成功后，服务端将连接与用户 ID 绑定，存入连接池
 4. 同一用户可在多个设备建立连接，消息会广播到该用户的所有连接
 
-#### 11.6.2 消息推送格式
+#### 12.6.2 消息推送格式
 
 所有 WebSocket 消息使用统一的 JSON 帧格式：
 
@@ -2213,17 +2461,17 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | data | Object | 消息载荷，不同类型结构不同 |
 | timestamp | String | 服务端推送时间 |
 
-#### 11.6.3 消息类型枚举（WebSocket 推送事件）
+#### 12.6.3 消息类型枚举（WebSocket 推送事件）
 
 | type 值 | 说明 | data 载荷 |
 |---|---|---|
 | `NEW_MESSAGE` | 新聊天消息 | `{ "messageId": 1, "applicationId": 1, "senderId": 2, "senderName": "李HR", "senderAvatar": "https://...", "content": "你好", "messageType": 0, "sendTime": "2026-07-13 11:30:00" }` |
 | `MESSAGE_READ` | 消息已读回执 | `{ "applicationId": 1, "readerId": 1, "lastReadMessageId": 5 }` |
 | `SESSION_UPDATE` | 会话列表更新 | `{ "applicationId": 1, "lastMessage": "你好", "lastMessageTime": "2026-07-13 11:30:00", "unreadCount": 2 }` |
-| `NOTIFICATION` | 系统通知（面试邀请/录用/淘汰等） | `{ "messageId": 1, "title": "面试邀请", "content": "...", "type": 1 }` |
+| `NOTIFICATION` | 系统通知（面试邀请/录用/淘汰等） | `{ "messageId": 1, "title": "面试邀请", "content": "...", "type": 1, "senderId": 2, "senderName": "李HR" }` |
 | `ERROR` | 错误通知 | `{ "code": 400, "message": "消息内容不能为空" }` |
 
-#### 11.6.4 客户端发送消息
+#### 12.6.4 客户端发送消息
 
 客户端可通过 WebSocket 直接发送聊天消息，无需通过 HTTP 接口：
 
@@ -2273,7 +2521,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 }
 ```
 
-#### 11.6.5 已读回执
+#### 12.6.5 已读回执
 
 接收方进入聊天页面时，客户端通过 WebSocket 发送已读回执：
 
@@ -2289,7 +2537,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 服务端收到后将该会话中 `messageId ≤ 5` 且 `sender_id ≠ 当前用户` 的消息标记为已读，并向发送方推送 `MESSAGE_READ` 事件。
 
-#### 11.6.6 断线重连
+#### 12.6.6 断线重连
 
 | 策略 | 说明 |
 |---|---|
@@ -2299,9 +2547,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 12. 文件上传模块（Upload）
+## 13. 文件上传模块（Upload）
 
-### 12.1 上传图片
+### 13.1 上传图片
 
 **接口描述**：上传图片文件，用于营业执照、头像等。
 
@@ -2331,7 +2579,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 12.2 上传文件
+### 13.2 上传文件
 
 **接口描述**：上传通用文件，用于附件简历等。
 
@@ -2361,7 +2609,211 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-## 13. API 接口汇总
+## 14. 投诉处理模块（Complaint）
+
+> 用户可以举报违规职位、虚假企业或不良用户行为，运营管理员受理并处理投诉。
+
+### 14.1 提交投诉
+
+**接口描述**：用户提交投诉举报。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `POST /api/complaints` |
+| 鉴权 | 需要鉴权 |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| targetType | Integer | 是 | 被投诉对象类型：0 职位 / 1 企业 / 2 用户 |
+| targetId | Long | 是 | 被投诉对象 ID |
+| type | Integer | 是 | 投诉类型 |
+| content | String | 是 | 投诉内容（1~500 字） |
+
+**请求示例**
+
+```json
+{
+  "targetType": 0,
+  "targetId": 1,
+  "type": 0,
+  "content": "该职位描述与实际工作内容严重不符，存在虚假宣传"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "投诉提交成功",
+  "data": {
+    "id": 1,
+    "status": 0,
+    "createTime": "2026-07-13 15:00:00"
+  }
+}
+```
+
+---
+
+### 14.2 投诉列表（管理员）
+
+**接口描述**：管理员查看所有投诉记录。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/complaints` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 否 | 处理状态：0 待处理 / 1 处理中 / 2 已结案 |
+| targetType | Integer | 否 | 被投诉对象类型：0 职位 / 1 企业 / 2 用户 |
+| page | Integer | 否 | 页码（默认 1） |
+| pageSize | Integer | 否 | 每页条数（默认 20） |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "complainantId": 1,
+        "complainantName": "张三",
+        "targetType": 0,
+        "targetId": 1,
+        "targetName": "周末餐厅服务员",
+        "type": 0,
+        "content": "该职位描述与实际工作内容严重不符",
+        "status": 0,
+        "handlerId": null,
+        "handlerName": null,
+        "handleResult": null,
+        "createTime": "2026-07-13 15:00:00",
+        "updateTime": "2026-07-13 15:00:00"
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### 14.3 投诉详情
+
+**接口描述**：管理员查看投诉详情。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/complaints/{id}` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 投诉 ID |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "complainantId": 1,
+    "complainantName": "张三",
+    "complainantPhone": "138****8000",
+    "targetType": 0,
+    "targetId": 1,
+    "targetName": "周末餐厅服务员",
+    "targetDetail": {
+      "taskId": 1,
+      "taskTitle": "周末餐厅服务员",
+      "enterpriseName": "某某餐饮有限公司",
+      "status": 1
+    },
+    "type": 0,
+    "content": "该职位描述与实际工作内容严重不符，存在虚假宣传",
+    "status": 0,
+    "handlerId": null,
+    "handlerName": null,
+    "handleResult": null,
+    "createTime": "2026-07-13 15:00:00",
+    "updateTime": "2026-07-13 15:00:00"
+  }
+}
+```
+
+---
+
+### 14.4 处理投诉（管理员）
+
+**接口描述**：管理员受理投诉，填写处理结果并结案。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/admin/complaints/{id}/handle` |
+| 鉴权 | 需要鉴权，角色限制：管理员（9） |
+| 权限 | 管理员 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 投诉 ID |
+
+**请求参数（Body）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| status | Integer | 是 | 处理状态：1 处理中 / 2 已结案 |
+| handleResult | String | 条件必填 | 处理结果，结案时必填 |
+
+**请求示例（结案）**
+
+```json
+{
+  "status": 2,
+  "handleResult": "经核实，该职位描述确实存在夸大宣传，已下架该职位并通知企业修改"
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "处理完成",
+  "data": {
+    "id": 1,
+    "status": 2,
+    "handlerId": 9,
+    "handlerName": "管理员",
+    "handleResult": "经核实，该职位描述确实存在夸大宣传，已下架该职位并通知企业修改",
+    "updateTime": "2026-07-13 16:00:00"
+  }
+}
+```
+
+---
+
+## 15. API 接口汇总
 
 | 序号 | 模块 | 方法 | 路径 | 权限 | 说明 |
 |---|---|---|---|---|---|
@@ -2377,46 +2829,54 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 10 | 简历 | PUT | `/api/resume` | 求职者 | 创建/更新简历 |
 | 11 | 简历 | POST | `/api/resume/upload-attachment` | 求职者 | 上传附件简历 |
 | 12 | 分类 | GET | `/api/categories` | 登录 | 获取分类列表 |
-| 13 | 职位 | GET | `/api/tasks` | 登录 | 职位列表（搜索&筛选） |
-| 14 | 职位 | GET | `/api/tasks/{id}` | 登录 | 职位详情 |
-| 15 | 职位 | POST | `/api/tasks` | 企业 HR | 发布职位 |
-| 16 | 职位 | PUT | `/api/tasks/{id}` | 企业 HR | 更新职位 |
-| 17 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员 | 修改职位状态 |
-| 18 | 职位 | GET | `/api/enterprise/tasks` | 企业 HR | 本企业职位列表 |
-| 19 | 投递 | POST | `/api/applications` | 求职者 | 投递职位 |
-| 20 | 投递 | GET | `/api/applications/my` | 求职者 | 我的投递记录 |
-| 21 | 投递 | GET | `/api/applications/{id}` | 登录 | 投递详情 |
-| 22 | 投递 | GET | `/api/tasks/{taskId}/applications` | 企业 HR | 职位投递列表 |
-| 23 | 投递 | PUT | `/api/applications/{id}/status` | 企业 HR | 修改投递状态 |
-| 24 | 投递 | PUT | `/api/applications/{id}/complete` | 企业 HR | 结算确认（已录用→已完成） |
-| 25 | 企业 | POST | `/api/enterprise` | 企业 HR | 提交企业资质 |
-| 26 | 企业 | GET | `/api/enterprise/my` | 企业 HR | 获取我的企业信息 |
-| 27 | 企业 | PUT | `/api/enterprise` | 企业 HR | 更新企业信息 |
-| 28 | 管理 | GET | `/api/admin/enterprises` | 管理员 | 企业审核列表 |
-| 29 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员 | 企业资质审核 |
-| 30 | 管理 | GET | `/api/admin/tasks/pending` | 管理员 | 待审核职位列表 |
-| 31 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员 | 职位审核 |
-| 32 | 管理 | GET | `/api/admin/statistics` | 管理员 | 数据统计看板 |
-| 33 | 管理 | GET | `/api/admin/users` | 管理员 | 用户管理列表 |
-| 34 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员 | 禁用/启用用户 |
-| 35 | 消息 | GET | `/api/messages` | 登录 | 消息列表 |
-| 36 | 消息 | GET | `/api/messages/unread-count` | 登录 | 未读消息数 |
-| 37 | 消息 | PUT | `/api/messages/{id}/read` | 登录 | 标记消息已读 |
-| 38 | 消息 | PUT | `/api/messages/read-all` | 登录 | 全部标记已读 |
-| 39 | 聊天 | GET | `/api/chat/sessions` | 登录 | 聊天会话列表 |
-| 40 | 聊天 | GET | `/api/chat/sessions/{applicationId}` | 登录 | 获取会话详情 |
-| 41 | 聊天 | GET | `/api/chat/sessions/{applicationId}/messages` | 登录 | 加载聊天历史 |
-| 42 | 聊天 | POST | `/api/chat/sessions/{applicationId}/messages` | 登录 | 发送聊天消息（HTTP） |
-| 43 | 聊天 | PUT | `/api/chat/sessions/{applicationId}/read` | 登录 | 标记会话已读 |
-| 44 | 聊天 | WS | `ws://{host}:{port}/ws/chat` | 登录 | WebSocket 实时推送 |
-| 45 | 上传 | POST | `/api/upload/image` | 登录 | 上传图片 |
-| 46 | 上传 | POST | `/api/upload/file` | 登录 | 上传文件 |
+| 13 | 地区 | GET | `/api/region/provinces` | 公开 | 获取所有省级行政区划 |
+| 14 | 地区 | GET | `/api/region/children/{parentId}` | 公开 | 获取子级行政区划 |
+| 15 | 地区 | GET | `/api/region/tree` | 公开 | 获取省/市/区三级树形结构 |
+| 16 | 职位 | GET | `/api/tasks` | 登录 | 职位列表（搜索&筛选） |
+| 17 | 职位 | GET | `/api/tasks/{id}` | 登录 | 职位详情 |
+| 18 | 职位 | POST | `/api/tasks` | 企业 HR | 发布职位 |
+| 19 | 职位 | PUT | `/api/tasks/{id}` | 企业 HR | 更新职位 |
+| 20 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员 | 修改职位状态 |
+| 21 | 职位 | GET | `/api/enterprise/tasks` | 企业 HR | 本企业职位列表 |
+| 22 | 投递 | POST | `/api/applications` | 求职者 | 投递职位 |
+| 23 | 投递 | GET | `/api/applications/my` | 求职者 | 我的投递记录 |
+| 24 | 投递 | GET | `/api/applications/{id}` | 登录 | 投递详情 |
+| 25 | 投递 | GET | `/api/tasks/{taskId}/applications` | 企业 HR | 职位投递列表 |
+| 26 | 投递 | PUT | `/api/applications/{id}/status` | 企业 HR | 修改投递状态 |
+| 27 | 投递 | PUT | `/api/applications/{id}/complete` | 企业 HR | 结算确认（已录用→已完成） |
+| 28 | 企业 | POST | `/api/enterprise` | 企业 HR | 提交企业资质 |
+| 29 | 企业 | GET | `/api/enterprise/my` | 企业 HR | 获取我的企业信息 |
+| 30 | 企业 | PUT | `/api/enterprise` | 企业 HR | 更新企业信息 |
+| 31 | 管理 | GET | `/api/admin/enterprises` | 管理员 | 企业审核列表 |
+| 32 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员 | 企业资质审核 |
+| 33 | 管理 | GET | `/api/admin/tasks/pending` | 管理员 | 待审核职位列表 |
+| 34 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员 | 职位审核 |
+| 35 | 管理 | GET | `/api/admin/statistics` | 管理员 | 数据统计看板 |
+| 36 | 管理 | GET | `/api/admin/users` | 管理员 | 用户管理列表 |
+| 37 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员 | 禁用/启用用户 |
+| 38 | 管理 | GET | `/api/admin/operation-logs` | 管理员 | 操作审计日志 |
+| 39 | 管理 | GET | `/api/admin/complaints` | 管理员 | 投诉列表 |
+| 40 | 管理 | GET | `/api/admin/complaints/{id}` | 管理员 | 投诉详情 |
+| 41 | 管理 | PUT | `/api/admin/complaints/{id}/handle` | 管理员 | 处理投诉 |
+| 42 | 投诉 | POST | `/api/complaints` | 登录 | 提交投诉 |
+| 43 | 消息 | GET | `/api/messages` | 登录 | 消息列表 |
+| 44 | 消息 | GET | `/api/messages/unread-count` | 登录 | 未读消息数 |
+| 45 | 消息 | PUT | `/api/messages/{id}/read` | 登录 | 标记消息已读 |
+| 46 | 消息 | PUT | `/api/messages/read-all` | 登录 | 全部标记已读 |
+| 47 | 聊天 | GET | `/api/chat/sessions` | 登录 | 聊天会话列表 |
+| 48 | 聊天 | GET | `/api/chat/sessions/{applicationId}` | 登录 | 获取会话详情 |
+| 49 | 聊天 | GET | `/api/chat/sessions/{applicationId}/messages` | 登录 | 加载聊天历史 |
+| 50 | 聊天 | POST | `/api/chat/sessions/{applicationId}/messages` | 登录 | 发送聊天消息（HTTP） |
+| 51 | 聊天 | PUT | `/api/chat/sessions/{applicationId}/read` | 登录 | 标记会话已读 |
+| 52 | 聊天 | WS | `ws://{host}:{port}/ws/chat` | 登录 | WebSocket 实时推送 |
+| 53 | 上传 | POST | `/api/upload/image` | 登录 | 上传图片 |
+| 54 | 上传 | POST | `/api/upload/file` | 登录 | 上传文件 |
 
 ---
 
-## 14. 附录：状态枚举说明
+## 16. 附录：状态枚举说明
 
-### 14.1 投递状态（Application Status）
+### 16.1 投递状态（Application Status）
 
 | 状态值 | 状态名称 | 说明 |
 |---|---|---|
@@ -2427,7 +2887,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 4 | 已淘汰 | HR 已淘汰该求职者 |
 | 5 | 已完成 | 该兼职工作已结算完成 |
 
-### 14.2 职位状态（Task Status）
+### 16.2 职位状态（Task Status）
 
 | 状态值 | 状态名称 | 说明 |
 |---|---|---|
@@ -2437,7 +2897,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 3 | 已过期 | 报名截止时间已过 |
 | 4 | 已下架 | 企业手动下架或运营强制下架 |
 
-### 14.3 企业审核状态（Audit Status）
+### 16.3 企业审核状态（Audit Status）
 
 | 状态值 | 状态名称 | 说明 |
 |---|---|---|
@@ -2445,7 +2905,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 1 | 已认证 | 审核通过 |
 | 2 | 驳回 | 审核驳回，需修改后重新提交 |
 
-### 14.4 薪资单位（Salary Unit）
+### 16.4 薪资单位（Salary Unit）
 
 | 值 | 说明 |
 |---|---|
@@ -2453,7 +2913,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 1 | 时薪 |
 | 2 | 月结 |
 
-### 14.5 消息类型（Message Type）
+### 16.5 消息类型（Message Type）
 
 | 值 | 说明 |
 |---|---|
@@ -2463,7 +2923,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 3 | 淘汰通知 |
 | 4 | 聊天消息 |
 
-### 14.6 用户角色（Role）
+### 16.6 用户角色（Role）
 
 | 值 | 说明 |
 |---|---|
@@ -2471,21 +2931,21 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 1 | 企业 HR |
 | 9 | 运营管理员 |
 
-### 14.7 用户状态（User Status）
+### 16.7 用户状态（User Status）
 
 | 值 | 说明 |
 |---|---|
 | 0 | 禁用 |
 | 1 | 正常 |
 
-### 14.8 聊天消息类型（Chat Message Type）
+### 16.8 聊天消息类型（Chat Message Type）
 
 | 值 | 说明 |
 |---|---|
 | 0 | 文本 |
 | 1 | 图片 |
 
-### 14.9 WebSocket 事件类型（WebSocket Event Type）
+### 16.9 WebSocket 事件类型（WebSocket Event Type）
 
 | type 值 | 方向 | 说明 |
 |---|---|---|
@@ -2497,3 +2957,27 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | `SESSION_UPDATE` | 服务端 → 客户端 | 会话列表更新 |
 | `NOTIFICATION` | 服务端 → 客户端 | 系统通知推送 |
 | `ERROR` | 服务端 → 客户端 | 错误通知 |
+
+### 16.10 岗位类型（Job Type）
+
+| 值 | 说明 |
+|---|---|
+| 1 | 全职 |
+| 2 | 兼职 |
+| 3 | 实习 |
+
+### 16.11 行政区划层级（Region Level）
+
+| 值 | 说明 |
+|---|---|
+| 1 | 省（直辖市/自治区） |
+| 2 | 市（地级市/自治州/盟） |
+| 3 | 区县（区/县级市/旗） |
+
+### 16.12 投诉处理状态（Complaint Status）
+
+| 值 | 说明 |
+|---|---|
+| 0 | 待处理 |
+| 1 | 处理中 |
+| 2 | 已结案 |
