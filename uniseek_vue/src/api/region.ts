@@ -5,10 +5,22 @@ export interface RegionVO {
   id: number
   name: string
   level: number
-  children: RegionVO[]
+  children?: RegionVO[]
 }
 
-/** 获取完整省/市/区三级树形结构 GET /api/region/tree */
+/** GET /region/provinces 获取省级列表 */
+export const getProvinces = async () => {
+  const res = await request.get<ApiResponse<RegionVO[]>>('/region/provinces')
+  return res.data
+}
+
+/** GET /region/children/:parentId 获取子级区划 */
+export const getRegionChildren = async (parentId: number) => {
+  const res = await request.get<ApiResponse<RegionVO[]>>(`/region/children/${parentId}`)
+  return res.data
+}
+
+/** GET /region/tree 获取完整省市区树 */
 export const getRegionTree = async () => {
   const res = await request.get<ApiResponse<RegionVO[]>>('/region/tree')
   return res.data

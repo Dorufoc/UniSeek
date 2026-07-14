@@ -10,6 +10,23 @@ export interface PageResult<T> {
   totalPages: number
 }
 
+// 职位搜索参数
+export interface TaskSearchParams {
+  keyword?: string
+  categoryId?: number
+  regionId?: number
+  jobType?: number
+  salaryMin?: number
+  salaryMax?: number
+  salaryUnit?: number
+  address?: string
+  tag?: string
+  sortBy?: string
+  sortOrder?: string
+  page?: number
+  pageSize?: number
+}
+
 // 职位视图（匹配后端 TaskVO）
 export interface TaskVO {
   id: number
@@ -20,13 +37,15 @@ export interface TaskVO {
   description: string
   salaryMin: number
   salaryMax: number
-  salaryUnit: number       // 0-日结, 1-时薪, 2-月结
-  jobType: number          // 1-全职, 2-兼职, 3-实习
+  salaryUnit: number
+  jobType: number
   totalQuota: number
   remainingQuota: number
   address: string
   tag: string[]
-  status: number           // 0-待审, 1-招聘中, 2-已满员, 3-已过期, 4-已下架
+  longitude: number
+  latitude: number
+  status: number
   deadline: string | null
   createTime: string
   updateTime: string
@@ -37,7 +56,7 @@ export interface TaskVO {
   applicationCount: number
 }
 
-// 发布职位请求参数（匹配后端 TaskRequest）
+// 发布职位请求参数
 export interface CreateTaskParams {
   categoryId: number
   regionId: number
@@ -45,28 +64,46 @@ export interface CreateTaskParams {
   description: string
   salaryMin: number
   salaryMax: number
-  salaryUnit: number       // 0-月薪, 1-日薪, 2-时薪
-  jobType: number          // 0-全职, 1-兼职, 2-实习
+  salaryUnit: number
+  jobType: number
   totalQuota: number
   address: string
   tag: string[]
   deadline: string | null
 }
 
-/** 发布职位 POST /api/tasks */
+/** GET /api/tasks 分页搜索职位 */
+export const searchTasks = async (params: TaskSearchParams) => {
+  const res = await request.get<ApiResponse<PageResult<TaskVO>>>('/tasks', { params })
+  return res.data
+}
+
+/** GET /api/tasks/:id 获取职位详情 */
+export const getTaskById = async (id: number) => {
+  const res = await request.get<ApiResponse<TaskVO>>(`/tasks/${id}`)
+  return res.data
+}
+
+/** POST /api/tasks 发布职位 */
 export const createTask = async (params: CreateTaskParams) => {
   const res = await request.post<ApiResponse<TaskVO>>('/tasks', params)
   return res.data
 }
 
-/** 查询本企业职位列表 GET /api/enterprise/tasks */
-export const getEnterpriseTasks = async () => {
-  const res = await request.get<ApiResponse<PageResult<TaskVO>>>('/enterprise/tasks')
+/** PUT /api/tasks/:id 更新职位 */
+export const updateTask = async (id: number, params: CreateTaskParams) => {
+  const res = await request.put<ApiResponse<TaskVO>>(`/tasks/${id}`, params)
   return res.data
 }
 
-/** 修改职位状态 PUT /api/tasks/{id}/status */
+/** PUT /api/tasks/:id/status 修改职位状态 */
 export const updateTaskStatus = async (id: number, targetStatus: number) => {
   const res = await request.put<ApiResponse<void>>(`/tasks/${id}/status?targetStatus=${targetStatus}`)
+  return res.data
+}
+
+/** GET /api/enterprise/tasks 查询本企业职位列表 */
+export const getEnterpriseTasks = async (page = 1, pageSize = 100) => {
+  const res = await request.get<ApiResponse<PageResult<TaskVO>>>(`/enterprise/tasks?page=${page}&pageSize=${pageSize}`)
   return res.data
 }

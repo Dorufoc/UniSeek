@@ -4,36 +4,11 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts, User } from '@element-plus/icons-vue'
 import { createTask } from '@/api/task'
-import { getRegionTree } from '@/api/region'
-import type { RegionVO } from '@/api/region'
+import { getCategories, type CategoryVO } from '@/api/category'
+import { getRegionTree, type RegionVO } from '@/api/region'
 
 const router = useRouter()
 const loading = ref(false)
-
-// 地区三级联动
-const provinces = ref<RegionVO[]>([])
-const selectedProvince = ref<number | null>(null)
-const selectedCity = ref<number | null>(null)
-
-const cities = computed(() => {
-  const p = provinces.value.find(p => p.id === selectedProvince.value)
-  return p?.children || []
-})
-
-const districts = computed(() => {
-  const p = provinces.value.find(p => p.id === selectedProvince.value)
-  const c = p?.children.find(c => c.id === selectedCity.value)
-  return c?.children || []
-})
-
-const onProvinceChange = () => {
-  selectedCity.value = null
-  form.regionId = 0
-}
-
-const onCityChange = () => {
-  form.regionId = 0
-}
 
 const form = reactive({
   title: '',
@@ -50,10 +25,21 @@ const form = reactive({
   deadline: ''
 })
 
+const cascaderValue = ref<number[]>([])
+const regionCascaderValue = ref<number[]>([])
+
+const onCascaderChange = (val: number[]) => {
+  form.categoryId = val.length > 0 ? val[val.length - 1] : 0
+}
+
+const onRegionChange = (val: number[]) => {
+  form.regionId = val.length > 0 ? val[val.length - 1] : 0
+}
+
 const salaryUnitOptions = [
-  { label: '月薪', value: 0 },
-  { label: '日薪', value: 1 },
-  { label: '时薪', value: 2 }
+  { label: '日结', value: 0 },
+  { label: '时薪', value: 1 },
+  { label: '月薪', value: 2 }
 ]
 
 const jobTypeOptions = [
@@ -62,18 +48,23 @@ const jobTypeOptions = [
   { label: '实习', value: 3 }
 ]
 
-const tagOptions = ['急招', '日结', '可远程', '包吃住', '周末兼职', '长期招聘', '学生优先', '经验不限']
+const tagOptions = ['急招', '日结', '可远程', '包吃住', '周末兼职', '长期招聘', '学生优先', '经验不限', '高薪', '弹性工作']
 
-const categories = [
-  { id: 1, name: '服务员' },
-  { id: 2, name: '家教' },
-  { id: 3, name: '设计' },
-  { id: 4, name: '编程' },
-  { id: 5, name: '文案' },
-  { id: 6, name: '销售' },
-  { id: 7, name: '客服' },
-  { id: 8, name: '其他' }
-]
+const categoryTree = ref<CategoryVO[]>([])
+const regionTree = ref<RegionVO[]>([])
+
+const loadOptions = async () => {
+  const [cats, regs] = await Promise.all([
+    getCategories().catch(() => [] as CategoryVO[]),
+    getRegionTree().catch(() => [] as RegionVO[])
+  ])
+  categoryTree.value = cats
+  regionTree.value = regs
+}
+
+onMounted(() => {
+  loadOptions()
+})
 
 const toggleTag = (tag: string) => {
   const idx = form.tag.indexOf(tag)
@@ -86,10 +77,11 @@ const toggleTag = (tag: string) => {
 
 const isFormValid = computed(() => {
   return form.title.trim() !== ''
-    && form.categoryId > 0
+    && cascaderValue.value.length > 0
     && form.regionId > 0
     && form.description.trim() !== ''
     && form.salaryMax >= form.salaryMin
+    && form.salaryMax > 0
     && form.totalQuota > 0
     && form.address.trim() !== ''
 })
@@ -123,12 +115,6 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
-
-onMounted(async () => {
-  try {
-    provinces.value = await getRegionTree()
-  } catch { provinces.value = [] }
-})
 </script>
 
 <template>
@@ -149,28 +135,30 @@ onMounted(async () => {
         <div class="form-row">
           <div class="form-item flex-1">
             <label class="form-label">职位分类</label>
-            <el-select v-model="form.categoryId" placeholder="选择分类" size="large" style="width:100%">
-              <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
+            <el-cascader
+              v-model="cascaderValue"
+              :options="categoryTree"
+              :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: false }"
+              placeholder="请选择职位分类"
+              size="large"
+              clearable
+              style="width:100%"
+              @change="onCascaderChange as any"
+            />
           </div>
-            <div class="form-item flex-1">
-              <label class="form-label">所在省</label>
-              <el-select v-model="selectedProvince" placeholder="选择省" size="large" style="width:100%" @change="onProvinceChange">
-                <el-option v-for="p in provinces" :key="p.id" :label="p.name" :value="p.id" />
-              </el-select>
-            </div>
-            <div class="form-item flex-1">
-              <label class="form-label">所在市</label>
-              <el-select v-model="selectedCity" placeholder="选择市" size="large" style="width:100%" :disabled="!selectedProvince" @change="onCityChange">
-                <el-option v-for="c in cities" :key="c.id" :label="c.name" :value="c.id" />
-              </el-select>
-            </div>
-            <div class="form-item flex-1">
-              <label class="form-label">所在区</label>
-              <el-select v-model="form.regionId" placeholder="选择区" size="large" style="width:100%" :disabled="!selectedCity">
-                <el-option v-for="d in districts" :key="d.id" :label="d.name" :value="d.id" />
-              </el-select>
-            </div>
+          <div class="form-item flex-1">
+            <label class="form-label">工作地区</label>
+            <el-cascader
+              v-model="regionCascaderValue"
+              :options="regionTree"
+              :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: false }"
+              placeholder="请选择省/市/区"
+              size="large"
+              clearable
+              style="width:100%"
+              @change="onRegionChange as any"
+            />
+          </div>
         </div>
 
         <div class="form-item">

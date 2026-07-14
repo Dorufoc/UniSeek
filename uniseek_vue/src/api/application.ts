@@ -32,6 +32,11 @@ export interface TaskApplication {
   updateTime: string
 }
 
+// 投递请求参数
+export interface ApplyParams {
+  taskId: number
+}
+
 // 更新投递状态请求参数
 export interface UpdateApplicationStatusParams {
   status: number
@@ -44,9 +49,28 @@ export interface UpdateApplicationStatusParams {
 // 结算确认请求参数
 export interface CompleteApplicationParams {
   hrNote?: string | null
+  settlementAmount?: number
 }
 
-/** 查询某个职位的投递列表 GET /api/tasks/{taskId}/applications */
+/** POST /api/applications 投递职位 */
+export const apply = async (params: ApplyParams) => {
+  const res = await request.post<ApiResponse<TaskApplication>>('/applications', params)
+  return res.data
+}
+
+/** GET /api/applications/my 我的投递列表 */
+export const getMyApplications = async (page = 1, pageSize = 10) => {
+  const res = await request.get<ApiResponse<PageResult<TaskApplication>>>(`/applications/my?page=${page}&pageSize=${pageSize}`)
+  return res.data
+}
+
+/** GET /api/applications/:id 投递详情 */
+export const getApplicationById = async (id: number) => {
+  const res = await request.get<ApiResponse<TaskApplication>>(`/applications/${id}`)
+  return res.data
+}
+
+/** GET /api/tasks/{taskId}/applications 查询某个职位的投递列表（HR视角） */
 export const getTaskApplications = async (taskId: number, page = 1, pageSize = 100) => {
   const res = await request.get<ApiResponse<PageResult<TaskApplication>>>(
     `/tasks/${taskId}/applications?page=${page}&pageSize=${pageSize}`
@@ -54,20 +78,14 @@ export const getTaskApplications = async (taskId: number, page = 1, pageSize = 1
   return res.data
 }
 
-/** 更新投递状态 PUT /api/applications/{id}/status */
-export const updateApplicationStatus = async (
-  id: number,
-  params: UpdateApplicationStatusParams
-) => {
+/** PUT /api/applications/{id}/status 更新投递状态 */
+export const updateApplicationStatus = async (id: number, params: UpdateApplicationStatusParams) => {
   const res = await request.put<ApiResponse<void>>(`/applications/${id}/status`, params)
   return res.data
 }
 
-/** 结算确认 PUT /api/applications/{id}/complete */
-export const completeApplication = async (
-  id: number,
-  params: CompleteApplicationParams = {}
-) => {
+/** PUT /api/applications/{id}/complete 结算确认 */
+export const completeApplication = async (id: number, params: CompleteApplicationParams = {}) => {
   const res = await request.put<ApiResponse<void>>(`/applications/${id}/complete`, params)
   return res.data
 }

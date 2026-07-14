@@ -27,19 +27,19 @@ export interface EnterpriseInfo {
   updateTime: string
 }
 
-/** 提交企业资质认证 POST /api/enterprise */
+/** POST /api/enterprise 提交企业资质认证 */
 export const submitEnterprise = async (params: EnterpriseRequest) => {
   const res = await request.post<ApiResponse<EnterpriseInfo>>('/enterprise', params)
   return res.data
 }
 
-/** 查询我的企业资质信息 GET /api/enterprise/my */
+/** GET /api/enterprise/my 查询我的企业资质信息 */
 export const getMyEnterprise = async () => {
   const res = await request.get<ApiResponse<EnterpriseInfo>>('/enterprise/my')
   return res.data
 }
 
-/** 更新企业资质 PUT /api/enterprise */
+/** PUT /api/enterprise 更新企业资质 */
 export const updateEnterprise = async (params: EnterpriseRequest) => {
   const res = await request.put<ApiResponse<EnterpriseInfo>>('/enterprise', params)
   return res.data

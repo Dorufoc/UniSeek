@@ -83,6 +83,18 @@ const router = createRouter({
           meta: { title: '发布职位 - UniSeek', requiresCert: true }
         },
         {
+          path: 'my-applications',
+          name: 'MyApplications',
+          component: () => import('@/pages/MyApplications.vue'),
+          meta: { title: '我的求职 - UniSeek' }
+        },
+        {
+          path: 'account-security',
+          name: 'AccountSecurity',
+          component: () => import('@/pages/AccountSecurity.vue'),
+          meta: { title: '账号安全 - UniSeek' }
+        },
+        {
           path: 'profile',
           name: 'Profile',
           component: () => import('@/pages/Profile.vue'),

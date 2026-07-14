@@ -200,13 +200,13 @@ const handleMenuClick = (item: string) => {
       router.push('/resume')
       break
     case 'applications':
-      ElMessage.info('投递记录功能开发中')
+      router.push('/my-applications')
       break
     case 'interviews':
-      ElMessage.info('面试邀请功能开发中')
+      router.push('/my-applications?tab=interviews')
       break
     case 'favorites':
-      ElMessage.info('收藏职位功能开发中')
+      router.push('/my-applications?tab=favorites')
       break
     case 'enterprise':
       router.push('/enterprise-cert')
@@ -221,9 +221,7 @@ const handleMenuClick = (item: string) => {
       router.push('/resume-pool')
       break
     case 'security':
-      passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
-      profileEditing.value = false
-      securityDialogVisible.value = true
+      router.push('/account-security')
       break
     case 'superAdmin':
       router.push('/admin/super')
