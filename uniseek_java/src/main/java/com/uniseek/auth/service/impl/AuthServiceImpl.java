@@ -257,6 +257,54 @@ public class AuthServiceImpl implements AuthService {
         return result;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updatePhone(Long userId, UpdatePhoneRequest request) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (!PasswordUtil.verify(request.getPassword(), user.getPassword(), user.getSalt())) {
+            throw new BusinessException("密码验证失败");
+        }
+        String newPhone = request.getNewPhone().trim();
+        if (newPhone.length() != 11 || newPhone.charAt(2) < '1' || newPhone.charAt(2) > '9') {
+            throw new BusinessException("手机号格式不正确");
+        }
+        Integer count = userMapper.selectCount(
+                new LambdaQueryWrapper<User>().eq(User::getPhone, newPhone));
+        if (count > 0) {
+            throw new BusinessException(ApiResult.CONFLICT, "该手机号已被绑定");
+        }
+        user.setPhone(newPhone);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateEmail(Long userId, UpdateEmailRequest request) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (!PasswordUtil.verify(request.getPassword(), user.getPassword(), user.getSalt())) {
+            throw new BusinessException("密码验证失败");
+        }
+        String newEmail = request.getNewEmail().trim();
+        if (!newEmail.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new BusinessException("邮箱格式不正确");
+        }
+        Integer count = userMapper.selectCount(
+                new LambdaQueryWrapper<User>().eq(User::getEmail, newEmail));
+        if (count > 0) {
+            throw new BusinessException(ApiResult.CONFLICT, "该邮箱已被绑定");
+        }
+        user.setEmail(newEmail);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+    }
+
     /**
      * 构建 UserVO（带脱敏处理）
      *

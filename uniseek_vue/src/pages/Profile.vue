@@ -118,13 +118,13 @@ const handleMenuClick = (item: string) => {
       router.push('/resume')
       break
     case 'applications':
-      ElMessage.info('投递记录功能开发中')
+      router.push('/my-applications')
       break
     case 'interviews':
-      ElMessage.info('面试邀请功能开发中')
+      router.push('/my-applications?tab=interviews')
       break
     case 'favorites':
-      ElMessage.info('收藏职位功能开发中')
+      router.push('/my-applications?tab=favorites')
       break
     case 'enterprise':
       ElMessage.info('企业信息功能开发中')
@@ -136,7 +136,7 @@ const handleMenuClick = (item: string) => {
       ElMessage.info('简历池功能开发中')
       break
     case 'security':
-      ElMessage.info('账号安全功能开发中')
+      router.push('/account-security')
       break
     case 'superAdmin':
       router.push('/admin/super')

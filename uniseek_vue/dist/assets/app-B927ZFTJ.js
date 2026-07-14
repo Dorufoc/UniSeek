@@ -1,0 +1,1 @@
+import{ut as e}from"./_plugin-vue_export-helper-C4X13pXe.js";import{n as t}from"./pinia-C_oYAIeM.js";var n=t(`app`,()=>{let t=e(`全国`),n=e(``);return{city:t,searchKeyword:n,setCity:e=>{t.value=e},setSearchKeyword:e=>{n.value=e}}});export{n as t};

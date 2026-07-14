@@ -160,7 +160,7 @@
         <include refid="selectTaskFields"/>,
         CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied
         <include refid="joinTaskRelations"/>
-        LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.user_id = #{userId}
+        LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.applicant_id = #{userId}
         WHERE task.id = #{id}
     </select>
 
