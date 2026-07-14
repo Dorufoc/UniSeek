@@ -814,6 +814,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "remainingQuota": 3,
         "address": "北京市朝阳区某某路 100 号",
         "status": 1,
+        "tag": ["兼职", "周末"],
         "deadline": "2026-07-20 23:59:59",
         "createTime": "2026-07-10 10:00:00"
       }
@@ -870,6 +871,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
     "longitude": 116.4612345,
     "latitude": 39.9012345,
     "status": 1,
+    "tag": ["兼职", "周末"],
     "deadline": "2026-07-20 23:59:59",
     "createTime": "2026-07-10 10:00:00",
     "updateTime": "2026-07-10 10:00:00",
@@ -901,6 +903,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | salaryMin | BigDecimal | 是 | 薪资范围最低值 |
 | salaryMax | BigDecimal | 是 | 薪资范围最高值 |
 | salaryUnit | Integer | 是 | 薪资单位：0 日结 / 1 时薪 / 2 月结 |
+| tag | String[] | 否 | 职位标签，JSON数组格式如["兼职","周末"] |
 | jobType | Integer | 是 | 岗位类型：1 全职 / 2 兼职 / 3 实习 |
 | totalQuota | Integer | 是 | 招聘总人数（≥1） |
 | address | String | 否 | 工作地址 |
@@ -1444,6 +1447,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | companyName | String | 是 | 公司全称 |
 | creditCode | String | 是 | 统一社会信用代码（18 位） |
 | licenseImgUrl | String | 是 | 营业执照图片 URL |
+| regionId | Long | 否 | 企业所在地区ID |
 | industry | String | 否 | 所属行业 |
 | description | String | 否 | 公司简介 |
 
@@ -1515,6 +1519,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
     "companyName": "某某餐饮有限公司",
     "creditCode": "91110108MA01XXXXX",
     "licenseImgUrl": "https://cdn.uniseek.com/licenses/1.jpg",
+    "regionId": 110105,
     "industry": "餐饮",
     "description": "某某餐饮有限公司成立于 2010 年...",
     "auditStatus": 0,
@@ -2634,7 +2639,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| targetType | Integer | 是 | 被投诉对象类型：0 职位 / 1 企业 / 2 用户 |
+| targetType | Integer | 是 | 被投诉对象类型：1 企业 / 2 用户 |
 | targetId | Long | 是 | 被投诉对象 ID |
 | type | Integer | 是 | 投诉类型 |
 | content | String | 是 | 投诉内容（1~500 字） |
@@ -2643,7 +2648,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ```json
 {
-  "targetType": 0,
+  "targetType": 1,
   "targetId": 1,
   "type": 0,
   "content": "该职位描述与实际工作内容严重不符，存在虚假宣传"
@@ -2681,7 +2686,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | status | Integer | 否 | 处理状态：0 待处理 / 1 处理中 / 2 已结案 |
-| targetType | Integer | 否 | 被投诉对象类型：0 职位 / 1 企业 / 2 用户 |
+| targetType | Integer | 否 | 被投诉对象类型：1 企业 / 2 用户 |
 | page | Integer | 否 | 页码（默认 1） |
 | pageSize | Integer | 否 | 每页条数（默认 20） |
 
@@ -2697,7 +2702,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
         "id": 1,
         "complainantId": 1,
         "complainantName": "张三",
-        "targetType": 0,
+        "targetType": 1,
         "targetId": 1,
         "targetName": "周末餐厅服务员",
         "type": 0,
@@ -2747,7 +2752,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
     "complainantId": 1,
     "complainantName": "张三",
     "complainantPhone": "138****8000",
-    "targetType": 0,
+    "targetType": 1,
     "targetId": 1,
     "targetName": "周末餐厅服务员",
     "targetDetail": {

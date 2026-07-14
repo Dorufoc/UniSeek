@@ -15,4 +15,128 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
+    <!-- ChatSessionVO 映射 -->
+    <resultMap id="ChatSessionVOResultMap" type="com.uniseek.dto.ChatSessionVO">
+        <result column="application_id" property="applicationId"/>
+        <result column="task_id" property="taskId"/>
+        <result column="task_title" property="taskTitle"/>
+        <result column="task_status" property="taskStatus"/>
+        <result column="application_status" property="applicationStatus"/>
+        <result column="counterpart_id" property="counterpartId"/>
+        <result column="counterpart_name" property="counterpartName"/>
+        <result column="counterpart_avatar" property="counterpartAvatar"/>
+        <result column="last_message" property="lastMessage"/>
+        <result column="last_message_time" property="lastMessageTime"/>
+        <result column="unread_count" property="unreadCount"/>
+    </resultMap>
+
+    <!-- 未读子查询 SQL 片段 -->
+    <sql id="unreadSubquery">
+        LEFT JOIN (
+            SELECT session_id, COUNT(*) AS unread_count
+            FROM chat_message
+            WHERE is_read = 0 AND sender_id != #{userId}
+            GROUP BY session_id
+        ) uc ON cs.id = uc.session_id
+    </sql>
+
+    <!-- 查询 HR 的聊天会话列表 -->
+    <select id="selectSessionsByEmployer" resultMap="ChatSessionVOResultMap">
+        SELECT
+            cs.task_application_id AS application_id,
+            t.id AS task_id,
+            t.title AS task_title,
+            t.status AS task_status,
+            ta.status AS application_status,
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar,
+            cs.last_message,
+            cs.last_message_time,
+            COALESCE(uc.unread_count, 0) AS unread_count
+        FROM chat_session cs
+        JOIN task_application ta ON cs.task_application_id = ta.id
+        JOIN task t ON ta.task_id = t.id
+        JOIN enterprise e ON t.enterprise_id = e.id
+        JOIN user u ON cs.seeker_id = u.id
+        <include refid="unreadSubquery"/>
+        WHERE e.user_id = #{userId}
+        ORDER BY cs.last_message_time DESC
+    </select>
+
+    <!-- 查询求职者的聊天会话列表 -->
+    <select id="selectSessionsBySeeker" resultMap="ChatSessionVOResultMap">
+        SELECT
+            cs.task_application_id AS application_id,
+            t.id AS task_id,
+            t.title AS task_title,
+            t.status AS task_status,
+            ta.status AS application_status,
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar,
+            cs.last_message,
+            cs.last_message_time,
+            COALESCE(uc.unread_count, 0) AS unread_count
+        FROM chat_session cs
+        JOIN task_application ta ON cs.task_application_id = ta.id
+        JOIN task t ON ta.task_id = t.id
+        JOIN user u ON cs.employer_id = u.id
+        <include refid="unreadSubquery"/>
+        WHERE cs.seeker_id = #{userId}
+        ORDER BY cs.last_message_time DESC
+    </select>
+
+    <!-- 查询单条会话详情 -->
+    <select id="selectSessionDetail" resultMap="ChatSessionVOResultMap">
+        SELECT
+            cs.task_application_id AS application_id,
+            t.id AS task_id,
+            t.title AS task_title,
+            t.status AS task_status,
+            ta.status AS application_status,
+        <choose>
+            <when test="role == 1">
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar
+            </when>
+            <otherwise>
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar
+            </otherwise>
+        </choose>
+            cs.last_message,
+            cs.last_message_time,
+            COALESCE(uc.unread_count, 0) AS unread_count
+        FROM chat_session cs
+        JOIN task_application ta ON cs.task_application_id = ta.id
+        JOIN task t ON ta.task_id = t.id
+        <choose>
+            <when test="role == 1">
+            JOIN enterprise e ON t.enterprise_id = e.id
+            JOIN user u ON cs.seeker_id = u.id
+            </when>
+            <otherwise>
+            JOIN user u ON cs.employer_id = u.id
+            </otherwise>
+        </choose>
+        <include refid="unreadSubquery"/>
+        WHERE cs.task_application_id = #{applicationId}
+        <choose>
+            <when test="role == 1">
+            AND e.user_id = #{userId}
+            </when>
+            <otherwise>
+            AND cs.seeker_id = #{userId}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 根据投递记录 ID 查询会话 ID -->
+    <select id="selectIdByApplicationId" resultType="java.lang.Long">
+        SELECT id FROM chat_session WHERE task_application_id = #{applicationId} LIMIT 1
+    </select>
+
 </mapper>

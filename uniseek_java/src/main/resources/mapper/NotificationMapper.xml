@@ -15,4 +15,19 @@
         <result column="create_time" property="createTime"/>
     </resultMap>
 
+    <!-- 按类型统计未读消息数 -->
+    <select id="selectUnreadCountGroupByType" resultType="java.util.Map">
+        SELECT type, COUNT(*) AS count
+        FROM notification
+        WHERE receiver_id = #{receiverId} AND is_read = 0
+        GROUP BY type
+    </select>
+
+    <!-- 全部标记已读 -->
+    <update id="markAllAsRead">
+        UPDATE notification
+        SET is_read = 1
+        WHERE receiver_id = #{receiverId} AND is_read = 0
+    </update>
+
 </mapper>

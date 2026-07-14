@@ -17,4 +17,17 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
+    <!-- 带实名信息的简历结果映射（继承 BaseResultMap 并追加 realName） -->
+    <resultMap id="ResumeWithRealNameMap" extends="BaseResultMap" type="com.uniseek.entity.Resume">
+        <result column="real_name" property="realName"/>
+    </resultMap>
+
+    <!-- 查询简历及实名信息（LEFT JOIN real_name_auth 获取 realName） -->
+    <select id="selectResumeWithRealName" resultMap="ResumeWithRealNameMap">
+        SELECT r.*, rn.real_name
+        FROM resume r
+        LEFT JOIN real_name_auth rn ON r.user_id = rn.user_id AND rn.status = 1
+        WHERE r.user_id = #{userId}
+    </select>
+
 </mapper>

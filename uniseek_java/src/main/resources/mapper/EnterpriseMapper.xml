@@ -10,6 +10,7 @@
         <result column="credit_code" property="creditCode"/>
         <result column="license_img_url" property="licenseImgUrl"/>
         <result column="industry" property="industry"/>
+        <result column="region_id" property="regionId"/>
         <result column="description" property="description"/>
         <result column="audit_status" property="auditStatus"/>
         <result column="create_time" property="createTime"/>
