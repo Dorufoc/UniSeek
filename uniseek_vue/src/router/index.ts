@@ -1,29 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// 从 localStorage 获取当前登录用户的角色
+const getUserRole = (): number => {
+  const userStr = localStorage.getItem('uniseek_user')
+  return userStr ? JSON.parse(userStr).role : -1
+}
+
 // 读取企业认证状态
 const getCertStatus = () => {
   const cert = localStorage.getItem('uniseek_enterprise_cert')
   return cert ? JSON.parse(cert).status : 'none'
 }
 
-// 判断是否为招聘者
-const isRecruiter = () => {
-  const userStr = localStorage.getItem('uniseek_user')
-  return userStr ? JSON.parse(userStr).role === 1 : false
-}
-
-// 判断是否为超级管理员（role === 99）
-const isSuperAdmin = () => {
-  const userStr = localStorage.getItem('uniseek_user')
-  return userStr ? JSON.parse(userStr).role === 99 : false
-}
-
-// 路由配置 - 采用 HTML5 History 模式，所有页面组件懒加载
+// 路由配置
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      // 首页布局路由（需登录），所有主页面作为其子路由
       path: '/',
       component: () => import('@/layouts/DefaultLayout.vue'),
       meta: { requiresAuth: true },
@@ -75,24 +68,60 @@ const router = createRouter({
           name: 'Profile',
           component: () => import('@/pages/Profile.vue'),
           meta: { title: '个人中心 - UniSeek' }
-        },
-        {
-          path: 'admin/super',
-          name: 'SuperAdmin',
-          component: () => import('@/pages/admin/SuperAdmin.vue'),
-          meta: { title: '系统管理 - UniSeek', requiresAuth: true, requiresSuperAdmin: true }
         }
       ]
     },
     {
-      // 登录页为独立路由，不嵌套在布局中
+      path: '/admin',
+      component: () => import('@/layouts/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      redirect: '/admin/dashboard',
+      children: [
+        {
+          path: 'dashboard',
+          name: 'AdminDashboard',
+          component: () => import('@/pages/admin/Dashboard.vue'),
+          meta: { title: '工作台 - UniSeek 管理后台' }
+        },
+        {
+          path: 'enterprises',
+          name: 'AdminEnterprises',
+          component: () => import('@/pages/admin/EnterpriseAudit.vue'),
+          meta: { title: '企业审核 - UniSeek 管理后台' }
+        },
+        {
+          path: 'tasks',
+          name: 'AdminTasks',
+          component: () => import('@/pages/admin/TaskAudit.vue'),
+          meta: { title: '职位审核 - UniSeek 管理后台' }
+        },
+        {
+          path: 'users',
+          name: 'AdminUsers',
+          component: () => import('@/pages/admin/UserManagement.vue'),
+          meta: { title: '用户管理 - UniSeek 管理后台' }
+        },
+        {
+          path: 'complaints',
+          name: 'AdminComplaints',
+          component: () => import('@/pages/admin/ComplaintManage.vue'),
+          meta: { title: '投诉处理 - UniSeek 管理后台' }
+        },
+        {
+          path: 'logs',
+          name: 'AdminLogs',
+          component: () => import('@/pages/admin/OperationLogs.vue'),
+          meta: { title: '操作日志 - UniSeek 管理后台' }
+        }
+      ]
+    },
+    {
       path: '/login',
       name: 'Login',
       component: () => import('@/pages/Login.vue'),
       meta: { title: '登录 - UniSeek' }
     },
     {
-      // 企业资质认证页为独立路由，不嵌套在布局中
       path: '/enterprise-cert',
       name: 'EnterpriseCert',
       component: () => import('@/pages/EnterpriseCertification.vue'),
@@ -102,10 +131,9 @@ const router = createRouter({
 })
 
 // 全局路由守卫
-router.beforeEach((to, from) => {
+router.beforeEach((to, _from) => {
   const token = localStorage.getItem('uniseek_token')
-  const userStr = localStorage.getItem('uniseek_user')
-  const userInfo = userStr ? JSON.parse(userStr) : null
+  const role = getUserRole()
 
   // 未登录用户访问需认证页面 → 重定向到登录页
   if (to.meta.requiresAuth && !token) {
@@ -114,46 +142,42 @@ router.beforeEach((to, from) => {
 
   // 已登录用户访问登录页 → 根据角色重定向
   if (to.name === 'Login' && token) {
-    if (userInfo?.role === 1) {
+    if (role >= 9) {
+      return { path: '/admin/dashboard' }
+    }
+    if (role === 1) {
       const certStatus = getCertStatus()
       return { path: certStatus === 'approved' ? '/' : '/enterprise-cert' }
     }
     return { path: '/' }
   }
 
-  // 招聘者访问需要企业认证的页面（如发布职位），检查认证状态
-  if (to.meta.requiresCert && isRecruiter()) {
+  // 管理员路由守卫：/admin/* 仅允许 role >= 9 访问
+  if (to.path.startsWith('/admin') && role < 9) {
+    return { path: '/' }
+  }
+
+  // 招聘者访问需要企业认证的页面
+  if (to.meta.requiresCert && role === 1) {
     const certStatus = getCertStatus()
     if (certStatus !== 'approved') {
       return { path: '/enterprise-cert' }
     }
   }
 
-  // 招聘者已认证后访问认证页 → 重定向到首页
-  if (to.name === 'EnterpriseCert' && isRecruiter()) {
+  // 招聘者已认证后访问认证页 → 重定向首页
+  if (to.name === 'EnterpriseCert' && role === 1) {
     const certStatus = getCertStatus()
     if (certStatus === 'approved') {
       return { path: '/' }
     }
   }
 
-  // 非招聘者访问认证页 → 重定向到首页
-  if (to.name === 'EnterpriseCert' && !isRecruiter()) {
+  // 非招聘者访问认证页 → 重定向首页
+  if (to.name === 'EnterpriseCert' && role !== 1) {
     return { path: '/' }
   }
 
-  // 超级管理员（role === 99）可以访问所有页面，跳过其余检查
-  if (userInfo?.role === 99) {
-    document.title = (to.meta.title as string) || 'UniSeek'
-    return
-  }
-
-  // 需要超级管理员权限但角色不是 99 → 重定向到首页
-  if (to.meta.requiresSuperAdmin) {
-    return { path: '/' }
-  }
-
-  // 设置页面标题
   document.title = (to.meta.title as string) || 'UniSeek'
 })
 

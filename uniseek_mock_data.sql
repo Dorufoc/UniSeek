@@ -16,7 +16,7 @@ START TRANSACTION;
 -- ====================================================================
 -- 1. user - 用户表（26 条）
 --    超级管理员 1 条（role=99），管理员 1 条（role=9），企业 HR 8 条（role=1），求职者 16 条（role=0）
---    密码: MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32)))
+--    密码: '85455c805d1a6d3f0ed396658acec8a1'
 --    盐值: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
 -- ====================================================================
 
@@ -24,37 +24,37 @@ DELETE FROM `user`;
 
 INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
 -- 管理员 1 条
-(1,  '13900000001', 'admin@uniseek.com',       MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '系统管理员', NULL, 9, 100, 1, DATE_SUB(NOW(), INTERVAL 1 HOUR),  DATE_SUB(NOW(), INTERVAL 28 DAY),  NOW()),
+(1,  '13900000001', 'admin@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '系统管理员', NULL, 9, 100, 1, DATE_SUB(NOW(), INTERVAL 1 HOUR),  DATE_SUB(NOW(), INTERVAL 28 DAY),  NOW()),
 
 -- 企业 HR 8 条（role=1）
-(2,  '13900000011', 'li_hr_canyin@uniseek.com',  MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '李 HR-餐饮',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 2 HOUR),  DATE_SUB(NOW(), INTERVAL 26 DAY),  NOW()),
-(3,  '13900000012', 'wang_hr_wuliu@uniseek.com',  MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '王 HR-物流',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 5 HOUR),  DATE_SUB(NOW(), INTERVAL 25 DAY),  NOW()),
-(4,  '13900000013', 'zhang_hr_jishu@uniseek.com', MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '张 HR-技术',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 3 HOUR),  DATE_SUB(NOW(), INTERVAL 24 DAY),  NOW()),
-(5,  '13900000014', 'liu_hr_jiaoyu@uniseek.com',  MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '刘 HR-教育',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 22 DAY),  NOW()),
-(6,  '13900000015', 'chen_hr_sheji@uniseek.com',  MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '陈 HR-设计',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 8 HOUR),  DATE_SUB(NOW(), INTERVAL 20 DAY),  NOW()),
-(7,  '13900000016', 'zhao_hr_jiazheng@uniseek.com', MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '赵 HR-家政',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 12 HOUR), DATE_SUB(NOW(), INTERVAL 18 DAY),  NOW()),
-(8,  '13900000017', 'sun_hr_meirong@uniseek.com', MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '孙 HR-美容',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 16 DAY),  NOW()),
-(9,  '13900000018', 'zhou_hr_qita@uniseek.com',   MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '周 HR-其他',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 14 DAY),  NOW()),
+(2,  '13900000011', 'li_hr_canyin@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '李 HR-餐饮',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 2 HOUR),  DATE_SUB(NOW(), INTERVAL 26 DAY),  NOW()),
+(3,  '13900000012', 'wang_hr_wuliu@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '王 HR-物流',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 5 HOUR),  DATE_SUB(NOW(), INTERVAL 25 DAY),  NOW()),
+(4,  '13900000013', 'zhang_hr_jishu@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '张 HR-技术',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 3 HOUR),  DATE_SUB(NOW(), INTERVAL 24 DAY),  NOW()),
+(5,  '13900000014', 'liu_hr_jiaoyu@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '刘 HR-教育',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 22 DAY),  NOW()),
+(6,  '13900000015', 'chen_hr_sheji@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '陈 HR-设计',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 8 HOUR),  DATE_SUB(NOW(), INTERVAL 20 DAY),  NOW()),
+(7,  '13900000016', 'zhao_hr_jiazheng@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '赵 HR-家政',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 12 HOUR), DATE_SUB(NOW(), INTERVAL 18 DAY),  NOW()),
+(8,  '13900000017', 'sun_hr_meirong@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '孙 HR-美容',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 16 DAY),  NOW()),
+(9,  '13900000018', 'zhou_hr_qita@uniseek.com',   '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '周 HR-其他',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 14 DAY),  NOW()),
 
 -- 求职者 16 条（role=0）
-(10, '13900000101', 'zhangxiaomang@uniseek.com',  MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '张小芒', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),   DATE_SUB(NOW(), INTERVAL 27 DAY),  NOW()),
-(11, '13900000102', 'lixiaoming@uniseek.com',     MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '李小明', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 5 DAY),   DATE_SUB(NOW(), INTERVAL 26 DAY),  NOW()),
-(12, '13900000103', 'wangdali@uniseek.com',       MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '王大力', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 7 DAY),   DATE_SUB(NOW(), INTERVAL 25 DAY),  NOW()),
-(13, '13900000104', 'zhaoxiaoyan@uniseek.com',    MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '赵晓燕', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 4 DAY),   DATE_SUB(NOW(), INTERVAL 24 DAY),  NOW()),
-(14, '13900000105', 'liuzhiqiang@uniseek.com',    MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '刘志强', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 10 DAY),  DATE_SUB(NOW(), INTERVAL 23 DAY),  NOW()),
-(15, '13900000106', 'chensiyu@uniseek.com',       MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '陈思雨', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),   DATE_SUB(NOW(), INTERVAL 22 DAY),  NOW()),
-(16, '13900000107', 'yanghaoyu@uniseek.com',      MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '杨浩宇', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 8 DAY),   DATE_SUB(NOW(), INTERVAL 21 DAY),  NOW()),
-(17, '13900000108', 'zhoumeiling@uniseek.com',    MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '周美玲', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 9 DAY),   DATE_SUB(NOW(), INTERVAL 20 DAY),  NOW()),
-(18, '13900000109', 'wuhaotian@uniseek.com',      MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '吴昊天', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 12 DAY),  DATE_SUB(NOW(), INTERVAL 19 DAY),  NOW()),
-(19, '13900000110', 'zhengyawei@uniseek.com',     MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '郑雅文', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 18 DAY),  NOW()),
-(20, '13900000111', 'sunpengfei@uniseek.com',     MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '孙鹏飞', NULL, 0, 100, 1, NULL,                              DATE_SUB(NOW(), INTERVAL 17 DAY),  NOW()),
-(21, '13900000112', 'linjingyi@uniseek.com',      MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '林静怡', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 16 DAY),  NOW()),
-(22, '13900000113', 'huangjunjie@uniseek.com',    MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '黄俊杰', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 11 DAY),  DATE_SUB(NOW(), INTERVAL 15 DAY),  NOW()),
-(23, '13900000114', 'heyutong@uniseek.com',       MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '何雨桐', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),   DATE_SUB(NOW(), INTERVAL 14 DAY),  NOW()),
-(24, '13900000115', 'maxiaofeng@uniseek.com',     MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '马晓峰', NULL, 0, 100, 1, NULL,                              DATE_SUB(NOW(), INTERVAL 13 DAY),  NOW()),
-(25, '13900000116', 'tangyuyan@uniseek.com',      MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '唐语嫣', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),   DATE_SUB(NOW(), INTERVAL 12 DAY),  NOW()),
+(10, '13900000101', 'zhangxiaomang@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '张小芒', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),   DATE_SUB(NOW(), INTERVAL 27 DAY),  NOW()),
+(11, '13900000102', 'lixiaoming@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '李小明', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 5 DAY),   DATE_SUB(NOW(), INTERVAL 26 DAY),  NOW()),
+(12, '13900000103', 'wangdali@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '王大力', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 7 DAY),   DATE_SUB(NOW(), INTERVAL 25 DAY),  NOW()),
+(13, '13900000104', 'zhaoxiaoyan@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '赵晓燕', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 4 DAY),   DATE_SUB(NOW(), INTERVAL 24 DAY),  NOW()),
+(14, '13900000105', 'liuzhiqiang@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '刘志强', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 10 DAY),  DATE_SUB(NOW(), INTERVAL 23 DAY),  NOW()),
+(15, '13900000106', 'chensiyu@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '陈思雨', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),   DATE_SUB(NOW(), INTERVAL 22 DAY),  NOW()),
+(16, '13900000107', 'yanghaoyu@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '杨浩宇', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 8 DAY),   DATE_SUB(NOW(), INTERVAL 21 DAY),  NOW()),
+(17, '13900000108', 'zhoumeiling@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '周美玲', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 9 DAY),   DATE_SUB(NOW(), INTERVAL 20 DAY),  NOW()),
+(18, '13900000109', 'wuhaotian@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '吴昊天', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 12 DAY),  DATE_SUB(NOW(), INTERVAL 19 DAY),  NOW()),
+(19, '13900000110', 'zhengyawei@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '郑雅文', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 18 DAY),  NOW()),
+(20, '13900000111', 'sunpengfei@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '孙鹏飞', NULL, 0, 100, 1, NULL,                              DATE_SUB(NOW(), INTERVAL 17 DAY),  NOW()),
+(21, '13900000112', 'linjingyi@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '林静怡', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 16 DAY),  NOW()),
+(22, '13900000113', 'huangjunjie@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '黄俊杰', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 11 DAY),  DATE_SUB(NOW(), INTERVAL 15 DAY),  NOW()),
+(23, '13900000114', 'heyutong@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '何雨桐', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),   DATE_SUB(NOW(), INTERVAL 14 DAY),  NOW()),
+(24, '13900000115', 'maxiaofeng@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '马晓峰', NULL, 0, 100, 1, NULL,                              DATE_SUB(NOW(), INTERVAL 13 DAY),  NOW()),
+(25, '13900000116', 'tangyuyan@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '唐语嫣', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),   DATE_SUB(NOW(), INTERVAL 12 DAY),  NOW()),
 -- 超级管理员 1 条（role=99）
-(26, '13999999999', 'superadmin@uniseek.com', MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32), '超级管理员', NULL, 99, 100, 1, NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+(26, '13999999999', 'superadmin@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '超级管理员', NULL, 99, 100, 1, NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
 -- ====================================================================
 -- 2. real_name_auth - 实名认证表（24 条）

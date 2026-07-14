@@ -65,8 +65,8 @@ const handleLogin = async () => {
     const userInfo = { ...res.userInfo, role: storedUser?.role ?? res.userInfo.role }
     userStore.setUserInfo(userInfo)
     ElMessage.success('登录成功')
-    // 招聘者登录后跳转到企业认证页，求职者跳转到首页
-    const target = userInfo.role === 1 ? '/enterprise-cert' : '/'
+    // 管理员 -> 管理后台，招聘者 -> 企业认证页，求职者 -> 首页
+    const target = userInfo.role >= 9 ? '/admin/dashboard' : userInfo.role === 1 ? '/enterprise-cert' : '/'
     router.replace(target)
   } catch {
     // 错误已在拦截器中处理
