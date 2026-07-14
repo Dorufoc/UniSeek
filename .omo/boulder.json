@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "active_work_id": "uniseek-backend-full",
+  "works": {
+    "uniseek-backend-full": {
+      "work_id": "uniseek-backend-full",
+      "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\uniseek-backend-full.md",
+      "plan_name": "uniseek-backend-full",
+      "session_ids": ["opencode:ses_0a1ef4c58ffeW14D3tUVsep5H4"],
+      "status": "completed",
+      "started_at": "2026-07-14T01:00:30.876Z",
+      "updated_at": "2026-07-14T09:44:32.000Z",
+      "ended_at": "2026-07-14T09:44:32.000Z",
+      "worktree_path": null,
+      "task_sessions": {}
+    }
+  },
+  "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\uniseek-backend-full.md",
+  "plan_name": "uniseek-backend-full",
+  "started_at": "2026-07-14T01:00:30.876Z",
+  "status": "completed",
+  "updated_at": "2026-07-14T09:44:32.000Z",
+  "ended_at": "2026-07-14T09:44:32.000Z",
+  "session_ids": ["opencode:ses_0a1ef4c58ffeW14D3tUVsep5H4"],
+  "worktree_path": null,
+  "agent": "atlas",
+  "task_sessions": {}
+}

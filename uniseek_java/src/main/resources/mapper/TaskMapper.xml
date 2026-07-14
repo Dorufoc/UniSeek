@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uniseek.dao.TaskMapper">
+
+    <!-- Task 实体基础映射 -->
+    <resultMap id="BaseResultMap" type="com.uniseek.entity.Task">
+        <id column="id" property="id"/>
+        <result column="enterprise_id" property="enterpriseId"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="region_id" property="regionId"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="salary_min" property="salaryMin"/>
+        <result column="salary_max" property="salaryMax"/>
+        <result column="salary_unit" property="salaryUnit"/>
+        <result column="job_type" property="jobType"/>
+        <result column="total_quota" property="totalQuota"/>
+        <result column="remaining_quota" property="remainingQuota"/>
+        <result column="address" property="address"/>
+        <result column="tag" property="tag"/>
+        <result column="longitude" property="longitude"/>
+        <result column="latitude" property="latitude"/>
+        <result column="status" property="status"/>
+        <result column="version" property="version"/>
+        <result column="deadline" property="deadline"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- TaskVO 映射（含关联字段） -->
+    <resultMap id="TaskVOResultMap" type="com.uniseek.dto.TaskVO">
+        <id column="id" property="id"/>
+        <result column="enterprise_id" property="enterpriseId"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="region_id" property="regionId"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="salary_min" property="salaryMin"/>
+        <result column="salary_max" property="salaryMax"/>
+        <result column="salary_unit" property="salaryUnit"/>
+        <result column="job_type" property="jobType"/>
+        <result column="total_quota" property="totalQuota"/>
+        <result column="remaining_quota" property="remainingQuota"/>
+        <result column="address" property="address"/>
+        <result column="tag" property="tag"
+                typeHandler="com.uniseek.common.handler.StringListTypeHandler"/>
+        <result column="longitude" property="longitude"/>
+        <result column="latitude" property="latitude"/>
+        <result column="status" property="status"/>
+        <result column="deadline" property="deadline"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="enterprise_name" property="enterpriseName"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="region_name" property="regionName"/>
+        <result column="has_applied" property="hasApplied"/>
+        <result column="application_count" property="applicationCount"/>
+    </resultMap>
+
+    <!-- 通用 SELECT 片段：LEFT JOIN 企业/分类/地区 -->
+    <sql id="joinTaskRelations">
+        FROM task
+        LEFT JOIN enterprise ON task.enterprise_id = enterprise.id
+        LEFT JOIN category ON task.category_id = category.id
+        LEFT JOIN region ON task.region_id = region.id
+    </sql>
+
+    <!-- 通用查询字段 -->
+    <sql id="selectTaskFields">
+        task.id, task.enterprise_id, task.category_id, task.region_id,
+        task.title, task.description,
+        task.salary_min, task.salary_max, task.salary_unit,
+        task.job_type, task.total_quota, task.remaining_quota,
+        task.address, task.tag, task.longitude, task.latitude,
+        task.status, task.deadline, task.create_time, task.update_time,
+        enterprise.company_name AS enterprise_name,
+        category.name AS category_name,
+        region.name AS region_name
+    </sql>
+
+    <!-- 热门排序子查询（仅 sortBy=popular 时启用） -->
+    <sql id="joinPopularSubquery">
+        <if test="req.sortBy == 'popular'">
+            LEFT JOIN (
+                SELECT task_id, COUNT(*) AS c
+                FROM task_application
+                GROUP BY task_id
+            ) AS apps ON task.id = apps.task_id
+        </if>
+    </sql>
+
+    <!-- 搜索条件 WHERE -->
+    <sql id="searchConditions">
+        <where>
+            <if test="req.keyword != null and req.keyword != ''">
+                AND task.title LIKE CONCAT('%', #{req.keyword}, '%')
+            </if>
+            <if test="req.categoryId != null">
+                AND task.category_id = #{req.categoryId}
+            </if>
+            <if test="req.regionId != null">
+                AND task.region_id = #{req.regionId}
+            </if>
+            <if test="req.jobType != null">
+                AND task.job_type = #{req.jobType}
+            </if>
+            <if test="req.salaryMin != null">
+                AND task.salary_max >= #{req.salaryMin}
+            </if>
+            <if test="req.salaryMax != null">
+                AND task.salary_min &lt;= #{req.salaryMax}
+            </if>
+            <if test="req.salaryUnit != null">
+                AND task.salary_unit = #{req.salaryUnit}
+            </if>
+            <if test="req.address != null and req.address != ''">
+                AND task.address LIKE CONCAT('%', #{req.address}, '%')
+            </if>
+            <if test="req.tag != null and req.tag != ''">
+                AND task.tag LIKE CONCAT('%', #{req.tag}, '%')
+            </if>
+            <!-- 默认只查询已发布（1）和进行中（2）的职位 -->
+            AND task.status IN (1, 2)
+        </where>
+    </sql>
+
+    <!-- 排序 -->
+    <sql id="orderByClause">
+        <bind name="orderDir" value="req.sortOrder == 'asc' ? 'ASC' : 'DESC'" />
+        <choose>
+            <when test="req.sortBy == 'popular'">
+                ORDER BY apps.c DESC, task.create_time DESC
+            </when>
+            <when test="req.sortBy == 'salary_max'">
+                ORDER BY task.salary_max ${orderDir}, task.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY task.create_time ${orderDir}
+            </otherwise>
+        </choose>
+    </sql>
+
+    <!-- 分页条件搜索 -->
+    <select id="selectPageByCondition" resultMap="TaskVOResultMap">
+        SELECT
+        <include refid="selectTaskFields"/>
+        <if test="req.sortBy == 'popular'">
+            , COALESCE(apps.c, 0) AS application_count
+        </if>
+        <include refid="joinTaskRelations"/>
+        <include refid="joinPopularSubquery"/>
+        <include refid="searchConditions"/>
+        <include refid="orderByClause"/>
+    </select>
+
+    <!-- 查询职位详情（含 hasApplied） -->
+    <select id="selectDetailById" resultMap="TaskVOResultMap">
+        SELECT
+        <include refid="selectTaskFields"/>,
+        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied
+        <include refid="joinTaskRelations"/>
+        LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.user_id = #{userId}
+        WHERE task.id = #{id}
+    </select>
+
+    <!-- 查询本企业职位列表 -->
+    <select id="selectEnterpriseTasks" resultMap="TaskVOResultMap">
+        SELECT
+        <include refid="selectTaskFields"/>
+        <include refid="joinTaskRelations"/>
+        WHERE task.enterprise_id = #{enterpriseId}
+        ORDER BY task.create_time DESC
+    </select>
+
+</mapper>

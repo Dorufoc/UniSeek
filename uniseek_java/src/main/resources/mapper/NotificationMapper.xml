@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uniseek.dao.NotificationMapper">
+
+    <resultMap id="BaseResultMap" type="com.uniseek.entity.Notification">
+        <id column="id" property="id"/>
+        <result column="receiver_id" property="receiverId"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="type" property="type"/>
+        <result column="is_read" property="isRead"/>
+        <result column="biz_id" property="bizId"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- 按类型统计未读消息数 -->
+    <select id="selectUnreadCountGroupByType" resultType="java.util.Map">
+        SELECT type, COUNT(*) AS count
+        FROM notification
+        WHERE receiver_id = #{receiverId} AND is_read = 0
+        GROUP BY type
+    </select>
+
+    <!-- 全部标记已读 -->
+    <update id="markAllAsRead">
+        UPDATE notification
+        SET is_read = 1
+        WHERE receiver_id = #{receiverId} AND is_read = 0
+    </update>
+
+</mapper>
