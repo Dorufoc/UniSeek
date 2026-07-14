@@ -32,7 +32,40 @@ const authStatus = ref<RealNameAuthStatus | null>(null)
 const authForm = ref({ realName: '', idCard: '' })
 const idCardPattern = /^\d{17}[\dXx]$/
 
-const isIdCardValid = computed(() => idCardPattern.test(authForm.value.idCard))
+// 校验身份证号出生日期是否合法
+const isValidBirthDate = (idCard: string): boolean => {
+  const year = parseInt(idCard.substring(6, 10))
+  const month = parseInt(idCard.substring(10, 12))
+  const day = parseInt(idCard.substring(12, 14))
+  // 年份在 1900 到当前年之间
+  if (year < 1900 || year > new Date().getFullYear()) return false
+  // 月份 1~12
+  if (month < 1 || month > 12) return false
+  // 日期校验：当月天数
+  const daysInMonth = new Date(year, month, 0).getDate()
+  if (day < 1 || day > daysInMonth) return false
+  return true
+}
+
+// 校验身份证号校验码（GB 11643-1999）
+const isValidChecksum = (idCard: string): boolean => {
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
+  let sum = 0
+  for (let i = 0; i < 17; i++) {
+    sum += parseInt(idCard[i]) * weights[i]
+  }
+  const expected = checkCodes[sum % 11]
+  return idCard[17].toUpperCase() === expected
+}
+
+const isIdCardValid = computed(() => {
+  const id = authForm.value.idCard.trim()
+  if (!idCardPattern.test(id)) return false
+  if (!isValidBirthDate(id)) return false
+  if (!isValidChecksum(id)) return false
+  return true
+})
 const isRealNameValid = computed(() => authForm.value.realName.trim().length >= 2)
 const canSubmit = computed(() => isRealNameValid.value && isIdCardValid.value)
 

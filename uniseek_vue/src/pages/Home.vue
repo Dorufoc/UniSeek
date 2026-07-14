@@ -80,7 +80,7 @@ const handleSearch = () => {
 .search-type {
   padding: 0 24px;
   font-size: 16px;
-  color: var(--text-h);
+  color: #000;
   font-weight: 500;
   white-space: nowrap;
   border-right: 1px solid var(--border);
@@ -127,13 +127,13 @@ const handleSearch = () => {
 
 .hot-label {
   font-size: 14px;
-  color: #999;
+  color: #000;
 }
 
 .hot-tag {
   padding: 6px 14px;
   font-size: 14px;
-  color: var(--text);
+  color: #000;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 20px;
