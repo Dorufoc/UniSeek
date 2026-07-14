@@ -30,7 +30,7 @@ public class TaskApplication {
     /** 附件简历 URL */
     private String attachmentUrl;
 
-    /** 状态：0 已投递 / 1 待面试 / 2 面试通过 / 3 已录用 / 4 已淘汰 / 5 已完成 */
+    /** 状态：0 已投递 / 1 待面试 / 2 待定 / 3 已录用 / 4 已淘汰 / 5 已完成 */
     private Integer status;
 
     /** HR 用户 ID（处理者） */

@@ -11,6 +11,7 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 SET NAMES utf8mb4;
+SET @@sql_mode = CONCAT(@@sql_mode, ',NO_BACKSLASH_ESCAPES');
 START TRANSACTION;
 
 -- ====================================================================
@@ -104,14 +105,14 @@ INSERT INTO `real_name_auth` (`id`, `user_id`, `real_name`, `id_card`, `status`,
 DELETE FROM `enterprise`;
 
 INSERT INTO `enterprise` (`id`, `user_id`, `company_name`, `credit_code`, `license_img_url`, `industry`, `region_id`, `description`, `audit_status`, `audit_time`, `create_time`, `update_time`) VALUES
-(1, 2, '味美滋餐饮管理有限公司',       '91440101MA5A1234567ABCDE', 'https://cdn.uniseek.com/licenses/1.jpg', '餐饮',     110105, '味美滋餐饮专注于中式快餐连锁经营，在北京拥有 20 余家门店，致力于为顾客提供健康美味的餐饮体验。', 1, DATE_SUB(NOW(), INTERVAL 25 DAY), DATE_SUB(NOW(), INTERVAL 26 DAY), NOW()),
-(2, 3, '飞速达物流配送有限公司',       '91440300MA5B2345678EFGH', 'https://cdn.uniseek.com/licenses/2.jpg', '物流',     310115, '飞速达物流是一家专业的城市配送服务商，覆盖上海及周边地区，拥有完善的仓储物流体系。',             1, DATE_SUB(NOW(), INTERVAL 24 DAY), DATE_SUB(NOW(), INTERVAL 25 DAY), NOW()),
-(3, 4, '智汇科技有限公司',             '91440300MA5C3456789IJKL', 'https://cdn.uniseek.com/licenses/3.jpg', 'IT',       440305, '智汇科技致力于为企业提供数字化转型解决方案，核心团队来自知名互联网公司。',                     1, DATE_SUB(NOW(), INTERVAL 23 DAY), DATE_SUB(NOW(), INTERVAL 24 DAY), NOW()),
-(4, 5, '启航教育培训有限公司',         '91320105MA5D4567890MNOP', 'https://cdn.uniseek.com/licenses/4.jpg', '教育培训', 320105, '启航教育专注于 K12 课外辅导和职业技能培训，秉承因材施教的理念，帮助学员实现自我提升。',       1, DATE_SUB(NOW(), INTERVAL 21 DAY), DATE_SUB(NOW(), INTERVAL 22 DAY), NOW()),
-(5, 6, '创艺空间设计有限公司',         '91330105MA5E5678901QRST', 'https://cdn.uniseek.com/licenses/5.jpg', '设计',     330105, '创艺空间是一家综合性设计公司，业务涵盖平面设计、UI/UX 设计、品牌设计等领域。',             1, DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(NOW(), INTERVAL 20 DAY), NOW()),
-(6, 7, '安心家政服务有限公司',         '91510108MA5F6789012UVWX', 'https://cdn.uniseek.com/licenses/6.jpg', '家政',     510108, '安心家政提供专业的家庭保洁、月嫂、老人陪护等家政服务，所有人员均持证上岗。',                 0, NULL,                               DATE_SUB(NOW(), INTERVAL 18 DAY), NOW()),
-(7, 8, '美丽传说美容有限公司',         '91420106MA5G7890123YZAB', 'https://cdn.uniseek.com/licenses/7.jpg', '美容',     420106, '美丽传说美容会所是一家高端美容服务机构，提供美容护肤、美体塑形、美甲美睫等一站式服务。',   0, NULL,                               DATE_SUB(NOW(), INTERVAL 16 DAY), NOW()),
-(8, 9, '万象综合服务有限公司',         '91430103MA5H8901234CDEF', 'https://cdn.uniseek.com/licenses/8.jpg', '其他',     430103, '万象综合服务涵盖活动策划、礼仪接待、展会服务等多领域，为客户提供优质的综合性服务解决方案。', 2, NULL,                               DATE_SUB(NOW(), INTERVAL 14 DAY), NOW());
+(1, 2, '味美滋餐饮管理有限公司',       '91440101MA5A123456', 'https://cdn.uniseek.com/licenses/1.jpg', '餐饮',     110105, '味美滋餐饮专注于中式快餐连锁经营，在北京拥有 20 余家门店，致力于为顾客提供健康美味的餐饮体验。', 1, DATE_SUB(NOW(), INTERVAL 25 DAY), DATE_SUB(NOW(), INTERVAL 26 DAY), NOW()),
+(2, 3, '飞速达物流配送有限公司',       '91440300MA5B234567', 'https://cdn.uniseek.com/licenses/2.jpg', '物流',     310115, '飞速达物流是一家专业的城市配送服务商，覆盖上海及周边地区，拥有完善的仓储物流体系。',             1, DATE_SUB(NOW(), INTERVAL 24 DAY), DATE_SUB(NOW(), INTERVAL 25 DAY), NOW()),
+(3, 4, '智汇科技有限公司',             '91440300MA5C345678', 'https://cdn.uniseek.com/licenses/3.jpg', 'IT',       440305, '智汇科技致力于为企业提供数字化转型解决方案，核心团队来自知名互联网公司。',                     1, DATE_SUB(NOW(), INTERVAL 23 DAY), DATE_SUB(NOW(), INTERVAL 24 DAY), NOW()),
+(4, 5, '启航教育培训有限公司',         '91320105MA5D456789', 'https://cdn.uniseek.com/licenses/4.jpg', '教育培训', 320105, '启航教育专注于 K12 课外辅导和职业技能培训，秉承因材施教的理念，帮助学员实现自我提升。',       1, DATE_SUB(NOW(), INTERVAL 21 DAY), DATE_SUB(NOW(), INTERVAL 22 DAY), NOW()),
+(5, 6, '创艺空间设计有限公司',         '91330105MA5E567890', 'https://cdn.uniseek.com/licenses/5.jpg', '设计',     330105, '创艺空间是一家综合性设计公司，业务涵盖平面设计、UI/UX 设计、品牌设计等领域。',             1, DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(NOW(), INTERVAL 20 DAY), NOW()),
+(6, 7, '安心家政服务有限公司',         '91510108MA5F678901', 'https://cdn.uniseek.com/licenses/6.jpg', '家政',     510108, '安心家政提供专业的家庭保洁、月嫂、老人陪护等家政服务，所有人员均持证上岗。',                 0, NULL,                               DATE_SUB(NOW(), INTERVAL 18 DAY), NOW()),
+(7, 8, '美丽传说美容有限公司',         '91420106MA5G789012', 'https://cdn.uniseek.com/licenses/7.jpg', '美容',     420106, '美丽传说美容会所是一家高端美容服务机构，提供美容护肤、美体塑形、美甲美睫等一站式服务。',   0, NULL,                               DATE_SUB(NOW(), INTERVAL 16 DAY), NOW()),
+(8, 9, '万象综合服务有限公司',         '91430103MA5H890123', 'https://cdn.uniseek.com/licenses/8.jpg', '其他',     430103, '万象综合服务涵盖活动策划、礼仪接待、展会服务等多领域，为客户提供优质的综合性服务解决方案。', 2, NULL,                               DATE_SUB(NOW(), INTERVAL 14 DAY), NOW());
 
 -- ====================================================================
 -- 4. resume - 在线简历表（16 条）

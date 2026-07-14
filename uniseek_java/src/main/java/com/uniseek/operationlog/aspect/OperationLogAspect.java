@@ -11,6 +11,13 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.ParameterNameDiscoverer;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -74,6 +81,14 @@ public class OperationLogAspect {
             logEntity.setOperatorId(operatorId);
             logEntity.setOperationType(operationLog.operationType());
             logEntity.setTargetType(operationLog.targetType());
+
+            // 解析 SpEL 表达式获取 targetId
+            String targetIdExpression = operationLog.targetIdExpression();
+            if (targetIdExpression != null && !targetIdExpression.isEmpty()) {
+                Long targetId = parseTargetId(targetIdExpression, signature, paramValues);
+                logEntity.setTargetId(targetId);
+            }
+
             logEntity.setDetail(detail);
             logEntity.setIpAddress(ipAddress);
             logEntity.setCreateTime(LocalDateTime.now());
@@ -85,6 +100,33 @@ public class OperationLogAspect {
         }
 
         return result;
+    }
+
+    /**
+     * 解析 SpEL 表达式获取目标 ID
+     */
+    private Long parseTargetId(String expression, MethodSignature signature, Object[] args) {
+        try {
+            ExpressionParser parser = new SpelExpressionParser();
+            Expression exp = parser.parseExpression(expression);
+            EvaluationContext context = new StandardEvaluationContext();
+            String[] paramNames = signature.getParameterNames();
+            if (paramNames != null) {
+                for (int i = 0; i < paramNames.length; i++) {
+                    context.setVariable(paramNames[i], args[i]);
+                }
+            }
+            Object value = exp.getValue(context);
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            if (value instanceof String) {
+                return Long.valueOf((String) value);
+            }
+        } catch (Exception e) {
+            log.warn("解析 targetId SpEL 表达式失败: {}", expression, e);
+        }
+        return null;
     }
 
     /**

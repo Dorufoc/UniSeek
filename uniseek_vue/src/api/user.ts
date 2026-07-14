@@ -9,5 +9,5 @@ export const updateProfile = async (params: {
   email?: string
 }) => {
   const res = await request.put<ApiResponse<UserInfo>>('/user/profile', null, { params })
-  return res.data
+  return res
 }

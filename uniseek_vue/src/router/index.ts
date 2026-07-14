@@ -198,6 +198,7 @@ router.beforeEach((to, _from) => {
   }
 
   document.title = (to.meta.title as string) || 'UniSeek'
+  return true
 })
 
 export default router

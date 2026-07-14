@@ -16,10 +16,12 @@ import com.uniseek.dao.OperationLogMapper;
 import com.uniseek.dao.TaskApplicationMapper;
 import com.uniseek.dao.TaskMapper;
 import com.uniseek.dao.UserMapper;
+import com.uniseek.dao.RealNameAuthMapper;
 import com.uniseek.entity.Complaint;
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.Notification;
 import com.uniseek.entity.OperationLog;
+import com.uniseek.entity.RealNameAuth;
 import com.uniseek.entity.Task;
 import com.uniseek.entity.TaskApplication;
 import com.uniseek.entity.User;
@@ -66,6 +68,9 @@ public class AdminServiceImpl implements AdminService {
     @Autowired
     private NotificationMapper notificationMapper;
 
+    @Autowired
+    private RealNameAuthMapper realNameAuthMapper;
+
     /**
      * 校验当前用户是否为管理员（role >= 9，含超级管理员）
      */
@@ -107,6 +112,9 @@ public class AdminServiceImpl implements AdminService {
         Enterprise enterprise = enterpriseMapper.selectById(id);
         if (enterprise == null) {
             throw new BusinessException("企业记录不存在");
+        }
+        if (enterprise.getAuditStatus() != 0) {
+            throw new BusinessException("该企业申请已审核，不可重复操作");
         }
 
         Long adminId = UserContext.getUserId();
@@ -164,6 +172,9 @@ public class AdminServiceImpl implements AdminService {
         Task task = taskMapper.selectById(id);
         if (task == null) {
             throw new BusinessException("职位不存在");
+        }
+        if (task.getStatus() != 0) {
+            throw new BusinessException("该职位已审核，不可重复操作");
         }
 
         Long adminId = UserContext.getUserId();
@@ -223,6 +234,16 @@ public class AdminServiceImpl implements AdminService {
         }
         wrapper.orderByDesc("create_time");
         IPage<User> result = userMapper.selectPage(new Page<>(page, pageSize), wrapper);
+
+        // 填充实名认证状态
+        for (User user : result.getRecords()) {
+            RealNameAuth auth = realNameAuthMapper.selectOne(
+                    new QueryWrapper<RealNameAuth>()
+                            .eq("user_id", user.getId())
+                            .eq("status", 1));
+            user.setRealNameAuth(auth != null);
+        }
+
         return PageResult.of(result);
     }
 
@@ -236,6 +257,9 @@ public class AdminServiceImpl implements AdminService {
         }
         if (status != 0 && status != 1) {
             throw new BusinessException("状态值不合法，仅支持 0（禁用）或 1（正常）");
+        }
+        if (user.getRole() == 99) {
+            throw new BusinessException("超级管理员账号不可被禁用");
         }
 
         user.setStatus(status);

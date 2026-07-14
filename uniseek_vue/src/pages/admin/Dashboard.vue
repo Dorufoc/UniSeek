@@ -19,13 +19,19 @@ const fetchData = async () => {
   try {
     const d = new Date()
     d.setDate(d.getDate() - 7)
-    const startDate = d.toISOString().split('T')[0] + ' 00:00:00'
-    const endDate = new Date().toISOString().split('T')[0] + ' 23:59:59'
+    const formatLocalDate = (d: Date) => {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
+    const startDate = formatLocalDate(d) + ' 00:00:00'
+    const endDate = formatLocalDate(new Date()) + ' 23:59:59'
 
     const [stats, entRes, taskRes, compRes] = await Promise.all([
       getStatistics(startDate, endDate),
       listEnterprises({ page: 1, pageSize: 1, auditStatus: 0 }).catch(() => ({ total: 0 })),
-      listPendingTasks(1, 1).catch(() => ({ total: 0 })),
+      listPendingTasks({ page: 1, pageSize: 1 }).catch(() => ({ total: 0 })),
       listComplaints({ page: 1, pageSize: 1, status: 0 }).catch(() => ({ total: 0 }))
     ])
     summary.value = stats.summary || {}

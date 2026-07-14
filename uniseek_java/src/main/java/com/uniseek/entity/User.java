@@ -1,5 +1,6 @@
 package com.uniseek.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -43,6 +44,10 @@ public class User {
 
     /** 状态：0 禁用 / 1 正常，默认 1 */
     private Integer status;
+
+    /** 实名认证状态（非数据库字段，查询时动态填充） */
+    @TableField(exist = false)
+    private Boolean realNameAuth;
 
     /** 最后登录时间 */
     private LocalDateTime lastLoginTime;

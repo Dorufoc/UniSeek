@@ -230,7 +230,7 @@ onMounted(() => {
           />
           <div class="handle-buttons">
             <el-button @click="dialogVisible = false">取消</el-button>
-            <el-button type="danger" @click="handleResolve(2)">驳回投诉</el-button>
+            <el-button type="danger" @click="handleResolve(0)">驳回投诉</el-button>
             <el-button type="primary" @click="handleResolve(2)">确认结案</el-button>
           </div>
         </div>

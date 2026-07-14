@@ -25,24 +25,36 @@ public class TaskScheduledService {
     private TaskMapper taskMapper;
 
     /**
-     * 每小时执行一次，将已过期且状态为"已发布"的职位自动变为"已截止"
-     * <p>
-     * 执行条件：status = 1（已发布） AND deadline IS NOT NULL AND deadline < NOW()
-     * 更新内容：status = 3（已截止），update_time = NOW()
+     * 每小时执行一次，将已过期且状态为"招聘中"的职位自动变为"已过期"，
+     * 同时将剩余名额为 0 但状态仍为招聘中的职位标记为"已满员"
      */
     @Scheduled(cron = "0 0 * * * ?")
     public void expireOverdueTasks() {
         log.info("开始执行职位到期定时任务...");
 
+        // 处理过期职位
         Task updateEntity = new Task();
         updateEntity.setStatus(3);
+        updateEntity.setUpdateTime(LocalDateTime.now());
 
-        int updatedCount = taskMapper.update(updateEntity,
+        int expiredCount = taskMapper.update(updateEntity,
                 new UpdateWrapper<Task>()
                         .eq("status", 1)
                         .isNotNull("deadline")
                         .lt("deadline", LocalDateTime.now()));
 
-        log.info("职位到期定时任务执行完毕，共更新 {} 条过期职位", updatedCount);
+        log.info("职位到期处理完毕，共更新 {} 条过期职位", expiredCount);
+
+        // 处理满员职位：remaining_quota = 0 但 status 仍为 1 的职位
+        Task fullEntity = new Task();
+        fullEntity.setStatus(2);
+        fullEntity.setUpdateTime(LocalDateTime.now());
+
+        int fullCount = taskMapper.update(fullEntity,
+                new UpdateWrapper<Task>()
+                        .eq("status", 1)
+                        .eq("remaining_quota", 0));
+
+        log.info("职位满员处理完毕，共更新 {} 条满员职位", fullCount);
     }
 }

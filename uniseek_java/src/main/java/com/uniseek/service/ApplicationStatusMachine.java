@@ -9,7 +9,7 @@ import java.util.*;
  * 投递状态机 —— 校验状态流转合法性
  * <p>
  * 状态定义：
- * 0 已投递 / 1 待面试 / 2 面试通过 / 3 已录用 / 4 已淘汰 / 5 已完成
+ * 0 已投递 / 1 待面试 / 2 待定 / 3 已录用 / 4 已淘汰 / 5 已完成
  * </p>
  */
 @Component
@@ -19,11 +19,11 @@ public class ApplicationStatusMachine {
     private static final Map<Integer, List<Integer>> VALID_TRANSITIONS = new HashMap<>();
 
     static {
-        // 0 已投递 -> 1 待面试, 2 面试通过, 4 已淘汰
+        // 0 已投递 -> 1 待面试, 2 待定, 4 已淘汰
         VALID_TRANSITIONS.put(0, Arrays.asList(1, 2, 4));
-        // 1 待面试 -> 2 面试通过, 3 已录用, 4 已淘汰
+        // 1 待面试 -> 2 待定, 3 已录用, 4 已淘汰
         VALID_TRANSITIONS.put(1, Arrays.asList(2, 3, 4));
-        // 2 面试通过 -> 1 待面试(重新安排), 3 已录用, 4 已淘汰
+        // 2 待定 -> 1 待面试(重新安排), 3 已录用, 4 已淘汰
         VALID_TRANSITIONS.put(2, Arrays.asList(1, 3, 4));
         // 3 已录用 -> 5 已完成
         VALID_TRANSITIONS.put(3, Collections.singletonList(5));

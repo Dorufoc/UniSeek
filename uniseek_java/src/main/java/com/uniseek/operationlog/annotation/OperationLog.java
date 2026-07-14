@@ -21,4 +21,10 @@ public @interface OperationLog {
      * 目标类型，例如 USER、RESUME、TASK 等
      */
     String targetType();
+
+    /**
+     * 目标ID的SpEL表达式，例如 "#id"、#request.taskId" 等
+     * 用于从方法参数中提取操作目标的ID
+     */
+    String targetIdExpression() default "";
 }

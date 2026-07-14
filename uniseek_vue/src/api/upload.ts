@@ -12,7 +12,7 @@ export const uploadImage = async (file: File) => {
   const res = await request.post<ApiResponse<{ url: string }>>('/upload/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
-  return res.data
+  return res
 }
 
 /** POST /api/upload/file 上传文件 */
@@ -22,5 +22,5 @@ export const uploadFile = async (file: File) => {
   const res = await request.post<ApiResponse<UploadResult>>('/upload/file', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
-  return res.data
+  return res
 }

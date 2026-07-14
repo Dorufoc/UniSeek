@@ -83,29 +83,29 @@ export const submitRealNameAuth = (params: RealNameAuthParams) =>
 /** 查询实名认证状态 GET /api/auth/real-name/status */
 export const getRealNameAuthStatus = async () => {
   const res = await request.get<ApiResponse<RealNameAuthStatus>>('/auth/real-name/status')
-  return res.data
+  return res
 }
 
 /** 修改密码 PUT /api/auth/password */
 export const changePassword = async (params: ChangePasswordParams) => {
   const res = await request.put<ApiResponse<void>>('/auth/password', params)
-  return res.data
+  return res
 }
 
 /** PUT /api/auth/phone 修改手机号 */
 export const updatePhone = async (params: { newPhone: string; password: string }) => {
   const res = await request.put<ApiResponse<void>>('/auth/phone', params)
-  return res.data
+  return res
 }
 
 /** PUT /api/auth/email 修改邮箱 */
 export const updateEmail = async (params: { newEmail: string; password: string }) => {
   const res = await request.put<ApiResponse<void>>('/auth/email', params)
-  return res.data
+  return res
 }
 
 /** GET /api/auth/current-user 获取当前用户信息 */
 export const getCurrentUser = async () => {
   const res = await request.get<ApiResponse<UserInfo>>('/auth/current-user')
-  return res.data
+  return res
 }

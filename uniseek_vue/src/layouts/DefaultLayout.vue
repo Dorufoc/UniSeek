@@ -63,8 +63,7 @@ const selectCity = (city: string) => {
             <router-link to="/talents">人才</router-link>
             <router-link to="/job-management">职位管理</router-link>
           </template>
-          <!-- 求职者视角：职位 + 公司 -->
-          <template v-else>
+          <template v-else-if="!isAdmin">
             <router-link to="/jobs">职位</router-link>
             <router-link to="/company">公司</router-link>
           </template>
@@ -76,7 +75,7 @@ const selectCity = (city: string) => {
         <div class="header-actions">
           <!-- 已登录状态 -->
           <template v-if="userStore.isLoggedIn">
-            <router-link v-if="!isRecruiter" to="/resume" class="nav-user-link">简历</router-link>
+            <router-link v-if="!isRecruiter && !isAdmin" to="/resume" class="nav-user-link">简历</router-link>
             <router-link to="/profile" class="nav-user-link">个人中心</router-link>
             <span class="user-name">{{ userStore.userInfo?.nickname || '用户' }}</span>
             <button class="btn-logout" @click="userStore.logout(); router.push('/')">退出</button>

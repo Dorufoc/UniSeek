@@ -19,6 +19,8 @@ import com.uniseek.service.ApplicationService;
 import com.uniseek.service.ApplicationStatusMachine;
 import com.uniseek.service.NotificationService;
 import com.uniseek.service.OperationLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,8 @@ import java.util.Map;
  */
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ApplicationServiceImpl.class);
 
     @Autowired
     private TaskApplicationMapper taskApplicationMapper;
@@ -155,7 +159,22 @@ public class ApplicationServiceImpl implements ApplicationService {
             );
         }
 
-        // 10. 返回投递记录
+        // 10. 记录投递审计日志
+        OperationLog opLog = new OperationLog();
+        opLog.setOperatorId(applicantId);
+        opLog.setOperationType(OperationType.APPLICATION_DELIVER);
+        opLog.setTargetType("task_application");
+        opLog.setTargetId(application.getId());
+        Map<String, Object> logDetail = new HashMap<>();
+        logDetail.put("taskId", request.getTaskId());
+        logDetail.put("applicantId", applicantId);
+        try {
+            opLog.setDetail(objectMapper.writeValueAsString(logDetail));
+        } catch (Exception ignored) {}
+        opLog.setCreateTime(LocalDateTime.now());
+        operationLogService.saveLog(opLog);
+
+        // 11. 返回投递记录
         return application;
     }
 
@@ -226,7 +245,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 fullTask.setStatus(2);
                 fullTask.setVersion(freshTask.getVersion());
                 fullTask.setUpdateTime(LocalDateTime.now());
-                taskMapper.updateById(fullTask);
+                int fullRows = taskMapper.updateById(fullTask);
+                if (fullRows == 0) {
+                    log.warn("满员状态更新失败，可能发生乐观锁冲突，职位ID: {}", task.getId());
+                }
             }
         }
 
@@ -345,7 +367,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         operationLog.setOperatorId(userId);
         operationLog.setOperationType(operationType);
         operationLog.setTargetType("TASK_APPLICATION");
-        operationLog.setTargetId(String.valueOf(application.getId()));
+        operationLog.setTargetId(application.getId());
         operationLog.setDetail(detailJson);
         operationLog.setCreateTime(LocalDateTime.now());
         operationLogService.saveLog(operationLog);
@@ -397,7 +419,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         operationLog.setOperatorId(UserContext.getUserId());
         operationLog.setOperationType(OperationType.APPLICATION_COMPLETE);
         operationLog.setTargetType("TASK_APPLICATION");
-        operationLog.setTargetId(String.valueOf(application.getId()));
+        operationLog.setTargetId(application.getId());
         operationLog.setDetail(detailJson);
         operationLog.setCreateTime(LocalDateTime.now());
         operationLogService.saveLog(operationLog);

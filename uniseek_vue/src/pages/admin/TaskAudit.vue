@@ -27,7 +27,12 @@ const params = reactive({
 const fetchData = async () => {
   loading.value = true
   try {
-    const data: PageResult<TaskRecord> = await listPendingTasks(params.page, params.pageSize)
+    const data: PageResult<TaskRecord> = await listPendingTasks({
+      page: params.page,
+      pageSize: params.pageSize,
+      status: params.status,
+      keyword: params.keyword || undefined
+    })
     tableData.value = data.records
     total.value = data.total
   } catch {
@@ -37,8 +42,10 @@ const fetchData = async () => {
   }
 }
 
-const handleTabChange = () => {
+const handleTabChange = (tab: number | string) => {
+  activeTab.value = tab
   params.page = 1
+  params.status = typeof tab === 'number' ? tab : undefined
   fetchData()
 }
 

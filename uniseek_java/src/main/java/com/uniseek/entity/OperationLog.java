@@ -31,7 +31,7 @@ public class OperationLog {
     private String targetType;
 
     /** 目标 ID */
-    private String targetId;
+    private Long targetId;
 
     /** 操作详情（JSON 格式） */
     private String detail;

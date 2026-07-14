@@ -62,13 +62,12 @@ const loadApplications = async () => {
   try {
     const result = await getMyApplications(1, 50)
     applications.value = result.records
-    // 批量获取关联的职位标题
-    for (const app of result.records) {
+    await Promise.all(result.records.map(async (app) => {
       try {
         const task = await getTaskById(app.taskId)
         appTaskMap.value[app.taskId] = task
       } catch { /* 职位可能已删除 */ }
-    }
+    }))
   } catch { /* API 失败 */ }
   // 同时检查 localStorage 中的收藏
   loadFavorites()

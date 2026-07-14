@@ -117,7 +117,7 @@ export async function getStatistics(startDate?: string, endDate?: string): Promi
   dailyList: Array<Record<string, unknown>>
 }> {
   const res: any = await request.get('/admin/statistics', { params: { startDate, endDate } })
-  return res.data
+  return res
 }
 
 // ==================== 企业审核 API ====================
@@ -126,7 +126,7 @@ export async function listEnterprises(params: {
   page: number; pageSize: number; auditStatus?: number; keyword?: string
 }): Promise<PageResult<EnterpriseRecord>> {
   const res: any = await request.get('/admin/enterprises', { params })
-  return res.data
+  return res
 }
 
 export function auditEnterprise(id: number, data: { approved: boolean; rejectReason?: string }): Promise<any> {
@@ -137,9 +137,11 @@ export function auditEnterprise(id: number, data: { approved: boolean; rejectRea
 
 // ==================== 职位审核 API ====================
 
-export async function listPendingTasks(page: number, pageSize: number): Promise<PageResult<TaskRecord>> {
-  const res: any = await request.get('/admin/tasks/pending', { params: { page, pageSize } })
-  return res.data
+export async function listPendingTasks(params: {
+  page: number; pageSize: number; status?: number; keyword?: string
+}): Promise<PageResult<TaskRecord>> {
+  const res: any = await request.get('/admin/tasks/pending', { params })
+  return res
 }
 
 export function auditTask(id: number, data: { approved: boolean; rejectReason?: string }): Promise<any> {
@@ -154,7 +156,7 @@ export async function listUsers(params: {
   page: number; pageSize: number; keyword?: string; role?: number; status?: number
 }): Promise<PageResult<UserRecord>> {
   const res: any = await request.get('/admin/users', { params })
-  return res.data
+  return res
 }
 
 export function updateUserStatus(id: number, status: number): Promise<any> {
@@ -171,12 +173,12 @@ export async function listComplaints(params: {
   page: number; pageSize: number; status?: number; targetType?: number
 }): Promise<PageResult<ComplaintRecord>> {
   const res: any = await request.get('/admin/complaints', { params })
-  return res.data
+  return res
 }
 
 export async function getComplaintDetail(id: number): Promise<ComplaintRecord> {
   const res: any = await request.get(`/admin/complaints/${id}`)
-  return res.data
+  return res
 }
 
 export function handleComplaint(id: number, data: { status: number; handleResult: string }): Promise<any> {
@@ -191,5 +193,5 @@ export async function listOperationLogs(params: {
   page: number; pageSize: number; operatorId?: number; operationType?: string; startTime?: string; endTime?: string
 }): Promise<PageResult<OperationLogRecord>> {
   const res: any = await request.get('/admin/operation-logs', { params })
-  return res.data
+  return res
 }
