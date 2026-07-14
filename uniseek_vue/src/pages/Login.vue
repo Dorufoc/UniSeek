@@ -21,6 +21,7 @@ const role = ref<0 | 1 | null>(null)
 // 登录/注册表单数据
 const form = reactive({
   phone: '',
+  email: '',
   password: '',
   confirmPassword: '',
   nickname: ''
@@ -31,6 +32,8 @@ const phonePattern = /^1[3-9]\d{9}$/
 
 // 手机号格式校验
 const isPhoneValid = computed(() => phonePattern.test(form.phone))
+// 邮箱格式校验
+const isEmailValid = computed(() => /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email))
 // 密码长度校验：6-20 位
 const isPasswordValid = computed(() => form.password.length >= 6 && form.password.length <= 20)
 // 两次密码一致性校验
@@ -45,9 +48,9 @@ const canLogin = computed(() => {
   return isPhoneValid.value && isPasswordValid.value && agreed.value
 })
 
-// 注册按钮是否可用：角色 + 手机号 + 昵称 + 密码 + 确认密码 + 协议勾选均满足
+// 注册按钮是否可用：角色 + 手机号 + 邮箱 + 昵称 + 密码 + 确认密码 + 协议勾选均满足
 const canRegister = computed(() => {
-  return isRoleValid.value && isPhoneValid.value && isNicknameValid.value && isPasswordValid.value && isConfirmPasswordValid.value && agreed.value
+  return isRoleValid.value && isPhoneValid.value && isEmailValid.value && isNicknameValid.value && isPasswordValid.value && isConfirmPasswordValid.value && agreed.value
 })
 
 // 处理登录：调用登录接口，保存 token 和用户信息，根据角色跳转不同页面
@@ -79,9 +82,11 @@ const handleRegister = async () => {
   try {
     const res = await register({
       phone: form.phone,
+      email: form.email.trim(),
       password: form.password,
       confirmPassword: form.confirmPassword,
-      nickname: form.nickname.trim()
+      nickname: form.nickname.trim(),
+      role: role.value as number
     })
     userStore.setToken(res.token)
     // 用界面选择的角色覆盖后端返回的角色，确保注册后跳转正确
@@ -101,6 +106,7 @@ const handleRegister = async () => {
 // 切换登录/注册选项卡，重置表单和角色选择状态
 const switchTab = (tab: 'login' | 'register') => {
   activeTab.value = tab
+  form.email = ''
   form.password = ''
   form.confirmPassword = ''
   form.nickname = ''
@@ -226,6 +232,18 @@ const switchTab = (tab: 'login' | 'register') => {
                 :prefix-icon="Phone"
               />
               <span v-if="form.phone && !isPhoneValid" class="input-error">请输入正确的手机号</span>
+            </div>
+
+            <!-- 邮箱输入 -->
+            <div class="input-group">
+              <el-input
+                v-model="form.email"
+                size="large"
+                placeholder="请输入邮箱"
+                clearable
+                :prefix-icon="Message"
+              />
+              <span v-if="form.email && !isEmailValid" class="input-error">请输入正确的邮箱地址</span>
             </div>
 
             <!-- 昵称输入 -->

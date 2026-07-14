@@ -62,7 +62,7 @@ const setType = (type: JobType) => {
 .jobs-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin: 0;
   white-space: nowrap;
 }
@@ -77,7 +77,7 @@ const setType = (type: JobType) => {
   font-size: 14px;
   border: none;
   background: transparent;
-  color: var(--text);
+  color: #000;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;

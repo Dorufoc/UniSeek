@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getRealNameAuthStatus, submitRealNameAuth } from '@/api/auth'
+import type { RealNameAuthStatus } from '@/api/auth'
 import {
   User, Phone, Postcard, Edit, Document, Star,
   OfficeBuilding, Briefcase, Files,
-  Lock, InfoFilled, SwitchButton, ArrowRight, ChatDotSquare, VideoCamera, Setting
+  Lock, InfoFilled, SwitchButton, ArrowRight, ChatDotSquare, VideoCamera, Setting, Checked
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -22,6 +24,92 @@ const userPhone = computed(() => {
 // 模拟统计数据（后续对接真实接口）
 const seekerStats = ref({ applications: 12, interviews: 3, favorites: 8 })
 const recruiterStats = ref({ receivedResumes: 23, hired: 3 })
+
+// 实名认证相关状态
+const authDialogVisible = ref(false)
+const authSubmitting = ref(false)
+const authStatus = ref<RealNameAuthStatus | null>(null)
+const authForm = ref({ realName: '', idCard: '' })
+const idCardPattern = /^\d{17}[\dXx]$/
+
+// 校验身份证号出生日期是否合法
+const isValidBirthDate = (idCard: string): boolean => {
+  const year = parseInt(idCard.substring(6, 10))
+  const month = parseInt(idCard.substring(10, 12))
+  const day = parseInt(idCard.substring(12, 14))
+  // 年份在 1900 到当前年之间
+  if (year < 1900 || year > new Date().getFullYear()) return false
+  // 月份 1~12
+  if (month < 1 || month > 12) return false
+  // 日期校验：当月天数
+  const daysInMonth = new Date(year, month, 0).getDate()
+  if (day < 1 || day > daysInMonth) return false
+  return true
+}
+
+// 校验身份证号校验码（GB 11643-1999）
+const isValidChecksum = (idCard: string): boolean => {
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
+  let sum = 0
+  for (let i = 0; i < 17; i++) {
+    sum += parseInt(idCard[i]) * weights[i]
+  }
+  const expected = checkCodes[sum % 11]
+  return idCard[17].toUpperCase() === expected
+}
+
+const isIdCardValid = computed(() => {
+  const id = authForm.value.idCard.trim()
+  if (!idCardPattern.test(id)) return false
+  if (!isValidBirthDate(id)) return false
+  if (!isValidChecksum(id)) return false
+  return true
+})
+const isRealNameValid = computed(() => authForm.value.realName.trim().length >= 2)
+const canSubmit = computed(() => isRealNameValid.value && isIdCardValid.value)
+
+// 查询实名认证状态
+const checkAuthStatus = async () => {
+  try {
+    authStatus.value = await getRealNameAuthStatus()
+  } catch {
+    authStatus.value = null
+  }
+}
+
+// 打开实名认证弹窗
+const openAuthDialog = () => {
+  if (authStatus.value?.isAuth) {
+    ElMessage.success('您已完成实名认证')
+    return
+  }
+  authForm.value = { realName: '', idCard: '' }
+  authDialogVisible.value = true
+}
+
+// 提交实名认证
+const handleAuthSubmit = async () => {
+  if (!canSubmit.value) return
+  authSubmitting.value = true
+  try {
+    await submitRealNameAuth({
+      realName: authForm.value.realName.trim(),
+      idCard: authForm.value.idCard.trim()
+    })
+    ElMessage.success('实名认证提交成功')
+    authDialogVisible.value = false
+    await checkAuthStatus()
+  } catch {
+    // 错误已在拦截器中处理
+  } finally {
+    authSubmitting.value = false
+  }
+}
+
+onMounted(() => {
+  checkAuthStatus()
+})
 
 // 菜单项点击处理
 const handleMenuClick = (item: string) => {
@@ -52,6 +140,9 @@ const handleMenuClick = (item: string) => {
       break
     case 'superAdmin':
       router.push('/admin/super')
+      break
+    case 'realNameAuth':
+      openAuthDialog()
       break
     case 'about':
       ElMessage.info('UniSeek v1.0 - 智能兼职招聘平台')
@@ -256,6 +347,14 @@ const handleMenuClick = (item: string) => {
               <span class="menu-hint">修改密码、绑定手机</span>
               <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
             </div>
+            <div class="menu-item-row" @click="handleMenuClick('realNameAuth')">
+              <div class="menu-icon small neutral-bg">
+                <el-icon :size="18"><Checked /></el-icon>
+              </div>
+              <span class="menu-name">实名认证</span>
+              <span class="menu-hint">{{ authStatus?.isAuth ? '已认证' : '未认证' }}</span>
+              <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+            </div>
             <div class="menu-item-row" @click="handleMenuClick('about')">
               <div class="menu-icon small neutral-bg">
                 <el-icon :size="18"><InfoFilled /></el-icon>
@@ -276,6 +375,30 @@ const handleMenuClick = (item: string) => {
         </div>
       </div>
     </div>
+
+    <!-- 实名认证弹窗 -->
+    <el-dialog v-model="authDialogVisible" title="实名认证" width="440px" :close-on-click-modal="false" destroy-on-close>
+      <div class="auth-dialog-body">
+        <p class="auth-dialog-desc">根据国家相关法律法规，使用平台服务需完成实名认证。</p>
+        <el-input v-model="authForm.realName" placeholder="请输入真实姓名" size="large" clearable maxlength="20" />
+        <span v-if="authForm.realName && !isRealNameValid" class="input-error">姓名至少2个字符</span>
+        <el-input
+          v-model="authForm.idCard"
+          placeholder="请输入18位身份证号"
+          size="large"
+          clearable
+          maxlength="18"
+          style="margin-top: 16px;"
+        />
+        <span v-if="authForm.idCard && !isIdCardValid" class="input-error">请输入正确的18位身份证号</span>
+      </div>
+      <template #footer>
+        <el-button @click="authDialogVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="!canSubmit" :loading="authSubmitting" @click="handleAuthSubmit">
+          提交认证
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -327,7 +450,7 @@ const handleMenuClick = (item: string) => {
 .user-name {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin-bottom: 8px;
 }
 
@@ -363,7 +486,7 @@ const handleMenuClick = (item: string) => {
   justify-content: center;
   gap: 6px;
   font-size: 14px;
-  color: #999;
+  color: #000;
   margin-bottom: 16px;
 }
 
@@ -409,7 +532,7 @@ const handleMenuClick = (item: string) => {
 
 .stat-label {
   font-size: 13px;
-  color: #999;
+  color: #000;
 }
 
 /* 右侧主体 */
@@ -430,7 +553,7 @@ const handleMenuClick = (item: string) => {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin: 0 0 16px;
   padding-left: 4px;
   border-left: 3px solid #007AFF;
@@ -496,17 +619,17 @@ const handleMenuClick = (item: string) => {
   display: block;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-h);
+  color: #000;
   margin-bottom: 2px;
 }
 
 .menu-info .menu-desc {
   font-size: 12px;
-  color: #999;
+  color: #000;
 }
 
 .menu-arrow {
-  color: #ccc;
+  color: #000;
   flex-shrink: 0;
 }
 
@@ -549,7 +672,7 @@ const handleMenuClick = (item: string) => {
 
 .menu-item-row .menu-name {
   font-size: 15px;
-  color: var(--text-h);
+  color: #000;
   white-space: nowrap;
 }
 
@@ -561,10 +684,30 @@ const handleMenuClick = (item: string) => {
   flex: 1;
   text-align: right;
   font-size: 13px;
-  color: #999;
+  color: #000;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 实名认证弹窗 */
+.auth-dialog-body {
+  padding: 4px 0;
+}
+
+.auth-dialog-desc {
+  font-size: 14px;
+  color: #000;
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+.auth-dialog-body .input-error {
+  display: block;
+  font-size: 12px;
+  color: #e74c3c;
+  margin-top: 4px;
+  padding-left: 4px;
 }
 
 @media (max-width: 768px) {

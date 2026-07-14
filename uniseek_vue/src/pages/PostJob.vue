@@ -1,61 +1,103 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { OfficeBuilding, User, TrendCharts, Money, Briefcase } from '@element-plus/icons-vue'
+import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts, User } from '@element-plus/icons-vue'
+import { createTask } from '@/api/task'
 
 const router = useRouter()
-// 提交加载状态
 const loading = ref(false)
 
-// 发布职位表单数据
 const form = reactive({
-  jobTitle: '',             // 招聘职务
-  companyName: '',          // 公司名称
-  recruiterTitle: '',       // 招聘者职务
-  companySize: '',          // 公司人数
-  registeredCapital: ''     // 注册资金
+  title: '',
+  categoryId: 0,
+  regionId: 0,
+  description: '',
+  salaryMin: 0,
+  salaryMax: 0,
+  salaryUnit: 0,
+  jobType: 1,
+  totalQuota: 1,
+  address: '',
+  tag: [] as string[],
+  deadline: ''
 })
 
-// 公司人数选项列表
-const companySizes = [
-  '少于15人',
-  '15-50人',
-  '50-150人',
-  '150-500人',
-  '500-2000人',
-  '2000人以上'
+const salaryUnitOptions = [
+  { label: '月薪', value: 0 },
+  { label: '日薪', value: 1 },
+  { label: '时薪', value: 2 }
 ]
 
-// 注册资金选项列表
-const registeredCapitals = [
-  '不足100万',
-  '100-500万',
-  '500-1000万',
-  '1000-5000万',
-  '5000万-1亿',
-  '1亿以上'
+const jobTypeOptions = [
+  { label: '全职', value: 1 },
+  { label: '兼职', value: 2 },
+  { label: '实习', value: 3 }
 ]
 
-// 表单是否填写完整（所有字段均非空）
+const tagOptions = ['急招', '日结', '可远程', '包吃住', '周末兼职', '长期招聘', '学生优先', '经验不限']
+
+const categories = [
+  { id: 1, name: '服务员' },
+  { id: 2, name: '家教' },
+  { id: 3, name: '设计' },
+  { id: 4, name: '编程' },
+  { id: 5, name: '文案' },
+  { id: 6, name: '销售' },
+  { id: 7, name: '客服' },
+  { id: 8, name: '其他' }
+]
+
+const regions = [
+  { id: 1, name: '北京' },
+  { id: 2, name: '上海' },
+  { id: 3, name: '广州' },
+  { id: 4, name: '深圳' },
+  { id: 5, name: '杭州' },
+  { id: 6, name: '成都' }
+]
+
+const toggleTag = (tag: string) => {
+  const idx = form.tag.indexOf(tag)
+  if (idx > -1) {
+    form.tag.splice(idx, 1)
+  } else {
+    form.tag.push(tag)
+  }
+}
+
 const isFormValid = computed(() => {
-  return form.jobTitle.trim() !== ''
-    && form.companyName.trim() !== ''
-    && form.recruiterTitle.trim() !== ''
-    && form.companySize !== ''
-    && form.registeredCapital !== ''
+  return form.title.trim() !== ''
+    && form.categoryId > 0
+    && form.regionId > 0
+    && form.description.trim() !== ''
+    && form.salaryMax >= form.salaryMin
+    && form.totalQuota > 0
+    && form.address.trim() !== ''
 })
 
-// 提交发布职位表单
 const handleSubmit = async () => {
   if (!isFormValid.value) return
   loading.value = true
   try {
-    // TODO: 调用后端API提交发布职位信息
-    ElMessage.success('职位发布成功')
+    await createTask({
+      title: form.title.trim(),
+      categoryId: form.categoryId,
+      regionId: form.regionId,
+      description: form.description.trim(),
+      salaryMin: form.salaryMin,
+      salaryMax: form.salaryMax,
+      salaryUnit: form.salaryUnit,
+      jobType: form.jobType,
+      totalQuota: form.totalQuota,
+      address: form.address.trim(),
+      tag: form.tag,
+      deadline: form.deadline || null
+    })
+    ElMessage.success('职位发布成功，等待审核')
     router.push('/')
   } catch {
-    ElMessage.error('发布失败，请重试')
+    // 错误已在拦截器中处理
   } finally {
     loading.value = false
   }
@@ -66,97 +108,116 @@ const handleSubmit = async () => {
   <div class="post-job-page">
     <div class="post-job-container">
       <h2 class="page-title">发布职位</h2>
-      <p class="page-desc">填写以下信息，快速发布招聘职位</p>
+      <p class="page-desc">填写以下信息，发布招聘职位</p>
 
       <div class="form-section">
-        <!-- 招聘职务输入 -->
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><Briefcase /></el-icon>
-            招聘职务
+            职位标题
           </label>
-          <el-input
-            v-model="form.jobTitle"
-            size="large"
-            placeholder="请输入招聘职务（如：Java开发工程师、产品经理）"
-            maxlength="50"
-            clearable
-          />
+          <el-input v-model="form.title" size="large" placeholder="例如：周末餐厅服务员、前端开发兼职" maxlength="100" clearable />
         </div>
 
-        <!-- 公司名称输入 -->
-        <div class="form-item">
-          <label class="form-label">
-            <el-icon :size="16"><OfficeBuilding /></el-icon>
-            公司名称
-          </label>
-          <el-input
-            v-model="form.companyName"
-            size="large"
-            placeholder="请输入公司名称"
-            maxlength="50"
-            clearable
-          />
+        <div class="form-row">
+          <div class="form-item flex-1">
+            <label class="form-label">职位分类</label>
+            <el-select v-model="form.categoryId" placeholder="选择分类" size="large" style="width:100%">
+              <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
+          </div>
+          <div class="form-item flex-1">
+            <label class="form-label">工作地区</label>
+            <el-select v-model="form.regionId" placeholder="选择地区" size="large" style="width:100%">
+              <el-option v-for="r in regions" :key="r.id" :label="r.name" :value="r.id" />
+            </el-select>
+          </div>
         </div>
 
-        <!-- 招聘者职务输入 -->
         <div class="form-item">
           <label class="form-label">
-            <el-icon :size="16"><User /></el-icon>
-            招聘者职务
+            <el-icon :size="16"><Collection /></el-icon>
+            职位描述
           </label>
-          <el-input
-            v-model="form.recruiterTitle"
-            size="large"
-            placeholder="请输入您的职务（如：HR、部门经理、CEO）"
-            maxlength="30"
-            clearable
-          />
+          <el-input v-model="form.description" type="textarea" :rows="5" placeholder="详细描述工作内容、任职要求、福利待遇等" maxlength="2000" show-word-limit />
         </div>
 
-        <!-- 公司人数选择：以按钮组形式展示选项 -->
+        <div class="form-row">
+          <div class="form-item flex-1">
+            <label class="form-label">
+              <el-icon :size="16"><Money /></el-icon>
+              最低薪资（元）
+            </label>
+            <el-input-number v-model="form.salaryMin" :min="0" :max="999999" size="large" style="width:100%" />
+          </div>
+          <div class="form-item flex-1">
+            <label class="form-label">
+              <el-icon :size="16"><Money /></el-icon>
+              最高薪资（元）
+            </label>
+            <el-input-number v-model="form.salaryMax" :min="0" :max="999999" size="large" style="width:100%" />
+          </div>
+          <div class="form-item flex-1">
+            <label class="form-label">薪资单位</label>
+            <el-select v-model="form.salaryUnit" size="large" style="width:100%">
+              <el-option v-for="opt in salaryUnitOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-item flex-1">
+            <label class="form-label">
+              <el-icon :size="16"><TrendCharts /></el-icon>
+              工作类型
+            </label>
+            <el-select v-model="form.jobType" size="large" style="width:100%">
+              <el-option v-for="opt in jobTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </div>
+          <div class="form-item flex-1">
+            <label class="form-label">
+              <el-icon :size="16"><User /></el-icon>
+              招聘人数
+            </label>
+            <el-input-number v-model="form.totalQuota" :min="1" :max="999" size="large" style="width:100%" />
+          </div>
+        </div>
+
         <div class="form-item">
           <label class="form-label">
-            <el-icon :size="16"><TrendCharts /></el-icon>
-            公司人数
+            <el-icon :size="16"><MapLocation /></el-icon>
+            工作地址
           </label>
-          <div class="select-group">
+          <el-input v-model="form.address" size="large" placeholder="例如：北京市朝阳区建国路88号" maxlength="200" clearable />
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">
+            <el-icon :size="16"><Timer /></el-icon>
+            职位标签
+          </label>
+          <div class="tag-group">
             <button
-              v-for="size in companySizes"
-              :key="size"
-              :class="['select-btn', { active: form.companySize === size }]"
-              @click="form.companySize = size"
+              v-for="tag in tagOptions"
+              :key="tag"
+              :class="['tag-btn', { active: form.tag.includes(tag) }]"
+              @click="toggleTag(tag)"
             >
-              {{ size }}
+              {{ tag }}
             </button>
           </div>
         </div>
 
-        <!-- 注册资金选择：以按钮组形式展示选项 -->
         <div class="form-item">
           <label class="form-label">
-            <el-icon :size="16"><Money /></el-icon>
-            注册资金
+            <el-icon :size="16"><Calendar /></el-icon>
+            报名截止时间
           </label>
-          <div class="select-group">
-            <button
-              v-for="capital in registeredCapitals"
-              :key="capital"
-              :class="['select-btn', { active: form.registeredCapital === capital }]"
-              @click="form.registeredCapital = capital"
-            >
-              {{ capital }}
-            </button>
-          </div>
+          <el-date-picker v-model="form.deadline" type="datetime" placeholder="选择截止时间" size="large" style="width:100%" value-format="YYYY-MM-DDTHH:mm:ss" />
         </div>
 
-        <!-- 提交发布按钮 -->
-        <button
-          class="submit-btn"
-          :disabled="!isFormValid || loading"
-          :class="{ loading }"
-          @click="handleSubmit"
-        >
+        <button class="submit-btn" :disabled="!isFormValid || loading" :class="{ loading }" @click="handleSubmit">
           {{ loading ? '提交中...' : '立即发布' }}
         </button>
       </div>
@@ -171,79 +232,76 @@ const handleSubmit = async () => {
   padding: 40px 24px;
   box-sizing: border-box;
 }
-
 .post-job-container {
-  max-width: 680px;
+  max-width: 760px;
   margin: 0 auto;
   background: #fff;
   border-radius: 12px;
   padding: 40px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
-
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin: 0 0 8px;
 }
-
 .page-desc {
   font-size: 14px;
-  color: #999;
+  color: #000;
   margin: 0 0 32px;
 }
-
 .form-section {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-
+.form-row {
+  display: flex;
+  gap: 16px;
+}
 .form-item {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
 .form-label {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-h);
+  color: #000;
 }
-
-.select-group {
+.tag-group {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
-
-.select-btn {
+.tag-btn {
   padding: 8px 18px;
   font-size: 14px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 20px;
   background: #fff;
-  color: var(--text);
+  color: #000;
   cursor: pointer;
   transition: all 0.2s;
 }
-
-.select-btn:hover {
+.tag-btn:hover {
   border-color: #007AFF;
   color: #007AFF;
 }
-
-.select-btn.active {
+.tag-btn.active {
   border-color: #007AFF;
   background: rgba(0, 122, 255, 0.08);
   color: #007AFF;
   font-weight: 500;
 }
-
 .submit-btn {
   width: 100%;
   height: 48px;
@@ -257,31 +315,18 @@ const handleSubmit = async () => {
   transition: opacity 0.2s;
   margin-top: 8px;
 }
-
 .submit-btn:hover:not(:disabled) {
   opacity: 0.92;
 }
-
 .submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .submit-btn.loading {
   opacity: 0.7;
 }
-
 @media (max-width: 768px) {
-  .post-job-container {
-    padding: 24px;
-  }
-
-  .select-group {
-    flex-direction: column;
-  }
-
-  .select-btn {
-    width: 100%;
-  }
+  .post-job-container { padding: 24px; }
+  .form-row { flex-direction: column; }
 }
 </style>
