@@ -84,3 +84,16 @@ export const getRealNameAuthStatus = async () => {
   const res = await request.get<ApiResponse<RealNameAuthStatus>>('/auth/real-name/status')
   return res.data
 }
+
+// 修改密码请求参数
+export interface ChangePasswordParams {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+/** 修改密码 PUT /api/auth/password */
+export const changePassword = async (params: ChangePasswordParams) => {
+  const res = await request.put<ApiResponse<void>>('/auth/password', params)
+  return res.data
+}

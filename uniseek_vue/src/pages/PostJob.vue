@@ -4,9 +4,36 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts, User } from '@element-plus/icons-vue'
 import { createTask } from '@/api/task'
+import { getRegionTree } from '@/api/region'
+import type { RegionVO } from '@/api/region'
 
 const router = useRouter()
 const loading = ref(false)
+
+// 地区三级联动
+const provinces = ref<RegionVO[]>([])
+const selectedProvince = ref<number | null>(null)
+const selectedCity = ref<number | null>(null)
+
+const cities = computed(() => {
+  const p = provinces.value.find(p => p.id === selectedProvince.value)
+  return p?.children || []
+})
+
+const districts = computed(() => {
+  const p = provinces.value.find(p => p.id === selectedProvince.value)
+  const c = p?.children.find(c => c.id === selectedCity.value)
+  return c?.children || []
+})
+
+const onProvinceChange = () => {
+  selectedCity.value = null
+  form.regionId = 0
+}
+
+const onCityChange = () => {
+  form.regionId = 0
+}
 
 const form = reactive({
   title: '',
@@ -48,15 +75,6 @@ const categories = [
   { id: 8, name: '其他' }
 ]
 
-const regions = [
-  { id: 1, name: '北京' },
-  { id: 2, name: '上海' },
-  { id: 3, name: '广州' },
-  { id: 4, name: '深圳' },
-  { id: 5, name: '杭州' },
-  { id: 6, name: '成都' }
-]
-
 const toggleTag = (tag: string) => {
   const idx = form.tag.indexOf(tag)
   if (idx > -1) {
@@ -96,12 +114,21 @@ const handleSubmit = async () => {
     })
     ElMessage.success('职位发布成功，等待审核')
     router.push('/')
-  } catch {
-    // 错误已在拦截器中处理
+  } catch (err: any) {
+    if (err?.message?.includes('未找到企业信息')) {
+      ElMessage.warning('请先完成企业资质认证')
+      router.push('/enterprise-cert')
+    }
   } finally {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  try {
+    provinces.value = await getRegionTree()
+  } catch { provinces.value = [] }
+})
 </script>
 
 <template>
@@ -126,12 +153,24 @@ const handleSubmit = async () => {
               <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
           </div>
-          <div class="form-item flex-1">
-            <label class="form-label">工作地区</label>
-            <el-select v-model="form.regionId" placeholder="选择地区" size="large" style="width:100%">
-              <el-option v-for="r in regions" :key="r.id" :label="r.name" :value="r.id" />
-            </el-select>
-          </div>
+            <div class="form-item flex-1">
+              <label class="form-label">所在省</label>
+              <el-select v-model="selectedProvince" placeholder="选择省" size="large" style="width:100%" @change="onProvinceChange">
+                <el-option v-for="p in provinces" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+            </div>
+            <div class="form-item flex-1">
+              <label class="form-label">所在市</label>
+              <el-select v-model="selectedCity" placeholder="选择市" size="large" style="width:100%" :disabled="!selectedProvince" @change="onCityChange">
+                <el-option v-for="c in cities" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </div>
+            <div class="form-item flex-1">
+              <label class="form-label">所在区</label>
+              <el-select v-model="form.regionId" placeholder="选择区" size="large" style="width:100%" :disabled="!selectedCity">
+                <el-option v-for="d in districts" :key="d.id" :label="d.name" :value="d.id" />
+              </el-select>
+            </div>
         </div>
 
         <div class="form-item">

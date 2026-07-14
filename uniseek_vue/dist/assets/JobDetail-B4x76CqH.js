@@ -1,0 +1,1 @@
+import{L as e,d as t,m as n,t as r,y as i}from"./_plugin-vue_export-helper-C19KzAmG.js";var a={class:`job-detail-page`},o=r(i({__name:`JobDetail`,setup(r){return(r,i)=>(e(),n(`div`,a,[...i[0]||=[t(`h1`,null,`职位详情`,-1),t(`p`,null,`加载中...`,-1)]]))}}),[[`__scopeId`,`data-v-1fb98d67`]]);export{o as default};

@@ -1,0 +1,1 @@
+import{L as e,d as t,m as n,t as r,y as i}from"./_plugin-vue_export-helper-C19KzAmG.js";var a={class:`messages-page`},o=r(i({__name:`Messages`,setup(r){return(r,i)=>(e(),n(`div`,a,[...i[0]||=[t(`h1`,null,`消息`,-1),t(`p`,null,`消息列表加载中...`,-1)]]))}}),[[`__scopeId`,`data-v-33f487d2`]]);export{o as default};

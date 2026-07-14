@@ -37,6 +37,14 @@ request.interceptors.response.use(
     return data
   },
   (error) => {
+    // 401 未认证 → 清除 token 并跳转登录页
+    if (error.response?.status === 401) {
+      localStorage.removeItem('uniseek_token')
+      localStorage.removeItem('uniseek_user')
+      ElMessage.error('登录已过期，请重新登录')
+      window.location.href = '/login'
+      return Promise.reject(error)
+    }
     const msg = error.response?.data?.message || '网络异常，请稍后重试'
     ElMessage.error(msg)
     return Promise.reject(error)
