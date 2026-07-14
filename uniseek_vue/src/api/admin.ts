@@ -1,0 +1,195 @@
+import request from './index'
+
+// ==================== 类型定义 ====================
+
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface StatisticsSummary {
+  totalUsers: number
+  totalEnterprises: number
+  totalTasks: number
+  totalApplications: number
+  pendingEnterprises: number
+  pendingTasks: number
+  pendingComplaints: number
+}
+
+export interface DailyStatItem {
+  statDate: string
+  newUserCount: number
+  newEnterpriseCount: number
+  newTaskCount: number
+  newResumeCount: number
+  newDeliveryCount: number
+  newInterviewCount: number
+  newEntryCount: number
+}
+
+export interface EnterpriseRecord {
+  id: number
+  userId: number
+  companyName: string
+  creditCode: string
+  licenseImgUrl: string
+  industry: string
+  regionId: number
+  description: string
+  auditStatus: number
+  auditTime: string
+  createTime: string
+  updateTime: string
+}
+
+export interface TaskRecord {
+  id: number
+  enterpriseId: number
+  enterpriseName: string
+  categoryId: number
+  categoryName: string
+  title: string
+  description: string
+  salaryMin: number
+  salaryMax: number
+  salaryUnit: number
+  jobType: number
+  totalQuota: number
+  remainingQuota: number
+  address: string
+  status: number
+  deadline: string
+  createTime: string
+  updateTime: string
+}
+
+export interface UserRecord {
+  id: number
+  phone: string
+  email: string
+  nickname: string
+  avatarUrl: string
+  role: number
+  creditScore: number
+  status: number
+  realNameAuth: boolean
+  lastLoginTime: string
+  createTime: string
+}
+
+export interface ComplaintRecord {
+  id: number
+  complainantId: number
+  complainantName: string
+  complainantPhone: string
+  targetType: number
+  targetId: number
+  targetName: string
+  type: number
+  content: string
+  status: number
+  handlerId: number
+  handlerName: string
+  handleResult: string
+  createTime: string
+  updateTime: string
+}
+
+export interface OperationLogRecord {
+  id: number
+  operatorId: number
+  operatorName: string
+  operationType: string
+  targetType: string
+  targetId: number
+  detail: string
+  ipAddress: string
+  createTime: string
+}
+
+// ==================== 统计 API ====================
+
+export async function getStatistics(startDate?: string, endDate?: string): Promise<{
+  summary: Record<string, number>
+  dailyList: Array<Record<string, unknown>>
+}> {
+  const res: any = await request.get('/admin/statistics', { params: { startDate, endDate } })
+  return res.data
+}
+
+// ==================== 企业审核 API ====================
+
+export async function listEnterprises(params: {
+  page: number; pageSize: number; auditStatus?: number; keyword?: string
+}): Promise<PageResult<EnterpriseRecord>> {
+  const res: any = await request.get('/admin/enterprises', { params })
+  return res.data
+}
+
+export function auditEnterprise(id: number, data: { approved: boolean; rejectReason?: string }): Promise<any> {
+  return request.put(`/admin/enterprises/${id}/audit`, null, {
+    params: { approved: data.approved, rejectReason: data.rejectReason }
+  })
+}
+
+// ==================== 职位审核 API ====================
+
+export async function listPendingTasks(page: number, pageSize: number): Promise<PageResult<TaskRecord>> {
+  const res: any = await request.get('/admin/tasks/pending', { params: { page, pageSize } })
+  return res.data
+}
+
+export function auditTask(id: number, data: { approved: boolean; rejectReason?: string }): Promise<any> {
+  return request.put(`/admin/tasks/${id}/audit`, null, {
+    params: { approved: data.approved, rejectReason: data.rejectReason }
+  })
+}
+
+// ==================== 用户管理 API ====================
+
+export async function listUsers(params: {
+  page: number; pageSize: number; keyword?: string; role?: number; status?: number
+}): Promise<PageResult<UserRecord>> {
+  const res: any = await request.get('/admin/users', { params })
+  return res.data
+}
+
+export function updateUserStatus(id: number, status: number): Promise<any> {
+  return request.put(`/admin/users/${id}/status`, null, { params: { status } })
+}
+
+export function updateUserRole(id: number, role: number): Promise<any> {
+  return request.put(`/admin/users/${id}/role`, null, { params: { role } })
+}
+
+// ==================== 投诉处理 API ====================
+
+export async function listComplaints(params: {
+  page: number; pageSize: number; status?: number; targetType?: number
+}): Promise<PageResult<ComplaintRecord>> {
+  const res: any = await request.get('/admin/complaints', { params })
+  return res.data
+}
+
+export async function getComplaintDetail(id: number): Promise<ComplaintRecord> {
+  const res: any = await request.get(`/admin/complaints/${id}`)
+  return res.data
+}
+
+export function handleComplaint(id: number, data: { status: number; handleResult: string }): Promise<any> {
+  return request.put(`/admin/complaints/${id}/handle`, null, {
+    params: { status: data.status, handleResult: data.handleResult }
+  })
+}
+
+// ==================== 操作日志 API ====================
+
+export async function listOperationLogs(params: {
+  page: number; pageSize: number; operatorId?: number; operationType?: string; startTime?: string; endTime?: string
+}): Promise<PageResult<OperationLogRecord>> {
+  const res: any = await request.get('/admin/operation-logs', { params })
+  return res.data
+}

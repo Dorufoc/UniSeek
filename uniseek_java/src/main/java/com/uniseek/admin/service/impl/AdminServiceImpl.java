@@ -67,11 +67,11 @@ public class AdminServiceImpl implements AdminService {
     private NotificationMapper notificationMapper;
 
     /**
-     * 校验当前用户是否为管理员（role=9）
+     * 校验当前用户是否为管理员（role >= 9，含超级管理员）
      */
     private void checkAdmin() {
         Integer role = UserContext.getRole();
-        if (role == null || role != 9) {
+        if (role == null || role < 9) {
             throw new BusinessException(ApiResult.FORBIDDEN, "无管理员权限");
         }
     }

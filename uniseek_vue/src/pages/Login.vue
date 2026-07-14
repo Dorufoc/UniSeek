@@ -65,9 +65,10 @@ const handleLogin = async () => {
     const userInfo = { ...res.userInfo, role: storedUser?.role ?? res.userInfo.role }
     userStore.setUserInfo(userInfo)
     ElMessage.success('登录成功')
-    // 登录后跳转：优先使用 redirect 参数，否则回首页
-    const redirect = (router.currentRoute.value.query.redirect as string) || '/'
-    router.replace(redirect)
+    // 管理员 -> 管理后台，其他人使用 redirect 参数或回首页
+    const target = userInfo.role >= 9 ? '/admin/dashboard'
+      : (router.currentRoute.value.query.redirect as string) || '/'
+    router.replace(target)
   } catch {
     // 错误已在拦截器中处理
   } finally {
