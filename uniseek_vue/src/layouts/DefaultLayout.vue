@@ -9,12 +9,16 @@ const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
-const isRecruiter = computed(() => userStore.userInfo?.role === 'recruiter')
+// 判断当前用户是否为招聘者（role === 1 表示招聘者，0 表示求职者）
+const isRecruiter = computed(() => userStore.userInfo?.role === 1)
 
+// 控制城市选择弹窗的显示与隐藏
 const showCityModal = ref(false)
 
-// 全国主要城市
+// 热门城市列表，用于城市选择弹窗的快捷选择区域
 const hotCities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安']
+
+// 全国主要城市列表，用于城市选择弹窗的更多城市区域
 const allCities = [
   '北京', '上海', '天津', '重庆',
   '石家庄', '太原', '呼和浩特', '沈阳', '长春', '哈尔滨',
@@ -25,6 +29,7 @@ const allCities = [
   '厦门', '深圳', '苏州', '无锡', '佛山', '东莞'
 ]
 
+// 选择城市：更新全局城市状态并关闭弹窗
 const selectCity = (city: string) => {
   appStore.setCity(city)
   showCityModal.value = false
@@ -33,10 +38,13 @@ const selectCity = (city: string) => {
 
 <template>
   <div class="default-layout">
+    <!-- 顶部导航栏 -->
     <header class="layout-header">
       <div class="header-inner">
+        <!-- 左侧区域：Logo 和城市选择器 -->
         <div class="header-left">
           <router-link to="/" class="logo">UniSeek</router-link>
+          <!-- 城市选择按钮，点击弹出城市选择弹窗 -->
           <button class="city-selector" @click="showCityModal = true">
             <el-icon :size="14"><Location /></el-icon>
             <span>{{ appStore.city }}</span>
@@ -44,6 +52,7 @@ const selectCity = (city: string) => {
           </button>
         </div>
 
+        <!-- 中部区域：主导航菜单 -->
         <nav class="header-nav">
           <router-link to="/">首页</router-link>
           <router-link to="/jobs">职位</router-link>
@@ -51,14 +60,16 @@ const selectCity = (city: string) => {
           <router-link to="/messages">消息</router-link>
         </nav>
 
+        <!-- 右侧区域：用户操作（登录状态根据角色显示不同入口） -->
         <div class="header-actions">
+          <!-- 已登录状态 -->
           <template v-if="userStore.isLoggedIn">
-            <router-link v-if="isRecruiter" to="/post-job" class="nav-user-link">发布职位</router-link>
-            <router-link v-else to="/resume" class="nav-user-link">简历</router-link>
+            <router-link v-if="!isRecruiter" to="/resume" class="nav-user-link">简历</router-link>
             <router-link to="/profile" class="nav-user-link">个人中心</router-link>
             <span class="user-name">{{ userStore.userInfo?.nickname || '用户' }}</span>
             <button class="btn-logout" @click="userStore.logout(); router.push('/')">退出</button>
           </template>
+          <!-- 未登录状态 -->
           <template v-else>
             <router-link to="/login" class="btn-login">登录 / 注册</router-link>
           </template>
@@ -66,21 +77,24 @@ const selectCity = (city: string) => {
       </div>
     </header>
 
+    <!-- 主内容区域，通过路由视图渲染对应页面 -->
     <main class="layout-main">
       <router-view />
     </main>
 
-    <!-- 城市选择弹窗 -->
+    <!-- 城市选择弹窗：点击遮罩层关闭，点击内容区阻止冒泡 -->
     <div v-if="showCityModal" class="city-modal" @click="showCityModal = false">
       <div class="city-modal-content" @click.stop>
         <div class="city-modal-header">
           <h3>选择城市</h3>
           <button class="close-btn" @click="showCityModal = false">×</button>
         </div>
+        <!-- 当前城市展示区 -->
         <div class="city-section">
           <h4>当前城市</h4>
           <button class="city-tag current">{{ appStore.city }}</button>
         </div>
+        <!-- 热门城市快捷选择区 -->
         <div class="city-section">
           <h4>热门城市</h4>
           <div class="city-list">
@@ -94,6 +108,7 @@ const selectCity = (city: string) => {
             </button>
           </div>
         </div>
+        <!-- 全国城市完整选择区 -->
         <div class="city-section">
           <h4>更多城市</h4>
           <div class="city-list">

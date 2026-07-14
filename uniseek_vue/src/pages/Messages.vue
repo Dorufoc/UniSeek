@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// 消息页面（占位，待后续开发）
 </script>
 
 <template>

@@ -9,50 +9,61 @@ import { Phone, Message, Lock, User, ChatDotRound, Wallet, Search } from '@eleme
 const router = useRouter()
 const userStore = useUserStore()
 
+// 当前激活的选项卡：登录或注册
 const activeTab = ref<'login' | 'register'>('login')
+// 提交加载状态
 const loading = ref(false)
+// 用户协议勾选状态
 const agreed = ref(false)
-const role = ref<'seeker' | 'recruiter' | ''>('')
+// 注册时的角色选择：null 未选择，0 求职者，1 招聘者
+const role = ref<0 | 1 | null>(null)
 
+// 登录/注册表单数据
 const form = reactive({
   phone: '',
   password: '',
   confirmPassword: '',
-  username: '',
-  email: ''
+  nickname: ''
 })
 
+// 手机号正则校验：1 开头，第二位为 3-9，共 11 位数字
 const phonePattern = /^1[3-9]\d{9}$/
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// 手机号格式校验
 const isPhoneValid = computed(() => phonePattern.test(form.phone))
+// 密码长度校验：6-20 位
 const isPasswordValid = computed(() => form.password.length >= 6 && form.password.length <= 20)
+// 两次密码一致性校验
 const isConfirmPasswordValid = computed(() => form.password === form.confirmPassword)
-const isUsernameValid = computed(() => form.username.trim().length >= 2 && form.username.trim().length <= 20)
-const isEmailValid = computed(() => emailPattern.test(form.email))
-const isRoleValid = computed(() => role.value !== '')
+// 昵称长度校验：2-20 个字符
+const isNicknameValid = computed(() => form.nickname.trim().length >= 2 && form.nickname.trim().length <= 20)
+// 角色是否已选择
+const isRoleValid = computed(() => role.value !== null)
 
+// 登录按钮是否可用：手机号 + 密码 + 协议勾选均满足
 const canLogin = computed(() => {
   return isPhoneValid.value && isPasswordValid.value && agreed.value
 })
 
+// 注册按钮是否可用：角色 + 手机号 + 昵称 + 密码 + 确认密码 + 协议勾选均满足
 const canRegister = computed(() => {
-  return isRoleValid.value && isUsernameValid.value && isEmailValid.value && isPasswordValid.value && isConfirmPasswordValid.value && agreed.value
+  return isRoleValid.value && isPhoneValid.value && isNicknameValid.value && isPasswordValid.value && isConfirmPasswordValid.value && agreed.value
 })
 
+// 处理登录：调用登录接口，保存 token 和用户信息，根据角色跳转不同页面
 const handleLogin = async () => {
   if (!canLogin.value) return
   loading.value = true
   try {
     const res = await loginByPassword({ phone: form.phone, password: form.password })
     userStore.setToken(res.token)
-    userStore.setUserInfo({
-      userId: res.userId,
-      nickname: res.nickname,
-      avatar: res.avatar
-    })
+    // 登录时优先使用本地已存储的角色（注册时设定），防止 Mock 默认值覆盖
+    const storedUser = JSON.parse(localStorage.getItem('uniseek_user') || 'null')
+    const userInfo = { ...res.userInfo, role: storedUser?.role ?? res.userInfo.role }
+    userStore.setUserInfo(userInfo)
     ElMessage.success('登录成功')
-    const target = userStore.userInfo?.role === 'recruiter' ? '/post-job' : '/'
+    // 招聘者登录后跳转到企业认证页，求职者跳转到首页
+    const target = userInfo.role === 1 ? '/enterprise-cert' : '/'
     router.replace(target)
   } catch {
     // 错误已在拦截器中处理
@@ -61,24 +72,24 @@ const handleLogin = async () => {
   }
 }
 
+// 处理注册：调用注册接口，保存 token 和用户信息，根据角色跳转不同页面
 const handleRegister = async () => {
   if (!canRegister.value) return
   loading.value = true
   try {
     const res = await register({
-      username: form.username.trim(),
-      email: form.email.trim(),
-      password: form.password
+      phone: form.phone,
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+      nickname: form.nickname.trim()
     })
     userStore.setToken(res.token)
-    userStore.setUserInfo({
-      userId: res.userId,
-      nickname: res.nickname,
-      avatar: res.avatar,
-      role: role.value
-    })
+    // 用界面选择的角色覆盖后端返回的角色，确保注册后跳转正确
+    const userInfo = { ...res.userInfo, role: role.value as number }
+    userStore.setUserInfo(userInfo)
     ElMessage.success('注册成功')
-    const target = role.value === 'recruiter' ? '/post-job' : '/'
+    // 招聘者注册后跳转到企业认证页，求职者跳转到首页
+    const target = role.value === 1 ? '/enterprise-cert' : '/'
     router.replace(target)
   } catch {
     // 错误已在拦截器中处理
@@ -87,13 +98,13 @@ const handleRegister = async () => {
   }
 }
 
+// 切换登录/注册选项卡，重置表单和角色选择状态
 const switchTab = (tab: 'login' | 'register') => {
   activeTab.value = tab
   form.password = ''
   form.confirmPassword = ''
-  form.username = ''
-  form.email = ''
-  role.value = ''
+  form.nickname = ''
+  role.value = null
   agreed.value = false
 }
 </script>
@@ -101,6 +112,7 @@ const switchTab = (tab: 'login' | 'register') => {
 <template>
   <div class="login-container">
     <div class="login-card">
+      <!-- 左侧品牌展示区 -->
       <div class="card-brand">
         <div class="brand-content">
           <h1 class="brand-name">UniSeek</h1>
@@ -108,7 +120,9 @@ const switchTab = (tab: 'login' | 'register') => {
         </div>
       </div>
 
+      <!-- 右侧表单区域 -->
       <div class="card-form">
+        <!-- 登录/注册选项卡切换 -->
         <div class="form-tabs">
           <button
             :class="['tab-btn', { active: activeTab === 'login' }]"
@@ -124,9 +138,10 @@ const switchTab = (tab: 'login' | 'register') => {
           </button>
         </div>
 
-        <!-- 登录表单 -->
+        <!-- 登录表单区域 -->
         <template v-if="activeTab === 'login'">
           <div class="form-body">
+            <!-- 手机号输入 -->
             <div class="input-group">
               <el-input
                 v-model="form.phone"
@@ -139,6 +154,7 @@ const switchTab = (tab: 'login' | 'register') => {
               <span v-if="form.phone && !isPhoneValid" class="input-error">请输入正确的手机号</span>
             </div>
 
+            <!-- 密码输入 -->
             <div class="input-group">
               <el-input
                 v-model="form.password"
@@ -150,6 +166,7 @@ const switchTab = (tab: 'login' | 'register') => {
               />
             </div>
 
+            <!-- 用户协议勾选 -->
             <div class="form-options">
               <label class="agree-label">
                 <el-checkbox v-model="agreed" />
@@ -160,6 +177,7 @@ const switchTab = (tab: 'login' | 'register') => {
               </label>
             </div>
 
+            <!-- 登录按钮 -->
             <button
               class="submit-btn"
               :disabled="!canLogin || loading"
@@ -171,23 +189,25 @@ const switchTab = (tab: 'login' | 'register') => {
           </div>
         </template>
 
-        <!-- 注册表单 -->
+        <!-- 注册表单区域 -->
         <template v-else>
           <div class="form-body">
-            <!-- 角色选择 -->
+            <!-- 角色选择：求职者或招聘者 -->
             <div class="role-select-group">
               <span class="role-select-label">选择身份</span>
               <div class="role-toggle">
+                <!-- 求职者选项 -->
                 <button
-                  :class="['role-btn', { active: role === 'seeker' }]"
-                  @click="role = 'seeker'"
+                  :class="['role-btn', { active: role === 0 }]"
+                  @click="role = 0"
                 >
                   <el-icon :size="18"><Search /></el-icon>
                   <span>我是求职者</span>
                 </button>
+                <!-- 招聘者选项 -->
                 <button
-                  :class="['role-btn', { active: role === 'recruiter' }]"
-                  @click="role = 'recruiter'"
+                  :class="['role-btn', { active: role === 1 }]"
+                  @click="role = 1"
                 >
                   <el-icon :size="18"><Wallet /></el-icon>
                   <span>我是招聘者</span>
@@ -195,29 +215,33 @@ const switchTab = (tab: 'login' | 'register') => {
               </div>
             </div>
 
+            <!-- 手机号输入 -->
             <div class="input-group">
               <el-input
-                v-model="form.username"
+                v-model="form.phone"
                 size="large"
-                placeholder="请输入用户名称"
+                placeholder="请输入手机号"
+                maxlength="11"
+                clearable
+                :prefix-icon="Phone"
+              />
+              <span v-if="form.phone && !isPhoneValid" class="input-error">请输入正确的手机号</span>
+            </div>
+
+            <!-- 昵称输入 -->
+            <div class="input-group">
+              <el-input
+                v-model="form.nickname"
+                size="large"
+                placeholder="请输入昵称（2-20位）"
                 maxlength="20"
                 clearable
                 :prefix-icon="User"
               />
-              <span v-if="form.username && !isUsernameValid" class="input-error">用户名称需为2-20个字符</span>
+              <span v-if="form.nickname && !isNicknameValid" class="input-error">昵称需为2-20个字符</span>
             </div>
 
-            <div class="input-group">
-              <el-input
-                v-model="form.email"
-                size="large"
-                placeholder="请输入邮箱"
-                clearable
-                :prefix-icon="Message"
-              />
-              <span v-if="form.email && !isEmailValid" class="input-error">请输入正确的邮箱格式</span>
-            </div>
-
+            <!-- 密码输入 -->
             <div class="input-group">
               <el-input
                 v-model="form.password"
@@ -230,6 +254,7 @@ const switchTab = (tab: 'login' | 'register') => {
               <span v-if="form.password && !isPasswordValid" class="input-error">密码长度需为6-20位</span>
             </div>
 
+            <!-- 确认密码输入 -->
             <div class="input-group">
               <el-input
                 v-model="form.confirmPassword"
@@ -242,6 +267,7 @@ const switchTab = (tab: 'login' | 'register') => {
               <span v-if="form.confirmPassword && !isConfirmPasswordValid" class="input-error">两次密码输入不一致</span>
             </div>
 
+            <!-- 用户协议勾选 -->
             <div class="form-options">
               <label class="agree-label">
                 <el-checkbox v-model="agreed" />
@@ -252,6 +278,7 @@ const switchTab = (tab: 'login' | 'register') => {
               </label>
             </div>
 
+            <!-- 注册按钮 -->
             <button
               class="submit-btn"
               :disabled="!canRegister || loading"
@@ -263,6 +290,7 @@ const switchTab = (tab: 'login' | 'register') => {
           </div>
         </template>
 
+        <!-- 第三方登录入口（预留） -->
         <div class="other-login">
           <div class="divider">
             <span>其他方式登录</span>

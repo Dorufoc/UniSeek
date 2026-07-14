@@ -1,49 +1,42 @@
 import request from './index'
 
-export interface LoginByPhoneParams {
-  phone: string
-  code: string
-}
-
+// 密码登录请求参数
 export interface LoginByPasswordParams {
-  phone: string
-  password: string
+  phone: string       // 手机号（11位数字）
+  password: string    // 密码（明文，后端用 MD5+盐校验）
 }
 
+// 注册请求参数
 export interface RegisterParams {
-  username: string
-  email: string
-  password: string
+  phone: string           // 手机号
+  password: string        // 密码
+  confirmPassword: string // 确认密码
+  nickname: string        // 昵称
 }
 
-export interface SendCodeParams {
-  phone: string
-  type: 'login' | 'register'
+// 用户信息（后端返回）
+export interface UserInfo {
+  userId: number      // 用户ID
+  nickname: string    // 昵称
+  avatarUrl: string   // 头像URL
+  role: number        // 角色：0=求职者, 1=企业HR, 9=管理员
+  phone: string       // 手机号
 }
 
+// 登录/注册接口统一响应结构
 export interface LoginResult {
-  token: string
-  userId: number
-  nickname: string
-  avatar: string
+  code: number        // 业务状态码
+  msg: string         // 提示消息
+  token: string       // JWT Token
+  userInfo: UserInfo  // 用户信息
 }
 
-/** 短信验证码登录 */
-export const loginByPhone = (params: LoginByPhoneParams) => {
-  return request.post<LoginResult>('/auth/login/phone', params)
-}
-
-/** 密码登录 */
+/** 密码登录 POST /auth/login */
 export const loginByPassword = (params: LoginByPasswordParams) => {
-  return request.post<LoginResult>('/auth/login/password', params)
+  return request.post<LoginResult>('/auth/login', params)
 }
 
-/** 注册 */
+/** 用户注册 POST /auth/register */
 export const register = (params: RegisterParams) => {
   return request.post<LoginResult>('/auth/register', params)
-}
-
-/** 发送短信验证码 */
-export const sendVerifyCode = (params: SendCodeParams) => {
-  return request.post('/auth/send-code', params)
 }

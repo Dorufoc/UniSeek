@@ -1,9 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// 读取企业认证状态
+const getCertStatus = () => {
+  const cert = localStorage.getItem('uniseek_enterprise_cert')
+  return cert ? JSON.parse(cert).status : 'none'
+}
+
+// 判断是否为招聘者
+const isRecruiter = () => {
+  const userStr = localStorage.getItem('uniseek_user')
+  return userStr ? JSON.parse(userStr).role === 1 : false
+}
+
+// 路由配置 - 采用 HTML5 History 模式，所有页面组件懒加载
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
+      // 首页布局路由（需登录），所有主页面作为其子路由
       path: '/',
       component: () => import('@/layouts/DefaultLayout.vue'),
       meta: { requiresAuth: true },
@@ -48,7 +62,7 @@ const router = createRouter({
           path: 'post-job',
           name: 'PostJob',
           component: () => import('@/pages/PostJob.vue'),
-          meta: { title: '发布职位 - UniSeek' }
+          meta: { title: '发布职位 - UniSeek', requiresCert: true }
         },
         {
           path: 'profile',
@@ -59,27 +73,64 @@ const router = createRouter({
       ]
     },
     {
+      // 登录页为独立路由，不嵌套在布局中
       path: '/login',
       name: 'Login',
       component: () => import('@/pages/Login.vue'),
       meta: { title: '登录 - UniSeek' }
+    },
+    {
+      // 企业资质认证页为独立路由，不嵌套在布局中
+      path: '/enterprise-cert',
+      name: 'EnterpriseCert',
+      component: () => import('@/pages/EnterpriseCertification.vue'),
+      meta: { title: '企业资质认证 - UniSeek', requiresAuth: true }
     }
   ]
 })
 
+// 全局路由守卫
 router.beforeEach((to, from) => {
   const token = localStorage.getItem('uniseek_token')
   const userStr = localStorage.getItem('uniseek_user')
   const userInfo = userStr ? JSON.parse(userStr) : null
 
+  // 未登录用户访问需认证页面 → 重定向到登录页
   if (to.meta.requiresAuth && !token) {
     return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
+  // 已登录用户访问登录页 → 根据角色重定向
   if (to.name === 'Login' && token) {
-    return { path: userInfo?.role === 'recruiter' ? '/post-job' : '/' }
+    if (userInfo?.role === 1) {
+      const certStatus = getCertStatus()
+      return { path: certStatus === 'approved' ? '/' : '/enterprise-cert' }
+    }
+    return { path: '/' }
   }
 
+  // 招聘者访问需要企业认证的页面（如发布职位），检查认证状态
+  if (to.meta.requiresCert && isRecruiter()) {
+    const certStatus = getCertStatus()
+    if (certStatus !== 'approved') {
+      return { path: '/enterprise-cert' }
+    }
+  }
+
+  // 招聘者已认证后访问认证页 → 重定向到首页
+  if (to.name === 'EnterpriseCert' && isRecruiter()) {
+    const certStatus = getCertStatus()
+    if (certStatus === 'approved') {
+      return { path: '/' }
+    }
+  }
+
+  // 非招聘者访问认证页 → 重定向到首页
+  if (to.name === 'EnterpriseCert' && !isRecruiter()) {
+    return { path: '/' }
+  }
+
+  // 设置页面标题
   document.title = (to.meta.title as string) || 'UniSeek'
 })
 

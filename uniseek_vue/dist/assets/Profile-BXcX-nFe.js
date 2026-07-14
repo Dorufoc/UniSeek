@@ -1,1 +1,0 @@
-import{L as e,d as t,m as n,t as r}from"./_plugin-vue_export-helper-C19KzAmG.js";var i={},a={class:`profile-page`};function o(r,i){return e(),n(`div`,a,[...i[0]||=[t(`h1`,null,`个人中心`,-1),t(`p`,null,`加载中...`,-1)]])}var s=r(i,[[`render`,o],[`__scopeId`,`data-v-0b82b9c8`]]);export{s as default};

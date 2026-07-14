@@ -1,1 +1,0 @@
-import{L as e,d as t,m as n,t as r}from"./_plugin-vue_export-helper-C19KzAmG.js";var i={},a={class:`resume-page`};function o(r,i){return e(),n(`div`,a,[...i[0]||=[t(`h1`,null,`简历`,-1),t(`p`,null,`简历信息加载中...`,-1)]])}var s=r(i,[[`render`,o],[`__scopeId`,`data-v-220a28ce`]]);export{s as default};

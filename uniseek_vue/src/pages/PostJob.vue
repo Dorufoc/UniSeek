@@ -2,18 +2,22 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { OfficeBuilding, User, TrendCharts, Money } from '@element-plus/icons-vue'
+import { OfficeBuilding, User, TrendCharts, Money, Briefcase } from '@element-plus/icons-vue'
 
 const router = useRouter()
+// 提交加载状态
 const loading = ref(false)
 
+// 发布职位表单数据
 const form = reactive({
-  companyName: '',
-  recruiterTitle: '',
-  companySize: '',
-  registeredCapital: ''
+  jobTitle: '',             // 招聘职务
+  companyName: '',          // 公司名称
+  recruiterTitle: '',       // 招聘者职务
+  companySize: '',          // 公司人数
+  registeredCapital: ''     // 注册资金
 })
 
+// 公司人数选项列表
 const companySizes = [
   '少于15人',
   '15-50人',
@@ -23,6 +27,7 @@ const companySizes = [
   '2000人以上'
 ]
 
+// 注册资金选项列表
 const registeredCapitals = [
   '不足100万',
   '100-500万',
@@ -32,13 +37,16 @@ const registeredCapitals = [
   '1亿以上'
 ]
 
+// 表单是否填写完整（所有字段均非空）
 const isFormValid = computed(() => {
-  return form.companyName.trim() !== ''
+  return form.jobTitle.trim() !== ''
+    && form.companyName.trim() !== ''
     && form.recruiterTitle.trim() !== ''
     && form.companySize !== ''
     && form.registeredCapital !== ''
 })
 
+// 提交发布职位表单
 const handleSubmit = async () => {
   if (!isFormValid.value) return
   loading.value = true
@@ -61,6 +69,22 @@ const handleSubmit = async () => {
       <p class="page-desc">填写以下信息，快速发布招聘职位</p>
 
       <div class="form-section">
+        <!-- 招聘职务输入 -->
+        <div class="form-item">
+          <label class="form-label">
+            <el-icon :size="16"><Briefcase /></el-icon>
+            招聘职务
+          </label>
+          <el-input
+            v-model="form.jobTitle"
+            size="large"
+            placeholder="请输入招聘职务（如：Java开发工程师、产品经理）"
+            maxlength="50"
+            clearable
+          />
+        </div>
+
+        <!-- 公司名称输入 -->
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><OfficeBuilding /></el-icon>
@@ -75,6 +99,7 @@ const handleSubmit = async () => {
           />
         </div>
 
+        <!-- 招聘者职务输入 -->
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><User /></el-icon>
@@ -89,6 +114,7 @@ const handleSubmit = async () => {
           />
         </div>
 
+        <!-- 公司人数选择：以按钮组形式展示选项 -->
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><TrendCharts /></el-icon>
@@ -106,6 +132,7 @@ const handleSubmit = async () => {
           </div>
         </div>
 
+        <!-- 注册资金选择：以按钮组形式展示选项 -->
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><Money /></el-icon>
@@ -123,6 +150,7 @@ const handleSubmit = async () => {
           </div>
         </div>
 
+        <!-- 提交发布按钮 -->
         <button
           class="submit-btn"
           :disabled="!isFormValid || loading"

@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+// 职位类型联合类型，用于筛选标签
 type JobType = '全部' | '全职' | '兼职' | '实习'
 
+// 当前选中的职位类型，默认为"全部"
 const activeType = ref<JobType>('全部')
 
+// 职位类型筛选选项列表
 const jobTypes: JobType[] = ['全部', '全职', '兼职', '实习']
 
+// 切换职位类型筛选
 const setType = (type: JobType) => {
   activeType.value = type
 }
@@ -14,8 +18,10 @@ const setType = (type: JobType) => {
 
 <template>
   <div class="jobs-page">
+    <!-- 页面头部：标题和职位类型筛选按钮组 -->
     <div class="jobs-header">
       <h2 class="jobs-title">职位搜索</h2>
+      <!-- 类型筛选按钮组：全部/全职/兼职/实习 -->
       <div class="type-tabs">
         <button
           v-for="type in jobTypes"
@@ -28,6 +34,7 @@ const setType = (type: JobType) => {
       </div>
     </div>
 
+    <!-- 职位列表内容区（占位） -->
     <div class="jobs-content">
       <p class="jobs-placeholder">职位列表加载中...</p>
     </div>

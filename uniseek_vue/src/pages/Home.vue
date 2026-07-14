@@ -6,10 +6,13 @@ import { Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const appStore = useAppStore()
+// 搜索关键词，双向绑定到搜索输入框
 const keyword = ref('')
 
+// 热门职位列表，用于首页快速搜索入口
 const hotJobs = ['售前客服', '设备维修保养工程师', 'IT咨询顾问', 'IT技术支持', '系统管理员', '实施顾问', 'Java开发', '产品经理', 'UI设计师', '运维工程师']
 
+// 处理搜索：将关键词存入全局状态并跳转到职位搜索页
 const handleSearch = () => {
   appStore.setSearchKeyword(keyword.value)
   router.push('/jobs')
@@ -18,7 +21,9 @@ const handleSearch = () => {
 
 <template>
   <div class="home-page">
+    <!-- 首页主视觉区域 -->
     <section class="hero-section">
+      <!-- 搜索框卡片：包含职位类型标签、搜索输入框和搜索按钮 -->
       <div class="hero-search-card">
         <div class="search-type">职位类型</div>
         <el-input
@@ -34,6 +39,7 @@ const handleSearch = () => {
         </button>
       </div>
 
+      <!-- 热门职位标签：点击可快速搜索对应职位 -->
       <div class="hot-jobs">
         <span class="hot-label">热门职位：</span>
         <button

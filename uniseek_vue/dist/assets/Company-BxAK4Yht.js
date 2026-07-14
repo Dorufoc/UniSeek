@@ -1,1 +1,0 @@
-import{L as e,d as t,m as n,t as r}from"./_plugin-vue_export-helper-C19KzAmG.js";var i={},a={class:`company-page`};function o(r,i){return e(),n(`div`,a,[...i[0]||=[t(`h1`,null,`公司`,-1),t(`p`,null,`公司列表加载中...`,-1)]])}var s=r(i,[[`render`,o],[`__scopeId`,`data-v-acc22750`]]);export{s as default};
