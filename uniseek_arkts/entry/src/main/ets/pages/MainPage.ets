@@ -12,7 +12,7 @@ struct MainPage {
   }
 
   @Builder tabChat() {
-    this.tabItem('聊天', $r('app.media.communicate'), 1)
+    this.tabItem('聊天', $r('app.media.chat'), 1)
   }
 
   @Builder tabProfile() {

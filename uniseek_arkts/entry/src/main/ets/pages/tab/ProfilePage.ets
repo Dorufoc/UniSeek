@@ -27,61 +27,79 @@ export struct ProfilePage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.theme'))
-          .width(68)
-          .height(68)
-          .borderRadius(34)
+      Column() {
+        Row() {
+          Image($r('app.media.theme'))
+            .width(68)
+            .height(68)
+            .borderRadius(34)
 
-        Column() {
-          Text(this.username)
-            .fontSize(24)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#333333')
+          Column() {
+            Text(this.username)
+              .fontSize(24)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#FFFFFF')
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+          .margin({ left: 16 })
+
+          Image($r('app.media.right_arrow'))
+            .width(16)
+            .height(16)
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/ProfileDetailPage' })
+            })
         }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-        .margin({ left: 16 })
-
-        Text('>')
-          .fontSize(22)
-          .fontColor('#CCCCCC')
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/ProfileDetailPage' })
-          })
+        .width('100%')
+        .height(96)
+        .padding({ left: 25, right: 25 })
+        .alignItems(VerticalAlign.Center)
       }
       .width('100%')
-      .height(96)
-      .padding({ left: 16, right: 16 })
-      .alignItems(VerticalAlign.Center)
 
-      Divider()
+      Column() {
+        Divider()
+          .width('100%')
+          .color('#F0F0F0')
+          .height(6)
+
+        Column() {
+          this.menuItem('已投简历', $r('app.media.resume1'), 'pages/SubmittedPage')
+          Divider().width('100%').color('#F0F0F0').height(0.5)
+          this.menuItem('收藏', $r('app.media.star'), 'pages/FavoritesPage')
+          Divider().width('100%').color('#F0F0F0').height(0.5)
+          this.menuItem('个人简历', $r('app.media.resume2'), 'pages/ResumePage')
+          Divider().width('100%').color('#F0F0F0').height(0.5)
+          this.menuItem('设置', $r('app.media.setting'), 'pages/SettingsPage')
+        }
         .width('100%')
-        .color('#F0F0F0')
-        .height(6)
-
-      this.menuItem('已投简历', 'pages/SubmittedPage')
-      Divider().width('100%').color('#F0F0F0').height(0.5)
-      this.menuItem('收藏', 'pages/FavoritesPage')
-      Divider().width('100%').color('#F0F0F0').height(0.5)
-      this.menuItem('个人简历', 'pages/ResumePage')
-      Divider().width('100%').color('#F0F0F0').height(0.5)
-      this.menuItem('设置', 'pages/SettingsPage')
+        .backgroundColor('#FFFFFF')
+        .borderRadius(12)
+      }
+      .width('80%')
+      .alignSelf(ItemAlign.Center)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .linearGradient({
+      direction: GradientDirection.Bottom,
+      colors: [['#ff4eb2e9', 0], ['#ff18e2fd', 0.08], ['#ffa1e7e4', 0.16], ['#FFFFFF', 0.24], ['#FFFFFF', 1]]
+    })
   }
 
-  @Builder menuItem(text: string, target: string) {
+  @Builder menuItem(text: string, icon: Resource, target: string) {
     Row() {
+      Image(icon)
+        .width(22)
+        .height(22)
+        .margin({ right: 12 })
       Text(text)
-        .fontSize(18)
+        .fontSize(16)
         .fontColor('#333333')
     }
     .width('100%')
     .height(56)
-    .padding({ left: 16, right: 16 })
     .onClick(() => {
       router.pushUrl({ url: target })
     })

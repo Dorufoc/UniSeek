@@ -189,7 +189,7 @@ struct SearchPage {
               })
           }
         } else if (this.searchHistory.length > 0) {
-          Text('删除')
+          Text('编辑')
             .fontSize(14)
             .fontColor('#007AFF')
             .onClick(() => {
@@ -199,7 +199,7 @@ struct SearchPage {
       }
       .width('100%')
       .padding({ left: 16, right: 16 })
-      .margin({ top: 6 })
+      .margin({ top: 20 })
 
       if (this.searchHistory.length > 0) {
         Column({ space: 8 }) {

@@ -153,9 +153,9 @@ struct ProfileDetailPage {
   build() {
     Column() {
       Row() {
-        Text('←')
-          .fontSize(20)
-          .fontColor('#333333')
+        Image($r('app.media.left_arrow'))
+          .width(20)
+          .height(20)
           .onClick(() => {
             router.back()
           })
