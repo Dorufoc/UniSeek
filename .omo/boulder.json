@@ -1,28 +1,177 @@
 {
   "schema_version": 2,
-  "active_work_id": "uniseek-backend-full",
+  "active_work_id": "fix-java-db-docs-69b7e1a7",
   "works": {
-    "uniseek-backend-full": {
-      "work_id": "uniseek-backend-full",
-      "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\uniseek-backend-full.md",
-      "plan_name": "uniseek-backend-full",
-      "session_ids": ["opencode:ses_0a1ef4c58ffeW14D3tUVsep5H4"],
+    "fix-java-db-docs-69b7e1a7": {
+      "work_id": "fix-java-db-docs-69b7e1a7",
+      "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\fix-java-db-docs.md",
+      "plan_name": "fix-java-db-docs",
       "status": "completed",
-      "started_at": "2026-07-14T01:00:30.876Z",
-      "updated_at": "2026-07-14T09:44:32.000Z",
-      "ended_at": "2026-07-14T09:44:32.000Z",
-      "worktree_path": null,
-      "task_sessions": {}
+      "started_at": "2026-07-14T03:00:56.642Z",
+      "updated_at": "2026-07-14T03:14:16.619Z",
+      "session_ids": [
+        "opencode:ses_0a1863bc7ffeUR5jf72H54oVRk",
+        "opencode:ses_0a167c61cffehgiUrfdlJN2F0A",
+        "opencode:ses_0a167b9cfffeSNQc0We1P7DUMG",
+        "opencode:ses_0a167a75bffeoYy8lMU0n0PXJF",
+        "opencode:ses_0a16797e4ffeJw8NumUcHwQ7ba",
+        "opencode:ses_0a1678575ffeQDtBxmOfAmqeiI",
+        "opencode:ses_0a163d4f0ffejmS2mpMKzErJvU",
+        "opencode:ses_0a163ced9ffefO0QbKYqmRMdIj",
+        "opencode:ses_0a163c0caffevhRSGP47MHEZdN"
+      ],
+      "session_origins": {
+        "opencode:ses_0a1863bc7ffeUR5jf72H54oVRk": "direct",
+        "opencode:ses_0a167c61cffehgiUrfdlJN2F0A": "appended",
+        "opencode:ses_0a167b9cfffeSNQc0We1P7DUMG": "appended",
+        "opencode:ses_0a167a75bffeoYy8lMU0n0PXJF": "appended",
+        "opencode:ses_0a16797e4ffeJw8NumUcHwQ7ba": "appended",
+        "opencode:ses_0a1678575ffeQDtBxmOfAmqeiI": "appended",
+        "opencode:ses_0a163d4f0ffejmS2mpMKzErJvU": "appended",
+        "opencode:ses_0a163ced9ffefO0QbKYqmRMdIj": "appended",
+        "opencode:ses_0a163c0caffevhRSGP47MHEZdN": "appended"
+      },
+      "agent": "atlas",
+      "task_sessions": {
+        "todo:1": {
+          "task_key": "todo:1",
+          "task_label": "1",
+          "task_title": "Modify `D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\uniseek_schema.sql`:",
+          "session_id": "opencode:ses_0a16797e4ffeJw8NumUcHwQ7ba",
+          "agent": "Sisyphus-Junior",
+          "category": "deep",
+          "started_at": "2026-07-14T03:02:29.544Z",
+          "ended_at": "2026-07-14T03:07:31.679Z",
+          "elapsed_ms": 302135,
+          "status": "completed",
+          "updated_at": "2026-07-14T03:07:54.399Z"
+        },
+        "todo:4": {
+          "task_key": "todo:4",
+          "task_label": "4",
+          "task_title": "java: 删除 11 个空 Stub 类",
+          "session_id": "opencode:ses_0a16ab41effeeBAKs5gUzPQLYX",
+          "agent": "Sisyphus-Junior",
+          "category": "deep",
+          "updated_at": "2026-07-14T03:06:11.626Z",
+          "started_at": "2026-07-14T03:05:15.501Z",
+          "status": "completed",
+          "ended_at": "2026-07-14T03:06:11.626Z",
+          "elapsed_ms": 56125
+        },
+        "todo:10": {
+          "task_key": "todo:10",
+          "task_label": "10",
+          "task_title": "doc: 补写 README.md",
+          "session_id": "opencode:ses_0a1663f90ffetjfHgxfi7As9J7",
+          "agent": "Sisyphus-Junior",
+          "category": "writing",
+          "started_at": "2026-07-14T03:09:36.984Z",
+          "status": "completed",
+          "updated_at": "2026-07-14T03:11:52.334Z",
+          "ended_at": "2026-07-14T03:11:52.334Z",
+          "elapsed_ms": 135350
+        },
+        "final-wave:f1": {
+          "task_key": "final-wave:f1",
+          "task_label": "F1",
+          "task_title": "**编译检查**: `mvn compile -f uniseek_java/pom.xml` 成功，无错误无警告",
+          "session_id": "opencode:ses_0a163c0caffevhRSGP47MHEZdN",
+          "agent": "Sisyphus-Junior",
+          "category": "quick",
+          "started_at": "2026-07-14T03:12:22.424Z",
+          "status": "completed",
+          "updated_at": "2026-07-14T03:13:36.835Z",
+          "ended_at": "2026-07-14T03:13:36.835Z",
+          "elapsed_ms": 74411
+        }
+      },
+      "ended_at": "2026-07-14T03:14:16.619Z",
+      "elapsed_ms": 799977
     }
   },
-  "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\uniseek-backend-full.md",
-  "plan_name": "uniseek-backend-full",
-  "started_at": "2026-07-14T01:00:30.876Z",
+  "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\fix-java-db-docs.md",
+  "started_at": "2026-07-14T03:00:56.642Z",
   "status": "completed",
-  "updated_at": "2026-07-14T09:44:32.000Z",
-  "ended_at": "2026-07-14T09:44:32.000Z",
-  "session_ids": ["opencode:ses_0a1ef4c58ffeW14D3tUVsep5H4"],
-  "worktree_path": null,
+  "updated_at": "2026-07-14T03:14:16.619Z",
+  "session_ids": [
+    "opencode:ses_0a1863bc7ffeUR5jf72H54oVRk",
+    "opencode:ses_0a167c61cffehgiUrfdlJN2F0A",
+    "opencode:ses_0a167b9cfffeSNQc0We1P7DUMG",
+    "opencode:ses_0a167a75bffeoYy8lMU0n0PXJF",
+    "opencode:ses_0a16797e4ffeJw8NumUcHwQ7ba",
+    "opencode:ses_0a1678575ffeQDtBxmOfAmqeiI",
+    "opencode:ses_0a163d4f0ffejmS2mpMKzErJvU",
+    "opencode:ses_0a163ced9ffefO0QbKYqmRMdIj",
+    "opencode:ses_0a163c0caffevhRSGP47MHEZdN"
+  ],
+  "session_origins": {
+    "opencode:ses_0a1863bc7ffeUR5jf72H54oVRk": "direct",
+    "opencode:ses_0a167c61cffehgiUrfdlJN2F0A": "appended",
+    "opencode:ses_0a167b9cfffeSNQc0We1P7DUMG": "appended",
+    "opencode:ses_0a167a75bffeoYy8lMU0n0PXJF": "appended",
+    "opencode:ses_0a16797e4ffeJw8NumUcHwQ7ba": "appended",
+    "opencode:ses_0a1678575ffeQDtBxmOfAmqeiI": "appended",
+    "opencode:ses_0a163d4f0ffejmS2mpMKzErJvU": "appended",
+    "opencode:ses_0a163ced9ffefO0QbKYqmRMdIj": "appended",
+    "opencode:ses_0a163c0caffevhRSGP47MHEZdN": "appended"
+  },
+  "plan_name": "fix-java-db-docs",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Modify `D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\uniseek_schema.sql`:",
+      "session_id": "opencode:ses_0a16797e4ffeJw8NumUcHwQ7ba",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "started_at": "2026-07-14T03:02:29.544Z",
+      "ended_at": "2026-07-14T03:07:31.679Z",
+      "elapsed_ms": 302135,
+      "status": "completed",
+      "updated_at": "2026-07-14T03:07:54.399Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "java: 删除 11 个空 Stub 类",
+      "session_id": "opencode:ses_0a16ab41effeeBAKs5gUzPQLYX",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-07-14T03:06:11.626Z",
+      "started_at": "2026-07-14T03:05:15.501Z",
+      "status": "completed",
+      "ended_at": "2026-07-14T03:06:11.626Z",
+      "elapsed_ms": 56125
+    },
+    "todo:10": {
+      "task_key": "todo:10",
+      "task_label": "10",
+      "task_title": "doc: 补写 README.md",
+      "session_id": "opencode:ses_0a1663f90ffetjfHgxfi7As9J7",
+      "agent": "Sisyphus-Junior",
+      "category": "writing",
+      "started_at": "2026-07-14T03:09:36.984Z",
+      "status": "completed",
+      "updated_at": "2026-07-14T03:11:52.334Z",
+      "ended_at": "2026-07-14T03:11:52.334Z",
+      "elapsed_ms": 135350
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**编译检查**: `mvn compile -f uniseek_java/pom.xml` 成功，无错误无警告",
+      "session_id": "opencode:ses_0a163c0caffevhRSGP47MHEZdN",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "started_at": "2026-07-14T03:12:22.424Z",
+      "status": "completed",
+      "updated_at": "2026-07-14T03:13:36.835Z",
+      "ended_at": "2026-07-14T03:13:36.835Z",
+      "elapsed_ms": 74411
+    }
+  },
   "agent": "atlas",
-  "task_sessions": {}
+  "ended_at": "2026-07-14T03:14:16.619Z",
+  "elapsed_ms": 799977
 }

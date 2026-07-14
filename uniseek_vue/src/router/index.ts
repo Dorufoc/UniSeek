@@ -12,6 +12,12 @@ const isRecruiter = () => {
   return userStr ? JSON.parse(userStr).role === 1 : false
 }
 
+// 判断是否为超级管理员（role === 99）
+const isSuperAdmin = () => {
+  const userStr = localStorage.getItem('uniseek_user')
+  return userStr ? JSON.parse(userStr).role === 99 : false
+}
+
 // 路由配置 - 采用 HTML5 History 模式，所有页面组件懒加载
 const router = createRouter({
   history: createWebHistory(),
@@ -69,6 +75,12 @@ const router = createRouter({
           name: 'Profile',
           component: () => import('@/pages/Profile.vue'),
           meta: { title: '个人中心 - UniSeek' }
+        },
+        {
+          path: 'admin/super',
+          name: 'SuperAdmin',
+          component: () => import('@/pages/admin/SuperAdmin.vue'),
+          meta: { title: '系统管理 - UniSeek', requiresAuth: true, requiresSuperAdmin: true }
         }
       ]
     },
@@ -127,6 +139,17 @@ router.beforeEach((to, from) => {
 
   // 非招聘者访问认证页 → 重定向到首页
   if (to.name === 'EnterpriseCert' && !isRecruiter()) {
+    return { path: '/' }
+  }
+
+  // 超级管理员（role === 99）可以访问所有页面，跳过其余检查
+  if (userInfo?.role === 99) {
+    document.title = (to.meta.title as string) || 'UniSeek'
+    return
+  }
+
+  // 需要超级管理员权限但角色不是 99 → 重定向到首页
+  if (to.meta.requiresSuperAdmin) {
     return { path: '/' }
   }
 

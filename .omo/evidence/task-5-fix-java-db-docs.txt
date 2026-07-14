@@ -1,0 +1,8 @@
+[OK] task-5-fix-java-db-docs completed
+
+Modified file: uniseek_java/src/main/java/com/uniseek/entity/Complaint.java
+Change: Line 23 comment from '0 职位 / 1 企业 / 2 用户' to '1 企业 / 2 用户'
+Verified: grep 'target_type' shows updated comment
+
+Complaint.java line 23 (field targetType):
+/** 被投诉对象类型：1 企业 / 2 用户 */

@@ -20,7 +20,11 @@ public class OperationLog {
     /** 操作人 ID */
     private Long operatorId;
 
-    /** 操作类型，例如 REGISTER、LOGIN、SAVE_RESUME 等 */
+    /**
+     * 操作类型，例如 REGISTER、LOGIN、SAVE_RESUME 等
+     *
+     * @see com.uniseek.constant.OperationType
+     */
     private String operationType;
 
     /** 目标类型，例如 USER、RESUME、TASK 等 */

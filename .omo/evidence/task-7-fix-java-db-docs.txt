@@ -1,0 +1,41 @@
+# Task-7: applicationCount 字段映射验证与修复
+
+## 检查结果
+
+### 1. TaskVO.java:88 — `applicationCount` 字段定义 ✅
+- `private Integer applicationCount;` — 已存在，无需修改
+
+### 2. TaskMapper.xml — TaskVOResultMap 映射 ✅
+- `line 58: <result column="application_count" property="applicationCount"/>` — 已存在，无需修改
+
+### 3. TaskMapper.xml — selectEnterpriseTasks SQL ❌（已修复）
+- **问题**：`selectEnterpriseTasks` 查询仅引用了 `selectTaskFields` SQL 片段，该片段不包含 `application_count` 列，且缺少对 `task_application` 表的 COUNT 子查询
+- **修复内容**：
+  - 在 SELECT 子句中添加 `, COALESCE(apps.c, 0) AS application_count`
+  - 添加 LEFT JOIN 子查询：`LEFT JOIN (SELECT task_id, COUNT(*) AS c FROM task_application GROUP BY task_id) AS apps ON task.id = apps.task_id`
+
+### 4. selectPageByCondition 对比参考 ✅
+- 该查询已有类似实现（lines 145-155），在 `sortBy == 'popular'` 时使用 `application_count`
+
+### 最终 selectEnterpriseTasks 查询（lines 167-180）：
+```sql
+SELECT
+    <selectTaskFields/>,
+    COALESCE(apps.c, 0) AS application_count
+FROM task
+LEFT JOIN enterprise ON task.enterprise_id = enterprise.id
+LEFT JOIN category ON task.category_id = category.id
+LEFT JOIN region ON task.region_id = region.id
+LEFT JOIN (
+    SELECT task_id, COUNT(*) AS c
+    FROM task_application
+    GROUP BY task_id
+) AS apps ON task.id = apps.task_id
+WHERE task.enterprise_id = #{enterpriseId}
+ORDER BY task.create_time DESC
+```
+
+### 涉及文件
+- `uniseek_java/src/main/resources/mapper/TaskMapper.xml`（已修改）
+- `uniseek_java/src/main/java/com/uniseek/dto/TaskVO.java`（未修改，已有字段）
+- `uniseek_java/src/main/java/com/uniseek/dao/TaskMapper.java`（未修改，已有方法）

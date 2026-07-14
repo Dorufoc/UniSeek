@@ -1,0 +1,12 @@
+task: 重写项目 README.md
+file: README.md
+change: 将占位内容 "UniSeek 134555 jhih" 替换为完整的中文项目介绍
+lines: 101（原 3 行）
+content:
+- 项目名称与简介：优寻（UniSeek）兼职招聘平台
+- 技术栈概览：后端（Java 1.8, Spring Boot 2.2.2, MyBatis-Plus, MySQL 8），PC 前端（Vue 3, Element Plus, Pinia, Vue Router），鸿蒙端（ArkTS 6.1.1, ArkUI）
+- 目录结构说明：uniseek_java/, uniseek_vue/, uniseek_arkts/, uniseek_schema.sql, uniseek_mock_data.sql
+- 快速开始指南：数据库初始化 -> 启动后端 -> 启动前端
+- 角色说明：0=求职者, 1=企业HR, 9=管理员, 99=超级管理员
+- 开发规范：引用 AGENTS.md 项目共识
+verified: head -5 显示正确中文内容，全文 101 行（不超过 200 行），无表情符号

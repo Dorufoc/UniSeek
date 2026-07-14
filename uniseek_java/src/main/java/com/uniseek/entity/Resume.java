@@ -22,7 +22,7 @@ public class Resume {
     /** 用户 ID */
     private Long userId;
 
-    /** 性别：0 女 / 1 男 */
+    /** 性别：0 男 / 1 女 */
     private Integer gender;
 
     /** 出生日期 */

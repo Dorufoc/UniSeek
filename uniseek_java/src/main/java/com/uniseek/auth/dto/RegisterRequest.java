@@ -4,6 +4,8 @@ import lombok.Data;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
@@ -38,7 +40,9 @@ public class RegisterRequest {
     @Size(min = 1, max = 20, message = "昵称长度需为 1~20 位")
     private String nickname;
 
-    /** 角色：0 求职者 / 1 企业 HR */
+    /** 角色：0 求职者 / 1 企业 HR（注册时不可选 9 管理员或 99 超级管理员） */
     @NotNull(message = "角色不能为空")
+    @Min(0)
+    @Max(1)
     private Integer role;
 }

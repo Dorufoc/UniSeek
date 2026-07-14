@@ -1,0 +1,17 @@
+==================================
+Stub Check Report (f4-stub-check)
+==================================
+Date: 2026-07-14
+
+Result: FAIL - 6 empty stub files found (size < 100 bytes)
+Criteria: Java files under uniseek_java/src/main/java with length < 100 bytes
+
+Files:
+  1. src\main\java\com\uniseek\entity\PageResult.java         (empty class body)
+  2. src\main\java\com\uniseek\service\AuthService.java       (empty interface)
+  3. src\main\java\com\uniseek\service\TaskApplicationService.java (empty interface)
+  4. src\main\java\com\uniseek\service\UserService.java       (empty interface)
+  5. src\main\java\com\uniseek\service\impl\AuthServiceImpl.java   (empty class body)
+  6. src\main\java\com\uniseek\service\impl\TaskApplicationServiceImpl.java (empty class body)
+
+Verdict: Stubs still remain. These need to be implemented or removed.

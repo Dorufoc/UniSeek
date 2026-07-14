@@ -1,0 +1,21 @@
+Task: Fix 3 enum value comments in TaskVO.java to align with SQL schema and API documentation
+Date: 2026-07-14
+Modified file: uniseek_java/src/main/java/com/uniseek/dto/TaskVO.java
+
+Changes made:
+1. Line 39 salaryUnit:
+   Before: /** 薪资单位：0 月薪 / 1 日薪 / 2 时薪 */
+   After:  /** 薪资单位：0 日结 / 1 时薪 / 2 月结 */
+   Source: uniseek_schema.sql (salary_unit: 0日结/1时薪/2月结), api.md:2919-2924
+
+2. Line 42 jobType:
+   Before: /** 工作类型：0 全职 / 1 兼职 / 2 实习 */
+   After:  /** 岗位类型：1 全职 / 2 兼职 / 3 实习 */
+   Source: api.md:2972-2977 (job type enum: 1全职/2兼职/3实习)
+
+3. Line 63 status:
+   Before: /** 状态：0 待审核 / 1 已发布 / 2 进行中 / 3 已截止 / 4 已下架 */
+   After:  /** 状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 */
+   Source: uniseek_schema.sql:175 (task status: 0待审/1招聘中/2已满员/3已过期/4已下架), api.md:2901-2908
+
+Verification: Read back confirms all 3 comments match SQL/API documentation values.

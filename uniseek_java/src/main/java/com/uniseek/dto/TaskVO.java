@@ -36,10 +36,10 @@ public class TaskVO {
     /** 最高薪资 */
     private BigDecimal salaryMax;
 
-    /** 薪资单位：0 月薪 / 1 日薪 / 2 时薪 */
+    /** 薪资单位：0 日结 / 1 时薪 / 2 月结 */
     private Integer salaryUnit;
 
-    /** 工作类型：0 全职 / 1 兼职 / 2 实习 */
+    /** 岗位类型：1 全职 / 2 兼职 / 3 实习 */
     private Integer jobType;
 
     /** 招聘总名额 */
@@ -60,7 +60,7 @@ public class TaskVO {
     /** 纬度 */
     private BigDecimal latitude;
 
-    /** 状态：0 待审核 / 1 已发布 / 2 进行中 / 3 已截止 / 4 已下架 */
+    /** 状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 */
     private Integer status;
 
     /** 报名截止时间 */

@@ -1,0 +1,27 @@
+===== Task: Upgrade AdminServiceImpl to support role=99 super admin =====
+Date: 2026-07-14 11:08
+
+===== Changes made =====
+
+File: uniseek_java/src/main/java/com/uniseek/admin/service/impl/AdminServiceImpl.java
+
+1. Added import: com.uniseek.constant.RoleConstant (line 8)
+
+2. Updated checkAdmin() (lines 69-77):
+   - Old: role != 9 (hardcoded)
+   - New: role.equals(RoleConstant.ADMIN) || role.equals(RoleConstant.SUPER_ADMIN)
+   - Comment updated to reflect both admin (9) and super admin (99)
+
+3. Added checkSuperAdmin() (lines 79-87):
+   - Validates RoleConstant.SUPER_ADMIN (99)
+   - Throws BusinessException(ApiResult.FORBIDDEN, "需要超级管理员权限") when not
+
+===== Verification =====
+- mvn clean compile: BUILD SUCCESS (124 source files, 0 errors)
+- No existing method signatures modified
+- No controller classes modified
+
+===== Role constants used =====
+- RoleConstant.ADMIN = 9
+- RoleConstant.SUPER_ADMIN = 99
+- ApiResult.FORBIDDEN = 403

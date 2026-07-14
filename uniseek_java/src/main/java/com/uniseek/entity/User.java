@@ -35,7 +35,7 @@ public class User {
     /** 头像 URL */
     private String avatarUrl;
 
-    /** 角色：0 求职者 / 1 企业 HR */
+    /** 角色：0-求职者, 1-企业HR, 9-管理员, 99-超级管理员 */
     private Integer role;
 
     /** 信用分，默认 100 */

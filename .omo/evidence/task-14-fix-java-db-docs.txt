@@ -1,0 +1,16 @@
+Task-14: Fix hardcoded role magic numbers in TaskServiceImpl.java
+===============================================================
+Date: 2026-07-14
+
+Changes made:
+1. Added import: com.uniseek.constant.RoleConstant
+2. Line 197: changed "userRole == 1" → "userRole == RoleConstant.HR"
+3. Line 209: changed "userRole == 2" → "userRole == RoleConstant.ADMIN || userRole == RoleConstant.SUPER_ADMIN"
+
+Bug fixed: userRole == 2 was always false since ADMIN = 9 and SUPER_ADMIN = 99,
+meaning admin users could never operate on task status. Now properly checks
+for both ADMIN (9) and SUPER_ADMIN (99).
+
+Verification:
+- grep "== 2" on TaskServiceImpl.java: no matches (0 role-related matches)
+- mvn compile: BUILD SUCCESS

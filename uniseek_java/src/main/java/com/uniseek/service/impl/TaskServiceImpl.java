@@ -8,6 +8,7 @@ import com.uniseek.common.ApiResult;
 import com.uniseek.common.PageResult;
 import com.uniseek.common.annotation.OperationLog;
 import com.uniseek.common.exception.BusinessException;
+import com.uniseek.constant.RoleConstant;
 import com.uniseek.dao.EnterpriseMapper;
 import com.uniseek.dao.TaskMapper;
 import com.uniseek.dto.TaskRequest;
@@ -194,23 +195,23 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // 2. 校验角色权限
-        if (userRole == 1) {
-            // HR 角色：只能下架自己的职位
-            // 查询企业 ID
-            Enterprise enterprise = enterpriseMapper.selectOne(
-                    new LambdaQueryWrapper<Enterprise>()
-                            .eq(Enterprise::getUserId, userId));
-            if (enterprise == null || !task.getEnterpriseId().equals(enterprise.getId())) {
-                throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
-            }
-            if (targetStatus != 4) {
-                throw new BusinessException("HR 只能下架职位");
-            }
-        } else if (userRole == 2) {
-            // Admin 角色：可审核通过（1）或下架（4）
-            if (targetStatus != 1 && targetStatus != 4) {
-                throw new BusinessException("管理员可将职位审核通过或下架");
-            }
+	    if (userRole == RoleConstant.HR) {
+	            // HR 角色：只能下架自己的职位
+	            // 查询企业 ID
+	            Enterprise enterprise = enterpriseMapper.selectOne(
+	                    new LambdaQueryWrapper<Enterprise>()
+	                            .eq(Enterprise::getUserId, userId));
+	            if (enterprise == null || !task.getEnterpriseId().equals(enterprise.getId())) {
+	                throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
+	            }
+	            if (targetStatus != 4) {
+	                throw new BusinessException("HR 只能下架职位");
+	            }
+	        } else if (userRole == RoleConstant.ADMIN || userRole == RoleConstant.SUPER_ADMIN) {
+	            // Admin 角色：可审核通过（1）或下架（4）
+	            if (targetStatus != 1 && targetStatus != 4) {
+	                throw new BusinessException("管理员可将职位审核通过或下架");
+	            }
         } else {
             throw new BusinessException(ApiResult.FORBIDDEN, "无权操作职位状态");
         }

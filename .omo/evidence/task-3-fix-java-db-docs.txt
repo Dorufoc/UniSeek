@@ -1,0 +1,22 @@
+Task: 验证 region 表数据完整性
+File: uniseek_schema.sql
+Date: 2026-07-14
+
+Region Data Count Verification Results:
+========================================
+
+Level   | Count     | Description
+--------|-----------|------------------------
+1       | 34        | 省级行政区划（省/自治区/直辖市/特别行政区）
+2       | 342       | 地级行政区划（地级市/自治州/盟）
+3       | 3056      | 区县级行政区划（市辖区/县/县级市/旗）
+--------|-----------|------------------------
+Total   | 3432      | 
+
+Method: 通过 grep 逐行匹配 `^\s*\(\d{6},` 模式，按 level 字段分组计数
+Result: 计数与第448行注释（"省级34个 + 地级342个 + 区县级3056个 = 共3432条记录"）完全一致
+MySQL: 不可用（未安装 MySQL CLI），采用文件行级统计
+
+File Modification:
+- Added comment at end of uniseek_schema.sql:
+  "-- REGION COUNT VERIFIED: 34 provinces + 342 cities + 3056 districts = 3432 total"

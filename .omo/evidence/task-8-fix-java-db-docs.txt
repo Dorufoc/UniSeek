@@ -1,0 +1,18 @@
+Task: Fix 5 section number errors in api.md (Job module 6.x -> 7.x)
+Date: 2026-07-14
+File: D:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\api.md
+
+Changes made (7 edits total):
+
+1. Line 832: ### 6.2 职位详情 -> ### 7.2 职位详情
+2. Line 885: ### 6.3 发布职位 -> ### 7.3 发布职位
+3. Line 956: ### 6.4 更新职位 -> ### 7.4 更新职位
+4. Line 972: **请求参数（Body）**：同 6.3 发布职位 -> **请求参数（Body）**：同 7.3 发布职位 (internal cross-reference fix)
+5. Line 989: ### 6.5 修改职位状态 -> ### 7.5 修改职位状态
+6. Line 1037: ### 6.6 本企业职位列表 -> ### 7.6 本企业职位列表
+
+Verification:
+- grep "^### 6\." now returns only 3 correct Region module entries (6.1, 6.2, 6.3)
+- All Job module section headings are now consistently 7.x under ## 7. 职位模块（Task）
+- §15 API summary table uses row numbers (1-54), no section number references to fix
+- Region module sections 6.1-6.3 left unchanged (correct)

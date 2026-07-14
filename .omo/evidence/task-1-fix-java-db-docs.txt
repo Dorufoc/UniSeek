@@ -1,0 +1,17 @@
+Task: Fix enterprise.region_id missing foreign key constraint
+File: uniseek_schema.sql
+Change: Added CONSTRAINT fk_enterprise_region FOREIGN KEY (region_id) REFERENCES region (id) ON DELETE SET NULL
+
+Before (lines 100-102):
+    KEY `idx_audit_status` (`audit_status`),
+    CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业信息表';
+
+After (lines 100-103):
+    KEY `idx_audit_status` (`audit_status`),
+    CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_enterprise_region` FOREIGN KEY (`region_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业信息表';
+
+Pattern reference: fk_task_region at line 192 (now 193) — same ON DELETE SET NULL semantics
+No existing field definitions, constraints, or indexes were modified.

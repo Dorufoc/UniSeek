@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,5 +66,36 @@ public class AdminUserController {
         data.put("id", id);
         data.put("status", status);
         return ApiResult.success("用户" + statusText, data);
+    }
+
+    /**
+     * 获取所有管理员账号列表
+     * GET /api/admin/users/admins
+     *
+     * @return 管理员用户列表
+     */
+    @GetMapping("/admins")
+    public ApiResult<List<User>> listAdmins() {
+        List<User> admins = adminService.listAdmins();
+        return ApiResult.success(admins);
+    }
+
+    /**
+     * 超级管理员修改用户角色
+     * PUT /api/admin/users/{id}/role
+     *
+     * @param id   用户 ID
+     * @param role 新角色值
+     * @return 操作结果
+     */
+    @PutMapping("/{id}/role")
+    public ApiResult<Map<String, Object>> updateUserRole(
+            @PathVariable Long id,
+            @RequestParam Integer role) {
+        adminService.updateUserRole(id, role);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", id);
+        data.put("role", role);
+        return ApiResult.success("用户角色已更新", data);
     }
 }

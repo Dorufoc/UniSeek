@@ -1,0 +1,20 @@
+Task: Delete 11 empty stub Java files from the Java backend
+Date: 2026-07-14
+
+Files deleted (all confirmed empty stubs, ~60-80 bytes each):
+  1. uniseek_java/src/main/java/com/uniseek/controller/UserController.java (69B)
+  2. uniseek_java/src/main/java/com/uniseek/controller/TaskApplicationController.java (80B)
+  3. uniseek_java/src/main/java/com/uniseek/controller/AdminTaskController.java (74B)
+  4. uniseek_java/src/main/java/com/uniseek/controller/AdminComplaintController.java (79B)
+  5. uniseek_java/src/main/java/com/uniseek/controller/AdminEnterpriseController.java (80B)
+  6. uniseek_java/src/main/java/com/uniseek/controller/AdminStatisticsController.java (80B)
+  7. uniseek_java/src/main/java/com/uniseek/controller/AdminLogController.java (73B)
+  8. uniseek_java/src/main/java/com/uniseek/ws/ChatWebSocket.java (60B)
+  9. uniseek_java/src/main/java/com/uniseek/ws/ChatSessionManager.java (65B)
+ 10. uniseek_java/src/main/java/com/uniseek/config/WebSocketConfig.java (66B)
+ 11. uniseek_java/src/main/java/com/uniseek/service/impl/UserServiceImpl.java (72B)
+
+Content of each file: only package declaration + empty class body (no methods, no fields).
+
+Verification:
+  - mvn compile -f uniseek_java/pom.xml  =>  BUILD SUCCESS (123 source files compiled, 0 errors)

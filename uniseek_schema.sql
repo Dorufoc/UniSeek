@@ -47,7 +47,7 @@ CREATE TABLE `user` (
     `salt`            VARCHAR(32)  NOT NULL                 COMMENT '随机盐值',
     `nickname`        VARCHAR(50)  DEFAULT NULL             COMMENT '昵称',
     `avatar_url`      VARCHAR(255) DEFAULT NULL             COMMENT '头像URL',
-    `role`            TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '角色：0-求职者, 1-企业HR, 9-管理员',
+    `role`            TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '角色：0-求职者, 1-企业HR, 9-管理员, 99-超级管理员',
     `credit_score`    INT(10)      NOT NULL DEFAULT 100     COMMENT '信用积分，业务规则待补充',
     `status`          TINYINT(1)   NOT NULL DEFAULT 1       COMMENT '状态：0-禁用, 1-正常',
     `last_login_time` DATETIME     DEFAULT NULL             COMMENT '最后登录时间',
@@ -98,7 +98,8 @@ CREATE TABLE `enterprise` (
     UNIQUE KEY `uk_user_id` (`user_id`),
     UNIQUE KEY `uk_credit_code` (`credit_code`),
     KEY `idx_audit_status` (`audit_status`),
-    CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_enterprise_region` FOREIGN KEY (`region_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业信息表';
 
 -- -------------------------------------------------------------------
@@ -200,7 +201,7 @@ CREATE TABLE `task_application` (
     `applicant_id`       BIGINT(20)   NOT NULL                 COMMENT '求职者用户ID',
     `resume_snapshot`    JSON         NOT NULL                 COMMENT '投递时简历快照（完整简历JSON）',
     `attachment_url`     VARCHAR(255) DEFAULT NULL             COMMENT '投递时附件简历URL',
-    `status`             TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '状态：0-已投递, 1-待面试, 2-待定, 3-已录用, 4-已淘汰, 5-已完成',
+    `status`             TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '状态：0-已投递, 1-待面试, 2-面试通过, 3-已录用, 4-已淘汰, 5-已完成',
     `hr_id`              BIGINT(20)   DEFAULT NULL             COMMENT '处理的HR用户ID',
     `interview_time`     DATETIME     DEFAULT NULL             COMMENT '面试时间',
     `interview_location` VARCHAR(200) DEFAULT NULL             COMMENT '面试地点',
@@ -356,7 +357,7 @@ CREATE TABLE `operation_log` (
 -- ====================================================================
 
 -- -------------------------------------------------------------------
--- 3.1 职位分类种子数据（30条，2级树形结构）
+-- 3.1 职位分类种子数据（62条（15个顶级 + 47个子级），2级树形结构）
 -- -------------------------------------------------------------------
 
 -- 顶级分类（共15个）
@@ -377,7 +378,7 @@ INSERT INTO `category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) 
 (14, NULL, '摄影摄像', 14, NOW()),
 (15, NULL, '其他',     99, NOW());
 
--- 子级分类（共15个）
+-- 子级分类（共47个）
 INSERT INTO `category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) VALUES
 -- 餐饮服务子类（5个）
 (16, 1, '服务员',       1, NOW()),
@@ -397,7 +398,50 @@ INSERT INTO `category` (`id`, `parent_id`, `name`, `sort_order`, `create_time`) 
 -- 设计创作子类（3个）
 (28, 6, '平面设计', 1, NOW()),
 (29, 6, 'UI设计',   2, NOW()),
-(30, 6, '视频剪辑', 3, NOW());
+(30, 6, '视频剪辑', 3, NOW()),
+-- 促销导购子类（3个）
+(31, 4, '导购员',   1, NOW()),
+(32, 4, '促销员',   2, NOW()),
+(33, 4, '地推推广', 3, NOW()),
+-- 话务客服子类（3个）
+(34, 5, '电话客服', 1, NOW()),
+(35, 5, '在线客服', 2, NOW()),
+(36, 5, '售后客服', 3, NOW()),
+-- 文案写作子类（3个）
+(37, 7, '公众号文案',   1, NOW()),
+(38, 7, '新闻稿撰写',   2, NOW()),
+(39, 7, '营销文案',     3, NOW()),
+-- 技术支持子类（3个）
+(40, 8, 'IT运维',   1, NOW()),
+(41, 8, '软件测试', 2, NOW()),
+(42, 8, '技术助理', 3, NOW()),
+-- 翻译校对了类（3个）
+(43, 9, '英语翻译', 1, NOW()),
+(44, 9, '日语翻译', 2, NOW()),
+(45, 9, '文件校对', 3, NOW()),
+-- 美容美发子类（3个）
+(46, 10, '美发师', 1, NOW()),
+(47, 10, '美容师', 2, NOW()),
+(48, 10, '美甲师', 3, NOW()),
+-- 家政保洁子类（3个）
+(49, 11, '家庭保洁', 1, NOW()),
+(50, 11, '月嫂',     2, NOW()),
+(51, 11, '钟点工',   3, NOW()),
+-- 教育培训子类（3个）
+(52, 12, '课程顾问', 1, NOW()),
+(53, 12, '助教',     2, NOW()),
+(54, 12, '教务管理', 3, NOW()),
+-- 活动策划子类（3个）
+(55, 13, '活动执行', 1, NOW()),
+(56, 13, '礼仪接待', 2, NOW()),
+(57, 13, '展会协助', 3, NOW()),
+-- 摄影摄像子类（3个）
+(58, 14, '摄影助理', 1, NOW()),
+(59, 14, '后期修图', 2, NOW()),
+(60, 14, '摄像跟拍', 3, NOW()),
+-- 其他子类（2个）
+(61, 15, '其他兼职',   1, NOW()),
+(62, 15, '其他临时工', 2, NOW());
 
 -- -------------------------------------------------------------------
 -- 3.2 行政区划种子数据（GB/T 2260 标准）
@@ -3848,3 +3892,4 @@ INSERT INTO `region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_
 -- ====================================================================
 -- 执行完成
 -- ====================================================================
+-- REGION COUNT VERIFIED: 34 provinces + 342 cities + 3056 districts = 3432 total

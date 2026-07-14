@@ -167,8 +167,14 @@
     <!-- 查询本企业职位列表 -->
     <select id="selectEnterpriseTasks" resultMap="TaskVOResultMap">
         SELECT
-        <include refid="selectTaskFields"/>
+        <include refid="selectTaskFields"/>,
+        COALESCE(apps.c, 0) AS application_count
         <include refid="joinTaskRelations"/>
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS c
+            FROM task_application
+            GROUP BY task_id
+        ) AS apps ON task.id = apps.task_id
         WHERE task.enterprise_id = #{enterpriseId}
         ORDER BY task.create_time DESC
     </select>

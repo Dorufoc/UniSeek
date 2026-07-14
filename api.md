@@ -20,6 +20,7 @@
 - 除注册、登录接口外，所有接口需在请求头携带 JWT Token
 - 请求头格式：`Authorization: Bearer {token}`
 - Token 有效期：30 分钟
+- 角色权限：Token payload 中包含角色值（0=求职者、1=企业HR、9=运营管理员、99=超级管理员），后端根据角色控制 API 访问权限。超级管理员(99)拥有所有接口的访问权限，包括管理员后台接口和系统配置管理接口。
 
 ### 1.3 统一响应格式
 
@@ -35,7 +36,7 @@
 |---|---|---|
 | code | Integer | 状态码，200 表示成功 |
 | message | String | 提示信息 |
-| data | Object | 响应数据，无数据时为 null |
+| data | Object \| null | 响应数据，无数据时为 null |
 
 ### 1.4 分页响应格式
 
@@ -829,7 +830,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 6.2 职位详情
+### 7.2 职位详情
 
 **接口描述**：获取单个职位的完整信息。
 
@@ -882,7 +883,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 6.3 发布职位
+### 7.3 发布职位
 
 **接口描述**：企业 HR 发布新职位，提交后状态为「待审核」。
 
@@ -953,7 +954,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 6.4 更新职位
+### 7.4 更新职位
 
 **接口描述**：企业 HR 更新自己发布的职位信息（仅限「待审核」或「已下架」状态的职位）。
 
@@ -969,7 +970,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 |---|---|---|
 | id | Long | 职位 ID |
 
-**请求参数（Body）**：同 6.3 发布职位
+**请求参数（Body）**：同 7.3 发布职位
 
 **响应示例**
 
@@ -986,7 +987,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 6.5 修改职位状态
+### 7.5 修改职位状态
 
 **接口描述**：企业 HR 下架自己的职位，或管理员强制下架/审核职位。
 
@@ -1034,7 +1035,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
-### 6.6 本企业职位列表
+### 7.6 本企业职位列表
 
 **接口描述**：企业 HR 查看本企业发布的所有职位。
 
@@ -1149,7 +1150,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| status | Integer | 否 | 筛选状态：0 已投递 / 1 待面试 / 2 待定 / 3 已录用 / 4 已淘汰 / 5 已完成 |
+| status | Integer | 否 | 筛选状态：0 已投递 / 1 待面试 / 2 面试通过 / 3 已录用 / 4 已淘汰 / 5 已完成 |
 | page | Integer | 否 | 页码（默认 1） |
 | pageSize | Integer | 否 | 每页条数（默认 20） |
 
@@ -1292,7 +1293,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ### 8.5 修改投递状态（HR 处理投递）
 
-**接口描述**：企业 HR 对投递记录进行操作（邀请面试、录用、淘汰、待定等）。
+**接口描述**：企业 HR 对投递记录进行操作（邀请面试、录用、淘汰、面试通过等）。
 
 | 项目 | 内容 |
 |---|---|
@@ -1310,7 +1311,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| status | Integer | 是 | 目标状态：1 待面试 / 2 待定 / 3 已录用 / 4 已淘汰 |
+| status | Integer | 是 | 目标状态：1 待面试 / 2 面试通过 / 3 已录用 / 4 已淘汰 |
 | interviewTime | String | 条件必填 | 面试时间，状态为 1（待面试）时必填 |
 | interviewLocation | String | 条件必填 | 面试地点，状态为 1（待面试）时必填 |
 | rejectReason | String | 条件必填 | 淘汰原因，状态为 4（已淘汰）时必填 |
@@ -1392,14 +1393,12 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 参数名 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| settlementAmount | BigDecimal | 否 | 实际结算金额，不传则使用职位薪资范围上限 |
 | hrNote | String | 否 | 结算备注 |
 
 **请求示例**
 
 ```json
 {
-  "settlementAmount": 800.00,
   "hrNote": "兼职工作表现优秀，按约定结算"
 }
 ```
@@ -1413,7 +1412,6 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
   "data": {
     "id": 1,
     "status": 5,
-    "settlementAmount": 800.00,
     "updateTime": "2026-07-20 18:00:00"
   }
 }
@@ -2396,9 +2394,9 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 | 当前投递状态 | 可用的快捷操作 |
 |---|---|
-| 0（已投递） | 标记面试、待定、淘汰 |
-| 1（待面试） | 标记录用、待定、淘汰 |
-| 2（待定） | 标记面试、标记录用、淘汰 |
+| 0（已投递） | 标记面试、面试通过、淘汰 |
+| 1（待面试） | 标记录用、面试通过、淘汰 |
+| 2（面试通过） | 标记面试、标记录用、淘汰 |
 | 3（已录用） | 结算确认（调用 8.6） |
 
 ---
@@ -2826,6 +2824,94 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 
 ---
 
+### 10.9 管理员账号列表
+
+**接口描述**：超级管理员查看所有管理员账号（包括运营管理员和超级管理员）。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `GET /api/admin/users/admins` |
+| 鉴权 | 需要鉴权，角色限制：超级管理员（99） |
+| 权限 | 超级管理员 |
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 9,
+      "phone": "138****8000",
+      "email": "admin@example.com",
+      "nickname": "系统管理员",
+      "role": 9,
+      "status": 1,
+      "creditScore": 100,
+      "lastLoginTime": "2026-07-13 10:00:00",
+      "createTime": "2026-01-01 09:00:00"
+    },
+    {
+      "id": 1,
+      "phone": "139****9000",
+      "email": "super@example.com",
+      "nickname": "超级管理员",
+      "role": 99,
+      "status": 1,
+      "creditScore": 100,
+      "lastLoginTime": "2026-07-13 12:00:00",
+      "createTime": "2026-01-01 09:00:00"
+    }
+  ]
+}
+```
+
+---
+
+### 10.10 修改用户角色
+
+**接口描述**：超级管理员修改指定用户的角色。不可将用户提升为超级管理员（99），不可修改自身角色。
+
+| 项目 | 内容 |
+|---|---|
+| 请求路径 | `PUT /api/admin/users/{id}/role` |
+| 鉴权 | 需要鉴权，角色限制：超级管理员（99） |
+| 权限 | 超级管理员 |
+
+**路径参数**
+
+| 参数名 | 类型 | 说明 |
+|---|---|---|
+| id | Long | 用户 ID |
+
+**请求参数（Query）**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| role | Integer | 是 | 目标角色值（如 0 求职者 / 1 企业 HR / 9 运营管理员） |
+
+**请求示例**
+
+```
+PUT /api/admin/users/2/role?role=9
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "用户角色已更新",
+  "data": {
+    "id": 2,
+    "role": 9
+  }
+}
+```
+
+---
+
 ## 15. API 接口汇总
 
 | 序号 | 模块 | 方法 | 路径 | 权限 | 说明 |
@@ -2849,7 +2935,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 17 | 职位 | GET | `/api/tasks/{id}` | 登录 | 职位详情 |
 | 18 | 职位 | POST | `/api/tasks` | 企业 HR | 发布职位 |
 | 19 | 职位 | PUT | `/api/tasks/{id}` | 企业 HR | 更新职位 |
-| 20 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员 | 修改职位状态 |
+| 20 | 职位 | PUT | `/api/tasks/{id}/status` | HR/管理员/超级管理员 | 修改职位状态 |
 | 21 | 职位 | GET | `/api/enterprise/tasks` | 企业 HR | 本企业职位列表 |
 | 22 | 投递 | POST | `/api/applications` | 求职者 | 投递职位 |
 | 23 | 投递 | GET | `/api/applications/my` | 求职者 | 我的投递记录 |
@@ -2860,17 +2946,17 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 28 | 企业 | POST | `/api/enterprise` | 企业 HR | 提交企业资质 |
 | 29 | 企业 | GET | `/api/enterprise/my` | 企业 HR | 获取我的企业信息 |
 | 30 | 企业 | PUT | `/api/enterprise` | 企业 HR | 更新企业信息 |
-| 31 | 管理 | GET | `/api/admin/enterprises` | 管理员 | 企业审核列表 |
-| 32 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员 | 企业资质审核 |
-| 33 | 管理 | GET | `/api/admin/tasks/pending` | 管理员 | 待审核职位列表 |
-| 34 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员 | 职位审核 |
-| 35 | 管理 | GET | `/api/admin/statistics` | 管理员 | 数据统计看板 |
-| 36 | 管理 | GET | `/api/admin/users` | 管理员 | 用户管理列表 |
-| 37 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员 | 禁用/启用用户 |
-| 38 | 管理 | GET | `/api/admin/operation-logs` | 管理员 | 操作审计日志 |
-| 39 | 管理 | GET | `/api/admin/complaints` | 管理员 | 投诉列表 |
-| 40 | 管理 | GET | `/api/admin/complaints/{id}` | 管理员 | 投诉详情 |
-| 41 | 管理 | PUT | `/api/admin/complaints/{id}/handle` | 管理员 | 处理投诉 |
+| 31 | 管理 | GET | `/api/admin/enterprises` | 管理员/超级管理员 | 企业审核列表 |
+| 32 | 管理 | PUT | `/api/admin/enterprises/{id}/audit` | 管理员/超级管理员 | 企业资质审核 |
+| 33 | 管理 | GET | `/api/admin/tasks/pending` | 管理员/超级管理员 | 待审核职位列表 |
+| 34 | 管理 | PUT | `/api/admin/tasks/{id}/audit` | 管理员/超级管理员 | 职位审核 |
+| 35 | 管理 | GET | `/api/admin/statistics` | 管理员/超级管理员 | 数据统计看板 |
+| 36 | 管理 | GET | `/api/admin/users` | 管理员/超级管理员 | 用户管理列表 |
+| 37 | 管理 | PUT | `/api/admin/users/{id}/status` | 管理员/超级管理员 | 禁用/启用用户 |
+| 38 | 管理 | GET | `/api/admin/operation-logs` | 管理员/超级管理员 | 操作审计日志 |
+| 39 | 管理 | GET | `/api/admin/complaints` | 管理员/超级管理员 | 投诉列表 |
+| 40 | 管理 | GET | `/api/admin/complaints/{id}` | 管理员/超级管理员 | 投诉详情 |
+| 41 | 管理 | PUT | `/api/admin/complaints/{id}/handle` | 管理员/超级管理员 | 处理投诉 |
 | 42 | 投诉 | POST | `/api/complaints` | 登录 | 提交投诉 |
 | 43 | 消息 | GET | `/api/messages` | 登录 | 消息列表 |
 | 44 | 消息 | GET | `/api/messages/unread-count` | 登录 | 未读消息数 |
@@ -2884,6 +2970,8 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 52 | 聊天 | WS | `ws://{host}:{port}/ws/chat` | 登录 | WebSocket 实时推送 |
 | 53 | 上传 | POST | `/api/upload/image` | 登录 | 上传图片 |
 | 54 | 上传 | POST | `/api/upload/file` | 登录 | 上传文件 |
+| 55 | 管理 | GET | `/api/admin/users/admins` | 超级管理员 | 管理员账号列表 |
+| 56 | 管理 | PUT | `/api/admin/users/{id}/role` | 超级管理员 | 修改用户角色 |
 
 ---
 
@@ -2895,7 +2983,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 |---|---|---|
 | 0 | 已投递 | 求职者已投递简历，等待 HR 处理 |
 | 1 | 待面试 | HR 已标记为待面试，已发送面试邀请 |
-| 2 | 待定 | HR 暂未做最终决定 |
+| 2 | 面试通过 | HR 已确认该求职者面试通过 |
 | 3 | 已录用 | HR 已录用该求职者 |
 | 4 | 已淘汰 | HR 已淘汰该求职者 |
 | 5 | 已完成 | 该兼职工作已结算完成 |
@@ -2943,6 +3031,7 @@ GET /api/tasks?keyword=服务员&categoryId=1&salaryMin=100&salaryMax=300&page=1
 | 0 | 求职者 |
 | 1 | 企业 HR |
 | 9 | 运营管理员 |
+| 99 | 超级管理员 |
 
 ### 16.7 用户状态（User Status）
 

@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -48,9 +47,6 @@ public class TaskApplication {
 
     /** HR 备注 */
     private String hrNote;
-
-    /** 结算金额 */
-    private BigDecimal settlementAmount;
 
     /** 乐观锁版本号 */
     @Version

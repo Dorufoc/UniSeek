@@ -275,7 +275,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         // 3. 更新状态为已完成（5）
         application.setStatus(5);
-        application.setSettlementAmount(request.getSettlementAmount());
         application.setHrNote(request.getHrNote());
         application.setUpdateTime(LocalDateTime.now());
 

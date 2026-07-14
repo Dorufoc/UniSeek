@@ -1,0 +1,33 @@
+Task: Add super admin role=99 support to Vue frontend
+Date: 2026-07-14
+
+## Changes Made
+
+### 1. router/index.ts
+- Added `isSuperAdmin()` helper function (mirrors `isRecruiter()` pattern)
+- Added super admin route: `/admin/super` with `requiresSuperAdmin: true` meta
+- In `beforeEach` guard:
+  - Super admin (role === 99) bypasses all checks and can access all pages
+  - Non-super admin accessing `requiresSuperAdmin` route → redirect to home
+
+### 2. pages/admin/SuperAdmin.vue (NEW)
+- Placeholder component with 4 management cards (用户管理, 企业认证审核, 职位审核, 系统设置)
+
+### 3. layouts/DefaultLayout.vue
+- Added `isSuperAdmin` computed property
+- Added "系统管理" nav link (gold-colored) visible only for role === 99
+
+### 4. pages/Profile.vue
+- Added `isSuperAdmin` computed property
+- Role badge shows "超级管理员" with orange color for role === 99
+- Profile page shows "系统管理" section with management panel link for role === 99
+- Restructured template: v-if="isSuperAdmin" > v-else-if="isRecruiter" > v-else
+
+### 5. stores/user.ts
+- Verified: role computed property uses `userInfo.value?.role ?? -1`, works with any numeric value including 99. No change needed.
+
+## Acceptance Criteria
+- [x] role=99 user sees "系统管理" navigation entry
+- [x] role=99 user can access all pages including /admin/super
+- [x] Non-99 user accessing /admin/super gets redirected to home
+- [x] Super admin panel shown in Profile page for role=99

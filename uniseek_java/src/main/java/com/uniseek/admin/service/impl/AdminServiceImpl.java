@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.uniseek.admin.service.AdminService;
 import com.uniseek.common.ApiResult;
+import com.uniseek.constant.RoleConstant;
 import com.uniseek.common.PageResult;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.common.util.UserContext;
@@ -72,6 +73,16 @@ public class AdminServiceImpl implements AdminService {
         Integer role = UserContext.getRole();
         if (role == null || role != 9) {
             throw new BusinessException(ApiResult.FORBIDDEN, "无管理员权限");
+        }
+    }
+
+    /**
+     * 校验当前用户是否为超级管理员（role=99）
+     */
+    private void checkSuperAdmin() {
+        Integer role = UserContext.getRole();
+        if (role == null || role != 99) {
+            throw new BusinessException(ApiResult.FORBIDDEN, "无超级管理员权限");
         }
     }
 
@@ -489,6 +500,46 @@ public class AdminServiceImpl implements AdminService {
                 0, complaint.getId());
 
         log.info("管理员 {} 处理了投诉 {}，状态：{}，结果：{}", adminId, id, status, handleResult);
+    }
+
+    // ==================== 超级管理员 - 管理员账号管理 ====================
+
+    @Override
+    public List<User> listAdmins() {
+        checkSuperAdmin();
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.in("role", 9, 99);
+        wrapper.orderByDesc("create_time");
+        return userMapper.selectList(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateUserRole(Long userId, Integer newRole) {
+        checkSuperAdmin();
+
+        // 禁止创建超级管理员
+        if (newRole != null && newRole == 99) {
+            throw new BusinessException("不允许创建超级管理员账号");
+        }
+
+        // 禁止修改自身角色
+        Long currentUserId = UserContext.getUserId();
+        if (currentUserId.equals(userId)) {
+            throw new BusinessException("不能修改自己的角色");
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        user.setRole(newRole);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+
+        Long adminId = UserContext.getUserId();
+        log.info("超级管理员 {} 修改了用户 {} 的角色为 {}", adminId, userId, newRole);
     }
 
     // ==================== 通知发送辅助 ====================

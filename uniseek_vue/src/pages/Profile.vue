@@ -6,13 +6,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   User, Phone, Postcard, Edit, Document, Star,
   OfficeBuilding, Briefcase, Files,
-  Lock, InfoFilled, SwitchButton, ArrowRight, ChatDotSquare, VideoCamera
+  Lock, InfoFilled, SwitchButton, ArrowRight, ChatDotSquare, VideoCamera, Setting
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const isRecruiter = computed(() => userStore.userInfo?.role === 1)
+const isSuperAdmin = computed(() => userStore.userInfo?.role === 99)
 const userPhone = computed(() => {
   const phone = userStore.userInfo?.phone || ''
   return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '未绑定'
@@ -49,6 +50,9 @@ const handleMenuClick = (item: string) => {
     case 'security':
       ElMessage.info('账号安全功能开发中')
       break
+    case 'superAdmin':
+      router.push('/admin/super')
+      break
     case 'about':
       ElMessage.info('UniSeek v1.0 - 智能兼职招聘平台')
       break
@@ -78,9 +82,9 @@ const handleMenuClick = (item: string) => {
           </div>
           <div class="user-name">{{ userStore.userInfo?.nickname || '未设置昵称' }}</div>
           <div class="user-role-tag">
-            <span :class="['role-badge', isRecruiter ? 'recruiter' : 'seeker']">
-              {{ isRecruiter ? '企业HR' : '求职者' }}
-            </span>
+          <span :class="['role-badge', isSuperAdmin ? 'super-admin' : isRecruiter ? 'recruiter' : 'seeker']">
+            {{ isSuperAdmin ? '超级管理员' : isRecruiter ? '企业HR' : '求职者' }}
+          </span>
           </div>
           <div class="user-phone">
             <el-icon :size="14"><Phone /></el-icon>
@@ -123,48 +127,18 @@ const handleMenuClick = (item: string) => {
 
       <!-- 右侧：功能菜单 -->
       <div class="profile-main">
-        <!-- 求职者功能 -->
-        <template v-if="!isRecruiter">
+        <!-- 超级管理员功能 -->
+        <template v-if="isSuperAdmin">
           <div class="menu-section">
-            <h3 class="section-title">求职管理</h3>
+            <h3 class="section-title">系统管理</h3>
             <div class="menu-grid">
-              <div class="menu-item" @click="handleMenuClick('resume')">
-                <div class="menu-icon seeker-bg">
-                  <el-icon :size="22"><Postcard /></el-icon>
+              <div class="menu-item" @click="handleMenuClick('superAdmin')">
+                <div class="menu-icon admin-bg">
+                  <el-icon :size="22"><Setting /></el-icon>
                 </div>
                 <div class="menu-info">
-                  <span class="menu-name">我的简历</span>
-                  <span class="menu-desc">编辑个人简历与附件上传</span>
-                </div>
-                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
-              </div>
-              <div class="menu-item" @click="handleMenuClick('applications')">
-                <div class="menu-icon seeker-bg">
-                  <el-icon :size="22"><Document /></el-icon>
-                </div>
-                <div class="menu-info">
-                  <span class="menu-name">投递记录</span>
-                  <span class="menu-desc">查看所有职位投递及状态</span>
-                </div>
-                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
-              </div>
-              <div class="menu-item" @click="handleMenuClick('interviews')">
-                <div class="menu-icon seeker-bg">
-                  <el-icon :size="22"><ChatDotSquare /></el-icon>
-                </div>
-                <div class="menu-info">
-                  <span class="menu-name">面试邀请</span>
-                  <span class="menu-desc">收到的面试通知与安排</span>
-                </div>
-                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
-              </div>
-              <div class="menu-item" @click="handleMenuClick('favorites')">
-                <div class="menu-icon seeker-bg">
-                  <el-icon :size="22"><Star /></el-icon>
-                </div>
-                <div class="menu-info">
-                  <span class="menu-name">收藏职位</span>
-                  <span class="menu-desc">收藏关注的心仪职位</span>
+                  <span class="menu-name">管理面板</span>
+                  <span class="menu-desc">用户管理、企业认证、职位审核</span>
                 </div>
                 <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
               </div>
@@ -173,7 +147,7 @@ const handleMenuClick = (item: string) => {
         </template>
 
         <!-- 招聘者功能 -->
-        <template v-else>
+        <template v-else-if="isRecruiter">
           <div class="menu-section">
             <h3 class="section-title">招聘管理</h3>
             <div class="menu-grid">
@@ -214,6 +188,55 @@ const handleMenuClick = (item: string) => {
                 <div class="menu-info">
                   <span class="menu-name">面试安排</span>
                   <span class="menu-desc">管理候选人面试时间地点</span>
+                </div>
+                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 求职者功能 -->
+        <template v-else>
+          <div class="menu-section">
+            <h3 class="section-title">求职管理</h3>
+            <div class="menu-grid">
+              <div class="menu-item" @click="handleMenuClick('resume')">
+                <div class="menu-icon seeker-bg">
+                  <el-icon :size="22"><Postcard /></el-icon>
+                </div>
+                <div class="menu-info">
+                  <span class="menu-name">我的简历</span>
+                  <span class="menu-desc">编辑个人简历与附件上传</span>
+                </div>
+                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+              </div>
+              <div class="menu-item" @click="handleMenuClick('applications')">
+                <div class="menu-icon seeker-bg">
+                  <el-icon :size="22"><Document /></el-icon>
+                </div>
+                <div class="menu-info">
+                  <span class="menu-name">投递记录</span>
+                  <span class="menu-desc">查看所有职位投递及状态</span>
+                </div>
+                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+              </div>
+              <div class="menu-item" @click="handleMenuClick('interviews')">
+                <div class="menu-icon seeker-bg">
+                  <el-icon :size="22"><ChatDotSquare /></el-icon>
+                </div>
+                <div class="menu-info">
+                  <span class="menu-name">面试邀请</span>
+                  <span class="menu-desc">收到的面试通知与安排</span>
+                </div>
+                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+              </div>
+              <div class="menu-item" @click="handleMenuClick('favorites')">
+                <div class="menu-icon seeker-bg">
+                  <el-icon :size="22"><Star /></el-icon>
+                </div>
+                <div class="menu-info">
+                  <span class="menu-name">收藏职位</span>
+                  <span class="menu-desc">收藏关注的心仪职位</span>
                 </div>
                 <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
               </div>
@@ -327,6 +350,11 @@ const handleMenuClick = (item: string) => {
 .role-badge.recruiter {
   color: #2e7d32;
   background: rgba(46, 125, 50, 0.1);
+}
+
+.role-badge.super-admin {
+  color: #ff8f00;
+  background: rgba(255, 143, 0, 0.1);
 }
 
 .user-phone {
@@ -452,6 +480,11 @@ const handleMenuClick = (item: string) => {
 .menu-icon.recruiter-bg {
   background: rgba(46, 125, 50, 0.08);
   color: #2e7d32;
+}
+
+.menu-icon.admin-bg {
+  background: rgba(255, 143, 0, 0.08);
+  color: #ff8f00;
 }
 
 .menu-info {

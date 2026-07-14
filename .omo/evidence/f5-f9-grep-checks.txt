@@ -1,0 +1,86 @@
+# F5-F9 Grep Checks Evidence Report
+# Date: 2026-07-14
+
+============================================================
+## F5: api.md section 6.x headers
+============================================================
+Command: Select-String -Path "api.md" -Pattern "^### 6\."
+Status: ❌ FAIL - Found 3 unexpected matches
+Matches:
+  api.md:621  ### 6.1 获取中国省市区列表
+  api.md:666  ### 6.2 获取子级区域列表
+  api.md:709  ### 6.3 获取中国省/市/区树形结构
+
+Expected: NO matches (should be renumbered to 7.x)
+Note: These 3 sections are still numbered 6.x. The rest of api.md uses correct numbering (7.x, 8.x, etc.).
+
+============================================================
+## F6: target_type in Complaint.java
+============================================================
+Command: Select-String -Path "Complaint.java" -Pattern "target_type"
+Status: ⚠️  INFO - No matches for snake_case "target_type"
+
+The field is defined as camelCase "targetType" (line 24) with comment:
+  /** 投诉对象类型：1 企业 / 2 用户 */
+  private Integer targetType;
+
+The comment semantics match expected ("1 企业 / 2 用户"), just the grep pattern
+used snake_case while Java field uses camelCase.
+
+============================================================
+## F6: salaryUnit/jobType/status in TaskVO.java
+============================================================
+Command: Select-String -Path "TaskVO.java" -Pattern "salaryUnit|jobType|status"
+Status: ✅ PASS - All 3 fields found with aligned comments
+Matches:
+  line 39: /** 薪资单位：0 日薪 / 1 时薪 / 2 月薪 */
+  line 40: private Integer salaryUnit;
+
+  line 42: /** 岗位类型：1 全职 / 2 兼职 / 3 实习 */
+  line 43: private Integer jobType;
+
+  line 63: /** 状态：0 待办 / 1 招聘中 / 2 已录用 / 3 已关闭 / 4 已过期 */
+  line 64: private Integer status;
+
+All comments present and properly aligned (one-line /** */ comments directly
+above each field declaration).
+
+============================================================
+## F7: == 2 in TaskServiceImpl.java
+============================================================
+Command: Select-String -Path "TaskServiceImpl.java" -Pattern "== 2"
+Status: ✅ PASS - No matches found
+Result: Empty output. No role-related == 2 comparisons remain in the file.
+(Status comparisons like rows == 0 use different values, so they wouldn't
+match == 2 anyway.)
+
+============================================================
+## F8: RoleConstant usage in uniseek_java
+============================================================
+Command: Get-ChildItem -Recurse *.java | Select-String "RoleConstant\."
+Status: ✅ PASS - Found 2 usages of RoleConstant
+Matches:
+  TaskServiceImpl.java:198:  if (userRole == RoleConstant.HR) {
+  TaskServiceImpl.java:210:  } else if (userRole == RoleConstant.ADMIN
+                              || userRole == RoleConstant.SUPER_ADMIN) {
+
+RoleConstant is actively used in TaskServiceImpl for role-based authorization.
+
+============================================================
+## F9: applicationCount in TaskMapper.xml
+============================================================
+Command: Select-String -Path "TaskMapper.xml" -Pattern "applicationCount"
+Status: ✅ PASS - Found 1 match
+Match:
+  line 58: <result column="application_count" property="applicationCount"/>
+
+The result mapping for application_count -> applicationCount exists.
+
+============================================================
+# Summary
+============================================================
+F5: ❌ FAIL - 3 remaining 6.x section headers in api.md
+F6: ✅ PASS - Comments present in both files (snake_case grep miss on Complaint.java)
+F7: ✅ PASS - No == 2 role comparisons remain
+F8: ✅ PASS - RoleConstant used in TaskServiceImpl
+F9: ✅ PASS - applicationCount mapping exists in TaskMapper.xml

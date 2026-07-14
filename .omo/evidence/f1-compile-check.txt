@@ -1,0 +1,5 @@
+Task: Maven Compile Check (f1)
+Date: 2026-07-14 11:12
+Result: BUILD SUCCESS
+Errors: 0
+Command: mvn compile -f uniseek_java/pom.xml

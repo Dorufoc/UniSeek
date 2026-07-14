@@ -1,0 +1,27 @@
+Task: Create RoleConstant constant class and update related entity/DTO comments
+Date: 2026-07-14
+
+## Changes Made
+
+### 1. Created: uniseek_java/src/main/java/com/uniseek/constant/RoleConstant.java
+- Public final class with private constructor
+- 4 constants: SEEKER=0, HR=1, ADMIN=9, SUPER_ADMIN=99
+
+### 2. Modified: uniseek_java/src/main/java/com/uniseek/entity/User.java:39
+- Old: /** 角色：0 求职者 / 1 企业 HR / 9 管理员 */
+- New: /** 角色：0-求职者, 1-企业HR, 9-管理员, 99-超级管理员 */
+
+### 3. Modified: uniseek_java/src/main/java/com/uniseek/auth/dto/RegisterRequest.java
+- Old comment: /** 角色：0 求职者 / 1 企业 HR */
+- New comment: /** 角色：0 求职者 / 1 企业 HR（注册时不可选 9 管理员或 99 超级管理员） */
+- Added @Min(0) and @Max(1) annotations alongside @NotNull
+- Added imports: javax.validation.constraints.Min, javax.validation.constraints.Max
+
+### 4. Modified: uniseek_java/src/main/java/com/uniseek/auth/dto/UserVO.java:29
+- Old: /** 角色：0 求职者 / 1 企业 HR */
+- New: /** 角色：0 求职者 / 1 企业 HR / 9 管理员 / 99 超级管理员 */
+
+## Verification
+- mvn compile: BUILD SUCCESS (0 errors)
+- No Service/Controller files modified
+- RegisterRequest.role type remains Integer

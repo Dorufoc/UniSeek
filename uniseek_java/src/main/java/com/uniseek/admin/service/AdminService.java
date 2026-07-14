@@ -8,6 +8,7 @@ import com.uniseek.entity.Task;
 import com.uniseek.entity.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -138,4 +139,21 @@ public interface AdminService {
      * @param handleResult 处理结果
      */
     void handleComplaint(Long id, Integer status, String handleResult);
+
+    // ==================== 超级管理员 - 管理员账号管理 ====================
+
+    /**
+     * 获取所有管理员账号列表（role=9 或 role=99）
+     *
+     * @return 管理员用户列表
+     */
+    List<User> listAdmins();
+
+    /**
+     * 超级管理员修改用户角色
+     *
+     * @param userId  目标用户 ID
+     * @param newRole 新角色值
+     */
+    void updateUserRole(Long userId, Integer newRole);
 }

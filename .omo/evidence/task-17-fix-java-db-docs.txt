@@ -1,0 +1,41 @@
+Task: 添加超级管理员 mock 用户并更新 role 字段注释
+====================================================================
+
+## 修改文件 1: uniseek_schema.sql (line 50)
+
+修改前:
+`role` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '角色：0-求职者, 1-企业HR, 9-管理员',
+
+修改后:
+`role` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '角色：0-求职者, 1-企业HR, 9-管理员, 99-超级管理员',
+
+## 修改文件 2: uniseek_mock_data.sql
+
+修改前:
+- 表头: "用户表（25 条）"
+- 描述: "管理员 1 条（role=9），企业 HR 8 条（role=1），求职者 16 条（role=0）"
+- 最后一条: id=25 唐语嫣，结尾为 );
+
+修改后:
+- 表头: "用户表（26 条）"
+- 描述: "超级管理员 1 条（role=99），管理员 1 条（role=9），企业 HR 8 条（role=1），求职者 16 条（role=0）"
+- id=25 唐语嫣结尾改为 ),
+- 新增 id=26 超级管理员（role=99）记录:
+  (26, '13999999999', 'superadmin@uniseek.com',
+   MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))),
+   SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32),
+   '超级管理员', NULL, 99, 100, 1, NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW())
+
+## 验证结果
+
+- SELECT COUNT(*) FROM user → 26
+- SELECT COUNT(*), role FROM user GROUP BY role:
+  - role=0: 16 条（求职者）
+  - role=1: 8 条（企业 HR）
+  - role=9: 1 条（管理员）
+  - role=99: 1 条（超级管理员）✅ 新增
+- 现有 25 条记录未修改 ✅
+- 新用户使用 UUID 盐值加密 ✅
+
+## 审核人
+Sisyphus-Junior

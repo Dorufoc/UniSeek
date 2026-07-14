@@ -1,0 +1,6 @@
+Task: Fix data field type in api.md §1.3 unified response format
+Change: data type from "Object" to "Object | null"
+File: api.md line 38
+Before: | data | Object | 响应数据，无数据时为 null |
+After:  | data | Object | null | 响应数据，无数据时为 null |
+Status: ✅ Completed

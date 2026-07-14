@@ -12,6 +12,9 @@ const appStore = useAppStore()
 // 判断当前用户是否为招聘者（role === 1 表示招聘者，0 表示求职者）
 const isRecruiter = computed(() => userStore.userInfo?.role === 1)
 
+// 判断当前用户是否为超级管理员（role === 99）
+const isSuperAdmin = computed(() => userStore.userInfo?.role === 99)
+
 // 控制城市选择弹窗的显示与隐藏
 const showCityModal = ref(false)
 
@@ -58,6 +61,7 @@ const selectCity = (city: string) => {
           <router-link to="/jobs">职位</router-link>
           <router-link to="/company">公司</router-link>
           <router-link to="/messages">消息</router-link>
+          <router-link v-if="isSuperAdmin" to="/admin/super" class="super-admin-link">系统管理</router-link>
         </nav>
 
         <!-- 右侧区域：用户操作（登录状态根据角色显示不同入口） -->
@@ -207,6 +211,19 @@ const selectCity = (city: string) => {
   color: #fff;
   background: rgba(255, 255, 255, 0.15);
   font-weight: 500;
+}
+
+.header-nav .super-admin-link {
+  color: #ffd700;
+}
+.header-nav .super-admin-link:hover {
+  color: #fff;
+  background: rgba(255, 215, 0, 0.15);
+}
+.header-nav .super-admin-link.router-link-active {
+  color: #1a1a2e;
+  background: #ffd700;
+  font-weight: 600;
 }
 
 .header-actions {

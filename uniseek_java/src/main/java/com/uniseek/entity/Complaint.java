@@ -20,7 +20,7 @@ public class Complaint {
     /** 投诉人 ID */
     private Long complainantId;
 
-    /** 被投诉对象类型：0 职位 / 1 企业 / 2 用户 */
+    /** 被投诉对象类型：1 企业 / 2 用户 */
     private Integer targetType;
 
     /** 被投诉对象 ID */

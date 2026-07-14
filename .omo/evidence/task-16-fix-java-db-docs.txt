@@ -1,0 +1,34 @@
+Task: Add super admin management APIs to AdminUserController and AdminService
+Date: 2026-07-14
+
+Changes Made:
+
+1. AdminService.java (interface)
+   - Added import for java.util.List
+   - Added listAdmins() method - returns List<User> for role=9 or role=99
+   - Added updateUserRole(Long userId, Integer newRole) method
+
+2. AdminServiceImpl.java
+   - Added checkSuperAdmin() private method (checks role=99)
+   - Added listAdmins() implementation with checkSuperAdmin() guard, queries role IN (9, 99)
+   - Added updateUserRole() implementation with:
+     * checkSuperAdmin() guard
+     * Validation: newRole != 99 (no creating super admin)
+     * Validation: not modifying own role
+     * User existence check
+     * Role update + updateTime
+
+3. AdminUserController.java
+   - Added import for java.util.List
+   - Added GET /api/admin/users/admins endpoint (listAdmins())
+   - Added PUT /api/admin/users/{id}/role?role=X endpoint (updateUserRole())
+   - Both endpoints follow existing controller patterns
+
+4. api.md
+   - Added section 10.9 - 管理员账号列表 (GET /api/admin/users/admins)
+   - Added section 10.10 - 修改用户角色 (PUT /api/admin/users/{id}/role)
+   - Updated API summary table §15 with entries 55 and 56
+
+5. Fix: Removed duplicate checkAdmin() method (stale conflict artifact from prior session)
+
+Build Verification: mvn clean compile - BUILD SUCCESS

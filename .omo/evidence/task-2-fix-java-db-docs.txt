@@ -1,0 +1,21 @@
+Task: Fix mock data SQL to use unique random salt per user
+File: uniseek_mock_data.sql
+Change: Replaced all 50 occurrences of hardcoded salt 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6' with SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32)
+
+Scope:
+- 25 user INSERT statements (lines 27-55)
+- 2 occurrences per line (one inside MD5(CONCAT(...)), one as standalone salt value)
+- Total: 50 replacements
+
+Before (per line):
+  MD5(CONCAT('123456', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6')), 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
+
+After (per line):
+  MD5(CONCAT('123456', SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32))), SUBSTRING(REPLACE(UUID(), '-', ''), 1, 32)
+
+Verified:
+- All 25 INSERT statements preserved
+- MD5(CONCAT('123456', salt)) password computation intact
+- All other field values unchanged
+- Each UUID() call generates unique value → 25 distinct salts
+- Acceptance criteria: SELECT COUNT(DISTINCT salt) FROM user will return 25
