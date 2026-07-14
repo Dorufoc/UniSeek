@@ -514,13 +514,13 @@ const toggleSection = (key: string) => {
 .avatar-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin-bottom: 4px;
 }
 
 .avatar-phone {
   font-size: 13px;
-  color: #999;
+  color: #000;
 }
 
 .completion-card {
@@ -535,7 +535,7 @@ const toggleSection = (key: string) => {
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-  color: var(--text);
+  color: #000;
   margin-bottom: 10px;
 }
 
@@ -561,7 +561,7 @@ const toggleSection = (key: string) => {
 
 .completion-tip {
   font-size: 12px;
-  color: #999;
+  color: #000;
   margin: 0;
 }
 
@@ -578,7 +578,7 @@ const toggleSection = (key: string) => {
   padding: 12px 16px;
   text-align: left;
   font-size: 14px;
-  color: var(--text);
+  color: #000;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -613,7 +613,7 @@ const toggleSection = (key: string) => {
 .page-title {
   font-size: 22px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin: 0;
 }
 
@@ -701,7 +701,7 @@ const toggleSection = (key: string) => {
 .section-header h3 {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin: 0;
 }
 
@@ -736,12 +736,12 @@ const toggleSection = (key: string) => {
   width: 90px;
   min-width: 90px;
   font-size: 14px;
-  color: #999;
+  color: #000;
 }
 
 .info-value {
   font-size: 14px;
-  color: var(--text-h);
+  color: #000;
 }
 
 .skill-tags-display {
@@ -783,7 +783,7 @@ const toggleSection = (key: string) => {
 
 .experience-content {
   font-size: 14px;
-  color: var(--text);
+  color: #000;
   line-height: 1.7;
   white-space: pre-wrap;
 }
@@ -813,7 +813,7 @@ const toggleSection = (key: string) => {
 .edit-section-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #000;
   margin: 0;
   padding: 18px 24px;
   border-bottom: 1px solid #f0f0f5;
@@ -834,7 +834,7 @@ const toggleSection = (key: string) => {
 .form-row label {
   display: block;
   font-size: 14px;
-  color: var(--text);
+  color: #000;
   margin-bottom: 8px;
   font-weight: 500;
 }
@@ -853,7 +853,7 @@ const toggleSection = (key: string) => {
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
-  color: var(--text-h);
+  color: #000;
 }
 
 .form-input:focus {
@@ -863,7 +863,7 @@ const toggleSection = (key: string) => {
 
 .readonly-text {
   font-size: 14px;
-  color: #999;
+  color: #000;
 }
 
 .gender-options {
@@ -881,7 +881,7 @@ const toggleSection = (key: string) => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--text);
+  color: #000;
 }
 
 .gender-btn input {
@@ -911,7 +911,7 @@ const toggleSection = (key: string) => {
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--text);
+  color: #000;
 }
 
 .option-tag:hover {
@@ -968,7 +968,7 @@ const toggleSection = (key: string) => {
   resize: vertical;
   font-family: inherit;
   line-height: 1.6;
-  color: var(--text-h);
+  color: #000;
   box-sizing: border-box;
 }
 
@@ -999,7 +999,7 @@ const toggleSection = (key: string) => {
   padding: 4px;
   border: none;
   background: transparent;
-  color: #999;
+  color: #000;
   cursor: pointer;
 }
 
@@ -1015,7 +1015,7 @@ const toggleSection = (key: string) => {
   width: 100%;
   padding: 36px 20px;
   font-size: 14px;
-  color: #999;
+  color: #000;
   background: #f8f9fb;
   border: 2px dashed #dcdce4;
   border-radius: 10px;
