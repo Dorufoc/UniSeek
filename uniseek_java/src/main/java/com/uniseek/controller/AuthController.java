@@ -1,6 +1,8 @@
 package com.uniseek.controller;
 
 import com.uniseek.auth.dto.*;
+import com.uniseek.auth.dto.UpdatePhoneRequest;
+import com.uniseek.auth.dto.UpdateEmailRequest;
 import com.uniseek.auth.service.AuthService;
 import com.uniseek.common.ApiResult;
 import com.uniseek.common.util.UserContext;
@@ -107,5 +109,29 @@ public class AuthController {
         Long userId = UserContext.getUserId();
         Map<String, Object> data = authService.getRealNameStatus(userId);
         return ApiResult.success(data);
+    }
+
+    /**
+     * 修改手机号
+     * PUT /api/auth/phone（需要鉴权）
+     */
+    @OperationLog(operationType = "UPDATE_PHONE", targetType = "USER")
+    @PutMapping("/phone")
+    public ApiResult<Void> updatePhone(@Valid @RequestBody UpdatePhoneRequest request) {
+        Long userId = UserContext.getUserId();
+        authService.updatePhone(userId, request);
+        return ApiResult.success("手机号修改成功", null);
+    }
+
+    /**
+     * 修改邮箱
+     * PUT /api/auth/email（需要鉴权）
+     */
+    @OperationLog(operationType = "UPDATE_EMAIL", targetType = "USER")
+    @PutMapping("/email")
+    public ApiResult<Void> updateEmail(@Valid @RequestBody UpdateEmailRequest request) {
+        Long userId = UserContext.getUserId();
+        authService.updateEmail(userId, request);
+        return ApiResult.success("邮箱修改成功", null);
     }
 }

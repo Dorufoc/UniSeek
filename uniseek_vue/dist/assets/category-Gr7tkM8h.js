@@ -1,0 +1,1 @@
+import{t as e}from"./api-Byx2TnrG.js";var t=()=>e.get(`/categories`);export{t};

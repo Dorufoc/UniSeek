@@ -33,11 +33,20 @@ public final class OperationType {
     /** 投递简历 */
     public static final String APPLICATION_DELIVER = "APPLICATION_DELIVER";
 
+    /** 发送面试邀请 */
+    public static final String APPLICATION_INTERVIEW = "APPLICATION_INTERVIEW";
+
+    /** 标记为待定 */
+    public static final String APPLICATION_PENDING = "APPLICATION_PENDING";
+
     /** 录用 */
     public static final String APPLICATION_HIRE = "APPLICATION_HIRE";
 
-    /** 拒绝 */
+    /** 淘汰/拒绝 */
     public static final String APPLICATION_REJECT = "APPLICATION_REJECT";
+
+    /** 结算完成 */
+    public static final String APPLICATION_COMPLETE = "APPLICATION_COMPLETE";
 
     /** 投诉处理 */
     public static final String COMPLAINT_HANDLE = "COMPLAINT_HANDLE";

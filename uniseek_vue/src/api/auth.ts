@@ -42,16 +42,12 @@ export interface LoginData {
 }
 
 /** 密码登录 POST /api/auth/login */
-export const loginByPassword = async (params: LoginByPasswordParams) => {
-  const res = await request.post<ApiResponse<LoginData>>('/auth/login', params)
-  return res.data
-}
+export const loginByPassword = (params: LoginByPasswordParams) =>
+  request.post<any, LoginData>('/auth/login', params)
 
 /** 用户注册 POST /api/auth/register */
-export const register = async (params: RegisterParams) => {
-  const res = await request.post<ApiResponse<LoginData>>('/auth/register', params)
-  return res.data
-}
+export const register = (params: RegisterParams) =>
+  request.post<any, LoginData>('/auth/register', params)
 
 // 实名认证请求参数
 export interface RealNameAuthParams {
@@ -73,14 +69,43 @@ export interface RealNameAuthStatus {
   idCard: string | null
 }
 
-/** 提交实名认证 POST /api/auth/real-name */
-export const submitRealNameAuth = async (params: RealNameAuthParams) => {
-  const res = await request.post<ApiResponse<RealNameAuthVO>>('/auth/real-name', params)
-  return res.data
+// 修改密码请求参数
+export interface ChangePasswordParams {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
 }
+
+/** 提交实名认证 POST /api/auth/real-name */
+export const submitRealNameAuth = (params: RealNameAuthParams) =>
+  request.post<any, RealNameAuthVO>('/auth/real-name', params)
 
 /** 查询实名认证状态 GET /api/auth/real-name/status */
 export const getRealNameAuthStatus = async () => {
   const res = await request.get<ApiResponse<RealNameAuthStatus>>('/auth/real-name/status')
+  return res.data
+}
+
+/** 修改密码 PUT /api/auth/password */
+export const changePassword = async (params: ChangePasswordParams) => {
+  const res = await request.put<ApiResponse<void>>('/auth/password', params)
+  return res.data
+}
+
+/** PUT /api/auth/phone 修改手机号 */
+export const updatePhone = async (params: { newPhone: string; password: string }) => {
+  const res = await request.put<ApiResponse<void>>('/auth/phone', params)
+  return res.data
+}
+
+/** PUT /api/auth/email 修改邮箱 */
+export const updateEmail = async (params: { newEmail: string; password: string }) => {
+  const res = await request.put<ApiResponse<void>>('/auth/email', params)
+  return res.data
+}
+
+/** GET /api/auth/current-user 获取当前用户信息 */
+export const getCurrentUser = async () => {
+  const res = await request.get<ApiResponse<UserInfo>>('/auth/current-user')
   return res.data
 }
