@@ -46,6 +46,24 @@ const router = createRouter({
           meta: { title: '公司 - UniSeek' }
         },
         {
+          path: 'talents',
+          name: 'Talents',
+          component: () => import('@/pages/Talents.vue'),
+          meta: { title: '人才库 - UniSeek', requiresRecruiter: true }
+        },
+        {
+          path: 'job-management',
+          name: 'JobManagement',
+          component: () => import('@/pages/JobManagement.vue'),
+          meta: { title: '职位管理 - UniSeek', requiresRecruiter: true }
+        },
+        {
+          path: 'resume-pool',
+          name: 'ResumePool',
+          component: () => import('@/pages/ResumePool.vue'),
+          meta: { title: '简历池 - UniSeek', requiresRecruiter: true }
+        },
+        {
           path: 'messages',
           name: 'Messages',
           component: () => import('@/pages/Messages.vue'),
@@ -64,12 +82,30 @@ const router = createRouter({
           meta: { title: '发布职位 - UniSeek', requiresCert: true }
         },
         {
+          path: 'my-applications',
+          name: 'MyApplications',
+          component: () => import('@/pages/MyApplications.vue'),
+          meta: { title: '我的求职 - UniSeek' }
+        },
+        {
+          path: 'account-security',
+          name: 'AccountSecurity',
+          component: () => import('@/pages/AccountSecurity.vue'),
+          meta: { title: '账号安全 - UniSeek' }
+        },
+        {
           path: 'profile',
           name: 'Profile',
           component: () => import('@/pages/Profile.vue'),
           meta: { title: '个人中心 - UniSeek' }
         }
       ]
+    },
+    {
+      path: '/enterprise-cert',
+      name: 'EnterpriseCert',
+      component: () => import('@/pages/EnterpriseCertification.vue'),
+      meta: { title: '企业资质认证 - UniSeek', requiresAuth: true }
     },
     {
       path: '/admin',
@@ -120,12 +156,6 @@ const router = createRouter({
       name: 'Login',
       component: () => import('@/pages/Login.vue'),
       meta: { title: '登录 - UniSeek' }
-    },
-    {
-      path: '/enterprise-cert',
-      name: 'EnterpriseCert',
-      component: () => import('@/pages/EnterpriseCertification.vue'),
-      meta: { title: '企业资质认证 - UniSeek', requiresAuth: true }
     }
   ]
 })
@@ -157,23 +187,12 @@ router.beforeEach((to, _from) => {
     return { path: '/' }
   }
 
-  // 招聘者访问需要企业认证的页面
-  if (to.meta.requiresCert && role === 1) {
-    const certStatus = getCertStatus()
-    if (certStatus !== 'approved') {
-      return { path: '/enterprise-cert' }
-    }
+  // 招聘者路由守卫：requiresRecruiter 仅允许 role=1
+  if (to.meta.requiresRecruiter && role !== 1) {
+    return { path: '/' }
   }
 
-  // 招聘者已认证后访问认证页 → 重定向首页
-  if (to.name === 'EnterpriseCert' && role === 1) {
-    const certStatus = getCertStatus()
-    if (certStatus === 'approved') {
-      return { path: '/' }
-    }
-  }
-
-  // 非招聘者访问认证页 → 重定向首页
+  // 企业认证页：非招聘者不可访问
   if (to.name === 'EnterpriseCert' && role !== 1) {
     return { path: '/' }
   }

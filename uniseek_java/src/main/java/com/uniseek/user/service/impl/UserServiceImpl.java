@@ -1,7 +1,9 @@
 package com.uniseek.user.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.uniseek.auth.dto.UserVO;
+import com.uniseek.common.ApiResult;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.UserMapper;
 import com.uniseek.entity.User;
@@ -23,14 +25,36 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserVO updateProfile(Long userId, String nickname, String avatarUrl) {
+    public UserVO updateProfile(Long userId, String nickname, String avatarUrl, String phone, String email) {
         // 1. 校验用户是否存在
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
 
-        // 2. 构建更新条件——只更新非 null 的字段
+        // 2. 如果修改手机号，检查唯一性
+        if (phone != null && !phone.trim().isEmpty() && !phone.equals(user.getPhone())) {
+            Integer phoneCount = userMapper.selectCount(
+                    new LambdaQueryWrapper<User>()
+                            .ne(User::getId, userId)
+                            .eq(User::getPhone, phone.trim()));
+            if (phoneCount > 0) {
+                throw new BusinessException(ApiResult.CONFLICT, "该手机号已被其他账号绑定");
+            }
+        }
+
+        // 3. 如果修改邮箱，检查唯一性
+        if (email != null && !email.trim().isEmpty() && !email.equals(user.getEmail())) {
+            Integer emailCount = userMapper.selectCount(
+                    new LambdaQueryWrapper<User>()
+                            .ne(User::getId, userId)
+                            .eq(User::getEmail, email.trim()));
+            if (emailCount > 0) {
+                throw new BusinessException(ApiResult.CONFLICT, "该邮箱已被其他账号绑定");
+            }
+        }
+
+        // 4. 构建更新条件——只更新非 null 的字段
         UpdateWrapper<User> uw = new UpdateWrapper<>();
         uw.eq("id", userId);
 
@@ -44,22 +68,25 @@ public class UserServiceImpl implements UserService {
             uw.set("avatar_url", avatarUrl.trim());
             needUpdate = true;
         }
+        if (phone != null && !phone.trim().isEmpty() && !phone.equals(user.getPhone())) {
+            uw.set("phone", phone.trim());
+            needUpdate = true;
+        }
+        if (email != null && !email.trim().isEmpty() && !email.equals(user.getEmail())) {
+            uw.set("email", email.trim());
+            needUpdate = true;
+        }
 
         if (needUpdate) {
             uw.set("update_time", LocalDateTime.now());
             userMapper.update(null, uw);
-
-            // 重新查询最新数据
             user = userMapper.selectById(userId);
         }
 
-        // 3. 构建并返回脱敏 VO
+        // 5. 构建并返回脱敏 VO
         return buildUserVO(user);
     }
 
-    /**
-     * 构建 UserVO（带脱敏处理）
-     */
     private UserVO buildUserVO(User user) {
         UserVO vo = new UserVO();
         vo.setId(user.getId());

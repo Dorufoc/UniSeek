@@ -34,9 +34,17 @@ request.interceptors.response.use(
       ElMessage.error(data.message || '请求失败')
       return Promise.reject(data)
     }
-    return data
+    return data.data
   },
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('uniseek_token')
+      localStorage.removeItem('uniseek_user')
+      localStorage.removeItem('uniseek_role')
+      ElMessage.error('认证令牌无效或已过期，请重新登录')
+      setTimeout(() => { window.location.href = '/login' }, 1500)
+      return Promise.reject(error)
+    }
     const msg = error.response?.data?.message || '网络异常，请稍后重试'
     ElMessage.error(msg)
     return Promise.reject(error)

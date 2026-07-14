@@ -25,7 +25,8 @@ public class JwtAuthInterceptor extends HandlerInterceptorAdapter {
     private static final List<String> WHITE_LIST = Arrays.asList(
             "/api/auth/register",
             "/api/auth/login",
-            "/api/region/"
+            "/api/region/",
+            "/api/files/"
     );
 
     @Override

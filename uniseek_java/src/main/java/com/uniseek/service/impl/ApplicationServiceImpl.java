@@ -13,14 +13,20 @@ import com.uniseek.dto.ApplyRequest;
 import com.uniseek.dto.CompleteRequest;
 import com.uniseek.dto.UpdateStatusRequest;
 import com.uniseek.entity.*;
+import com.uniseek.constant.OperationType;
+import com.uniseek.entity.OperationLog;
 import com.uniseek.service.ApplicationService;
 import com.uniseek.service.ApplicationStatusMachine;
 import com.uniseek.service.NotificationService;
+import com.uniseek.service.OperationLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 投递申请服务实现
@@ -48,6 +54,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private OperationLogService operationLogService;
 
     @Autowired
     private ApplicationStatusMachine statusMachine;
@@ -181,7 +190,20 @@ public class ApplicationServiceImpl implements ApplicationService {
         Integer newStatus = request.getStatus();
         statusMachine.validateTransition(currentStatus, newStatus);
 
-        // 4. 如果新状态是 3（已录用），执行乐观锁扣减名额
+        // 4. 业务字段校验
+        if (newStatus == 1) {
+            if (request.getInterviewTime() == null) {
+                throw new BusinessException("请选择面试时间");
+            }
+            if (!StringUtils.hasText(request.getInterviewLocation())) {
+                throw new BusinessException("请填写面试地点");
+            }
+        }
+        if (newStatus == 4 && !StringUtils.hasText(request.getRejectReason())) {
+            throw new BusinessException("请填写淘汰原因");
+        }
+
+        // 5. 如果新状态是 3（已录用），执行乐观锁扣减名额
         if (newStatus == 3) {
             // 读取最新版本号
             Task freshTask = taskMapper.selectById(task.getId());
@@ -208,7 +230,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             }
         }
 
-        // 5. 更新投递记录字段
+        // 6. 更新投递记录字段
         application.setStatus(newStatus);
         application.setHrId(userId);
         application.setInterviewTime(request.getInterviewTime());
@@ -222,15 +244,21 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new BusinessException("更新投递状态失败，请刷新后重试");
         }
 
-        // 6. 创建通知给求职者
+        // 7. 创建通知给求职者
         String title;
         String content;
         Integer notifyType;
         switch (newStatus) {
             case 1:
                 title = "面试邀请";
-                content = "您的投递已被 HR 查看，请等待面试通知";
+                content = String.format("您已被邀请面试，时间：%s，地点：%s",
+                        request.getInterviewTime(), request.getInterviewLocation());
                 notifyType = 1;
+                break;
+            case 2:
+                title = "投递状态更新";
+                content = "您的投递当前被标记为待定，HR 将稍后决定";
+                notifyType = 0;
                 break;
             case 3:
                 title = "录用通知";
@@ -239,7 +267,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                 break;
             case 4:
                 title = "淘汰通知";
-                content = "很遗憾，您的投递未通过筛选";
+                content = String.format("很遗憾，您的投递未通过筛选。原因：%s",
+                        request.getRejectReason());
                 notifyType = 3;
                 break;
             default:
@@ -257,6 +286,69 @@ public class ApplicationServiceImpl implements ApplicationService {
                 notifyType,
                 application.getId()             // 业务关联 ID
         );
+
+        // 8. 记录操作日志
+        saveApplicationOperationLog(userId, application, currentStatus, newStatus, request);
+    }
+
+    /**
+     * 保存投递状态变更操作日志
+     */
+    private void saveApplicationOperationLog(Long userId, TaskApplication application,
+                                              Integer fromStatus, Integer newStatus,
+                                              UpdateStatusRequest request) {
+        String operationType;
+        switch (newStatus) {
+            case 1:
+                operationType = OperationType.APPLICATION_INTERVIEW;
+                break;
+            case 2:
+                operationType = OperationType.APPLICATION_PENDING;
+                break;
+            case 3:
+                operationType = OperationType.APPLICATION_HIRE;
+                break;
+            case 4:
+                operationType = OperationType.APPLICATION_REJECT;
+                break;
+            default:
+                operationType = "APPLICATION_STATUS_UPDATE";
+        }
+
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("applicationId", application.getId());
+        detail.put("taskId", application.getTaskId());
+        detail.put("applicantId", application.getApplicantId());
+        detail.put("fromStatus", fromStatus);
+        detail.put("toStatus", newStatus);
+        if (request.getInterviewTime() != null) {
+            detail.put("interviewTime", request.getInterviewTime().toString());
+        }
+        if (StringUtils.hasText(request.getInterviewLocation())) {
+            detail.put("interviewLocation", request.getInterviewLocation());
+        }
+        if (StringUtils.hasText(request.getRejectReason())) {
+            detail.put("rejectReason", request.getRejectReason());
+        }
+        if (StringUtils.hasText(request.getHrNote())) {
+            detail.put("hrNote", request.getHrNote());
+        }
+
+        String detailJson;
+        try {
+            detailJson = objectMapper.writeValueAsString(detail);
+        } catch (Exception e) {
+            detailJson = "{}";
+        }
+
+        OperationLog operationLog = new OperationLog();
+        operationLog.setOperatorId(userId);
+        operationLog.setOperationType(operationType);
+        operationLog.setTargetType("TASK_APPLICATION");
+        operationLog.setTargetId(String.valueOf(application.getId()));
+        operationLog.setDetail(detailJson);
+        operationLog.setCreateTime(LocalDateTime.now());
+        operationLogService.saveLog(operationLog);
     }
 
     @Override
@@ -282,6 +374,33 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (rows == 0) {
             throw new BusinessException("结算确认失败，请刷新后重试");
         }
+
+        // 4. 记录结算完成日志
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("applicationId", application.getId());
+        detail.put("taskId", application.getTaskId());
+        detail.put("applicantId", application.getApplicantId());
+        detail.put("fromStatus", 3);
+        detail.put("toStatus", 5);
+        if (StringUtils.hasText(request.getHrNote())) {
+            detail.put("hrNote", request.getHrNote());
+        }
+
+        String detailJson;
+        try {
+            detailJson = objectMapper.writeValueAsString(detail);
+        } catch (Exception e) {
+            detailJson = "{}";
+        }
+
+        OperationLog operationLog = new OperationLog();
+        operationLog.setOperatorId(UserContext.getUserId());
+        operationLog.setOperationType(OperationType.APPLICATION_COMPLETE);
+        operationLog.setTargetType("TASK_APPLICATION");
+        operationLog.setTargetId(String.valueOf(application.getId()));
+        operationLog.setDetail(detailJson);
+        operationLog.setCreateTime(LocalDateTime.now());
+        operationLogService.saveLog(operationLog);
     }
 
     @Override

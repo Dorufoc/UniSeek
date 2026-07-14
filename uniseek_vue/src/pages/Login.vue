@@ -65,8 +65,9 @@ const handleLogin = async () => {
     const userInfo = { ...res.userInfo, role: storedUser?.role ?? res.userInfo.role }
     userStore.setUserInfo(userInfo)
     ElMessage.success('登录成功')
-    // 管理员 -> 管理后台，招聘者 -> 企业认证页，求职者 -> 首页
-    const target = userInfo.role >= 9 ? '/admin/dashboard' : userInfo.role === 1 ? '/enterprise-cert' : '/'
+    // 管理员 -> 管理后台，其他人使用 redirect 参数或回首页
+    const target = userInfo.role >= 9 ? '/admin/dashboard'
+      : (router.currentRoute.value.query.redirect as string) || '/'
     router.replace(target)
   } catch {
     // 错误已在拦截器中处理
@@ -93,8 +94,9 @@ const handleRegister = async () => {
     const userInfo = { ...res.userInfo, role: role.value as number }
     userStore.setUserInfo(userInfo)
     ElMessage.success('注册成功')
-    // 招聘者注册后跳转到企业认证页，求职者跳转到首页
-    const target = role.value === 1 ? '/enterprise-cert' : '/'
+    // 注册后跳转：优先使用 redirect 参数，否则招聘者去企业认证、求职者回首页
+    const redirect = (router.currentRoute.value.query.redirect as string)
+    const target = redirect || (role.value === 1 ? '/enterprise-cert' : '/')
     router.replace(target)
   } catch {
     // 错误已在拦截器中处理

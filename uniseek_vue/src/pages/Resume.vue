@@ -2,12 +2,15 @@
 import { ref, reactive, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { uploadAttachment } from '@/api/resume'
 import {
   User, Edit, Plus, Close, Delete, Top, Bottom, UploadFilled,
   Check, ArrowLeft
 } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
+// 隐藏的文件选择器引用
+const fileInput = ref<HTMLInputElement | null>(null)
 
 // 学历选项
 const educationOptions = ['初中及以下', '高中/中专', '大专', '本科', '硕士', '博士']
@@ -24,7 +27,7 @@ const resumeForm = reactive({
   school: '',
   skills: [] as string[],
   experience: '',
-  attachmentName: ''
+  attachmentUrl: ''
 })
 
 // 新技能输入
@@ -45,7 +48,7 @@ const loadResume = () => {
     resumeForm.school = ''
     resumeForm.skills = []
     resumeForm.experience = ''
-    resumeForm.attachmentName = ''
+    resumeForm.attachmentUrl = ''
   }
 }
 
@@ -63,7 +66,7 @@ const completionPercent = computed(() => {
     [resumeForm.school, 10],
     [resumeForm.skills.length > 0 ? 1 : 0, 20],
     [resumeForm.experience, 20],
-    [resumeForm.attachmentName, 10]
+    [resumeForm.attachmentUrl, 10]
   ]
   fields.forEach(([val, weight]) => {
     total += weight
@@ -129,16 +132,46 @@ const removeSkill = (index: number) => {
   resumeForm.skills.splice(index, 1)
 }
 
-// 模拟附件上传
-const handleAttachment = () => {
-  // TODO: 调用真实上传接口
-  ElMessage.info('请选择 PDF 或 Word 格式的简历文件')
-  resumeForm.attachmentName = '个人简历_张三.pdf'
+// 触发文件选择对话框
+const triggerUpload = () => {
+  fileInput.value?.click()
+}
+
+// 处理文件选择并上传
+const handleFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  const ext = file.name.split('.').pop()?.toLowerCase()
+
+  if (!allowedTypes.includes(file.type) && !['pdf', 'doc', 'docx'].includes(ext || '')) {
+    ElMessage.error('仅支持 PDF、DOC、DOCX 格式')
+    input.value = ''
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过 10MB')
+    input.value = ''
+    return
+  }
+
+  try {
+    const result = await uploadAttachment(file)
+    resumeForm.attachmentUrl = result.url
+    ElMessage.success('附件简历上传成功')
+  } catch {
+    // 错误已在拦截器处理
+  } finally {
+    input.value = ''
+  }
 }
 
 // 删除附件
 const removeAttachment = () => {
-  resumeForm.attachmentName = ''
+  resumeForm.attachmentUrl = ''
 }
 
 // 右侧面板当前展开的区块（预览模式用）
@@ -316,8 +349,8 @@ const toggleSection = (key: string) => {
                 <span class="section-toggle">{{ expandedSection === 'attach' ? '收起' : '展开' }}</span>
               </div>
               <div class="section-body">
-                <div v-if="resumeForm.attachmentName" class="attachment-display">
-                  <span class="attachment-name">{{ resumeForm.attachmentName }}</span>
+                <div v-if="resumeForm.attachmentUrl" class="attachment-display">
+                  <span class="attachment-name">{{ resumeForm.attachmentUrl }}</span>
                 </div>
                 <span v-else class="empty-text">未上传附件简历</span>
               </div>
@@ -446,17 +479,25 @@ const toggleSection = (key: string) => {
             <div class="section-card edit-card">
               <h3 class="edit-section-title">附件简历</h3>
               <div class="edit-form">
-                <div v-if="resumeForm.attachmentName" class="attachment-item">
-                  <span class="attachment-name">{{ resumeForm.attachmentName }}</span>
+                <div v-if="resumeForm.attachmentUrl" class="attachment-item">
+                  <span class="attachment-name">{{ resumeForm.attachmentUrl }}</span>
                   <button class="btn-remove-attach" @click="removeAttachment">
                     <el-icon :size="14"><Delete /></el-icon>
                   </button>
                 </div>
-                <button v-else class="upload-area" @click="handleAttachment">
+                <button v-else class="upload-area" @click="triggerUpload">
                   <el-icon :size="28"><UploadFilled /></el-icon>
                   <span>上传附件简历</span>
                   <span class="upload-hint">支持 PDF、Word 格式，大小不超过10MB</span>
                 </button>
+                <!-- 隐藏的文件选择器 -->
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  style="display: none"
+                  @change="handleFileChange"
+                />
               </div>
             </div>
           </template>

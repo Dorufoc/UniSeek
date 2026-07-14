@@ -58,8 +58,16 @@ const selectCity = (city: string) => {
         <!-- 中部区域：主导航菜单 -->
         <nav class="header-nav">
           <router-link to="/">首页</router-link>
-          <router-link to="/jobs">职位</router-link>
-          <router-link to="/company">公司</router-link>
+          <!-- 招聘者视角：人才库 + 职位管理 -->
+          <template v-if="isRecruiter">
+            <router-link to="/talents">人才</router-link>
+            <router-link to="/job-management">职位管理</router-link>
+          </template>
+          <!-- 求职者视角：职位 + 公司 -->
+          <template v-else>
+            <router-link to="/jobs">职位</router-link>
+            <router-link to="/company">公司</router-link>
+          </template>
           <router-link to="/messages">消息</router-link>
           <router-link v-if="isAdmin" to="/admin/dashboard" class="super-admin-link">管理后台</router-link>
         </nav>
@@ -207,7 +215,8 @@ const selectCity = (city: string) => {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.header-nav a.router-link-active {
+.header-nav a.router-link-exact-active,
+.header-nav a:not([href="/"]).router-link-active {
   color: #fff;
   background: rgba(255, 255, 255, 0.15);
   font-weight: 500;
