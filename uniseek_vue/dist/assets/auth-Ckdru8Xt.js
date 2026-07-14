@@ -1,0 +1,1 @@
+import{t as e}from"./api-CgxLbMLv.js";var t=async t=>(await e.post(`/auth/login`,t)).data,n=async t=>(await e.post(`/auth/register`,t)).data,r=async t=>(await e.post(`/auth/real-name`,t)).data,i=async()=>(await e.get(`/auth/real-name/status`)).data,a=async t=>(await e.put(`/auth/password`,t)).data;export{r as a,n as i,i as n,t as r,a as t};

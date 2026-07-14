@@ -21,19 +21,17 @@ public class UserController {
     private UserService userService;
 
     /**
-     * 更新用户资料（昵称、头像）
-     *
-     * @param nickname  新昵称（可选）
-     * @param avatarUrl 新头像 URL（可选）
-     * @return 更新结果
+     * 更新用户资料（昵称、头像、手机号、邮箱）
      */
     @PutMapping("/profile")
     public ApiResult<UserVO> updateProfile(
             @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) String avatarUrl) {
+            @RequestParam(required = false) String avatarUrl,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String email) {
 
         Long userId = UserContext.getUserId();
-        UserVO userVO = userService.updateProfile(userId, nickname, avatarUrl);
+        UserVO userVO = userService.updateProfile(userId, nickname, avatarUrl, phone, email);
         return ApiResult.success("更新成功", userVO);
     }
 }

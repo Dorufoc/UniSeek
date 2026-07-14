@@ -64,4 +64,20 @@ public interface AuthService {
      * @return 包含 isAuth、realName、idCard 的 Map
      */
     Map<String, Object> getRealNameStatus(Long userId);
+
+    /**
+     * 修改手机号
+     *
+     * @param userId  当前用户 ID
+     * @param request 修改手机号请求
+     */
+    void updatePhone(Long userId, UpdatePhoneRequest request);
+
+    /**
+     * 修改邮箱
+     *
+     * @param userId  当前用户 ID
+     * @param request 修改邮箱请求
+     */
+    void updateEmail(Long userId, UpdateEmailRequest request);
 }

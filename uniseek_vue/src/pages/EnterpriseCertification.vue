@@ -1,548 +1,470 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
-import { UploadFilled, WarningFilled, CircleCheckFilled, Clock } from '@element-plus/icons-vue'
+import { ElMessage, ElDialog } from 'element-plus'
+import { UploadFilled, WarningFilled, CircleCheckFilled, Clock, Edit, ArrowLeft } from '@element-plus/icons-vue'
+import { submitEnterprise, getMyEnterprise, updateEnterprise } from '@/api/enterprise'
+import type { EnterpriseInfo } from '@/api/enterprise'
+import { uploadImage } from '@/api/upload'
+import { getRegionTree } from '@/api/region'
+import type { RegionVO } from '@/api/region'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
-// 加载并提交状态
-const loading = ref(false)
-// 当前认证状态：none=未提交, pending=待审核, approved=已认证, rejected=已驳回
-const certStatus = ref<'none' | 'pending' | 'approved' | 'rejected'>('none')
-// 驳回原因
-const rejectReason = ref('')
+const loading = ref(true)
+const uploading = ref(false)
+const editing = ref(false)
+const submitting = ref(false)
+const enterpriseInfo = ref<EnterpriseInfo | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 
-// 行业选项
+// 地区三级联动
+const provinces = ref<RegionVO[]>([])
+const selectedProvince = ref<number | null>(null)
+const selectedCity = ref<number | null>(null)
+
+const cities = computed(() => {
+  const p = provinces.value.find(p => p.id === selectedProvince.value)
+  return p?.children || []
+})
+
+const districts = computed(() => {
+  const p = provinces.value.find(p => p.id === selectedProvince.value)
+  const c = p?.children.find(c => c.id === selectedCity.value)
+  return c?.children || []
+})
+
+const onProvinceChange = () => {
+  selectedCity.value = null
+  form.regionId = null
+}
+
+const onCityChange = () => {
+  form.regionId = null
+}
+
+const onDistrictChange = () => {
+  // form.regionId is already set by v-model
+}
+
+// 根据已有的 regionId 初始化三级选择器
+const initRegionCascade = (regionId: number | null) => {
+  if (!regionId || provinces.value.length === 0) return
+  for (const p of provinces.value) {
+    for (const c of p.children) {
+      for (const d of c.children) {
+        if (d.id === regionId) {
+          selectedProvince.value = p.id
+          selectedCity.value = c.id
+          form.regionId = d.id
+          return
+        }
+      }
+      if (c.id === regionId) {
+        selectedProvince.value = p.id
+        selectedCity.value = c.id
+        form.regionId = c.id
+        return
+      }
+    }
+    if (p.id === regionId) {
+      selectedProvince.value = p.id
+      form.regionId = p.id
+      return
+    }
+  }
+}
+
 const industryOptions = [
   '互联网/IT', '金融/保险', '教育培训', '餐饮服务', '零售/批发',
   '房地产/建筑', '医疗/健康', '文化/传媒', '制造/能源', '物流/运输',
   '家政/生活服务', '旅游/酒店', '农业/渔业', '其他'
 ]
 
-// 企业资质表单数据
 const form = reactive({
   companyName: '',
-  licenseImgName: '',
+  creditCode: '',
+  licenseImgUrl: '',
   industry: '',
+  regionId: null as number | null,
   description: ''
 })
 
-// 从 localStorage 恢复认证状态和表单数据
-const savedCert = localStorage.getItem('uniseek_enterprise_cert')
-if (savedCert) {
-  const data = JSON.parse(savedCert)
-  certStatus.value = data.status || 'none'
-  rejectReason.value = data.rejectReason || ''
-  if (data.form) {
-    Object.assign(form, data.form)
-  }
-}
+const isFormValid = computed(() => {
+  return form.companyName.trim() !== ''
+    && /^[0-9A-HJ-NPQRTUWXY]{18}$/i.test(form.creditCode)
+    && form.industry !== ''
+})
 
-// 模拟营业执照上传
-const handleUpload = () => {
-  form.licenseImgName = '营业执照_' + (form.companyName || '企业') + '.jpg'
-  ElMessage.success('营业执照上传成功')
-}
-
-// 移除营业执照
-const removeLicense = () => {
-  form.licenseImgName = ''
-}
-
-// 提交企业资质认证
-const handleSubmit = async () => {
+const loadEnterprise = async () => {
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    const certData = {
-      status: 'approved' as const,
-      form: {
-        companyName: form.companyName.trim(),
-        licenseImgName: form.licenseImgName,
-        industry: form.industry,
-        description: form.description.trim()
-      }
-    }
-    localStorage.setItem('uniseek_enterprise_cert', JSON.stringify(certData))
-    certStatus.value = 'approved'
-    ElMessage.success('认证成功')
-    router.replace('/')
+    const data = await getMyEnterprise()
+    enterpriseInfo.value = data
+    form.companyName = data.companyName || ''
+    form.creditCode = data.creditCode || ''
+    form.licenseImgUrl = data.licenseImgUrl || ''
+    form.industry = data.industry || ''
+    form.regionId = data.regionId
+    form.description = data.description || ''
+    initRegionCascade(data.regionId)
   } catch {
-    ElMessage.error('提交失败，请重试')
+    enterpriseInfo.value = null
   } finally {
     loading.value = false
   }
 }
 
-// 重新提交（当审核被驳回时）
-const handleResubmit = () => {
-  certStatus.value = 'none'
-  rejectReason.value = ''
+const startEdit = () => {
+  editing.value = true
 }
 
-// 进入首页
-const goHome = () => {
-  router.replace('/')
+const cancelEdit = () => {
+  if (enterpriseInfo.value) {
+    form.companyName = enterpriseInfo.value.companyName || ''
+    form.creditCode = enterpriseInfo.value.creditCode || ''
+    form.licenseImgUrl = enterpriseInfo.value.licenseImgUrl || ''
+    form.industry = enterpriseInfo.value.industry || ''
+    form.regionId = enterpriseInfo.value.regionId
+    form.description = enterpriseInfo.value.description || ''
+    selectedProvince.value = null
+    selectedCity.value = null
+    initRegionCascade(enterpriseInfo.value.regionId)
+  }
+  editing.value = false
 }
 
-// 跳过认证（仅已认证用户可用）
-const skipCert = () => {
-  router.replace('/')
+const handleUpload = () => {
+  fileInput.value?.click()
 }
+
+const onFileSelected = async (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过 10MB')
+    return
+  }
+  uploading.value = true
+  try {
+    const data = await uploadImage(file)
+    form.licenseImgUrl = data.url
+    ElMessage.success('营业执照上传成功')
+  } catch {} finally {
+    uploading.value = false
+    target.value = ''
+  }
+}
+
+const removeLicense = () => {
+  form.licenseImgUrl = ''
+}
+
+const handleSave = async () => {
+  if (!isFormValid.value || submitting.value) return
+  submitting.value = true
+  try {
+    const params = {
+      companyName: form.companyName.trim(),
+      creditCode: form.creditCode.trim().toUpperCase(),
+      licenseImgUrl: form.licenseImgUrl,
+      industry: form.industry,
+      regionId: form.regionId,
+      description: form.description.trim()
+    }
+    if (enterpriseInfo.value) {
+      await updateEnterprise(params)
+      ElMessage.success('企业信息已更新')
+    } else {
+      await submitEnterprise(params)
+      ElMessage.success('企业信息提交成功，等待审核')
+    }
+    await loadEnterprise()
+    editing.value = false
+  } catch {} finally {
+    submitting.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    provinces.value = await getRegionTree()
+  } catch { provinces.value = [] }
+  await loadEnterprise()
+  if (!enterpriseInfo.value) {
+    editing.value = true
+  } else if (route.query.edit === '1') {
+    editing.value = true
+  }
+})
 </script>
 
 <template>
   <div class="cert-page">
+    <button class="back-btn-top" @click="router.back()"><el-icon :size="18"><ArrowLeft /></el-icon> 返回</button>
     <div class="cert-container">
-      <!-- 头部 -->
-      <div class="cert-header">
-        <h1 class="cert-logo">UniSeek</h1>
-        <p class="cert-subtitle">企业资质认证</p>
-      </div>
+      <div v-if="loading" class="loading-state">加载中...</div>
 
-      <!-- 待审核状态 -->
-      <div v-if="certStatus === 'pending'" class="status-card pending">
-        <div class="status-icon">
-          <el-icon :size="48"><Clock /></el-icon>
+      <!-- 已认证 → 展示企业信息 -->
+      <template v-else-if="enterpriseInfo && !editing">
+        <div class="status-bar" :class="['status-' + ['pending','approved','rejected'][enterpriseInfo.auditStatus]]">
+          <el-icon :size="18">
+            <template v-if="enterpriseInfo.auditStatus === 1"><CircleCheckFilled /></template>
+            <template v-else-if="enterpriseInfo.auditStatus === 2"><WarningFilled /></template>
+            <template v-else><Clock /></template>
+          </el-icon>
+          <span>
+            {{ ['审核中，请耐心等待','已认证，可发布职位','已被驳回，请修改后重新提交'][enterpriseInfo.auditStatus] }}
+          </span>
         </div>
-        <h2 class="status-title">资质审核中</h2>
-        <p class="status-desc">
-          您的企业资质认证已提交，正在等待运营管理员审核。审核结果将通过站内消息通知您。
-        </p>
-        <p class="status-hint">审核期间您可以先浏览平台内容</p>
-        <button class="btn-primary" @click="goHome">进入 UniSeek</button>
-      </div>
 
-      <!-- 已认证状态 -->
-      <div v-else-if="certStatus === 'approved'" class="status-card approved">
-        <div class="status-icon">
-          <el-icon :size="48"><CircleCheckFilled /></el-icon>
+        <h2 class="page-title">企业信息</h2>
+        <div class="info-grid">
+          <div class="info-row"><span class="info-label">公司全称</span><span class="info-value">{{ enterpriseInfo.companyName }}</span></div>
+          <div class="info-row"><span class="info-label">信用代码</span><span class="info-value">{{ enterpriseInfo.creditCode }}</span></div>
+          <div class="info-row"><span class="info-label">所属行业</span><span class="info-value">{{ enterpriseInfo.industry || '未设置' }}</span></div>
+          <div class="info-row"><span class="info-label">公司简介</span><span class="info-value">{{ enterpriseInfo.description || '未设置' }}</span></div>
         </div>
-        <h2 class="status-title">认证已通过</h2>
-        <p class="status-desc">您的企业资质已通过审核，现在可以发布职位了。</p>
-        <button class="btn-primary" @click="goHome">进入 UniSeek</button>
-      </div>
+        <button class="action-btn full" @click="startEdit"><el-icon :size="16"><Edit /></el-icon> 编辑企业信息</button>
+      </template>
 
-      <!-- 已驳回状态 -->
-      <div v-else-if="certStatus === 'rejected'" class="status-card rejected">
-        <div class="status-icon">
-          <el-icon :size="48"><WarningFilled /></el-icon>
-        </div>
-        <h2 class="status-title">资质审核未通过</h2>
-        <p class="status-desc">驳回原因：{{ rejectReason || '资质材料不符合要求' }}</p>
-        <p class="status-hint">请根据驳回原因修改后重新提交</p>
-        <button class="btn-resubmit" @click="handleResubmit">重新提交认证</button>
-      </div>
-
-      <!-- 认证表单（未提交或重新提交） -->
-      <div v-else class="cert-form-card">
-        <div class="form-intro">
-          <el-icon :size="20"><WarningFilled /></el-icon>
-          <span>发布职位前请先完成企业资质认证，审核通过后即可发布职位</span>
-        </div>
+      <!-- 编辑 / 新建表单 -->
+      <template v-else>
+        <h2 class="page-title">{{ enterpriseInfo ? '编辑企业信息' : '企业资质认证' }}</h2>
+        <p class="page-desc">{{ enterpriseInfo ? '修改企业基本信息' : '填写企业信息提交审核，认证通过后可发布职位' }}</p>
 
         <div class="form-section">
-          <h3 class="section-title">企业基本信息</h3>
-
-          <div class="form-row">
-            <label>公司全称 <span class="required">*</span></label>
-            <input
-              v-model="form.companyName"
-              type="text"
-              class="form-input"
-              placeholder="请填写与营业执照一致的公司全称"
-              maxlength="100"
-            />
+          <div class="form-item">
+            <label class="form-label">公司全称 <span class="required">*</span></label>
+            <el-input v-model="form.companyName" size="large" placeholder="与企业营业执照一致" maxlength="100" clearable />
           </div>
-
+          <div class="form-item">
+            <label class="form-label">统一社会信用代码 <span class="required">*</span></label>
+            <el-input v-model="form.creditCode" size="large" placeholder="18位统一社会信用代码" maxlength="18" clearable />
+          </div>
           <div class="form-row">
-            <label>营业执照 <span class="required">*</span></label>
-            <div v-if="form.licenseImgName" class="license-added">
-              <span>{{ form.licenseImgName }}</span>
-              <button class="btn-remove" @click="removeLicense">移除</button>
+            <div class="form-item flex-1">
+              <label class="form-label">所属行业 <span class="required">*</span></label>
+              <el-select v-model="form.industry" placeholder="选择行业" size="large" style="width:100%">
+                <el-option v-for="opt in industryOptions" :key="opt" :label="opt" :value="opt" />
+              </el-select>
             </div>
-            <button v-else class="upload-area" @click="handleUpload">
+            <div class="form-item flex-1">
+              <label class="form-label">所在省</label>
+              <el-select v-model="selectedProvince" placeholder="选择省" size="large" style="width:100%" @change="onProvinceChange">
+                <el-option v-for="p in provinces" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+            </div>
+            <div class="form-item flex-1">
+              <label class="form-label">所在市</label>
+              <el-select v-model="selectedCity" placeholder="选择市" size="large" style="width:100%" :disabled="!selectedProvince" @change="onCityChange">
+                <el-option v-for="c in cities" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </div>
+            <div class="form-item flex-1">
+              <label class="form-label">所在区</label>
+              <el-select v-model="form.regionId" placeholder="选择区" size="large" style="width:100%" :disabled="!selectedCity" @change="onDistrictChange">
+                <el-option v-for="d in districts" :key="d.id" :label="d.name" :value="d.id" />
+              </el-select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label class="form-label">营业执照</label>
+            <div v-if="!form.licenseImgUrl" class="upload-area" @click="handleUpload">
               <el-icon :size="32"><UploadFilled /></el-icon>
-              <span>点击上传营业执照</span>
-              <span class="upload-hint">支持 JPG、PNG 格式，大小不超过 5MB</span>
+              <span>{{ uploading ? '上传中...' : '点击上传营业执照' }}</span>
+            </div>
+            <div v-else class="uploaded-area">
+              <el-image :src="form.licenseImgUrl" style="max-height:80px;border-radius:4px" fit="contain" />
+              <button class="remove-btn" @click="removeLicense">删除</button>
+            </div>
+            <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
+          </div>
+          <div class="form-item">
+            <label class="form-label">公司简介</label>
+            <el-input v-model="form.description" type="textarea" :rows="4" placeholder="公司业务和规模介绍（选填）" maxlength="2000" show-word-limit />
+          </div>
+          <div class="form-actions">
+            <button v-if="enterpriseInfo" class="cancel-btn" @click="cancelEdit">取消</button>
+            <button class="submit-btn" :disabled="!isFormValid || submitting" :class="{ loading: submitting }" @click="handleSave">
+              {{ submitting ? '保存中...' : '保存' }}
             </button>
           </div>
-
-          <div class="form-row">
-            <label>所属行业 <span class="required">*</span></label>
-            <div class="industry-grid">
-              <span
-                v-for="item in industryOptions"
-                :key="item"
-                :class="['industry-tag', { selected: form.industry === item }]"
-                @click="form.industry = item"
-              >
-                {{ item }}
-              </span>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label>公司简介 <span class="required">*</span></label>
-            <textarea
-              v-model="form.description"
-              class="form-textarea"
-              placeholder="请简要描述公司的主营业务、规模和发展方向（至少10个字）"
-              rows="4"
-            ></textarea>
-            <span class="char-count">{{ form.description.length }}/500</span>
-          </div>
         </div>
-
-        <div class="form-actions">
-          <button
-            class="btn-submit"
-            :disabled="loading"
-            @click="handleSubmit"
-          >
-            {{ loading ? '提交中...' : '提交认证' }}
-          </button>
-        </div>
-
-        <p class="form-footer-note">
-          提交后，运营管理员将在 1-2 个工作日内完成审核
-        </p>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <style scoped>
 .cert-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f0f4fa 0%, #e8f0f8 100%);
+  min-height: calc(100vh - 60px);
+  background: #f5f7fa;
   padding: 40px 24px;
   box-sizing: border-box;
+  position: relative;
 }
-
 .cert-container {
   max-width: 680px;
   margin: 0 auto;
-}
-
-/* 头部 */
-.cert-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.cert-logo {
-  font-size: 32px;
-  font-weight: 800;
-  color: #007AFF;
-  margin: 0;
-  letter-spacing: 2px;
-}
-
-.cert-subtitle {
-  font-size: 16px;
-  color: #666;
-  margin: 8px 0 0;
-}
-
-/* 状态卡片 */
-.status-card {
   background: #fff;
-  border-radius: 16px;
-  padding: 48px 40px;
-  text-align: center;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
+.loading-state { text-align: center; padding: 60px 0; font-size: 15px; color: #000; }
+.page-title { font-size: 24px; font-weight: 600; color: #000; margin: 0 0 8px; }
+.page-desc { font-size: 14px; color: #000; margin: 0 0 32px; }
 
-.status-icon {
-  margin-bottom: 20px;
-}
-
-.status-card.pending .status-icon { color: #f0ad4e; }
-.status-card.approved .status-icon { color: #2ecc71; }
-.status-card.rejected .status-icon { color: #e74c3c; }
-
-.status-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-h);
-  margin: 0 0 12px;
-}
-
-.status-desc {
-  font-size: 15px;
-  color: #666;
-  line-height: 1.6;
-  margin: 0 0 12px;
-}
-
-.status-hint {
-  font-size: 13px;
-  color: #999;
-  margin: 0 0 28px;
-}
-
-.btn-primary {
-  padding: 12px 40px;
-  font-size: 15px;
-  color: #fff;
-  background: #007AFF;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: #0066d6;
-}
-
-.btn-resubmit {
-  padding: 12px 40px;
-  font-size: 15px;
-  color: #007AFF;
-  background: rgba(0, 122, 255, 0.08);
-  border: 1px solid #007AFF;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-resubmit:hover {
-  background: rgba(0, 122, 255, 0.15);
-}
-
-/* 表单卡片 */
-.cert-form-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 0;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-.form-intro {
+.status-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 28px;
-  background: rgba(0, 122, 255, 0.06);
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
   font-size: 14px;
-  color: #007AFF;
-  border-bottom: 1px solid #f0f0f5;
-}
-
-.form-section {
-  padding: 28px;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-h);
-  margin: 0 0 24px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f5;
-}
-
-.form-row {
   margin-bottom: 24px;
 }
+.status-0 { background: rgba(245,127,23,0.1); color: #f57f17; }
+.status-1 { background: rgba(46,125,50,0.1); color: #2e7d32; }
+.status-2 { background: rgba(231,76,60,0.1); color: #e74c3c; }
 
-.form-row:last-child {
-  margin-bottom: 0;
-}
-
-.form-row label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.required {
-  color: #e74c3c;
-}
-
-.form-input {
-  width: 100%;
-  padding: 11px 14px;
-  font-size: 14px;
-  border: 1px solid #dcdce4;
-  border-radius: 8px;
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-  color: var(--text-h);
-}
-
-.form-input:focus {
-  border-color: #007AFF;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-}
-
-/* 营业执照上传 */
-.license-added {
-  display: flex;
+.back-btn-top {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #f8f9fb;
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--text);
-}
-
-.btn-remove {
-  font-size: 13px;
-  color: #999;
-  background: transparent;
+  gap: 4px;
+  padding: 8px 14px;
   border: none;
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  font-size: 14px;
+  border-radius: 8px;
   cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
+.back-btn-top:hover { color: #007AFF; }
 
-.btn-remove:hover {
-  color: #e74c3c;
-}
+.info-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+.info-row { display: flex; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.info-label { width: 120px; font-size: 14px; color: #000; flex-shrink: 0; }
+.info-value { flex: 1; font-size: 14px; color: #000; }
+
+.form-section { display: flex; flex-direction: column; gap: 24px; }
+.form-row { display: flex; gap: 16px; }
+.form-item { display: flex; flex-direction: column; gap: 10px; }
+.flex-1 { flex: 1; min-width: 0; }
+.form-label { font-size: 15px; font-weight: 500; color: #000; }
+.required { color: #e74c3c; }
 
 .upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  color: #000;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 36px 20px;
-  font-size: 14px;
-  color: #999;
-  background: #f8f9fb;
-  border: 2px dashed #dcdce4;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: 12px;
+  transition: border-color 0.2s;
 }
-
-.upload-area:hover {
-  border-color: #007AFF;
-  color: #007AFF;
-  background: rgba(0, 122, 255, 0.03);
-}
-
-.upload-hint {
-  font-size: 12px;
-  color: #bbb;
-}
-
-/* 行业选择 */
-.industry-grid {
+.upload-area:hover { border-color: #007AFF; color: #007AFF; }
+.uploaded-area {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.industry-tag {
-  padding: 7px 16px;
-  font-size: 13px;
-  border: 1px solid #dcdce4;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text);
-}
-
-.industry-tag:hover {
-  border-color: #007AFF;
-  color: #007AFF;
-}
-
-.industry-tag.selected {
-  border-color: #007AFF;
-  background: rgba(0, 122, 255, 0.06);
-  color: #007AFF;
-  font-weight: 500;
-}
-
-/* 简介 */
-.form-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 14px;
-  border: 1px solid #dcdce4;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f0f7ff;
   border-radius: 8px;
-  outline: none;
-  resize: vertical;
-  font-family: inherit;
-  line-height: 1.6;
-  color: var(--text-h);
-  box-sizing: border-box;
+  font-size: 14px;
+  color: #000;
 }
-
-.form-textarea:focus {
-  border-color: #007AFF;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+.remove-btn {
+  padding: 4px 12px;
+  border: none;
+  background: rgba(231,76,60,0.1);
+  color: #e74c3c;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-left: auto;
 }
-
-.char-count {
-  display: block;
-  text-align: right;
-  font-size: 12px;
-  color: #bbb;
-  margin-top: 4px;
-}
-
-/* 提交按钮 */
 .form-actions {
-  padding: 0 28px 28px;
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
 }
-
-.btn-submit {
-  width: 100%;
-  padding: 13px 0;
+.submit-btn, .cancel-btn, .action-btn {
+  height: 48px;
   font-size: 16px;
   font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.submit-btn {
+  flex: 1;
   color: #fff;
   background: #007AFF;
   border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: opacity 0.2s;
 }
-
-.btn-submit:hover:not(:disabled) {
-  opacity: 0.9;
+.submit-btn:hover:not(:disabled) { opacity: 0.92; }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.submit-btn.loading { opacity: 0.7; }
+.cancel-btn {
+  padding: 0 24px;
+  color: #000;
+  background: #f5f5f5;
+  border: 1px solid var(--border);
 }
-
-.btn-submit:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.action-btn.full {
+  width: 100%;
+  color: #007AFF;
+  background: rgba(0,122,255,0.06);
+  border: 1px solid rgba(0,122,255,0.2);
 }
+.action-btn.full:hover { background: rgba(0,122,255,0.12); }
 
-.form-footer-note {
+.state-card {
   text-align: center;
-  font-size: 13px;
-  color: #bbb;
-  padding: 0 28px 28px;
-  margin: 0;
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.state-card h2 { font-size: 22px; font-weight: 600; margin: 0; color: #000; }
+.state-card p { font-size: 15px; color: #000; margin: 0; }
+.state-card .action-btn {
+  display: inline-flex;
+  padding: 10px 32px;
+  border: none;
+  color: #fff;
+  background: #007AFF;
+  font-size: 15px;
+  text-decoration: none;
+  margin-top: 8px;
 }
 
 @media (max-width: 768px) {
-  .cert-page {
-    padding: 24px 16px;
-  }
-
-  .status-card {
-    padding: 32px 24px;
-  }
-
-  .form-section {
-    padding: 20px;
-  }
-
-  .form-actions {
-    padding: 0 20px 20px;
-  }
+  .cert-container { padding: 24px; }
+  .form-row { flex-direction: column; }
+  .info-label { width: 80px; }
 }
 </style>

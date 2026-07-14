@@ -20,8 +20,8 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    /** 过期时间：30 分钟 */
-    private static final long EXPIRATION = 30 * 60 * 1000L;
+    /** 过期时间：7 天 */
+    private static final long EXPIRATION = 7 * 24 * 60 * 60 * 1000L;
 
     /**
      * 生成 Token

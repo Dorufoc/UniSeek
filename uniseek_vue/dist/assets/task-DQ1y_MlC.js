@@ -1,0 +1,1 @@
+import{t as e}from"./api-Byx2TnrG.js";var t=t=>e.get(`/tasks`,{params:t}),n=t=>e.get(`/tasks/${t}`),r=t=>e.post(`/tasks`,t);export{n,t as r,r as t};

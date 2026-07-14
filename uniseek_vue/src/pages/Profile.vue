@@ -3,8 +3,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getRealNameAuthStatus, submitRealNameAuth } from '@/api/auth'
+import { getRealNameAuthStatus, submitRealNameAuth, changePassword } from '@/api/auth'
 import type { RealNameAuthStatus } from '@/api/auth'
+import { updateProfile } from '@/api/user'
+import { uploadImage } from '@/api/upload'
 import {
   User, Phone, Postcard, Edit, Document, Star,
   OfficeBuilding, Briefcase, Files,
@@ -31,6 +33,70 @@ const authSubmitting = ref(false)
 const authStatus = ref<RealNameAuthStatus | null>(null)
 const authForm = ref({ realName: '', idCard: '' })
 const idCardPattern = /^\d{17}[\dXx]$/
+
+// 账号安全相关状态
+const securityDialogVisible = ref(false)
+const passwordSubmitting = ref(false)
+const passwordForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const isPasswordValid = computed(() => {
+  const { oldPassword, newPassword, confirmPassword } = passwordForm.value
+  return oldPassword.length >= 6
+    && newPassword.length >= 6
+    && newPassword.length <= 20
+    && newPassword === confirmPassword
+})
+
+// 头像上传
+const avatarFileInput = ref<HTMLInputElement | null>(null)
+const avatarUploading = ref(false)
+
+const handleAvatarClick = () => {
+  avatarFileInput.value?.click()
+}
+
+const onAvatarSelected = async (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) { ElMessage.warning('请选择图片文件'); return }
+  if (file.size > 5 * 1024 * 1024) { ElMessage.warning('图片不能超过 5MB'); return }
+  avatarUploading.value = true
+  try {
+    const data = await uploadImage(file)
+    await updateProfile({ avatarUrl: data.url })
+    userStore.setUserInfo({ ...userStore.userInfo, avatarUrl: data.url })
+    ElMessage.success('头像更新成功')
+  } catch {} finally {
+    avatarUploading.value = false
+    target.value = ''
+  }
+}
+
+// 资料编辑（手机号/邮箱/昵称）
+const profileEditing = ref(false)
+const profileForm = ref({ nickname: '', phone: '', email: '' })
+
+const openProfileEdit = () => {
+  profileForm.value = {
+    nickname: userStore.userInfo?.nickname || '',
+    phone: userStore.userInfo?.phone?.replace(/\*\*\*\*/g, '') || '',
+    email: userStore.userInfo?.email || ''
+  }
+  profileEditing.value = true
+}
+
+const handleProfileSave = async () => {
+  try {
+    const data = await updateProfile({
+      nickname: profileForm.value.nickname || undefined,
+      phone: profileForm.value.phone || undefined,
+      email: profileForm.value.email || undefined
+    })
+    userStore.setUserInfo(data)
+    ElMessage.success('资料更新成功')
+    profileEditing.value = false
+  } catch {}
+}
 
 // 校验身份证号出生日期是否合法
 const isValidBirthDate = (idCard: string): boolean => {
@@ -111,6 +177,22 @@ onMounted(() => {
   checkAuthStatus()
 })
 
+// 修改密码
+const handlePasswordChange = async () => {
+  if (!isPasswordValid.value || passwordSubmitting.value) return
+  passwordSubmitting.value = true
+  try {
+    await changePassword(passwordForm.value)
+    ElMessage.success('密码修改成功，请重新登录')
+    securityDialogVisible.value = false
+    userStore.logout()
+    router.push('/login')
+  } catch {
+  } finally {
+    passwordSubmitting.value = false
+  }
+}
+
 // 菜单项点击处理
 const handleMenuClick = (item: string) => {
   switch (item) {
@@ -118,25 +200,28 @@ const handleMenuClick = (item: string) => {
       router.push('/resume')
       break
     case 'applications':
-      ElMessage.info('投递记录功能开发中')
+      router.push('/my-applications')
       break
     case 'interviews':
-      ElMessage.info('面试邀请功能开发中')
+      router.push('/my-applications?tab=interviews')
       break
     case 'favorites':
-      ElMessage.info('收藏职位功能开发中')
+      router.push('/my-applications?tab=favorites')
       break
     case 'enterprise':
-      ElMessage.info('企业信息功能开发中')
+      router.push('/enterprise-cert')
+      break
+    case 'editEnterprise':
+      router.push('/enterprise-cert?edit=1')
       break
     case 'postedJobs':
       router.push('/post-job')
       break
     case 'resumePool':
-      ElMessage.info('简历池功能开发中')
+      router.push('/resume-pool')
       break
     case 'security':
-      ElMessage.info('账号安全功能开发中')
+      router.push('/account-security')
       break
     case 'superAdmin':
       router.push('/admin/super')
@@ -168,9 +253,16 @@ const handleMenuClick = (item: string) => {
       <div class="profile-sidebar">
         <!-- 用户基本信息 -->
         <div class="user-card">
-          <div class="user-avatar">
-            <el-icon :size="48"><User /></el-icon>
+          <div class="user-avatar" @click="handleAvatarClick" title="点击更换头像">
+            <template v-if="userStore.userInfo?.avatarUrl">
+              <img :src="userStore.userInfo.avatarUrl" class="avatar-img" />
+            </template>
+            <template v-else>
+              <el-icon :size="48"><User /></el-icon>
+            </template>
+            <div class="avatar-overlay">{{ avatarUploading ? '上传中' : '换头像' }}</div>
           </div>
+          <input ref="avatarFileInput" type="file" accept="image/*" style="display:none" @change="onAvatarSelected" />
           <div class="user-name">{{ userStore.userInfo?.nickname || '未设置昵称' }}</div>
           <div class="user-role-tag">
           <span :class="['role-badge', isSuperAdmin ? 'super-admin' : isRecruiter ? 'recruiter' : 'seeker']">
@@ -181,7 +273,7 @@ const handleMenuClick = (item: string) => {
             <el-icon :size="14"><Phone /></el-icon>
             {{ userPhone }}
           </div>
-          <button class="edit-profile-btn" @click="handleMenuClick('resume')">
+          <button class="edit-profile-btn" @click="isRecruiter ? handleMenuClick('editEnterprise') : handleMenuClick('resume')">
             <el-icon :size="14"><Edit /></el-icon>
             {{ isRecruiter ? '编辑企业信息' : '编辑简历' }}
           </button>
@@ -376,6 +468,43 @@ const handleMenuClick = (item: string) => {
       </div>
     </div>
 
+    <!-- 账号安全弹窗 -->
+    <el-dialog v-model="securityDialogVisible" title="账号安全" width="440px" :close-on-click-modal="false" destroy-on-close>
+      <div class="auth-dialog-body">
+        <p class="section-label">联系方式</p>
+        <div class="info-section">
+          <div class="info-line"><span class="info-label">昵称</span>
+            <el-input v-model="profileForm.nickname" size="small" placeholder="修改昵称" maxlength="20" v-if="profileEditing" />
+            <span v-else>{{ userStore.userInfo?.nickname || '未设置' }}</span>
+          </div>
+          <div class="info-line"><span class="info-label">手机号</span>
+            <el-input v-model="profileForm.phone" size="small" placeholder="新手机号" maxlength="11" v-if="profileEditing" />
+            <span v-else>{{ userStore.userInfo?.phone || '未绑定' }}</span>
+          </div>
+          <div class="info-line"><span class="info-label">邮箱</span>
+            <el-input v-model="profileForm.email" size="small" placeholder="新邮箱" v-if="profileEditing" />
+            <span v-else>{{ userStore.userInfo?.email || '未绑定' }}</span>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <el-button v-if="!profileEditing" size="small" @click="openProfileEdit">修改资料</el-button>
+          <template v-else>
+            <el-button size="small" type="primary" @click="handleProfileSave">保存</el-button>
+            <el-button size="small" @click="profileEditing = false">取消</el-button>
+          </template>
+        </div>
+        <el-divider />
+        <p class="section-label">修改密码</p>
+        <el-input v-model="passwordForm.oldPassword" type="password" show-password size="large" placeholder="原密码" />
+        <el-input v-model="passwordForm.newPassword" type="password" show-password size="large" placeholder="新密码（6-20位）" style="margin-top:12px" />
+        <el-input v-model="passwordForm.confirmPassword" type="password" show-password size="large" placeholder="确认新密码" style="margin-top:12px" />
+      </div>
+      <template #footer>
+        <el-button @click="securityDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :disabled="!isPasswordValid" :loading="passwordSubmitting" @click="handlePasswordChange">确认修改密码</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 实名认证弹窗 -->
     <el-dialog v-model="authDialogVisible" title="实名认证" width="440px" :close-on-click-modal="false" destroy-on-close>
       <div class="auth-dialog-body">
@@ -445,7 +574,28 @@ const handleMenuClick = (item: string) => {
   justify-content: center;
   margin: 0 auto 16px;
   color: #007AFF;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
 }
+.user-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  color: #fff;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.user-avatar:hover .avatar-overlay { opacity: 1; }
 
 .user-name {
   font-size: 18px;
@@ -708,6 +858,32 @@ const handleMenuClick = (item: string) => {
   color: #e74c3c;
   margin-top: 4px;
   padding-left: 4px;
+}
+
+/* 账号安全 */
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.info-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #000;
+}
+.info-line .info-label {
+  width: 80px;
+  color: #000;
+  flex-shrink: 0;
+}
+.section-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+  margin: 0 0 12px;
 }
 
 @media (max-width: 768px) {

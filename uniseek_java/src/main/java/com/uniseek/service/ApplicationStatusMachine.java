@@ -69,7 +69,7 @@ public class ApplicationStatusMachine {
         switch (status) {
             case 0:  return "已投递";
             case 1:  return "待面试";
-            case 2:  return "面试通过";
+            case 2:  return "待定";
             case 3:  return "已录用";
             case 4:  return "已淘汰";
             case 5:  return "已完成";
