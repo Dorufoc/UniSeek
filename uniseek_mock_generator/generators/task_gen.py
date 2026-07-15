@@ -10,9 +10,10 @@ import datetime
 import json
 from typing import List, Dict
 
-from config import END_DATE, START_DATE, MAJOR_CITY_IDS
+from config import END_DATE, START_DATE, ALL_REGION_IDS
 from sql_output import SQLWriter
 from datapool import JOB_TITLES_BY_CATEGORY, JOB_DESCRIPTION_TEMPLATES, SKILLS_BY_CATEGORY
+from time_utils import weighted_random_time
 
 # =============================================================================
 # 常量定义
@@ -869,30 +870,15 @@ def _generate_coordinates(region_id: int) -> tuple:
 
 
 def _pick_region_id() -> int:
-    """选取地区 ID。
+    """从 ALL_REGION_IDS 中随机选取地区 ID。
 
-    60% 概率从主要城市（MAJOR_CITY_IDS）中选取，
-    40% 概率随机选取区县级地区。
-
-    MAJOR_CITY_IDS 在 config.py 中定义，包含 23 个主要城市区县级 ID。
+    ALL_REGION_IDS 在 config.py 中定义，包含约 160 个加权区县级地区 ID，
+    覆盖全国 34 个省级行政区，权重由出现次数体现。
 
     Returns:
         地区 ID
     """
-    if random.random() < 0.6:
-        return random.choice(MAJOR_CITY_IDS)
-    else:
-        # 从 MAJOR_CITY_IDS 中选一个不同的，模拟非主要城市
-        # 取前四位作为城市级 ID，随机生成一个区县 ID
-        base_id = random.choice(MAJOR_CITY_IDS)
-        prefix = base_id // 100
-        # 生成一个符合格式的区县 ID（城市前缀 + 随机两位数字）
-        suffix = random.randint(1, 30)
-        alt_id = prefix * 100 + suffix
-        # 确保不等于原始值
-        if alt_id == base_id:
-            alt_id = base_id + 1
-        return alt_id
+    return random.choice(ALL_REGION_IDS)
 
 
 def _pick_status() -> tuple:
@@ -944,18 +930,15 @@ def _generate_total_quota() -> int:
 def _generate_create_time(skew_recent: bool = True) -> datetime.datetime:
     """生成创建时间。
 
+    使用 weighted_random_time() 确保数据分布合理，近期更密集。
+
     Args:
-        skew_recent: 是否偏向近期（使用 beta 分布）
+        skew_recent: 参数保留以兼容调用方（实际分布由 weighted_random_time 决定）
 
     Returns:
         随机的创建时间
     """
-    if skew_recent:
-        # beta(3, 2) → 偏向右侧（近期）
-        t = random.betavariate(3, 2)
-    else:
-        t = random.random()
-    return START_DT + datetime.timedelta(seconds=int(SPAN_SECONDS * t))
+    return weighted_random_time()
 
 
 # =============================================================================

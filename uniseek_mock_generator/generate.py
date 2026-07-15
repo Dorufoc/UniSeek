@@ -117,7 +117,7 @@ def main():
         # =====================================================================
         print("Step 5/6: 生成日志和统计数据...")
         generate_operation_logs(writer, all_user_ids, seeker_ids, hr_ids,
-                                admin_ids, app_info_list)
+                                admin_ids, app_info_list, task_ids, enterprise_ids)
         generate_daily_statistics(writer)
         print(f"  -> {OPERATION_LOG_COUNT} 条操作日志, 365 条运营日报")
 

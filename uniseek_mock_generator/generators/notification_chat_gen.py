@@ -29,6 +29,7 @@ from datapool import (
     NOTIFICATION_TEMPLATES,
 )
 from sql_output import SQLWriter
+from time_utils import weighted_random_time
 
 # =============================================================================
 # 常量定义
@@ -351,7 +352,7 @@ def generate_notifications(
                 0,                                           # type=系统通知
                 0 if random.random() < 0.3 else 1,            # is_read
                 None,                                         # biz_id = NULL
-                _format_dt(_random_datetime_between(START_DT, END_DT)),
+                _format_dt(weighted_random_time()),
             ])
 
     generated = len(notification_ids)
@@ -644,7 +645,7 @@ def generate_complaints(
             handle_result = random.choice(_HANDLE_RESULTS)
 
         # ---- 时间 ----
-        create_time = _random_datetime_between(START_DT, END_DT)
+        create_time = weighted_random_time()
         update_time = create_time
         if status >= 1:
             update_time = _random_datetime_between(create_time, END_DT)

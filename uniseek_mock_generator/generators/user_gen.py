@@ -21,6 +21,7 @@ from config import (
 from crypto import generate_salt, encrypt_password
 from sql_output import SQLWriter
 from datapool import SURNAMES, MALE_GIVEN_NAMES, FEMALE_GIVEN_NAMES
+from time_utils import weighted_random_time
 
 # =============================================================================
 # 常量定义
@@ -164,18 +165,12 @@ def random_name() -> str:
 
 
 def random_create_time() -> datetime.datetime:
-    """生成指数分布的用户注册时间。
+    """生成加权分布的用户注册时间。
 
-    90% 的用户注册在 2014 年之后（时间范围后 70%），
-    10% 的用户注册在 2010–2014 年之间（时间范围前 30%）。
-    整体趋势：越靠近 2026 年，注册越密集。
+    使用 weighted_random_time() 确保数据在 2010-2026 年间分布合理，
+    近期数据更密集，以支持仪表盘趋势分析。
     """
-    t = random.betavariate(2, 5)
-    if random.random() < 0.9:
-        t = 0.3 + t * 0.7
-    else:
-        t = t * 0.3
-    return START_DT + datetime.timedelta(seconds=int(SPAN_SECONDS * t))
+    return weighted_random_time()
 
 
 def random_regular_phone(used_phones: set) -> int:

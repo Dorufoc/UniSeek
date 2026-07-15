@@ -28,6 +28,7 @@ from datapool import (
     FEMALE_GIVEN_NAMES,
     SKILLS_BY_CATEGORY,
 )
+from time_utils import weighted_random_time
 
 # =============================================================================
 # 常量定义
@@ -249,9 +250,8 @@ def _build_application_record(
     # 按统计模型选取状态
     status = _pick_status()
 
-    # 生成创建时间（使用 beta 分布确保偏向近期）
-    t = random.betavariate(3, 2)
-    create_time = START_DT + datetime.timedelta(seconds=int(SPAN_SECONDS * t))
+    # 生成创建时间（使用加权分布确保数据分布合理，支持趋势分析）
+    create_time = weighted_random_time()
     update_time = create_time
 
     # 简历快照

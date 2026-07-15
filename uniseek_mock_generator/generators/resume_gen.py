@@ -26,6 +26,7 @@ from datapool import (
     SKILLS_BY_CATEGORY,
 )
 from sql_output import SQLWriter
+from time_utils import weighted_random_time
 
 # =============================================================================
 # 常量定义
@@ -207,8 +208,11 @@ def generate_experience() -> str:
 
 
 def random_create_time() -> datetime.datetime:
-    """在 START_DT 和 END_DT 之间生成随机时间点。"""
-    return START_DT + datetime.timedelta(seconds=random.randint(0, SPAN_SECONDS))
+    """生成加权分布的简历创建时间。
+
+    使用 weighted_random_time() 确保数据分布合理，近期更密集。
+    """
+    return weighted_random_time()
 
 
 def format_dt(dt: datetime.datetime) -> str:
