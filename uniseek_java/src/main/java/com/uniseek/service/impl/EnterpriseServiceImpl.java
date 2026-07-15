@@ -2,7 +2,7 @@ package com.uniseek.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.uniseek.common.ApiResult;
-import com.uniseek.common.annotation.OperationLog;
+import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.EnterpriseMapper;
 import com.uniseek.dao.RealNameAuthMapper;
@@ -31,7 +31,7 @@ public class EnterpriseServiceImpl implements EnterpriseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @OperationLog(module = "企业资质", action = "提交", description = "提交企业资质认证")
+    @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public Enterprise submit(Long userId, EnterpriseRequest request) {
         // 1. 检查用户是否已完成实名认证
         RealNameAuth auth = realNameAuthMapper.selectOne(
@@ -90,7 +90,6 @@ public class EnterpriseServiceImpl implements EnterpriseService {
     }
 
     @Override
-    @OperationLog(module = "企业资质", action = "查询", description = "查询我的企业资质信息")
     public Enterprise getMyEnterprise(Long userId) {
         return enterpriseMapper.selectOne(
                 new LambdaQueryWrapper<Enterprise>()
@@ -99,7 +98,7 @@ public class EnterpriseServiceImpl implements EnterpriseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @OperationLog(module = "企业资质", action = "更新", description = "更新企业资质信息并重新提交审核")
+    @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public Enterprise update(Long userId, EnterpriseRequest request) {
         // 1. 查询现有企业资质
         Enterprise existing = enterpriseMapper.selectOne(

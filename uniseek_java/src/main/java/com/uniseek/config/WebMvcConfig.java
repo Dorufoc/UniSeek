@@ -7,12 +7,18 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
 
 /**
  * Web MVC 配置 —— 拦截器、CORS、静态资源映射
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
+
+    private static final Logger log = LoggerFactory.getLogger(WebMvcConfig.class);
 
     @Autowired
     private JwtAuthInterceptor jwtAuthInterceptor;
@@ -34,8 +40,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 开发环境允许所有来源
-        // 开发环境允许所有来源
         registry.addMapping("/**")
                 .allowedOrigins("*")
                 .allowedMethods("*")
@@ -44,8 +48,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 静态文件访问映射（与 upload.path 配置对齐）
+        File uploadDir = new File(uploadPath).getAbsoluteFile();
+        if (!uploadDir.exists()) {
+            boolean created = uploadDir.mkdirs();
+            log.info("上传目录 {} 不存在，{}", uploadDir.getPath(), created ? "已自动创建" : "创建失败");
+        }
+        String absoluteUri = uploadDir.toURI().toString();
+        log.info("静态资源映射: /api/files/** -> {}", absoluteUri);
         registry.addResourceHandler("/api/files/**")
-                .addResourceLocations("file:" + uploadPath + "/");
+                .addResourceLocations(absoluteUri);
     }
 }

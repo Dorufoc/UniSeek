@@ -2,3 +2,17 @@
 *.sql
 !uniseek_schema.sql
 !uniseek_mock_data.sql
+!uniseek_mock_data_large.sql
+
+# Session tracking files (runtime ephemeral)
+.omo/run-continuation/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Node.js
+node_modules/
+
+# Vite dependency cache
+uniseek_vue/node_modules/.vite/

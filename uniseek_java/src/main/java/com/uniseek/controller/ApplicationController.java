@@ -2,7 +2,7 @@ package com.uniseek.controller;
 
 import com.uniseek.common.ApiResult;
 import com.uniseek.common.PageResult;
-import com.uniseek.common.annotation.OperationLog;
+import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.dto.ApplyRequest;
 import com.uniseek.dto.CompleteRequest;
 import com.uniseek.dto.UpdateStatusRequest;
@@ -31,7 +31,7 @@ public class ApplicationController {
      * @return 投递记录
      */
     @PostMapping("/applications")
-    @OperationLog(module = "投递管理", action = "投递", description = "求职者投递职位")
+    @OperationLog(operationType = "APPLICATION_DELIVER", targetType = "APPLICATION")
     public ApiResult<TaskApplication> apply(@Valid @RequestBody ApplyRequest request) {
         TaskApplication application = applicationService.apply(request);
         return ApiResult.success("投递成功", application);
@@ -93,7 +93,7 @@ public class ApplicationController {
      * @return 操作结果
      */
     @PutMapping("/applications/{id}/status")
-    @OperationLog(module = "投递管理", action = "更新状态", description = "HR 处理投递状态流转")
+    @OperationLog(operationType = "APPLICATION_HIRE", targetType = "APPLICATION", targetIdExpression = "#id")
     public ApiResult<Void> updateStatus(@PathVariable Long id,
                                         @Valid @RequestBody UpdateStatusRequest request) {
         applicationService.updateStatus(id, request);
@@ -109,7 +109,7 @@ public class ApplicationController {
      * @return 操作结果
      */
     @PutMapping("/applications/{id}/complete")
-    @OperationLog(module = "投递管理", action = "结算", description = "结算确认投递完成")
+    @OperationLog(operationType = "APPLICATION_COMPLETE", targetType = "APPLICATION", targetIdExpression = "#id")
     public ApiResult<Void> complete(@PathVariable Long id,
                                     @Valid @RequestBody CompleteRequest request) {
         applicationService.complete(id, request);

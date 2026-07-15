@@ -344,6 +344,16 @@ public class AdminServiceImpl implements AdminService {
         return result;
     }
 
+    @Override
+    public List<Map<String, Object>> getHotTasks() {
+        return taskMapper.selectHotTasks();
+    }
+
+    @Override
+    public List<Map<String, Object>> getIndustryDistribution() {
+        return taskMapper.selectIndustryDistribution();
+    }
+
     /**
      * 获取每日统计数据
      */
@@ -389,6 +399,367 @@ public class AdminServiceImpl implements AdminService {
         }
 
         return dailyList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getTalentFlow() {
+        return taskMapper.selectTalentFlow();
+    }
+
+    @Override
+    public List<Map<String, Object>> getLatestActivity() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        QueryWrapper<OperationLog> wrapper = new QueryWrapper<>();
+        wrapper.orderByDesc("create_time").last("LIMIT 10");
+        List<OperationLog> logs = operationLogMapper.selectList(wrapper);
+
+        for (OperationLog log : logs) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", log.getId());
+            item.put("time", log.getCreateTime() != null ? log.getCreateTime().toString().replace("T", " ") : "");
+
+            // 查询操作人名称（脱敏）
+            String userName = resolveOperatorName(log.getOperatorId());
+            item.put("userName", userName);
+
+            // 查询目标标题（岗位名/公司名等）
+            String targetTitle = resolveActivityTarget(log);
+            item.put("target", targetTitle);
+
+            // 构建完整消息
+            String message = buildActivityMessage(log, userName, targetTitle);
+            item.put("message", message);
+            result.add(item);
+        }
+        return result;
+    }
+
+    /**
+     * 脱敏用户名：显示首字 + *，如 "张*" "张*芒"
+     */
+    private String desensitizeName(String name) {
+        if (name == null || name.trim().isEmpty()) return "未知用户";
+        name = name.trim();
+        if (name.length() == 1) return name;
+        if (name.length() == 2) return name.charAt(0) + "*";
+        return name.charAt(0) + "*" + name.substring(name.length() - 1);
+    }
+
+    /**
+     * 根据操作人 ID 查询并脱敏用户名
+     */
+    private String resolveOperatorName(Long operatorId) {
+        if (operatorId == null) return "系统";
+        User user = userMapper.selectById(operatorId);
+        if (user == null || user.getNickname() == null || user.getNickname().trim().isEmpty()) {
+            return "未知用户";
+        }
+        return desensitizeName(user.getNickname());
+    }
+
+    /**
+     * 根据操作日志解析目标标题（岗位名 @ 公司名）
+     */
+    private String resolveActivityTarget(OperationLog log) {
+        String type = log.getOperationType();
+        Long targetId = log.getTargetId();
+        if (targetId == null) return "";
+
+        // 职位相关：通过 targetId 查 task 表获取标题和公司名
+        if ("TASK_PUBLISH".equals(type) || "TASK_AUDIT".equals(type) || "TASK_OFFLINE".equals(type)) {
+            Task task = taskMapper.selectById(targetId);
+            if (task != null) {
+                String title = task.getTitle();
+                String company = "";
+                if (task.getEnterpriseId() != null) {
+                    Enterprise ent = enterpriseMapper.selectById(task.getEnterpriseId());
+                    if (ent != null) company = ent.getCompanyName();
+                }
+                return title + (company.isEmpty() ? "" : " @ " + company);
+            }
+        }
+
+        // 投递相关：targetId 是 applicationId，需查 task_application 获取 taskId
+        if ("APPLICATION_DELIVER".equals(type) || "APPLICATION_INTERVIEW".equals(type)
+            || "APPLICATION_PENDING".equals(type) || "APPLICATION_HIRE".equals(type)
+            || "APPLICATION_REJECT".equals(type) || "APPLICATION_COMPLETE".equals(type)) {
+            TaskApplication app = taskApplicationMapper.selectById(targetId);
+            if (app != null && app.getTaskId() != null) {
+                Task task = taskMapper.selectById(app.getTaskId());
+                if (task != null) {
+                    String title = task.getTitle();
+                    String company = "";
+                    if (task.getEnterpriseId() != null) {
+                        Enterprise ent = enterpriseMapper.selectById(task.getEnterpriseId());
+                        if (ent != null) company = ent.getCompanyName();
+                    }
+                    return title + (company.isEmpty() ? "" : " @ " + company);
+                }
+            }
+        }
+
+        // 企业相关
+        if ("ENTERPRISE_SUBMIT".equals(type) || "ENTERPRISE_AUDIT".equals(type)) {
+            Enterprise ent = enterpriseMapper.selectById(targetId);
+            if (ent != null) return ent.getCompanyName();
+        }
+
+        return "";
+    }
+
+    private String buildActivityMessage(OperationLog log, String userName, String targetTitle) {
+        String type = log.getOperationType();
+        if (type == null) return "系统操作记录";
+
+        switch (type) {
+            case "REGISTER":
+            case "USER_REGISTER":
+                return userName + " 注册了" + (targetTitle.isEmpty() ? "账号" : targetTitle);
+            case "LOGIN":
+            case "USER_LOGIN":
+                return userName + " 登录了系统";
+            case "LOGOUT":
+                return userName + " 退出了系统";
+            case "REAL_NAME_AUTH":
+                return userName + " 完成了实名认证";
+            case "CHANGE_PASSWORD":
+                return userName + " 修改了登录密码";
+            case "UPDATE_PHONE":
+                return userName + " 修改了绑定手机号";
+            case "UPDATE_EMAIL":
+                return userName + " 修改了绑定邮箱";
+            case "SAVE_RESUME":
+                return userName + " 更新了简历";
+            case "UPLOAD_RESUME":
+                return userName + " 上传了附件简历";
+            case "ENTERPRISE_SUBMIT":
+                return (targetTitle.isEmpty() ? "企业" : targetTitle) + " 提交了资质认证申请";
+            case "ENTERPRISE_AUDIT":
+                return (targetTitle.isEmpty() ? "企业" : targetTitle) + " 资质审核通过";
+            case "TASK_PUBLISH":
+                return "新职位发布：" + (targetTitle.isEmpty() ? "未知岗位" : targetTitle);
+            case "TASK_AUDIT":
+                return "职位审核通过：" + (targetTitle.isEmpty() ? "未知岗位" : targetTitle);
+            case "TASK_OFFLINE":
+                return "职位已下架：" + (targetTitle.isEmpty() ? "未知岗位" : targetTitle);
+            case "APPLICATION_DELIVER":
+                return userName + " 投递了 " + (targetTitle.isEmpty() ? "新岗位" : targetTitle);
+            case "APPLICATION_INTERVIEW":
+                return userName + " 收到面试邀请：" + (targetTitle.isEmpty() ? "" : targetTitle);
+            case "APPLICATION_PENDING":
+                return userName + " 投递状态已更新";
+            case "APPLICATION_HIRE":
+                return userName + " 成功入职 " + (targetTitle.isEmpty() ? "新岗位" : targetTitle);
+            case "APPLICATION_REJECT":
+                return userName + " 未通过筛选：" + (targetTitle.isEmpty() ? "" : targetTitle);
+            case "APPLICATION_COMPLETE":
+                return userName + " 已完成工作结算：" + (targetTitle.isEmpty() ? "" : targetTitle);
+            case "COMPLAINT_HANDLE":
+                return "投诉已处理完成";
+            case "ADMIN_SET_ROLE":
+                return userName + " 调整了用户角色";
+            default:
+                if (type != null && !type.isEmpty()) {
+                    String readable = type
+                        .replace("USER_", "")
+                        .replace("APPLICATION_", "")
+                        .replace("ENTERPRISE_", "")
+                        .replace("TASK_", "")
+                        .replace("COMPLAINT_", "")
+                        .replace("REAL_NAME_", "")
+                        .replace("ADMIN_", "")
+                        .replace("_", " ")
+                        .toLowerCase();
+                    if (readable.length() > 0) {
+                        readable = readable.substring(0, 1).toUpperCase() + readable.substring(1);
+                    }
+                    return userName + " " + readable;
+                }
+                return "系统操作记录";
+        }
+    }
+
+    @Override
+    public Map<String, Object> getScreenSummary(String range) {
+        Map<String, Object> data = new HashMap<>();
+
+        // 1. 汇总数据
+        Map<String, Object> summary = new HashMap<>();
+
+        Integer totalUsers = userMapper.selectCount(null);
+        summary.put("totalUsers", totalUsers != null ? totalUsers : 0);
+
+        Integer totalEnterprises = enterpriseMapper.selectCount(null);
+        summary.put("totalEnterprises", totalEnterprises != null ? totalEnterprises : 0);
+
+        Integer totalTasks = taskMapper.selectCount(null);
+        summary.put("totalTasks", totalTasks != null ? totalTasks : 0);
+
+        QueryWrapper<Task> publishedWrapper = new QueryWrapper<>();
+        publishedWrapper.eq("status", 1);
+        Integer publishedTasks = taskMapper.selectCount(publishedWrapper);
+        summary.put("publishedTasks", publishedTasks != null ? publishedTasks : 0);
+
+        Integer totalApplications = taskApplicationMapper.selectCount(null);
+        summary.put("totalApplications", totalApplications != null ? totalApplications : 0);
+
+        data.put("summary", summary);
+
+        // 2. 今日投递数
+        QueryWrapper<TaskApplication> todayWrapper = new QueryWrapper<>();
+        todayWrapper.apply("DATE(create_time) = CURDATE()");
+        Integer todayDeliveries = taskApplicationMapper.selectCount(todayWrapper);
+        data.put("latestDeliveries", todayDeliveries != null ? todayDeliveries : 0);
+
+        // 3. 按范围生成趋势数据
+        data.put("dailyList", generateTrendData(range));
+
+        return data;
+    }
+
+    private List<Map<String, Object>> generateTrendData(String range) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        int days = 7;
+        switch (range != null ? range : "7d") {
+            case "24h":
+                for (int i = 23; i >= 0; i--) {
+                    LocalDateTime start = now.minusHours(i + 1);
+                    LocalDateTime end = now.minusHours(i);
+                    Map<String, Object> item = buildTimeSlotData(start, end);
+                    item.put("date", start.getHour() + ":00");
+                    result.add(item);
+                }
+                return result;
+            case "30d":
+                days = 30;
+                break;
+            case "12m":
+                for (int i = 11; i >= 0; i--) {
+                    LocalDateTime start = now.minusMonths(i).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+                    LocalDateTime end = i == 0 ? now : start.plusMonths(1);
+                    Map<String, Object> item = buildTimeSlotData(start, end);
+                    item.put("date", start.getYear() + "-" + String.format("%02d", start.getMonthValue()));
+                    result.add(item);
+                }
+                return result;
+            case "10y":
+                for (int i = 9; i >= 0; i--) {
+                    LocalDateTime start = now.minusYears(i).withDayOfYear(1).withHour(0).withMinute(0).withSecond(0);
+                    LocalDateTime end = i == 0 ? now : start.plusYears(1);
+                    Map<String, Object> item = buildTimeSlotData(start, end);
+                    item.put("date", String.valueOf(start.getYear()));
+                    result.add(item);
+                }
+                return result;
+            default:
+                break;
+        }
+
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDateTime start = now.minusDays(i).withHour(0).withMinute(0).withSecond(0);
+            LocalDateTime end = i == 0 ? now : start.plusDays(1);
+            Map<String, Object> item = buildTimeSlotData(start, end);
+            item.put("date", start.toLocalDate().toString());
+            result.add(item);
+        }
+        return result;
+    }
+
+    private Map<String, Object> buildTimeSlotData(LocalDateTime start, LocalDateTime end) {
+        Map<String, Object> item = new HashMap<>();
+
+        QueryWrapper<User> uWrap = new QueryWrapper<>();
+        uWrap.between("create_time", start, end);
+        item.put("newUsers", userMapper.selectCount(uWrap));
+
+        QueryWrapper<Task> tWrap = new QueryWrapper<>();
+        tWrap.between("create_time", start, end);
+        item.put("newTasks", taskMapper.selectCount(tWrap));
+
+        QueryWrapper<TaskApplication> aWrap = new QueryWrapper<>();
+        aWrap.between("create_time", start, end);
+        item.put("newApplications", taskApplicationMapper.selectCount(aWrap));
+
+        QueryWrapper<TaskApplication> iWrap = new QueryWrapper<>();
+        iWrap.between("update_time", start, end).eq("status", 1);
+        item.put("newInterviews", taskApplicationMapper.selectCount(iWrap));
+
+        QueryWrapper<TaskApplication> eWrap = new QueryWrapper<>();
+        eWrap.between("update_time", start, end).eq("status", 3);
+        item.put("newEntries", taskApplicationMapper.selectCount(eWrap));
+
+        QueryWrapper<Enterprise> entWrap = new QueryWrapper<>();
+        entWrap.between("audit_time", start, end).eq("audit_status", 1);
+        item.put("newEnterprises", enterpriseMapper.selectCount(entWrap));
+
+        return item;
+    }
+
+    @Override
+    public Map<String, Object> getApplicationFunnel() {
+        Map<String, Object> result = new HashMap<>();
+
+        Integer total = taskApplicationMapper.selectCount(null);
+        result.put("total", total != null ? total : 0);
+
+        int[] statuses = {0, 1, 2, 3, 4, 5};
+        String[] statusNames = {"已投递", "待面试", "面试通过", "已录用", "已淘汰", "已完成"};
+
+        List<Map<String, Object>> statusList = new ArrayList<>();
+        for (int i = 0; i < statuses.length; i++) {
+            QueryWrapper<TaskApplication> wrapper = new QueryWrapper<>();
+            wrapper.eq("status", statuses[i]);
+            Integer count = taskApplicationMapper.selectCount(wrapper);
+            Map<String, Object> item = new HashMap<>();
+            item.put("status", statuses[i]);
+            item.put("name", statusNames[i]);
+            item.put("count", count != null ? count : 0);
+            statusList.add(item);
+        }
+        result.put("statusList", statusList);
+
+        QueryWrapper<TaskApplication> todayWrapper = new QueryWrapper<>();
+        todayWrapper.apply("DATE(create_time) = CURDATE()");
+        Integer todayNew = taskApplicationMapper.selectCount(todayWrapper);
+        result.put("todayNew", todayNew != null ? todayNew : 0);
+
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getEnterpriseSummary() {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 1. 企业资质审核状态
+        int[] auditStatuses = {0, 1, 2};
+        String[] auditNames = {"待审核", "已认证", "已驳回"};
+        List<Map<String, Object>> auditList = new ArrayList<>();
+        for (int i = 0; i < auditStatuses.length; i++) {
+            QueryWrapper<Enterprise> wrapper = new QueryWrapper<>();
+            wrapper.eq("audit_status", auditStatuses[i]);
+            Integer count = enterpriseMapper.selectCount(wrapper);
+            Map<String, Object> item = new HashMap<>();
+            item.put("status", auditStatuses[i]);
+            item.put("name", auditNames[i]);
+            item.put("count", count != null ? count : 0);
+            auditList.add(item);
+        }
+        result.put("auditList", auditList);
+        Integer totalEnterprise = enterpriseMapper.selectCount(null);
+        result.put("totalEnterprise", totalEnterprise != null ? totalEnterprise : 0);
+        
+        // 2. 实名认证率
+        Integer totalUser = userMapper.selectCount(null);
+        QueryWrapper<RealNameAuth> authWrapper = new QueryWrapper<>();
+        authWrapper.eq("status", 1);
+        Integer authedCount = realNameAuthMapper.selectCount(authWrapper);
+        result.put("totalUser", totalUser != null ? totalUser : 0);
+        result.put("authedCount", authedCount != null ? authedCount : 0);
+        result.put("unauthedCount", (totalUser != null ? totalUser : 0) - (authedCount != null ? authedCount : 0));
+        
+        return result;
     }
 
     // ==================== 操作日志 ====================
