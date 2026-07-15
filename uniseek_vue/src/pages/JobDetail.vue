@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getTaskById, type TaskVO } from '@/api/task'
-import { apply } from '@/api/application'
+import { apply, type TaskApplication } from '@/api/application'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
@@ -15,6 +15,7 @@ const error = ref('')
 const job = ref<TaskVO | null>(null)
 const hasApplied = ref(false)
 const applying = ref(false)
+const contacting = ref(false)
 
 const isSeeker = computed(() => userStore.userInfo?.role === 0)
 const isLoggedIn = computed(() => userStore.isLoggedIn)
@@ -52,7 +53,7 @@ const statusColor = (status: number) => {
   return map[status] || '#7f8c8d'
 }
 
-const formatDate = (dateStr: string): string => {
+const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '未设置'
   return dateStr.replace('T', ' ').substring(0, 16)
 }
@@ -75,13 +76,56 @@ const handleApply = async () => {
 
   applying.value = true
   try {
-    await apply({ taskId: job.value.id })
+    const application = await apply({ taskId: job.value.id }) as unknown as TaskApplication
     ElMessage.success('投递成功')
     hasApplied.value = true
+    if (application && application.id) {
+      job.value.applicationId = application.id
+    }
   } catch {
     /* 错误已在拦截器处理 */
   } finally {
     applying.value = false
+  }
+}
+
+/**
+ * 联系 HR：未投递时先创建投递记录（生成会话），然后跳转聊天页
+ */
+const handleContactHr = async () => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  if (!isSeeker.value) {
+    ElMessage.warning('仅求职者可联系 HR')
+    return
+  }
+  if (!job.value) return
+
+  contacting.value = true
+  try {
+    let applicationId = job.value.applicationId
+    // 未投递时先自动投递，系统会在投递成功后创建会话
+    if (!hasApplied.value || !applicationId) {
+      const application = await apply({ taskId: job.value.id }) as unknown as TaskApplication
+      if (application && application.id) {
+        applicationId = application.id
+        hasApplied.value = true
+        job.value.applicationId = application.id
+        job.value.hasApplied = true
+      }
+    }
+    if (applicationId) {
+      router.push(`/chat/${applicationId}`)
+    } else {
+      ElMessage.warning('会话创建失败，请稍后重试')
+    }
+  } catch {
+    /* 错误已在拦截器处理 */
+  } finally {
+    contacting.value = false
   }
 }
 
@@ -98,7 +142,7 @@ onMounted(async () => {
     return
   }
   try {
-    const data = await getTaskById(id)
+    const data = await getTaskById(id) as unknown as TaskVO | null
     if (!data) {
       error.value = '职位不存在或已删除'
     } else {
@@ -219,28 +263,16 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- 求职者：未登录 -->
           <button
-            v-if="isSeeker && job.status === 1 && !hasApplied"
+            v-if="!isLoggedIn"
             class="apply-btn"
-            :disabled="applying"
-            @click="handleApply"
+            @click="router.push('/login')"
           >
-            {{ applying ? '投递中...' : '立即投递' }}
+            登录后投递
           </button>
-          <button
-            v-else-if="hasApplied"
-            class="apply-btn applied"
-            disabled
-          >
-            已投递
-          </button>
-          <button
-            v-else-if="job.status !== 1"
-            class="apply-btn disabled"
-            disabled
-          >
-            {{ statusLabel(job.status) }}
-          </button>
+
+          <!-- 求职者：已登录但非求职者角色 -->
           <button
             v-else-if="!isSeeker && isLoggedIn"
             class="apply-btn disabled"
@@ -248,13 +280,41 @@ onMounted(async () => {
           >
             仅限求职者
           </button>
+
+          <!-- 求职者：职位不在招聘中 -->
           <button
-            v-else-if="!isLoggedIn"
-            class="apply-btn"
-            @click="router.push('/login')"
+            v-else-if="job.status !== 1"
+            class="apply-btn disabled"
+            disabled
           >
-            登录后投递
+            {{ statusLabel(job.status) }}
           </button>
+
+          <!-- 求职者：招聘中 -->
+          <template v-else>
+            <button
+              v-if="!hasApplied"
+              class="apply-btn"
+              :disabled="applying"
+              @click="handleApply"
+            >
+              {{ applying ? '投递中...' : '立即投递' }}
+            </button>
+            <button
+              v-else
+              class="apply-btn applied"
+              disabled
+            >
+              已投递
+            </button>
+            <button
+              class="apply-btn contact-btn"
+              :disabled="contacting"
+              @click="handleContactHr"
+            >
+              {{ contacting ? '正在进入聊天...' : '联系 HR' }}
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -535,6 +595,16 @@ onMounted(async () => {
 .apply-btn.disabled {
   background: #bdc3c7;
   color: #fff;
+}
+
+.apply-btn.contact-btn {
+  background: #fff;
+  color: #007AFF;
+  border: 1px solid #007AFF;
+}
+
+.apply-btn.contact-btn:hover:not(:disabled) {
+  background: rgba(0, 122, 255, 0.06);
 }
 
 .loading-state {

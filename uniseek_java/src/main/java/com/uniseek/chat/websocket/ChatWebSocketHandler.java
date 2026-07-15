@@ -341,12 +341,29 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
+     * 提供给 Controller 使用的公开方法，推送给指定用户 NEW_MESSAGE 事件
+     */
+    public void notifyNewMessage(Long receiverId, ChatMessageVO msgVo, Long applicationId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("messageId", msgVo.getId());
+        data.put("applicationId", applicationId);
+        data.put("senderId", msgVo.getSenderId());
+        data.put("senderName", msgVo.getSenderName());
+        data.put("senderAvatar", msgVo.getSenderAvatar());
+        data.put("content", msgVo.getContent());
+        data.put("messageType", msgVo.getMessageType());
+        data.put("sendTime", msgVo.getSendTime() != null
+                ? msgVo.getSendTime().format(DTF) : LocalDateTime.now().format(DTF));
+        broadcastToUser(receiverId, buildMessage("NEW_MESSAGE", data));
+    }
+
+    /**
      * 向指定用户的所有在线连接广播消息
      *
      * @param userId  目标用户 ID
      * @param message 待发送的 JSON 字符串
      */
-    private void broadcastToUser(Long userId, String message) {
+    public void broadcastToUser(Long userId, String message) {
         Set<WebSocketSession> sessions = userSessions.get(userId);
         if (sessions == null || sessions.isEmpty()) {
             return;

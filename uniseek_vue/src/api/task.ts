@@ -53,6 +53,7 @@ export interface TaskVO {
   categoryName: string
   regionName: string
   hasApplied: boolean
+  applicationId: number | null
   applicationCount: number
 }
 

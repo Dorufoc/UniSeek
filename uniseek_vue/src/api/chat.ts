@@ -12,6 +12,7 @@ export interface ChatSessionVO {
   lastMessage: string
   lastMessageTime: string
   unreadCount: number
+  canSend?: boolean
 }
 
 export interface ChatMessageVO {

@@ -1,10 +1,13 @@
 package com.uniseek.controller;
 
+import com.uniseek.chat.websocket.ChatWebSocketHandler;
 import com.uniseek.common.ApiResult;
 import com.uniseek.common.util.UserContext;
+import com.uniseek.dao.ChatSessionMapper;
 import com.uniseek.dto.ChatMessageVO;
 import com.uniseek.dto.ChatSessionVO;
 import com.uniseek.dto.SendMessageRequest;
+import com.uniseek.entity.ChatSession;
 import com.uniseek.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +24,12 @@ public class ChatController {
 
     @Autowired
     private ChatService chatService;
+
+    @Autowired
+    private ChatWebSocketHandler chatWebSocketHandler;
+
+    @Autowired
+    private ChatSessionMapper chatSessionMapper;
 
     /**
      * 获取聊天会话列表
@@ -89,6 +98,17 @@ public class ChatController {
         Long userId = UserContext.getUserId();
         Integer role = UserContext.getRole();
         ChatMessageVO vo = chatService.sendMessage(applicationId, userId, role, request);
+
+        // 通过 WebSocket 向接收方推送新消息
+        Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
+        if (sessionId != null) {
+            ChatSession session = chatSessionMapper.selectById(sessionId);
+            Long receiverId = userId.equals(session.getEmployerId())
+                    ? session.getSeekerId()
+                    : session.getEmployerId();
+            chatWebSocketHandler.notifyNewMessage(receiverId, vo, applicationId);
+        }
+
         return ApiResult.success("发送成功", vo);
     }
 

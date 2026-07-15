@@ -99,12 +99,12 @@
             <when test="role == 1">
             u.id AS counterpart_id,
             u.nickname AS counterpart_name,
-            u.avatar_url AS counterpart_avatar
+            u.avatar_url AS counterpart_avatar,
             </when>
             <otherwise>
             u.id AS counterpart_id,
             u.nickname AS counterpart_name,
-            u.avatar_url AS counterpart_avatar
+            u.avatar_url AS counterpart_avatar,
             </otherwise>
         </choose>
             cs.last_message,

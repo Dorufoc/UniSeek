@@ -55,6 +55,7 @@
         <result column="category_name" property="categoryName"/>
         <result column="region_name" property="regionName"/>
         <result column="has_applied" property="hasApplied"/>
+        <result column="application_id" property="applicationId"/>
         <result column="application_count" property="applicationCount"/>
     </resultMap>
 
@@ -154,11 +155,12 @@
         <include refid="orderByClause"/>
     </select>
 
-    <!-- 查询职位详情（含 hasApplied） -->
+    <!-- 查询职位详情（含 hasApplied、applicationId） -->
     <select id="selectDetailById" resultMap="TaskVOResultMap">
         SELECT
         <include refid="selectTaskFields"/>,
-        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied
+        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied,
+        ta.id AS application_id
         <include refid="joinTaskRelations"/>
         LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.applicant_id = #{userId}
         WHERE task.id = #{id}
