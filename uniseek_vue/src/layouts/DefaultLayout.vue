@@ -72,12 +72,15 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: 60px;
 }
 
 .layout-header {
   background: linear-gradient(90deg, #0d1b2a 0%, #1b2838 100%);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
 }
 

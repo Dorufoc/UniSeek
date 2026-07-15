@@ -1,19 +1,37 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import { searchTasks, type TaskVO } from '@/api/task'
+import { useUserStore } from '@/stores/user'
+import { searchTasks, getEnterpriseTasks, type TaskVO } from '@/api/task'
+import { getTaskApplications, type TaskApplication } from '@/api/application'
+import { getMyEnterprise, type EnterpriseInfo } from '@/api/enterprise'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const appStore = useAppStore()
+const userStore = useUserStore()
+
+const isRecruiter = computed(() => userStore.userInfo?.role === 1)
+
 const keyword = ref('')
 
+// ── 求职者首页数据 ──
 const recommendJobs = ref<TaskVO[]>([])
 const categoryTree = ref<CategoryVO[]>([])
 const hotKeywords = ['Java', '前端', '销售', '客服', '服务员', '设计', '运营', '行政', '会计', '编辑']
 
+// ── 招聘者首页数据 ──
+const enterprise = ref<EnterpriseInfo | null>(null)
+interface JobWithApplicants {
+  job: TaskVO
+  applications: TaskApplication[]
+}
+const jobsWithApplicants = ref<JobWithApplicants[]>([])
+const loading = ref(false)
+
+// ── 工具方法 ──
 const handleSearch = () => {
   appStore.setSearchKeyword(keyword.value)
   router.push('/jobs')
@@ -58,116 +76,230 @@ const jobTypeLabel = (type: number) => {
   return map[type] || ''
 }
 
-// ── 模拟分类图标色 ──
+const statusLabel = (status: number) => {
+  const map: Record<number, string> = { 0: '已投递', 1: '待面试', 2: '待定', 3: '已录用', 4: '已淘汰', 5: '已完成' }
+  return map[status] || '未知'
+}
+
+const statusType = (status: number) => {
+  if (status === 0) return ''
+  if (status === 1) return 'warning'
+  if (status === 2) return 'info'
+  if (status === 3) return 'success'
+  if (status === 4) return 'danger'
+  if (status === 5) return ''
+  return ''
+}
+
+// 解析简历快照
+const parseSnapshot = (snapshot: string | null) => {
+  if (!snapshot) return null
+  try {
+    return JSON.parse(snapshot)
+  } catch {
+    return null
+  }
+}
+
 const catColors = ['#007AFF', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
 
 onMounted(async () => {
-  const [cats, jobs] = await Promise.all([
-    getCategories().catch(() => [] as CategoryVO[]),
-    searchTasks({ pageSize: 8, sortBy: 'popular' }).catch(() => ({ records: [] as TaskVO[], total: 0, page: 1, pageSize: 8, totalPages: 0 }))
-  ])
-  categoryTree.value = cats.slice(0, 8)
-  recommendJobs.value = jobs.records
+  if (isRecruiter.value) {
+    // ── 招聘者首页：加载企业信息、岗位及投递 ──
+    loading.value = true
+    try {
+      enterprise.value = await getMyEnterprise()
+      const taskPage = await getEnterpriseTasks(1, 100)
+      const tasks = taskPage.records || []
+      if (tasks.length > 0) {
+        const results = await Promise.allSettled(
+          tasks.map(async (job) => {
+            try {
+              const appPage = await getTaskApplications(job.id, 1, 100)
+              return { job, applications: appPage.records || [] }
+            } catch {
+              return { job, applications: [] }
+            }
+          })
+        )
+        jobsWithApplicants.value = results
+          .filter(r => r.status === 'fulfilled')
+          .map(r => (r as PromiseFulfilledResult<JobWithApplicants>).value)
+      }
+    } catch {
+      // 静默失败
+    } finally {
+      loading.value = false
+    }
+  } else {
+    // ── 求职者首页 ──
+    const [cats, jobs] = await Promise.all([
+      getCategories().catch(() => [] as CategoryVO[]),
+      searchTasks({ pageSize: 8, sortBy: 'popular' }).catch(() => ({ records: [] as TaskVO[], total: 0, page: 1, pageSize: 8, totalPages: 0 }))
+    ])
+    categoryTree.value = cats.slice(0, 8)
+    recommendJobs.value = jobs.records
+  }
 })
 </script>
 
 <template>
   <div class="home-page">
-    <!-- Hero 搜索区 -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <h1 class="hero-tagline">找到你心仪的工作</h1>
-        <p class="hero-sub">UniSeek 智能推荐，让好工作主动来找你</p>
-        <div class="hero-search-card">
-          <div class="search-type">职位</div>
-          <el-input
-            v-model="keyword"
-            size="large"
-            placeholder="搜索职位、公司名称"
-            :prefix-icon="Search"
-            clearable
-            class="search-input"
-            @keyup.enter="handleSearch"
-          />
-          <button class="search-btn" @click="handleSearch">搜索</button>
+    <!-- ────────────────── 招聘者首页 ────────────────── -->
+    <template v-if="isRecruiter">
+      <section class="recruiter-header">
+        <div class="section-inner">
+          <h1 class="company-name">{{ enterprise?.companyName || '我的企业' }}</h1>
+          <p class="company-desc">以下是你所在企业发布的岗位及求职者投递情况</p>
         </div>
-        <div class="hot-keywords">
-          <span class="hot-label">热门搜索：</span>
-          <button
-            v-for="kw in hotKeywords"
-            :key="kw"
-            class="hot-tag"
-            @click="quickSearch(kw)"
-          >{{ kw }}</button>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- 分类导航区 -->
-    <section class="category-section" v-if="categoryTree.length > 0">
-      <div class="section-inner">
-        <div class="section-header">
-          <h2>热门职位分类</h2>
-          <button class="view-all-btn" @click="goToJobs()">查看全部</button>
-        </div>
-        <div class="category-grid">
-          <div
-            v-for="(cat, idx) in categoryTree"
-            :key="cat.id"
-            class="category-card"
-            :style="{ borderTopColor: catColors[idx % catColors.length] }"
-            @click="goToJobs(cat.id)"
-          >
-            <span class="cat-name">{{ cat.name }}</span>
-            <span class="cat-count" v-if="cat.children && cat.children.length">{{ cat.children.length }}个子类</span>
+      <section class="recruiter-dashboard">
+        <div class="section-inner">
+          <div v-if="loading" class="loading-tip">加载中...</div>
+          <div v-else-if="jobsWithApplicants.length === 0" class="empty-card">
+            <h3>暂无岗位数据</h3>
+            <p>还没有发布任何岗位，或没有求职者投递</p>
           </div>
-        </div>
-      </div>
-    </section>
+          <div v-else class="job-list">
+            <div v-for="({ job, applications }) in jobsWithApplicants" :key="job.id" class="job-section">
+              <div class="job-section-header" @click="goToJob(job.id)">
+                <div class="job-section-title">
+                  <h3>{{ job.title }}</h3>
+                  <span class="job-section-salary">{{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}/{{ salaryUnitLabel(job.salaryUnit) }}</span>
+                </div>
+                <div class="job-section-meta">
+                  <span class="job-section-type">{{ jobTypeLabel(job.jobType) }}</span>
+                  <span class="job-section-address" v-if="job.address">{{ job.address }}</span>
+                  <span class="applicant-count">{{ applications.length }} 人投递</span>
+                </div>
+              </div>
 
-    <!-- 推荐职位区 -->
-    <section class="jobs-section" v-if="recommendJobs.length > 0">
-      <div class="section-inner">
-        <div class="section-header">
-          <h2>推荐职位</h2>
-          <button class="view-all-btn" @click="goToJobs()">查看全部职位</button>
-        </div>
-        <div class="job-grid">
-          <div
-            v-for="job in recommendJobs"
-            :key="job.id"
-            class="job-card"
-            @click="goToJob(job.id)"
-          >
-            <div class="job-card-top">
-              <h3 class="job-card-title">{{ job.title }}</h3>
-              <span class="job-card-salary">{{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}/{{ salaryUnitLabel(job.salaryUnit) }}</span>
-            </div>
-            <div class="job-card-meta">
-              <span class="job-card-company">{{ job.enterpriseName }}</span>
-              <span class="job-card-type">{{ jobTypeLabel(job.jobType) }}</span>
-            </div>
-            <div class="job-card-bottom">
-              <span class="job-card-location" v-if="job.address">{{ job.address }}</span>
-              <span class="job-card-category" v-if="job.categoryName">{{ job.categoryName }}</span>
-            </div>
-            <div class="job-card-tags" v-if="job.tag && job.tag.length > 0">
-              <span class="job-tag" v-for="(t, i) in job.tag.slice(0, 3)" :key="i">{{ t }}</span>
+              <div class="applicants-list" v-if="applications.length > 0">
+                <div v-for="app in applications" :key="app.id" class="applicant-card">
+                  <div class="applicant-info">
+                    <div class="applicant-name">
+                      {{ parseSnapshot(app.resumeSnapshot)?.realName || '未知' }}
+                    </div>
+                    <div class="applicant-detail">
+                      <span v-if="parseSnapshot(app.resumeSnapshot)?.education">{{ parseSnapshot(app.resumeSnapshot)?.education }}</span>
+                      <span v-if="parseSnapshot(app.resumeSnapshot)?.school">{{ parseSnapshot(app.resumeSnapshot)?.school }}</span>
+                    </div>
+                    <div class="applicant-skills" v-if="parseSnapshot(app.resumeSnapshot)?.skills">
+                      技能：{{ parseSnapshot(app.resumeSnapshot)?.skills }}
+                    </div>
+                  </div>
+                  <div class="applicant-status">
+                    <el-tag :type="statusType(app.status)" size="small">{{ statusLabel(app.status) }}</el-tag>
+                  </div>
+                  <div class="applicant-actions">
+                    <router-link :to="`/messages?chat=${app.id}`" class="action-btn">联系</router-link>
+                    <router-link :to="`/resume-pool?applicantId=${app.applicantId}`" class="action-btn">查看简历</router-link>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="no-applicants">暂无投递</div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </template>
 
-    <!-- 数据为空提示 -->
-    <section class="empty-section" v-else>
-      <div class="section-inner">
-        <div class="empty-card">
-          <h3>还没有职位数据</h3>
-          <p>请先导入种子数据，或由招聘者发布新职位</p>
+    <!-- ────────────────── 求职者首页 ────────────────── -->
+    <template v-else>
+      <!-- Hero 搜索区 -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <h1 class="hero-tagline">找到你心仪的工作</h1>
+          <p class="hero-sub">UniSeek 智能推荐，让好工作主动来找你</p>
+          <div class="hero-search-card">
+            <div class="search-type">职位</div>
+            <el-input
+              v-model="keyword"
+              size="large"
+              placeholder="搜索职位、公司名称"
+              :prefix-icon="Search"
+              clearable
+              class="search-input"
+              @keyup.enter="handleSearch"
+            />
+            <button class="search-btn" @click="handleSearch">搜索</button>
+          </div>
+          <div class="hot-keywords">
+            <span class="hot-label">热门搜索：</span>
+            <button
+              v-for="kw in hotKeywords"
+              :key="kw"
+              class="hot-tag"
+              @click="quickSearch(kw)"
+            >{{ kw }}</button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <!-- 分类导航区 -->
+      <section class="category-section" v-if="categoryTree.length > 0">
+        <div class="section-inner">
+          <div class="section-header">
+            <h2>热门职位分类</h2>
+            <button class="view-all-btn" @click="goToJobs()">查看全部</button>
+          </div>
+          <div class="category-grid">
+            <div
+              v-for="(cat, idx) in categoryTree"
+              :key="cat.id"
+              class="category-card"
+              :style="{ borderTopColor: catColors[idx % catColors.length] }"
+              @click="goToJobs(cat.id)"
+            >
+              <span class="cat-name">{{ cat.name }}</span>
+              <span class="cat-count" v-if="cat.children && cat.children.length">{{ cat.children.length }}个子类</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 推荐职位区 -->
+      <section class="jobs-section" v-if="recommendJobs.length > 0">
+        <div class="section-inner">
+          <div class="section-header">
+            <h2>推荐职位</h2>
+            <button class="view-all-btn" @click="goToJobs()">查看全部职位</button>
+          </div>
+          <div class="job-grid">
+            <div
+              v-for="job in recommendJobs"
+              :key="job.id"
+              class="job-card"
+              @click="goToJob(job.id)"
+            >
+              <div class="job-card-top">
+                <h3 class="job-card-title">{{ job.title }}</h3>
+                <span class="job-card-salary">{{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}/{{ salaryUnitLabel(job.salaryUnit) }}</span>
+              </div>
+              <div class="job-card-meta">
+                <span class="job-card-company">{{ job.enterpriseName }}</span>
+                <span class="job-card-type">{{ jobTypeLabel(job.jobType) }}</span>
+              </div>
+              <div class="job-card-bottom">
+                <span class="job-card-location" v-if="job.address">{{ job.address }}</span>
+                <span class="job-card-category" v-if="job.categoryName">{{ job.categoryName }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 数据为空提示 -->
+      <section class="empty-section" v-else>
+        <div class="section-inner">
+          <div class="empty-card">
+            <h3>还没有职位数据</h3>
+            <p>请先导入种子数据，或由招聘者发布新职位</p>
+          </div>
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
@@ -177,7 +309,218 @@ onMounted(async () => {
   background: #f5f7fa;
 }
 
-/* ── Hero ── */
+/* ── 招聘者头部 ── */
+.recruiter-header {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);
+  padding: 40px 24px;
+}
+
+.company-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.company-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+/* ── 招聘者仪表盘 ── */
+.recruiter-dashboard {
+  padding-bottom: 40px;
+}
+
+.job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.job-section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.job-section-header {
+  padding: 18px 24px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.job-section-header:hover {
+  background: #f8f9fb;
+}
+
+.job-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.job-section-title h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.job-section-salary {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e74c3c;
+}
+
+.job-section-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #999;
+}
+
+.job-section-type {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 122, 255, 0.08);
+  color: #007AFF;
+  font-size: 11px;
+}
+
+.applicant-count {
+  margin-left: auto;
+  font-weight: 500;
+  color: #007AFF;
+}
+
+/* ── 求职者卡片 ── */
+.applicants-list {
+  padding: 12px 24px;
+}
+
+.applicant-card {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+  gap: 16px;
+}
+
+.applicant-card:last-child {
+  border-bottom: none;
+}
+
+.applicant-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.applicant-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.applicant-detail {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.applicant-skills {
+  font-size: 12px;
+  color: #aaa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.applicant-status {
+  flex-shrink: 0;
+}
+
+.applicant-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  padding: 5px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #007AFF;
+  background: rgba(0, 122, 255, 0.06);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: rgba(0, 122, 255, 0.12);
+}
+
+.no-applicants {
+  padding: 18px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #bbb;
+}
+
+.loading-tip {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 15px;
+  color: #999;
+}
+
+/* ── 通用 section ── */
+.section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.view-all-btn {
+  font-size: 14px;
+  color: #007AFF;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.view-all-btn:hover {
+  background: rgba(0, 122, 255, 0.06);
+}
+
+/* ── 求职者 Hero ── */
 .hero-section {
   background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);
   padding: 60px 24px;
@@ -282,42 +625,6 @@ onMounted(async () => {
 .hot-tag:hover {
   background: rgba(255, 255, 255, 0.22);
   color: #fff;
-}
-
-/* ── 通用 section ── */
-.section-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 24px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.section-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0;
-}
-
-.view-all-btn {
-  font-size: 14px;
-  color: #007AFF;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.view-all-btn:hover {
-  background: rgba(0, 122, 255, 0.06);
 }
 
 /* ── 分类卡片 ── */
@@ -434,20 +741,6 @@ onMounted(async () => {
   color: #999;
 }
 
-.job-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.job-tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #f5f7fa;
-  color: #999;
-}
-
 /* ── 空状态 ── */
 .empty-card {
   text-align: center;
@@ -504,6 +797,15 @@ onMounted(async () => {
 
   .job-grid {
     grid-template-columns: 1fr;
+  }
+
+  .applicant-card {
+    flex-wrap: wrap;
+  }
+
+  .applicant-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>

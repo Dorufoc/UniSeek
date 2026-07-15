@@ -315,7 +315,7 @@ const handleDeleteAccount = () => {
               </el-icon>
               <span>{{ realNameStatus === '已认证' ? '您的账号已完成实名认证' : '您尚未完成实名认证，投递职位前需要先完成认证' }}</span>
             </div>
-            <button v-if="realNameStatus !== '已认证'" class="save-btn" @click="router.push('/profile'); ElMessage.info('请前往个人中心的实名认证入口')">
+            <button v-if="realNameStatus !== '已认证'" class="save-btn" @click="router.push('/profile?tab=realNameAuth')">
               前往实名认证
             </button>
           </div>

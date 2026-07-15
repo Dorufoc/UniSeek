@@ -121,8 +121,8 @@
             <if test="req.tag != null and req.tag != ''">
                 AND task.tag LIKE CONCAT('%', #{req.tag}, '%')
             </if>
-            <!-- 默认只查询已发布（1）和进行中（2）的职位 -->
-            AND task.status IN (1, 2)
+            <!-- 只查询招聘中的职位（1），已满员/已下架的职位不展示 -->
+            AND task.status = 1
         </where>
     </sql>
 

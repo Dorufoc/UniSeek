@@ -45,9 +45,9 @@ public class TaskScheduledService {
 
         log.info("职位到期处理完毕，共更新 {} 条过期职位", expiredCount);
 
-        // 处理满员职位：remaining_quota = 0 但 status 仍为 1 的职位
+        // 处理名额已满的职位：remaining_quota = 0 但 status 仍为 1 的职位自动下架
         Task fullEntity = new Task();
-        fullEntity.setStatus(2);
+        fullEntity.setStatus(4);
         fullEntity.setUpdateTime(LocalDateTime.now());
 
         int fullCount = taskMapper.update(fullEntity,
@@ -55,6 +55,6 @@ public class TaskScheduledService {
                         .eq("status", 1)
                         .eq("remaining_quota", 0));
 
-        log.info("职位满员处理完毕，共更新 {} 条满员职位", fullCount);
+        log.info("职位满员自动下架处理完毕，共更新 {} 条职位", fullCount);
     }
 }

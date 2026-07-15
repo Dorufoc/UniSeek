@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getRealNameAuthStatus, submitRealNameAuth, changePassword } from '@/api/auth'
@@ -14,6 +14,7 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 const isRecruiter = computed(() => userStore.userInfo?.role === 1)
@@ -174,7 +175,11 @@ const handleAuthSubmit = async () => {
 }
 
 onMounted(() => {
-  checkAuthStatus()
+  checkAuthStatus().then(() => {
+    if (route.query.tab === 'realNameAuth') {
+      openAuthDialog()
+    }
+  })
 })
 
 // 修改密码

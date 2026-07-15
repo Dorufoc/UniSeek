@@ -241,16 +241,16 @@ public class ApplicationServiceImpl implements ApplicationService {
                 throw new BusinessException("名额不足或已被其他HR修改，请刷新后重试");
             }
 
-            // 如果扣减后剩余名额为 0，更新职位状态为已满员（2）
+            // 如果扣减后剩余名额为 0，自动下架职位（设置为已下架 4）
             if (freshTask.getRemainingQuota() == 0) {
                 Task fullTask = new Task();
                 fullTask.setId(task.getId());
-                fullTask.setStatus(2);
+                fullTask.setStatus(4);
                 fullTask.setVersion(freshTask.getVersion());
                 fullTask.setUpdateTime(LocalDateTime.now());
                 int fullRows = taskMapper.updateById(fullTask);
                 if (fullRows == 0) {
-                    log.warn("满员状态更新失败，可能发生乐观锁冲突，职位ID: {}", task.getId());
+                    log.warn("名额已满，自动下架失败，可能发生乐观锁冲突，职位ID: {}", task.getId());
                 }
             }
         }
