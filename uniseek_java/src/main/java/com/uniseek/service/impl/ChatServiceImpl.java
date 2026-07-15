@@ -1,10 +1,12 @@
 package com.uniseek.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.uniseek.common.ApiResult;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.ChatMessageMapper;
 import com.uniseek.dao.ChatSessionMapper;
 import com.uniseek.dao.EnterpriseMapper;
+import com.uniseek.dao.ResumeMapper;
 import com.uniseek.dao.TaskApplicationMapper;
 import com.uniseek.dao.TaskMapper;
 import com.uniseek.dao.UserMapper;
@@ -13,6 +15,7 @@ import com.uniseek.dto.ChatSessionVO;
 import com.uniseek.dto.SendMessageRequest;
 import com.uniseek.entity.ChatMessage;
 import com.uniseek.entity.ChatSession;
+import com.uniseek.entity.Resume;
 import com.uniseek.entity.Task;
 import com.uniseek.entity.TaskApplication;
 import com.uniseek.entity.User;
@@ -49,6 +52,9 @@ public class ChatServiceImpl implements ChatService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private ResumeMapper resumeMapper;
 
     @Override
     public List<ChatSessionVO> getSessions(Long userId, Integer role) {
@@ -106,16 +112,34 @@ public class ChatServiceImpl implements ChatService {
         // 1. 权限校验
         ChatSession session = validateSessionAccess(applicationId, userId, role);
 
-        // 2. 校验消息类型
+        // 2. 求职者限制：HR 未回复前只能发送一条消息
+        if (role == 0 && !computeCanSend(session, userId, role)) {
+            throw new BusinessException("HR 未回复前，您只能发送一条消息");
+        }
+
+        // 3. 校验消息类型
         Integer messageType = request.getMessageType();
         if (messageType == null) {
             messageType = 0;
         }
-        if (messageType != 0 && messageType != 1) {
-            throw new BusinessException("消息类型不合法：0 文本 / 1 图片");
+        if (messageType == 2) {
+            // 简历附件：仅求职者可发送，后端获取简历附件 URL
+            if (role != 0) {
+                throw new BusinessException("仅求职者可发送简历附件");
+            }
+            if (!session.getSeekerId().equals(userId)) {
+                throw new BusinessException("无权发送简历");
+            }
+            String resumeUrl = getSeekerResumeUrl(userId);
+            if (resumeUrl == null) {
+                throw new BusinessException("暂无简历附件，请先上传简历文件");
+            }
+            request.setContent(resumeUrl);
+        } else if (messageType != 0 && messageType != 1) {
+            throw new BusinessException("消息类型不合法：0 文本 / 1 图片 / 2 简历附件");
         }
 
-        // 3. 插入消息
+        // 4. 插入消息
         Long sessionId = session.getId();
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setSessionId(sessionId);
@@ -126,13 +150,13 @@ public class ChatServiceImpl implements ChatService {
         chatMessage.setSendTime(LocalDateTime.now());
         chatMessageMapper.insert(chatMessage);
 
-        // 4. 更新会话的最后消息
-        session.setLastMessage(request.getContent());
+        // 5. 更新会话的最后消息
+        session.setLastMessage(messageType == 2 ? "[简历附件]" : request.getContent());
         session.setLastMessageTime(chatMessage.getSendTime());
         session.setUpdateTime(LocalDateTime.now());
         chatSessionMapper.updateById(session);
 
-        // 5. 返回 VO
+        // 6. 返回 VO
         return buildChatMessageVO(chatMessage);
     }
 
@@ -141,6 +165,14 @@ public class ChatServiceImpl implements ChatService {
         ChatSessionVO vo = chatSessionMapper.selectSessionDetail(applicationId, userId, role);
         if (vo == null) {
             throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
+        }
+        // 计算当前用户是否允许继续发送消息
+        Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
+        if (sessionId != null) {
+            ChatSession session = chatSessionMapper.selectById(sessionId);
+            if (session != null) {
+                vo.setCanSend(computeCanSend(session, userId, role));
+            }
         }
         return vo;
     }
@@ -175,6 +207,44 @@ public class ChatServiceImpl implements ChatService {
         chatSession.setCreateTime(LocalDateTime.now());
         chatSession.setUpdateTime(LocalDateTime.now());
         chatSessionMapper.insert(chatSession);
+    }
+
+    /**
+     * 计算当前用户是否允许在当前会话中发送消息
+     * <p>HR  unrestricted；求职者仅在「未发送过消息」或「HR 已回复」时可发送。</p>
+     *
+     * @param session 会话实体
+     * @param userId  当前用户 ID
+     * @param role    当前用户角色
+     * @return true 允许发送
+     */
+    private boolean computeCanSend(ChatSession session, Long userId, Integer role) {
+        // HR 不受限制
+        if (role == 1) {
+            return true;
+        }
+        // 求职者：必须先属于该会话
+        if (!session.getSeekerId().equals(userId)) {
+            return false;
+        }
+        Long sessionId = session.getId();
+        Long employerId = session.getEmployerId();
+
+        // 统计求职者已发送的消息数
+        long seekerMsgCount = chatMessageMapper.selectCount(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getSessionId, sessionId)
+                        .eq(ChatMessage::getSenderId, userId));
+        // 未发送过消息，允许发送第一条
+        if (seekerMsgCount == 0) {
+            return true;
+        }
+        // 已发送过消息，需等待 HR 回复后才能继续发送
+        long employerMsgCount = chatMessageMapper.selectCount(
+                new LambdaQueryWrapper<ChatMessage>()
+                        .eq(ChatMessage::getSessionId, sessionId)
+                        .eq(ChatMessage::getSenderId, employerId));
+        return employerMsgCount > 0;
     }
 
     /**
@@ -249,5 +319,14 @@ public class ChatServiceImpl implements ChatService {
             vo.setSenderAvatar(sender.getAvatarUrl());
         }
         return vo;
+    }
+
+    /**
+     * 获取求职者的简历附件 URL
+     */
+    private String getSeekerResumeUrl(Long seekerId) {
+        Resume resume = resumeMapper.selectOne(
+                new LambdaQueryWrapper<Resume>().eq(Resume::getUserId, seekerId));
+        return resume != null ? resume.getAttachmentUrl() : null;
     }
 }

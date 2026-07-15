@@ -84,6 +84,9 @@ public class TaskVO {
     /** 当前用户是否已投递 */
     private Boolean hasApplied;
 
+    /** 当前用户对该职位的投递记录 ID（已投递时有效） */
+    private Long applicationId;
+
     /** 投递数量（热门排序用） */
     private Integer applicationCount;
 }
