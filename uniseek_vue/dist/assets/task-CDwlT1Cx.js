@@ -1,1 +1,0 @@
-import{t as e}from"./api-CgxLbMLv.js";var t=async t=>(await e.post(`/tasks`,t)).data,n=async()=>(await e.get(`/enterprise/tasks`)).data,r=async(t,n)=>(await e.put(`/tasks/${t}/status?targetStatus=${n}`)).data;export{n,r,t};

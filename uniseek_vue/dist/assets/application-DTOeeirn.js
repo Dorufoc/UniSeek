@@ -1,1 +1,0 @@
-import{t as e}from"./api-Byx2TnrG.js";var t=t=>e.post(`/applications`,t),n=(t,n)=>e.get(`/applications/my`,{params:{page:t,pageSize:n}});export{n,t};

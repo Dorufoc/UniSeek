@@ -1,1 +1,0 @@
-import{t as e}from"./api-CgxLbMLv.js";var t=async()=>(await e.get(`/region/tree`)).data;export{t};

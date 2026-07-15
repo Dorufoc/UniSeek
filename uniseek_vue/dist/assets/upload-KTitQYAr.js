@@ -1,1 +1,0 @@
-import{t as e}from"./api-CgxLbMLv.js";var t=async t=>{let n=new FormData;return n.append(`file`,t),(await e.post(`/upload/image`,n,{headers:{"Content-Type":`multipart/form-data`}})).data};export{t};

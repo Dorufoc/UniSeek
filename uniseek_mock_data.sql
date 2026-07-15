@@ -14,48 +14,91 @@ SET NAMES utf8mb4;
 SET @@sql_mode = CONCAT(@@sql_mode, ',NO_BACKSLASH_ESCAPES');
 START TRANSACTION;
 
--- ====================================================================
--- 1. user - 用户表（26 条）
---    超级管理员 1 条（role=99），管理员 1 条（role=9），企业 HR 8 条（role=1），求职者 16 条（role=0）
---    密码: '85455c805d1a6d3f0ed396658acec8a1'
---    盐值: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
--- ====================================================================
+-- ============================================================
+-- user 表测试数据（26 条）
+-- 密码: role=0/1 为 123456, role=9/99 为 admin
+-- 加密: MD5(password + 独立随机盐)
+-- ============================================================
 
 DELETE FROM `user`;
 
 INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
--- 管理员 1 条
-(1,  '13900000001', 'admin@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '系统管理员', NULL, 9, 100, 1, DATE_SUB(NOW(), INTERVAL 1 HOUR),  DATE_SUB(NOW(), INTERVAL 28 DAY),  NOW()),
+(1, '13900000001', 'admin@uniseek.com', 'f18ba68160d524673e9efd33bec65223', '7973add9a398e87ab80e7f14c7bfdc1f', '系统管理员', NULL, 9, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
--- 企业 HR 8 条（role=1）
-(2,  '13900000011', 'li_hr_canyin@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '李 HR-餐饮',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 2 HOUR),  DATE_SUB(NOW(), INTERVAL 26 DAY),  NOW()),
-(3,  '13900000012', 'wang_hr_wuliu@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '王 HR-物流',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 5 HOUR),  DATE_SUB(NOW(), INTERVAL 25 DAY),  NOW()),
-(4,  '13900000013', 'zhang_hr_jishu@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '张 HR-技术',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 3 HOUR),  DATE_SUB(NOW(), INTERVAL 24 DAY),  NOW()),
-(5,  '13900000014', 'liu_hr_jiaoyu@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '刘 HR-教育',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 22 DAY),  NOW()),
-(6,  '13900000015', 'chen_hr_sheji@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '陈 HR-设计',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 8 HOUR),  DATE_SUB(NOW(), INTERVAL 20 DAY),  NOW()),
-(7,  '13900000016', 'zhao_hr_jiazheng@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '赵 HR-家政',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 12 HOUR), DATE_SUB(NOW(), INTERVAL 18 DAY),  NOW()),
-(8,  '13900000017', 'sun_hr_meirong@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '孙 HR-美容',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 16 DAY),  NOW()),
-(9,  '13900000018', 'zhou_hr_qita@uniseek.com',   '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '周 HR-其他',  NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 14 DAY),  NOW()),
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(2, '13900000011', 'li_hr_canyin@uniseek.com', 'c5a282d212a7edd9559da28064e2d8ec', '54cf5cc90e1a6a9fbcce677b57d38e67', '李 HR-餐饮', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
--- 求职者 16 条（role=0）
-(10, '13900000101', 'zhangxiaomang@uniseek.com',  '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '张小芒', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),   DATE_SUB(NOW(), INTERVAL 27 DAY),  NOW()),
-(11, '13900000102', 'lixiaoming@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '李小明', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 5 DAY),   DATE_SUB(NOW(), INTERVAL 26 DAY),  NOW()),
-(12, '13900000103', 'wangdali@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '王大力', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 7 DAY),   DATE_SUB(NOW(), INTERVAL 25 DAY),  NOW()),
-(13, '13900000104', 'zhaoxiaoyan@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '赵晓燕', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 4 DAY),   DATE_SUB(NOW(), INTERVAL 24 DAY),  NOW()),
-(14, '13900000105', 'liuzhiqiang@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '刘志强', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 10 DAY),  DATE_SUB(NOW(), INTERVAL 23 DAY),  NOW()),
-(15, '13900000106', 'chensiyu@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '陈思雨', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),   DATE_SUB(NOW(), INTERVAL 22 DAY),  NOW()),
-(16, '13900000107', 'yanghaoyu@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '杨浩宇', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 8 DAY),   DATE_SUB(NOW(), INTERVAL 21 DAY),  NOW()),
-(17, '13900000108', 'zhoumeiling@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '周美玲', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 9 DAY),   DATE_SUB(NOW(), INTERVAL 20 DAY),  NOW()),
-(18, '13900000109', 'wuhaotian@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '吴昊天', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 12 DAY),  DATE_SUB(NOW(), INTERVAL 19 DAY),  NOW()),
-(19, '13900000110', 'zhengyawei@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '郑雅文', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 2 DAY),   DATE_SUB(NOW(), INTERVAL 18 DAY),  NOW()),
-(20, '13900000111', 'sunpengfei@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '孙鹏飞', NULL, 0, 100, 1, NULL,                              DATE_SUB(NOW(), INTERVAL 17 DAY),  NOW()),
-(21, '13900000112', 'linjingyi@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '林静怡', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY),   DATE_SUB(NOW(), INTERVAL 16 DAY),  NOW()),
-(22, '13900000113', 'huangjunjie@uniseek.com',    '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '黄俊杰', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 11 DAY),  DATE_SUB(NOW(), INTERVAL 15 DAY),  NOW()),
-(23, '13900000114', 'heyutong@uniseek.com',       '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '何雨桐', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 6 DAY),   DATE_SUB(NOW(), INTERVAL 14 DAY),  NOW()),
-(24, '13900000115', 'maxiaofeng@uniseek.com',     '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '马晓峰', NULL, 0, 100, 1, NULL,                              DATE_SUB(NOW(), INTERVAL 13 DAY),  NOW()),
-(25, '13900000116', 'tangyuyan@uniseek.com',      '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '唐语嫣', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 3 DAY),   DATE_SUB(NOW(), INTERVAL 12 DAY),  NOW()),
--- 超级管理员 1 条（role=99）
-(26, '13999999999', 'superadmin@uniseek.com', '85455c805d1a6d3f0ed396658acec8a1', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', '超级管理员', NULL, 99, 100, 1, NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(3, '13900000012', 'wang_hr_wuliu@uniseek.com', '0672801d8505b43d293f08fd4085b1ee', 'affa9bac7a9b632384961f9bca4ba992', '王 HR-物流', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(4, '13900000013', 'zhang_hr_jishu@uniseek.com', 'f237c829ecf68a5e0c23fc2e6512fd67', 'fd5e863b51c8bd44f25c7c781e502ea9', '张 HR-技术', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(5, '13900000014', 'liu_hr_jiaoyu@uniseek.com', '0d62b8636004799cd462a77a023e826d', '227626e2afb4ce54735c150f289c24a3', '刘 HR-教育', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(6, '13900000015', 'chen_hr_sheji@uniseek.com', 'c49a180f6ef844f6742cbde300c7794d', '5fc1f4505da5f10063a3ee82fcce4fa1', '陈 HR-设计', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(7, '13900000016', 'zhao_hr_jiazheng@uniseek.com', '8dfa413168d21e2fd50a8e6633419abe', 'e4e482e8199f943d4ed90b745e1cfe4e', '赵 HR-家政', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(8, '13900000017', 'sun_hr_meirong@uniseek.com', '822e1ae198ac6819b42cbf4aa6cbdf2e', 'f913b5c23d90fbe4e08f93922ca3482a', '孙 HR-美容', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(9, '13900000018', 'zhou_hr_qita@uniseek.com', '4accc5e429f18929ffbe69bb32ccfad1', '1d78968c949c6309d7f77a8dc94245a8', '周 HR-其他', NULL, 1, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(10, '13900000101', 'zhangxiaomang@uniseek.com', '084ee9176b206c36d772c034c3c14dfd', '380a63feca6a68a4f67d85ce989e1cf7', '张小芒', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(11, '13900000102', 'lixiaoming@uniseek.com', '5051e68c092ffea76130026aa14ac354', '73ea382569b17a30075f62865a81bd85', '李小明', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(12, '13900000103', 'wangdali@uniseek.com', '94543d5ebcc92ab7d8e95364cf489501', 'f23b85a38c2836ecd6d2688065d55e93', '王大力', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(13, '13900000104', 'zhaoxiaoyan@uniseek.com', 'faff059378a6387c0a984773091b421d', '472666eefe5994c8355773dfe5dd8bce', '赵晓燕', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(14, '13900000105', 'liuzhiqiang@uniseek.com', 'ae31def1ffdf3aa10656fb464cd646b5', 'c1f880f47deab96e09a125170f8ebcff', '刘志强', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(15, '13900000106', 'chensiyu@uniseek.com', '5d6692bd72535dc58abf3fac23783d06', 'dd82f6247d6a7f903b78360630508703', '陈思雨', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(16, '13900000107', 'yanghaoyu@uniseek.com', 'b216c54ff550d14cc2d4fe11d7615969', '65f456ef9c60f03e6a3accb46f4ac7db', '杨浩宇', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(17, '13900000108', 'zhoumeiling@uniseek.com', '1210c9dfd84882ac3348040533b801c9', 'bc8e7641f3630f964c3c52672b7e6285', '周美玲', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(18, '13900000109', 'wuhaotian@uniseek.com', 'cc6ee17ac7c96690bb7b4af761839dc1', '460d8c6c4b0bcd1c4b8e492f33d62f3f', '吴昊天', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(19, '13900000110', 'zhengyawei@uniseek.com', 'bd6f39e5bb1de6ad979b23d10684a071', 'ef5578acabac4231ade79da8dcde479f', '郑雅文', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(20, '13900000111', 'sunpengfei@uniseek.com', '969d3c3297df498bebbf07034e1f7d05', '5b3029418b74793894a638a9e8c72012', '孙鹏飞', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(21, '13900000112', 'linjingyi@uniseek.com', 'd7bae4957d57e877070d64e50ad9595e', '51636d439d21c3c9705872495de510d6', '林静怡', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(22, '13900000113', 'huangjunjie@uniseek.com', 'b9747b22960e7aecdca6bced3df46c58', '923ed0a302001afa9fb71d3bf3871b0a', '黄俊杰', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(23, '13900000114', 'heyutong@uniseek.com', 'ae059b28ccdb84f2a9432b3301d10857', '6409d3111038f083f48c4eb98dc51c50', '何雨桐', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(24, '13900000115', 'maxiaofeng@uniseek.com', '5d1c9d95d92c396450f88a4d4b61b953', 'a72e63669c2336d366e87a52276ea10d', '马晓峰', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(25, '13900000116', 'tangyuyan@uniseek.com', '1b0db933c2a418f17fafabd5a127d071', 'e20a9b4906dc9a7f2e27ac68737c43f4', '唐语嫣', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+
+INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
+(26, '18688886666', 'superadmin@uniseek.com', '69cfb7496a55d2baad5d5731b55c2e6f', 'e417419cf2e5194657477ed259440d3e', '超级管理员', NULL, 99, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
 -- ====================================================================
 -- 2. real_name_auth - 实名认证表（24 条）

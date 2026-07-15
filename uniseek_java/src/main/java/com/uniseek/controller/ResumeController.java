@@ -37,7 +37,7 @@ public class ResumeController {
     @Autowired
     private ResumeService resumeService;
 
-    @Value("${upload.path}")
+    @Value("${upload.path:./upload}")
     private String uploadPath;
 
     /**

@@ -152,6 +152,12 @@ const router = createRouter({
       ]
     },
     {
+      path: '/screenpreview',
+      name: 'ScreenPreview',
+      component: () => import('@/pages/ScreenPreview.vue'),
+      meta: { title: '数据大屏 - UniSeek' }
+    },
+    {
       path: '/login',
       name: 'Login',
       component: () => import('@/pages/Login.vue'),

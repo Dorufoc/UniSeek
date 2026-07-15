@@ -81,7 +81,58 @@ CREATE TABLE `real_name_auth` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='实名认证表';
 
 -- -------------------------------------------------------------------
--- 3. enterprise - 企业信息表
+-- 3. resume - 在线简历表
+-- -------------------------------------------------------------------
+CREATE TABLE `resume` (
+    `id`             BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '简历ID',
+    `user_id`        BIGINT(20)   NOT NULL                 COMMENT '关联用户ID（FK→user，实名信息从 real_name_auth 获取）',
+    `gender`         TINYINT(1)   DEFAULT NULL             COMMENT '性别：0-男, 1-女',
+    `birth_date`     DATE         DEFAULT NULL             COMMENT '出生日期',
+    `education`      VARCHAR(20)  DEFAULT NULL             COMMENT '学历',
+    `school`         VARCHAR(50)  DEFAULT NULL             COMMENT '毕业院校',
+    `skills`         VARCHAR(500) DEFAULT NULL             COMMENT '技能标签（JSON数组或逗号分隔）',
+    `experience`     TEXT         DEFAULT NULL             COMMENT '工作/实践经历（富文本）',
+    `attachment_url` VARCHAR(255) DEFAULT NULL             COMMENT '附件简历URL',
+    `create_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',
+    `update_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_id` (`user_id`),
+    FULLTEXT KEY `ft_experience` (`experience`),
+    CONSTRAINT `fk_resume_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线简历表';
+
+-- -------------------------------------------------------------------
+-- 4. category - 职位分类表（自关联树形结构）
+-- -------------------------------------------------------------------
+CREATE TABLE `category` (
+    `id`          BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '分类ID',
+    `parent_id`   BIGINT(20)  DEFAULT NULL             COMMENT '父级ID(NULL表示顶级分类)',
+    `name`        VARCHAR(50) NOT NULL                 COMMENT '分类名称',
+    `sort_order`  INT(10)     DEFAULT 0                COMMENT '排序权重（数字越小越靠前）',
+    `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_parent_id` (`parent_id`),
+    CONSTRAINT `fk_category_parent` FOREIGN KEY (`parent_id`) REFERENCES `category` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='职位分类表';
+
+-- -------------------------------------------------------------------
+-- 5. region - 行政区划表（省/市/区三级）
+-- -------------------------------------------------------------------
+CREATE TABLE `region` (
+    `id`          BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '行政区划代码',
+    `parent_id`   BIGINT(20)  DEFAULT NULL             COMMENT '父级ID(NULL表示省级)',
+    `name`        VARCHAR(50) NOT NULL                 COMMENT '行政区划名称',
+    `level`       TINYINT(1)  NOT NULL                 COMMENT '层级：1-省, 2-市, 3-区县',
+    `sort_order`  INT(10)     DEFAULT 0                COMMENT '排序权重',
+    `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_parent_id` (`parent_id`),
+    KEY `idx_level_parent` (`level`, `parent_id`),
+    CONSTRAINT `fk_region_parent` FOREIGN KEY (`parent_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='行政区划表';
+
+-- -------------------------------------------------------------------
+-- 6. enterprise - 企业信息表
 -- -------------------------------------------------------------------
 CREATE TABLE `enterprise` (
     `id`              BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '企业ID',
@@ -103,57 +154,6 @@ CREATE TABLE `enterprise` (
     CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `fk_enterprise_region` FOREIGN KEY (`region_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业信息表';
-
--- -------------------------------------------------------------------
--- 4. resume - 在线简历表
--- -------------------------------------------------------------------
-CREATE TABLE `resume` (
-    `id`             BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '简历ID',
-    `user_id`        BIGINT(20)   NOT NULL                 COMMENT '关联用户ID（FK→user，实名信息从 real_name_auth 获取）',
-    `gender`         TINYINT(1)   DEFAULT NULL             COMMENT '性别：0-男, 1-女',
-    `birth_date`     DATE         DEFAULT NULL             COMMENT '出生日期',
-    `education`      VARCHAR(20)  DEFAULT NULL             COMMENT '学历',
-    `school`         VARCHAR(50)  DEFAULT NULL             COMMENT '毕业院校',
-    `skills`         VARCHAR(500) DEFAULT NULL             COMMENT '技能标签（JSON数组或逗号分隔）',
-    `experience`     TEXT         DEFAULT NULL             COMMENT '工作/实践经历（富文本）',
-    `attachment_url` VARCHAR(255) DEFAULT NULL             COMMENT '附件简历URL',
-    `create_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',
-    `update_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_user_id` (`user_id`),
-    FULLTEXT KEY `ft_experience` (`experience`),
-    CONSTRAINT `fk_resume_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线简历表';
-
--- -------------------------------------------------------------------
--- 5. category - 职位分类表（自关联树形结构）
--- -------------------------------------------------------------------
-CREATE TABLE `category` (
-    `id`          BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '分类ID',
-    `parent_id`   BIGINT(20)  DEFAULT NULL             COMMENT '父级ID(NULL表示顶级分类)',
-    `name`        VARCHAR(50) NOT NULL                 COMMENT '分类名称',
-    `sort_order`  INT(10)     DEFAULT 0                COMMENT '排序权重（数字越小越靠前）',
-    `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    PRIMARY KEY (`id`),
-    KEY `idx_parent_id` (`parent_id`),
-    CONSTRAINT `fk_category_parent` FOREIGN KEY (`parent_id`) REFERENCES `category` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='职位分类表';
-
--- -------------------------------------------------------------------
--- 6. region - 行政区划表（省/市/区三级）
--- -------------------------------------------------------------------
-CREATE TABLE `region` (
-    `id`          BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '行政区划代码',
-    `parent_id`   BIGINT(20)  DEFAULT NULL             COMMENT '父级ID(NULL表示省级)',
-    `name`        VARCHAR(50) NOT NULL                 COMMENT '行政区划名称',
-    `level`       TINYINT(1)  NOT NULL                 COMMENT '层级：1-省, 2-市, 3-区县',
-    `sort_order`  INT(10)     DEFAULT 0                COMMENT '排序权重',
-    `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    PRIMARY KEY (`id`),
-    KEY `idx_parent_id` (`parent_id`),
-    KEY `idx_level_parent` (`level`, `parent_id`),
-    CONSTRAINT `fk_region_parent` FOREIGN KEY (`parent_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='行政区划表';
 
 -- -------------------------------------------------------------------
 -- 7. task - 职位/岗位表（核心业务表）
@@ -309,7 +309,6 @@ CREATE TABLE `daily_statistics` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_stat_date` (`stat_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='运营日报统计表';
-
 
 -- -------------------------------------------------------------------
 -- 13. complaint - 用户投诉处理表
