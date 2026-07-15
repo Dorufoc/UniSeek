@@ -10,17 +10,14 @@ import com.uniseek.service.ResumeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
+import com.uniseek.upload.service.UploadService;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * 简历控制器
@@ -31,14 +28,11 @@ public class ResumeController {
 
     private static final Logger log = LoggerFactory.getLogger(ResumeController.class);
 
-    /** 允许上传的附件简历格式 */
-    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("pdf", "doc", "docx");
-
     @Autowired
     private ResumeService resumeService;
 
-    @Value("${upload.path:./upload}")
-    private String uploadPath;
+    @Autowired
+    private UploadService uploadService;
 
     /**
      * 获取我的简历
@@ -123,46 +117,7 @@ public class ResumeController {
     @OperationLog(operationType = "UPLOAD_RESUME", targetType = "RESUME")
     @PostMapping("/upload-attachment")
     public ApiResult<Map<String, String>> uploadAttachment(@RequestParam("file") MultipartFile file) {
-        // 1. 校验文件是否为空
-        if (file.isEmpty()) {
-            throw new BusinessException("上传文件不能为空");
-        }
-
-        // 2. 校验文件类型
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new BusinessException("文件格式不正确");
-        }
-        String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
-        if (!ALLOWED_EXTENSIONS.contains(ext)) {
-            throw new BusinessException("仅支持 pdf、doc、docx 格式的附件简历");
-        }
-
-        // 3. 生成唯一文件名，防止覆盖
-        String newFilename = UUID.randomUUID().toString() + "." + ext;
-
-        // 4. 确保目标目录存在
-        String resumeDirPath = uploadPath + "/resumes/";
-        File resumeDir = new File(resumeDirPath);
-        if (!resumeDir.exists()) {
-            boolean created = resumeDir.mkdirs();
-            if (!created) {
-                log.error("创建上传目录失败: {}", resumeDirPath);
-                throw new BusinessException("文件上传失败，请稍后重试");
-            }
-        }
-
-        // 5. 保存文件
-        File dest = new File(resumeDir, newFilename);
-        try {
-            file.transferTo(dest);
-        } catch (IOException e) {
-            log.error("文件上传失败: {}", e.getMessage(), e);
-            throw new BusinessException("文件上传失败，请稍后重试");
-        }
-
-        // 6. 返回可访问的 URL（由 WebMvcConfig 静态资源映射处理）
-        String url = "/api/files/resumes/" + newFilename;
+        String url = uploadService.uploadFile(file);
         Map<String, String> result = new HashMap<>();
         result.put("url", url);
         return ApiResult.success("上传成功", result);

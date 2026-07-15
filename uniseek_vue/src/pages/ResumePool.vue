@@ -170,7 +170,9 @@ const submitInterview = async () => {
     ElMessage.success('面试邀请已发送')
     interviewDialogVisible.value = false
     await loadApplications()
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
 }
 
 // 提交淘汰
@@ -189,7 +191,9 @@ const submitReject = async () => {
     ElMessage.success('已发送淘汰通知')
     rejectDialogVisible.value = false
     await loadApplications()
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
 }
 
 // 提交录用/待定（无需额外信息）
@@ -203,7 +207,9 @@ const handleSimpleStatus = async (app: TaskApplication, targetStatus: number, ac
     await updateApplicationStatus(app.id, { status: targetStatus })
     ElMessage.success('操作成功')
     await loadApplications()
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
 }
 
 // 提交结算完成
@@ -216,7 +222,9 @@ const submitComplete = async () => {
     ElMessage.success('结算完成')
     completeDialogVisible.value = false
     await loadApplications()
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
 }
 
 // 根据当前状态返回可执行操作
