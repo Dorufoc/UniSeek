@@ -9,6 +9,8 @@
     "pages/FavoritesPage",
     "pages/ResumePage",
     "pages/SettingsPage",
-    "pages/JobDetailPage"
+    "pages/JobDetailPage",
+    "pages/ChatDetailPage",
+    "pages/RealNameAuthPage"
   ]
 }

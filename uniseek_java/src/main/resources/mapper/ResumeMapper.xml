@@ -13,6 +13,7 @@
         <result column="skills" property="skills"/>
         <result column="experience" property="experience"/>
         <result column="attachment_url" property="attachmentUrl"/>
+        <result column="is_published" property="isPublished"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
@@ -28,6 +29,19 @@
         FROM resume r
         LEFT JOIN real_name_auth rn ON r.user_id = rn.user_id AND rn.status = 1
         WHERE r.user_id = #{userId}
+    </select>
+
+    <!-- 查询已发布到人才市场的简历 -->
+    <select id="selectPublishedResumes" resultMap="ResumeWithRealNameMap">
+        SELECT r.*, rn.real_name
+        FROM resume r
+        LEFT JOIN real_name_auth rn ON r.user_id = rn.user_id AND rn.status = 1
+        WHERE r.is_published = 1
+        <if test="keyword != null and keyword != ''">
+            AND (rn.real_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR r.skills LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY r.update_time DESC
     </select>
 
 </mapper>

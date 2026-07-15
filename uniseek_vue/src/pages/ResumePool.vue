@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getEnterpriseTasks, type TaskVO } from '@/api/task'
 import {
@@ -12,12 +12,42 @@ import {
 } from '@/api/application'
 
 const router = useRouter()
+const route = useRoute()
 
 const tasks = ref<TaskVO[]>([])
 const selectedTaskId = ref<number | null>(null)
 const applications = ref<TaskApplication[]>([])
 const loadingTasks = ref(false)
 const loadingApps = ref(false)
+
+// Tab 切换：从 URL query 读取，默认 pool
+const activeTab = computed<'pool' | 'interview'>(() =>
+  (route.query.tab as string) === 'interview' ? 'interview' : 'pool'
+)
+
+// 简历池：排除已淘汰和已完成，保留可操作的记录
+const poolApplications = computed(() =>
+  applications.value.filter(a => ![1, 4, 5].includes(a.status))
+)
+
+// 面试安排：仅显示已安排面试的记录
+const interviewApplications = computed(() =>
+  applications.value.filter(a => a.status === 1)
+)
+
+// 简历详情弹窗
+const resumeDetailDialogVisible = ref(false)
+const currentResume = ref<ResumeSnapshot | null>(null)
+
+const openResumeDialog = (snapshotJson: string | null) => {
+  const snapshot = parseSnapshot(snapshotJson)
+  if (snapshot) {
+    currentResume.value = snapshot
+    resumeDetailDialogVisible.value = true
+  } else {
+    ElMessage.warning('简历数据无效')
+  }
+}
 
 // 状态标签与颜色
 const statusLabels: Record<number, string> = {
@@ -62,7 +92,7 @@ const loadTasks = async () => {
   loadingTasks.value = true
   try {
     const res = await getEnterpriseTasks()
-    tasks.value = res.data?.records || []
+    tasks.value = res?.records || []
     if (tasks.value.length > 0) {
       selectedTaskId.value = tasks.value[0].id
     }
@@ -82,7 +112,7 @@ const loadApplications = async () => {
   loadingApps.value = true
   try {
     const res = await getTaskApplications(selectedTaskId.value)
-    applications.value = res.data?.records || []
+    applications.value = res?.records || []
   } finally {
     loadingApps.value = false
   }
@@ -219,7 +249,7 @@ const availableActions = (app: TaskApplication) => {
 <template>
   <div class="resume-pool-page">
     <div class="pool-header">
-      <h2 class="pool-title">简历池</h2>
+      <h2 class="pool-title">{{ activeTab === 'interview' ? '面试安排' : '简历池' }}</h2>
       <el-select
         v-model="selectedTaskId"
         placeholder="请选择职位"
@@ -239,62 +269,109 @@ const availableActions = (app: TaskApplication) => {
       <el-empty description="暂无职位，请先发布职位" />
     </div>
 
-    <div v-else-if="loadingApps" class="loading-tip">加载投递记录中...</div>
+    <template v-else>
+      <!-- 加载中 -->
+      <div v-if="loadingApps" class="loading-tip">加载投递记录中...</div>
 
-    <div v-else-if="applications.length === 0" class="empty-block">
-      <el-empty description="该职位暂无投递记录" />
-    </div>
+      <!-- 简历池 Tab -->
+      <template v-if="!loadingApps && activeTab === 'pool'">
+        <div v-if="poolApplications.length" class="application-list">
+          <el-card v-for="app in poolApplications" :key="app.id" class="application-card" shadow="hover">
+            <div class="application-main">
+              <div class="application-avatar">
+                {{ parseSnapshot(app.resumeSnapshot)?.realName?.charAt(0) || '?' }}
+              </div>
+              <div class="application-info">
+                <div class="info-line">
+                  <span class="candidate-name">
+                    {{ parseSnapshot(app.resumeSnapshot)?.realName || '未知姓名' }}
+                  </span>
+                  <el-tag :type="statusTypes[app.status]" size="small">
+                    {{ statusLabels[app.status] }}
+                  </el-tag>
+                </div>
+                <div class="info-line meta">
+                  <span>性别：{{ genderText(parseSnapshot(app.resumeSnapshot)?.gender) }}</span>
+                  <span>学历：{{ parseSnapshot(app.resumeSnapshot)?.education || '-' }}</span>
+                  <span>院校：{{ parseSnapshot(app.resumeSnapshot)?.school || '-' }}</span>
+                </div>
+                <div class="info-line meta">
+                  <span>技能：{{ parseSnapshot(app.resumeSnapshot)?.skills || '-' }}</span>
+                </div>
+                <div class="info-line meta">
+                  <span>经历：{{ parseSnapshot(app.resumeSnapshot)?.experience || '-' }}</span>
+                </div>
+                <div v-if="app.status === 4 && app.rejectReason" class="info-line meta reject-reason">
+                  淘汰原因：{{ app.rejectReason }}
+                </div>
+                <div class="info-line meta">
+                  投递时间：{{ formatDateTime(app.createTime) }}
+                </div>
+              </div>
+            </div>
+            <div class="application-actions">
+              <el-button size="small" @click="openResumeDialog(app.resumeSnapshot)">查看简历</el-button>
+              <el-button
+                v-for="action in availableActions(app)"
+                :key="action.label"
+                :type="action.type"
+                size="small"
+                @click="action.handler"
+              >
+                {{ action.label }}
+              </el-button>
+            </div>
+          </el-card>
+        </div>
+        <div v-else class="empty-block">
+          <el-empty description="简历池暂无候选人，等待求职者投递" />
+        </div>
+      </template>
 
-    <div v-else class="application-list">
-      <el-card v-for="app in applications" :key="app.id" class="application-card" shadow="hover">
-        <div class="application-main">
-          <div class="application-avatar">
-            {{ parseSnapshot(app.resumeSnapshot)?.realName?.charAt(0) || '?' }}
-          </div>
-          <div class="application-info">
-            <div class="info-line">
-              <span class="candidate-name">
-                {{ parseSnapshot(app.resumeSnapshot)?.realName || '未知姓名' }}
-              </span>
-              <el-tag :type="statusTypes[app.status]" size="small">
-                {{ statusLabels[app.status] }}
-              </el-tag>
+      <!-- 面试安排 Tab -->
+      <template v-if="!loadingApps && activeTab === 'interview'">
+        <div v-if="interviewApplications.length" class="interview-list">
+          <div v-for="app in interviewApplications" :key="app.id" class="interview-card">
+            <div class="interview-header">
+              <div class="interview-avatar">{{ parseSnapshot(app.resumeSnapshot)?.realName?.charAt(0) || '?' }}</div>
+              <div class="interview-person">
+                <span class="interview-name">{{ parseSnapshot(app.resumeSnapshot)?.realName || '未知姓名' }}</span>
+                <el-tag :type="statusTypes[app.status]" size="small">{{ statusLabels[app.status] }}</el-tag>
+              </div>
+              <div class="interview-actions">
+                <el-button size="small" @click="openResumeDialog(app.resumeSnapshot)">查看简历</el-button>
+                <el-button
+                  v-for="action in availableActions(app)"
+                  :key="action.label"
+                  :type="action.type"
+                  size="small"
+                  @click="action.handler"
+                >
+                  {{ action.label }}
+                </el-button>
+              </div>
             </div>
-            <div class="info-line meta">
-              <span>性别：{{ genderText(parseSnapshot(app.resumeSnapshot)?.gender) }}</span>
-              <span>学历：{{ parseSnapshot(app.resumeSnapshot)?.education || '-' }}</span>
-              <span>院校：{{ parseSnapshot(app.resumeSnapshot)?.school || '-' }}</span>
-            </div>
-            <div class="info-line meta">
-              <span>技能：{{ parseSnapshot(app.resumeSnapshot)?.skills || '-' }}</span>
-            </div>
-            <div class="info-line meta">
-              <span>经历：{{ parseSnapshot(app.resumeSnapshot)?.experience || '-' }}</span>
-            </div>
-            <div v-if="app.status === 1 && app.interviewTime" class="info-line meta">
-              <span>面试安排：{{ formatDateTime(app.interviewTime) }} @ {{ app.interviewLocation || '-' }}</span>
-            </div>
-            <div v-if="app.status === 4 && app.rejectReason" class="info-line meta reject-reason">
-              淘汰原因：{{ app.rejectReason }}
-            </div>
-            <div class="info-line meta">
-              投递时间：{{ formatDateTime(app.createTime) }}
+            <div class="interview-detail">
+              <div class="interview-detail-item">
+                <span class="interview-detail-label">面试时间</span>
+                <span class="interview-detail-value">{{ formatDateTime(app.interviewTime) || '待定' }}</span>
+              </div>
+              <div class="interview-detail-item">
+                <span class="interview-detail-label">面试地点</span>
+                <span class="interview-detail-value">{{ app.interviewLocation || '待定' }}</span>
+              </div>
+              <div class="interview-detail-item">
+                <span class="interview-detail-label">投递时间</span>
+                <span class="interview-detail-value">{{ formatDateTime(app.createTime) }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div class="application-actions">
-          <el-button
-            v-for="action in availableActions(app)"
-            :key="action.label"
-            :type="action.type"
-            size="small"
-            @click="action.handler"
-          >
-            {{ action.label }}
-          </el-button>
+        <div v-else class="empty-block">
+          <el-empty description="暂无面试安排" />
         </div>
-      </el-card>
-    </div>
+      </template>
+    </template>
 
     <!-- 面试邀请弹窗 -->
     <el-dialog v-model="interviewDialogVisible" title="发送面试邀请" width="460px" destroy-on-close>
@@ -359,6 +436,52 @@ const availableActions = (app: TaskApplication) => {
       <template #footer>
         <el-button @click="completeDialogVisible = false">取消</el-button>
         <el-button type="success" @click="submitComplete">确认完成</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 简历详情弹窗（人才库卡片风格） -->
+    <el-dialog v-model="resumeDetailDialogVisible" title="简历详情" width="560px" destroy-on-close>
+      <template v-if="currentResume">
+        <div class="talent-detail">
+          <div class="talent-detail-header">
+            <div class="talent-detail-avatar">{{ (currentResume.realName || '?').charAt(0) }}</div>
+            <div class="talent-detail-info">
+              <div class="talent-detail-name">{{ currentResume.realName || '未知' }}</div>
+              <div class="talent-detail-meta">
+                <span v-if="currentResume.gender !== undefined">{{ currentResume.gender === 0 ? '男' : '女' }}</span>
+                <span v-if="currentResume.birthDate">{{ currentResume.birthDate }}</span>
+                <span>{{ currentResume.education || '-' }}</span>
+                <span>{{ currentResume.school || '-' }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="currentResume.skills" class="talent-detail-section">
+            <h4 class="talent-section-title">技能标签</h4>
+            <div class="talent-tags">
+              <el-tag
+                v-for="tag in currentResume.skills.split(/[,，、\s]+/).filter(Boolean)"
+                :key="tag"
+                size="small"
+                class="talent-tag"
+              >
+                {{ tag }}
+              </el-tag>
+            </div>
+          </div>
+          <div v-if="currentResume.experience" class="talent-detail-section">
+            <h4 class="talent-section-title">工作经历</h4>
+            <p class="talent-section-content">{{ currentResume.experience }}</p>
+          </div>
+          <div v-if="currentResume.attachmentUrl" class="talent-detail-section">
+            <h4 class="talent-section-title">附件简历</h4>
+            <el-link type="primary" :href="currentResume.attachmentUrl" target="_blank" :underline="false">
+              点击下载附件简历
+            </el-link>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <el-button @click="resumeDetailDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
@@ -459,5 +582,156 @@ const availableActions = (app: TaskApplication) => {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid #eee;
+}
+
+/* 面试安排卡片 */
+.interview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.interview-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.interview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.interview-avatar {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  border-radius: 50%;
+  background: #409eff;
+  color: #fff;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.interview-person {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.interview-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+}
+
+.interview-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.interview-detail {
+  display: flex;
+  gap: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.interview-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.interview-detail-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.interview-detail-value {
+  font-size: 14px;
+  color: #000;
+  font-weight: 500;
+}
+
+/* 人才库风格简历详情弹窗 */
+.talent-detail {
+  padding: 8px 0;
+}
+
+.talent-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.talent-detail-avatar {
+  width: 64px;
+  height: 64px;
+  line-height: 64px;
+  text-align: center;
+  border-radius: 50%;
+  background: #409eff;
+  color: #fff;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.talent-detail-info {
+  flex: 1;
+}
+
+.talent-detail-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #000;
+  margin-bottom: 6px;
+}
+
+.talent-detail-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.talent-detail-section {
+  margin-bottom: 20px;
+}
+
+.talent-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
+}
+
+.talent-section-content {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.talent-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.talent-tag {
+  color: #000;
 }
 </style>

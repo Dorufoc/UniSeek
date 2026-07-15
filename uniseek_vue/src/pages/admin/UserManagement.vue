@@ -158,7 +158,7 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="实名认证" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.realNameAuth ? 'success' : ''" size="small">
+            <el-tag :type="row.realNameAuth ? 'success' : 'info'" size="small">
               {{ row.realNameAuth ? '已认证' : '未认证' }}
             </el-tag>
           </template>

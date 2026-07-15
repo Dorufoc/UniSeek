@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * 职位任务控制器
@@ -108,6 +109,16 @@ public class TaskController {
         Integer userRole = UserContext.getRole();
         taskService.updateStatus(userId, userRole, id, targetStatus);
         return ApiResult.success("状态更新成功", null);
+    }
+
+    /**
+     * 查询指定企业的已发布职位（供求职者查看公司详情）
+     * GET /api/enterprise/{enterpriseId}/tasks
+     */
+    @GetMapping("/enterprise/{enterpriseId}/tasks")
+    public ApiResult<List<TaskVO>> getPublishedEnterpriseTasks(@PathVariable Long enterpriseId) {
+        List<TaskVO> list = taskService.getPublishedEnterpriseTasks(enterpriseId);
+        return ApiResult.success(list);
     }
 
     /**

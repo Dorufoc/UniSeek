@@ -2,7 +2,8 @@
 import { ref, reactive, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { uploadAttachment } from '@/api/resume'
+import { getResume, saveResume as saveResumeApi, uploadAttachment, publishResume as publishResumeApi, unpublishResume as unpublishResumeApi } from '@/api/resume'
+import type { ResumeSaveParams } from '@/api/resume'
 import {
   User, Edit, Plus, Close, Delete, Top, Bottom, UploadFilled,
   Check, ArrowLeft
@@ -33,26 +34,59 @@ const resumeForm = reactive({
 // 新技能输入
 const newSkill = ref('')
 
-// 模拟从后端加载简历数据
-const loadResume = () => {
-  // TODO: 调用后端API获取简历数据
-  const saved = localStorage.getItem('uniseek_resume_draft')
-  if (saved) {
-    const data = JSON.parse(saved)
-    Object.assign(resumeForm, data)
-  } else {
-    resumeForm.realName = ''
-    resumeForm.gender = -1
-    resumeForm.birthDate = ''
-    resumeForm.education = ''
-    resumeForm.school = ''
-    resumeForm.skills = []
-    resumeForm.experience = ''
-    resumeForm.attachmentUrl = ''
+// 从后端加载简历数据
+const loadResume = async () => {
+  try {
+    const data = await getResume()
+    if (data) {
+      let skills: string[] = []
+      if (data.skills) {
+        try {
+          skills = JSON.parse(data.skills)
+        } catch {
+          skills = data.skills.split(',').filter(s => s.trim())
+        }
+      }
+      resumeForm.realName = data.realName || ''
+      resumeForm.gender = data.gender ?? -1
+      resumeForm.birthDate = data.birthDate || ''
+      resumeForm.education = data.education || ''
+      resumeForm.school = data.school || ''
+      resumeForm.skills = skills
+      resumeForm.experience = data.experience || ''
+      resumeForm.attachmentUrl = data.attachmentUrl || ''
+      isPublished.value = data.isPublished === 1
+    }
+  } catch {
+    // 未创建简历时不做处理
+  }
+}
+loadResume()
+
+// 发布状态
+const isPublished = ref(false)
+
+// 发布到人才市场
+const publishToMarket = async () => {
+  try {
+    await publishResumeApi()
+    isPublished.value = true
+    ElMessage.success('简历已发布到人才市场')
+  } catch {
+    // 错误已在拦截器中处理
   }
 }
 
-loadResume()
+// 从人才市场下架
+const unpublishFromMarket = async () => {
+  try {
+    await unpublishResumeApi()
+    isPublished.value = false
+    ElMessage.success('简历已从人才市场下架')
+  } catch {
+    // 错误已在拦截器中处理
+  }
+}
 
 // 简历完整度计算
 const completionPercent = computed(() => {
@@ -100,15 +134,27 @@ const cancelEdit = () => {
 }
 
 // 保存简历
-const saveResume = () => {
+const saveResume = async () => {
   if (!resumeForm.realName.trim()) {
     ElMessage.warning('请输入真实姓名')
     return
   }
-  localStorage.setItem('uniseek_resume_draft', JSON.stringify(resumeForm))
-  // TODO: 调用后端API保存简历
-  ElMessage.success('简历保存成功')
-  isEditing.value = false
+  try {
+    const params: ResumeSaveParams = {
+      gender: resumeForm.gender >= 0 ? resumeForm.gender : undefined,
+      birthDate: resumeForm.birthDate || undefined,
+      education: resumeForm.education || undefined,
+      school: resumeForm.school || undefined,
+      skills: resumeForm.skills.length > 0 ? JSON.stringify(resumeForm.skills) : undefined,
+      experience: resumeForm.experience || undefined,
+      attachmentUrl: resumeForm.attachmentUrl || undefined,
+    }
+    await saveResumeApi(params)
+    ElMessage.success('简历保存成功')
+    isEditing.value = false
+  } catch {
+    // 错误已在拦截器中处理
+  }
 }
 
 // 添加技能标签
@@ -139,22 +185,17 @@ const triggerUpload = () => {
 
 // 处理文件选择并上传
 const handleFileChange = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
+  const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
 
-  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
   const ext = file.name.split('.').pop()?.toLowerCase()
-
-  if (!allowedTypes.includes(file.type) && !['pdf', 'doc', 'docx'].includes(ext || '')) {
+  if (!['pdf', 'doc', 'docx'].includes(ext || '')) {
     ElMessage.error('仅支持 PDF、DOC、DOCX 格式')
-    input.value = ''
     return
   }
 
   if (file.size > 10 * 1024 * 1024) {
     ElMessage.error('文件大小不能超过 10MB')
-    input.value = ''
     return
   }
 
@@ -162,10 +203,9 @@ const handleFileChange = async (event: Event) => {
     const result = await uploadAttachment(file)
     resumeForm.attachmentUrl = result.url
     ElMessage.success('附件简历上传成功')
-  } catch {
-    // 错误已在拦截器处理
-  } finally {
-    input.value = ''
+    await saveResume()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '附件上传失败，请检查网络或联系管理员')
   }
 }
 
@@ -254,6 +294,20 @@ const toggleSection = (key: string) => {
               <button class="btn-edit" @click="startEdit">
                 <el-icon :size="16"><Edit /></el-icon>
                 编辑简历
+              </button>
+              <button
+                v-if="!isPublished"
+                class="btn-publish"
+                @click="publishToMarket"
+              >
+                发布到人才市场
+              </button>
+              <button
+                v-else
+                class="btn-unpublish"
+                @click="unpublishFromMarket"
+              >
+                已发布 - 点击下架
               </button>
             </template>
             <template v-else>
@@ -392,7 +446,13 @@ const toggleSection = (key: string) => {
                 </div>
                 <div class="form-row">
                   <label>出生日期</label>
-                  <input v-model="resumeForm.birthDate" type="date" class="form-input" />
+                  <el-date-picker
+                    v-model="resumeForm.birthDate"
+                    type="date"
+                    placeholder="选择出生日期"
+                    value-format="YYYY-MM-DD"
+                    class="date-picker"
+                  />
                 </div>
                 <div class="form-row">
                   <label>手机号</label>
@@ -536,7 +596,7 @@ const toggleSection = (key: string) => {
   background: #fff;
   border-radius: 12px;
   padding: 28px 20px;
-  text-align: center;
+  text-align: left;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -548,7 +608,7 @@ const toggleSection = (key: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
+  margin: 0 0 12px;
   color: #007AFF;
 }
 
@@ -712,6 +772,42 @@ const toggleSection = (key: string) => {
   background: #0066d6;
 }
 
+.btn-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 22px;
+  font-size: 14px;
+  color: #fff;
+  background: #00b578;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-publish:hover {
+  background: #009a64;
+}
+
+.btn-unpublish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 22px;
+  font-size: 14px;
+  color: #666;
+  background: #f0f0f5;
+  border: 1px solid #e0e0e8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-unpublish:hover {
+  background: #e8e8ed;
+}
+
 /* ========== 简历内容区 - 预览模式 ========== */
 .resume-content {
   display: flex;
@@ -865,6 +961,8 @@ const toggleSection = (key: string) => {
 }
 
 .form-row {
+  display: flex;
+  align-items: flex-start;
   margin-bottom: 20px;
 }
 
@@ -873,11 +971,12 @@ const toggleSection = (key: string) => {
 }
 
 .form-row label {
-  display: block;
+  width: 90px;
+  min-width: 90px;
   font-size: 14px;
   color: #000;
-  margin-bottom: 8px;
   font-weight: 500;
+  padding-top: 10px;
 }
 
 .required {
@@ -885,7 +984,7 @@ const toggleSection = (key: string) => {
 }
 
 .form-input {
-  width: 100%;
+  flex: 1;
   max-width: 400px;
   padding: 10px 14px;
   font-size: 14px;
@@ -895,6 +994,7 @@ const toggleSection = (key: string) => {
   transition: border-color 0.2s;
   box-sizing: border-box;
   color: #000;
+  background: #fff;
 }
 
 .form-input:focus {
@@ -905,6 +1005,11 @@ const toggleSection = (key: string) => {
 .readonly-text {
   font-size: 14px;
   color: #000;
+}
+
+.date-picker {
+  flex: 1;
+  max-width: 400px;
 }
 
 .gender-options {
@@ -1000,7 +1105,7 @@ const toggleSection = (key: string) => {
 }
 
 .form-textarea {
-  width: 100%;
+  flex: 1;
   padding: 12px 14px;
   font-size: 14px;
   border: 1px solid #dcdce4;
@@ -1011,6 +1116,7 @@ const toggleSection = (key: string) => {
   line-height: 1.6;
   color: #000;
   box-sizing: border-box;
+  background: #fff;
 }
 
 .form-textarea:focus {
@@ -1030,7 +1136,8 @@ const toggleSection = (key: string) => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #f8f9fb;
+  background: #fff;
+  border: 1px solid #dcdce4;
   border-radius: 8px;
 }
 
@@ -1051,13 +1158,13 @@ const toggleSection = (key: string) => {
 .upload-area {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
   padding: 36px 20px;
   font-size: 14px;
   color: #000;
-  background: #f8f9fb;
+  background: #fff;
   border: 2px dashed #dcdce4;
   border-radius: 10px;
   cursor: pointer;
@@ -1067,7 +1174,7 @@ const toggleSection = (key: string) => {
 .upload-area:hover {
   border-color: #007AFF;
   color: #007AFF;
-  background: rgba(0, 122, 255, 0.03);
+  background: #fff;
 }
 
 .upload-hint {

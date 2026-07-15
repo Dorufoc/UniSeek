@@ -55,6 +55,7 @@
         <result column="category_name" property="categoryName"/>
         <result column="region_name" property="regionName"/>
         <result column="has_applied" property="hasApplied"/>
+        <result column="application_id" property="applicationId"/>
         <result column="application_count" property="applicationCount"/>
     </resultMap>
 
@@ -154,13 +155,20 @@
         <include refid="orderByClause"/>
     </select>
 
-    <!-- 查询职位详情（含 hasApplied） -->
+    <!-- 查询职位详情（含 hasApplied、applicationId） -->
     <select id="selectDetailById" resultMap="TaskVOResultMap">
         SELECT
         <include refid="selectTaskFields"/>,
-        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied
+        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied,
+        ta.id AS application_id,
+        COALESCE(apps.c, 0) AS application_count
         <include refid="joinTaskRelations"/>
         LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.applicant_id = #{userId}
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS c
+            FROM task_application
+            GROUP BY task_id
+        ) AS apps ON task.id = apps.task_id
         WHERE task.id = #{id}
     </select>
 
@@ -176,6 +184,21 @@
             GROUP BY task_id
         ) AS apps ON task.id = apps.task_id
         WHERE task.enterprise_id = #{enterpriseId}
+        ORDER BY task.create_time DESC
+    </select>
+
+    <!-- 查询指定企业的已发布职位（供求职者查看） -->
+    <select id="selectPublishedEnterpriseTasks" resultMap="TaskVOResultMap">
+        SELECT
+        <include refid="selectTaskFields"/>,
+        COALESCE(apps.c, 0) AS application_count
+        <include refid="joinTaskRelations"/>
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS c
+            FROM task_application
+            GROUP BY task_id
+        ) AS apps ON task.id = apps.task_id
+        WHERE task.enterprise_id = #{enterpriseId} AND task.status = 1
         ORDER BY task.create_time DESC
     </select>
 

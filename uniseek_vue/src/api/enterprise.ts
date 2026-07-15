@@ -44,3 +44,7 @@ export const updateEnterprise = async (params: EnterpriseRequest) => {
   const res = await request.put<ApiResponse<EnterpriseInfo>>('/enterprise', params)
   return res
 }
+
+/** GET /api/enterprise/list 获取已认证的企业列表 */
+export const getEnterpriseList = () =>
+  request.get<any, EnterpriseInfo[]>('/enterprise/list')

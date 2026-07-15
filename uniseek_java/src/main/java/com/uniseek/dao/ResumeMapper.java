@@ -5,6 +5,8 @@ import com.uniseek.entity.Resume;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 简历 Mapper
  */
@@ -18,4 +20,12 @@ public interface ResumeMapper extends BaseMapper<Resume> {
      * @return 简历信息（含 realName 字段）
      */
     Resume selectResumeWithRealName(@Param("userId") Long userId);
+
+    /**
+     * 查询已发布到人才市场的简历（支持关键词搜索）
+     *
+     * @param keyword 搜索关键词
+     * @return 已发布的简历列表
+     */
+    List<Resume> selectPublishedResumes(@Param("keyword") String keyword);
 }

@@ -70,6 +70,12 @@ const router = createRouter({
           meta: { title: '消息 - UniSeek' }
         },
         {
+          path: 'chat/:applicationId',
+          name: 'Chat',
+          component: () => import('@/pages/Chat.vue'),
+          meta: { title: '聊天 - UniSeek' }
+        },
+        {
           path: 'resume',
           name: 'Resume',
           component: () => import('@/pages/Resume.vue'),

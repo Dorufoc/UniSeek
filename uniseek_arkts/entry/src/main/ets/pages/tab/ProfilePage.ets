@@ -1,5 +1,6 @@
 import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
+import { AuthService } from '../../services/AuthService';
 
 const PREF_NAME = 'user_profile_db';
 const KEY_USERNAME = 'username';
@@ -7,9 +8,11 @@ const KEY_USERNAME = 'username';
 @Component
 export struct ProfilePage {
   @State username: string = ''
+  @State isVerified: boolean = false
 
   aboutToAppear(): void {
     this.loadUsername()
+    this.isVerified = AuthService.isRealNameVerified()
   }
 
   loadUsername(): void {
@@ -39,6 +42,25 @@ export struct ProfilePage {
               .fontSize(24)
               .fontWeight(FontWeight.Bold)
               .fontColor('#FFFFFF')
+
+            Row() {
+              Text(this.isVerified ? '已实名' : '去实名')
+                .fontSize(13)
+                .fontColor(this.isVerified ? '#8CE0FF' : '#FFFFFF')
+              if (!this.isVerified) {
+                Image($r('app.media.right_arrow'))
+                  .width(14)
+                  .height(14)
+                  .fillColor('#FFFFFF')
+                  .margin({ left: 2 })
+              }
+            }
+            .margin({ top: 6 })
+            .onClick(() => {
+              if (!this.isVerified) {
+                router.pushUrl({ url: 'pages/RealNameAuthPage' })
+              }
+            })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)

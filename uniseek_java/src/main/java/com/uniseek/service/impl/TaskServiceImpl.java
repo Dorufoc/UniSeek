@@ -105,8 +105,7 @@ public class TaskServiceImpl implements TaskService {
 
         // 创建 MyBatis-Plus 分页对象
         Page<TaskVO> page = new Page<>(req.getPage(), req.getPageSize());
-        // 关闭自动 COUNT 优化，由 MyBatis-Plus 自动处理
-        page.setOptimizeCountSql(false);
+        // 开启 COUNT 优化（默认 true），自动去除 ORDER BY 避免 COUNT 报错
 
         // 执行分页查询
         IPage<TaskVO> taskPage = taskMapper.selectPageByCondition(page, req);
@@ -239,5 +238,10 @@ public class TaskServiceImpl implements TaskService {
         // 查询本企业所有职位
         List<TaskVO> list = taskMapper.selectEnterpriseTasks(enterpriseId);
         return new PageResult<>(list, list.size(), 1, list.size(), 1);
+    }
+
+    @Override
+    public List<TaskVO> getPublishedEnterpriseTasks(Long enterpriseId) {
+        return taskMapper.selectPublishedEnterpriseTasks(enterpriseId);
     }
 }

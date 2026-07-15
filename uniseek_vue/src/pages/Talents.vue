@@ -1,67 +1,67 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { Search, User } from '@element-plus/icons-vue'
+import { searchPublishedResumes } from '@/api/resume'
+import type { ResumeData } from '@/api/resume'
 
 // 人才筛选标签
-const talentFilters = ['全部', '在线简历', '附件简历', '在校生', '有工作经验']
+const talentFilters = ['全部', '有附件简历', '在校生', '有工作经验']
 const activeFilter = ref('全部')
 const keyword = ref('')
+const talents = ref<ResumeData[]>([])
+const loading = ref(false)
 
-// 示例人才数据（后续应替换为后端简历搜索接口返回的真实数据）
-const demoTalents = [
-  {
-    id: 1,
-    name: '张晓明',
-    age: 22,
-    education: '本科',
-    school: '杭州电子科技大学',
-    experience: '1 年',
-    jobType: '兼职',
-    expectedCity: '杭州',
-    tags: ['Java', 'Spring Boot', 'Vue'],
-    summary: '有前端和后端开发经验，可接受周末兼职。'
-  },
-  {
-    id: 2,
-    name: '李雨桐',
-    age: 20,
-    education: '本科在读',
-    school: '浙江大学',
-    experience: '无',
-    jobType: '实习',
-    expectedCity: '杭州',
-    tags: ['UI 设计', 'Figma', 'Photoshop'],
-    summary: '设计专业大三学生，擅长 UI 界面设计与原型制作。'
-  },
-  {
-    id: 3,
-    name: '王浩然',
-    age: 24,
-    education: '本科',
-    school: '浙江工业大学',
-    experience: '2 年',
-    jobType: '兼职',
-    expectedCity: '上海',
-    tags: ['新媒体运营', '文案', '短视频'],
-    summary: '负责过多个公众号和短视频账号运营，熟悉内容策划。'
+const loadTalents = async () => {
+  loading.value = true
+  try {
+    talents.value = await searchPublishedResumes(keyword.value || undefined)
+  } catch {
+    talents.value = []
+  } finally {
+    loading.value = false
   }
-]
+}
+
+onMounted(() => loadTalents())
+
+// 解析技能标签
+const parseSkills = (skillsStr?: string): string[] => {
+  if (!skillsStr) return []
+  try {
+    return JSON.parse(skillsStr)
+  } catch {
+    return skillsStr.split(',').filter(s => s.trim())
+  }
+}
+
+const hasAttachment = (t: ResumeData) => !!t.attachmentUrl
+const isStudent = (t: ResumeData) => t.school?.includes('大学') && (!t.experience || t.experience.length < 10)
+const hasExperience = (t: ResumeData) => !!t.experience && t.experience.length > 10
 
 const filteredTalents = computed(() => {
-  return demoTalents.filter(t => {
-    const matchKeyword = keyword.value.trim()
-      ? t.name.includes(keyword.value) || t.tags.some(tag => tag.includes(keyword.value))
-      : true
-    const matchFilter = activeFilter.value === '全部'
-      ? true
-      : activeFilter.value === '在校生'
-        ? t.school.includes('大学') && t.education.includes('在读')
-        : activeFilter.value === '有工作经验'
-          ? t.experience !== '无'
-          : true
-    return matchKeyword && matchFilter
+  return talents.value.filter(t => {
+    const matchFilter = activeFilter.value === '全部' ? true
+      : activeFilter.value === '有附件简历' ? hasAttachment(t)
+      : activeFilter.value === '在校生' ? isStudent(t)
+      : activeFilter.value === '有工作经验' ? hasExperience(t) : true
+    return matchFilter
   })
 })
+
+// 简历详情弹窗
+const detailVisible = ref(false)
+const selectedTalent = ref<ResumeData | null>(null)
+
+const viewDetail = (talent: ResumeData) => {
+  selectedTalent.value = talent
+  detailVisible.value = true
+}
+
+const genderLabel = (g?: number) => {
+  if (g === 0) return '男'
+  if (g === 1) return '女'
+  return '未设置'
+}
 </script>
 
 <template>
@@ -90,35 +90,66 @@ const filteredTalents = computed(() => {
     </div>
 
     <div class="talents-list">
-      <el-card v-for="talent in filteredTalents" :key="talent.id" class="talent-card" shadow="hover">
+      <el-card
+        v-for="talent in filteredTalents"
+        :key="talent.id"
+        class="talent-card"
+        shadow="hover"
+        v-loading="loading"
+        @click="viewDetail(talent)"
+      >
         <div class="talent-main">
-          <div class="talent-avatar">{{ talent.name.charAt(0) }}</div>
+          <div class="talent-avatar">{{ (talent.realName || '?').charAt(0) }}</div>
           <div class="talent-info">
             <div class="talent-name">
-              {{ talent.name }}
-              <span class="talent-meta">{{ talent.age }}岁 · {{ talent.education }} · {{ talent.experience }}</span>
+              {{ talent.realName || '未实名' }}
+              <span class="talent-meta">{{ talent.education || '未填' }}</span>
             </div>
-            <div class="talent-school">{{ talent.school }}</div>
+            <div class="talent-school">{{ talent.school || '未填' }}</div>
             <div class="talent-tags">
-              <el-tag v-for="tag in talent.tags" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
+              <el-tag v-for="tag in parseSkills(talent.skills)" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
             </div>
-            <div class="talent-summary">{{ talent.summary }}</div>
+            <div class="talent-summary">{{ talent.experience ? talent.experience.substring(0, 100) + '...' : '暂无工作经历' }}</div>
           </div>
-        </div>
-        <div class="talent-extra">
-          <span>期望工作：{{ talent.expectedCity }} · {{ talent.jobType }}</span>
-          <el-button type="primary" size="small">查看简历</el-button>
         </div>
       </el-card>
 
-      <div v-if="filteredTalents.length === 0" class="empty-tip">
+      <div v-if="!loading && filteredTalents.length === 0" class="empty-tip">
         暂无匹配人才
       </div>
     </div>
 
-    <div class="api-tip">
-      提示：当前为示例数据，后续可对接后端简历搜索接口。
-    </div>
+    <!-- 简历详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="简历详情" width="600px" :close-on-click-modal="false">
+      <div v-if="selectedTalent" class="detail-content">
+        <div class="detail-section">
+          <h4>基本信息</h4>
+          <div class="detail-row"><span class="label">姓名</span><span>{{ selectedTalent.realName || '未实名' }}</span></div>
+          <div class="detail-row"><span class="label">性别</span><span>{{ genderLabel(selectedTalent.gender) }}</span></div>
+          <div class="detail-row"><span class="label">出生日期</span><span>{{ selectedTalent.birthDate || '未填' }}</span></div>
+        </div>
+        <div class="detail-section">
+          <h4>教育背景</h4>
+          <div class="detail-row"><span class="label">学历</span><span>{{ selectedTalent.education || '未填' }}</span></div>
+          <div class="detail-row"><span class="label">毕业院校</span><span>{{ selectedTalent.school || '未填' }}</span></div>
+        </div>
+        <div class="detail-section">
+          <h4>技能标签</h4>
+          <div class="detail-tags">
+            <el-tag v-for="tag in parseSkills(selectedTalent.skills)" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
+            <span v-if="!selectedTalent.skills" class="empty-text">无</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h4>工作/实践经历</h4>
+          <div class="detail-experience">{{ selectedTalent.experience || '暂无' }}</div>
+        </div>
+        <div class="detail-section" v-if="selectedTalent.attachmentUrl">
+          <h4>附件简历</h4>
+          <a :href="selectedTalent.attachmentUrl" target="_blank" class="attach-link">{{ selectedTalent.attachmentUrl }}</a>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -183,6 +214,12 @@ const filteredTalents = computed(() => {
 
 .talent-card {
   color: #000;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.talent-card:hover {
+  transform: translateY(-2px);
 }
 
 .talent-main {
@@ -267,5 +304,60 @@ const filteredTalents = computed(() => {
   text-align: center;
   font-size: 13px;
   color: #999;
+}
+
+/* 简历详情弹窗 */
+.detail-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #000;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f5;
+}
+
+.detail-row {
+  display: flex;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.detail-row .label {
+  width: 90px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-experience {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: #333;
+}
+
+.attach-link {
+  color: #007AFF;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 13px;
 }
 </style>

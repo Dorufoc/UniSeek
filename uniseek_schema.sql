@@ -93,6 +93,7 @@ CREATE TABLE `resume` (
     `skills`         VARCHAR(500) DEFAULT NULL             COMMENT '技能标签（JSON数组或逗号分隔）',
     `experience`     TEXT         DEFAULT NULL             COMMENT '工作/实践经历（富文本）',
     `attachment_url` VARCHAR(255) DEFAULT NULL             COMMENT '附件简历URL',
+    `is_published`   TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '是否发布到人才市场：0-未发布, 1-已发布',
     `create_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',
     `update_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
@@ -100,6 +101,9 @@ CREATE TABLE `resume` (
     FULLTEXT KEY `ft_experience` (`experience`),
     CONSTRAINT `fk_resume_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线简历表';
+
+-- 若数据库已存在，执行以下 ALTER 语句新增 is_published 字段：
+-- ALTER TABLE `resume` ADD COLUMN `is_published` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否发布到人才市场：0-未发布, 1-已发布';
 
 -- -------------------------------------------------------------------
 -- 4. category - 职位分类表（自关联树形结构）

@@ -203,7 +203,11 @@ const handleMenuClick = (item: string) => {
       router.push('/my-applications')
       break
     case 'interviews':
-      router.push('/my-applications?tab=interviews')
+      if (isRecruiter.value) {
+        router.push('/resume-pool?tab=interview')
+      } else {
+        router.push('/my-applications?tab=interviews')
+      }
       break
     case 'favorites':
       router.push('/my-applications?tab=favorites')

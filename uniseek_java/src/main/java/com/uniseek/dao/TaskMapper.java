@@ -45,6 +45,7 @@ public interface TaskMapper extends BaseMapper<Task> {
      */
     List<TaskVO> selectEnterpriseTasks(@Param("enterpriseId") Long enterpriseId);
 
+<<<<<<< HEAD
     @Select("SELECT c.name AS industry, COUNT(t.id) AS count FROM task t JOIN category c ON t.category_id = c.id WHERE t.status = 1 GROUP BY t.category_id ORDER BY count DESC")
     List<Map<String, Object>> selectIndustryDistribution();
 
@@ -66,4 +67,12 @@ public interface TaskMapper extends BaseMapper<Task> {
 
     @Select("SELECT t.id, t.title, e.company_name AS companyName, COUNT(ta.id) AS applicationCount FROM task t JOIN enterprise e ON t.enterprise_id = e.id LEFT JOIN task_application ta ON ta.task_id = t.id WHERE t.status = 1 GROUP BY t.id ORDER BY applicationCount DESC LIMIT 10")
     List<Map<String, Object>> selectHotTasks();
+
+    /**
+     * 查询指定企业的已发布职位（status = 1）
+     *
+     * @param enterpriseId 企业 ID
+     * @return 职位列表
+     */
+    List<TaskVO> selectPublishedEnterpriseTasks(@Param("enterpriseId") Long enterpriseId);
 }

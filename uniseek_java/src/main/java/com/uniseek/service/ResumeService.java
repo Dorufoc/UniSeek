@@ -2,6 +2,7 @@ package com.uniseek.service;
 
 import com.uniseek.dto.ResumeRequest;
 import com.uniseek.entity.Resume;
+import java.util.List;
 
 /**
  * 简历服务接口
@@ -24,4 +25,22 @@ public interface ResumeService {
      * @param request 简历请求 DTO
      */
     void saveOrUpdateResume(Long userId, ResumeRequest request);
+
+    /**
+     * 发布简历到人才市场
+     */
+    void publishResume(Long userId);
+
+    /**
+     * 从人才市场下架简历
+     */
+    void unpublishResume(Long userId);
+
+    /**
+     * 搜索已发布到人才市场的简历
+     *
+     * @param keyword 关键词（匹配姓名和技能标签）
+     * @return 已发布的简历列表
+     */
+    List<Resume> searchPublishedResumes(String keyword);
 }

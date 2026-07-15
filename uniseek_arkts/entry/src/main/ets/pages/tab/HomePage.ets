@@ -1,18 +1,6 @@
 import { router } from '@kit.ArkUI';
 import { DataService, Province, City, District, Field, Occupation } from '../../services/DataService';
-
-interface JobData {
-  id: string
-  title: string
-  company: string
-  salary: string
-  salaryMid: number
-  popularity: number
-  region: string
-  type: string
-  category: string
-  description: string
-}
+import { JobData } from '../../services/ChatTypes';
 
 @CustomDialog
 struct RegionPickerDialog {
