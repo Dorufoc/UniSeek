@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { searchTasks, getEnterpriseTasks, type TaskVO } from '@/api/task'
 import { getTaskApplications, type TaskApplication } from '@/api/application'
-import { getMyEnterprise, type EnterpriseInfo } from '@/api/enterprise'
+import { getMyEnterprise, getHotEnterprises, type EnterpriseInfo, type HotEnterprise } from '@/api/enterprise'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { Search } from '@element-plus/icons-vue'
 
@@ -17,10 +17,62 @@ const isRecruiter = computed(() => userStore.userInfo?.role === 1)
 
 const keyword = ref('')
 
+// ── 搜索类型下拉 ──
+const searchTypeOpen = ref(false)
+const searchType = ref<'position' | 'company'>('position')
+const searchTypeLabel = computed(() => searchType.value === 'position' ? '职位' : '公司')
+
+const selectSearchType = (type: 'position' | 'company') => {
+  searchType.value = type
+  searchTypeOpen.value = false
+}
+
+const handleSearch = () => {
+  searchTypeOpen.value = false
+  appStore.setSearchKeyword(keyword.value)
+  if (searchType.value === 'company') {
+    router.push(`/company?q=${encodeURIComponent(keyword.value)}`)
+  } else {
+    router.push('/jobs')
+  }
+}
+
+const quickSearch = (kw: string) => {
+  keyword.value = kw
+  appStore.setSearchKeyword(kw)
+  router.push('/jobs')
+}
+
 // ── 求职者首页数据 ──
 const recommendJobs = ref<TaskVO[]>([])
 const categoryTree = ref<CategoryVO[]>([])
 const hotKeywords = ['Java', '前端', '销售', '客服', '服务员', '设计', '运营', '行政', '会计', '编辑']
+const hotEnterprises = ref<HotEnterprise[]>([])
+
+// ── 无限加载 ──
+const seekerPage = ref(1)
+const seekerLoading = ref(false)
+const seekerHasMore = ref(true)
+const seekerPageSize = 6
+const sentinel = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+const loadMoreJobs = async () => {
+  if (seekerLoading.value || !seekerHasMore.value) return
+  seekerLoading.value = true
+  try {
+    const result = await searchTasks({ pageSize: seekerPageSize, sortBy: 'popular', page: seekerPage.value })
+    if (result.records.length < seekerPageSize) {
+      seekerHasMore.value = false
+    }
+    recommendJobs.value.push(...result.records)
+    seekerPage.value++
+  } catch {
+    seekerHasMore.value = false
+  } finally {
+    seekerLoading.value = false
+  }
+}
 
 // ── 招聘者首页数据 ──
 const enterprise = ref<EnterpriseInfo | null>(null)
@@ -29,19 +81,7 @@ interface JobWithApplicants {
   applications: TaskApplication[]
 }
 const jobsWithApplicants = ref<JobWithApplicants[]>([])
-const loading = ref(false)
-
-// ── 工具方法 ──
-const handleSearch = () => {
-  appStore.setSearchKeyword(keyword.value)
-  router.push('/jobs')
-}
-
-const quickSearch = (kw: string) => {
-  keyword.value = kw
-  appStore.setSearchKeyword(kw)
-  router.push('/jobs')
-}
+const recruiterLoading = ref(false)
 
 const goToJob = (id: number) => {
   router.push(`/jobs/${id}`)
@@ -110,10 +150,18 @@ const closeSearchTypeMenu = (e: MouseEvent) => {
   }
 }
 
+const closeSearchTypeMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.search-type-dropdown')) {
+    searchTypeOpen.value = false
+  }
+}
+
 onMounted(async () => {
+  document.addEventListener('click', closeSearchTypeMenu)
+
   if (isRecruiter.value) {
-    // ── 招聘者首页：加载企业信息、岗位及投递 ──
-    loading.value = true
+    recruiterLoading.value = true
     try {
       enterprise.value = await getMyEnterprise()
       const taskPage = await getEnterpriseTasks(1, 100)
@@ -136,16 +184,39 @@ onMounted(async () => {
     } catch {
       // 静默失败
     } finally {
-      loading.value = false
+      recruiterLoading.value = false
     }
   } else {
     // ── 求职者首页 ──
-    const [cats, jobs] = await Promise.all([
-      getCategories().catch(() => [] as CategoryVO[]),
-      searchTasks({ pageSize: 8, sortBy: 'popular' }).catch(() => ({ records: [] as TaskVO[], total: 0, page: 1, pageSize: 8, totalPages: 0 }))
+    const [cats] = await Promise.all([
+      getCategories().catch(() => [] as CategoryVO[])
     ])
+    hotEnterprises.value = await getHotEnterprises(12).catch(() => [])
     categoryTree.value = cats.slice(0, 8)
-    recommendJobs.value = jobs.records
+
+    // 首次加载推荐职位
+    await loadMoreJobs()
+
+    // 设置 IntersectionObserver 实现无限滚动
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreJobs()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    if (sentinel.value) {
+      observer.observe(sentinel.value)
+    }
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeSearchTypeMenu)
+  if (observer) {
+    observer.disconnect()
+    observer = null
   }
 })
 </script>
@@ -163,7 +234,7 @@ onMounted(async () => {
 
       <section class="recruiter-dashboard">
         <div class="section-inner">
-          <div v-if="loading" class="loading-tip">加载中...</div>
+          <div v-if="recruiterLoading" class="loading-tip">加载中...</div>
           <div v-else-if="jobsWithApplicants.length === 0" class="empty-card">
             <h3>暂无岗位数据</h3>
             <p>还没有发布任何岗位，或没有求职者投递</p>
@@ -220,11 +291,20 @@ onMounted(async () => {
           <h1 class="hero-tagline">找到你心仪的工作</h1>
           <p class="hero-sub">UniSeek 智能推荐，让好工作主动来找你</p>
           <div class="hero-search-card">
-            <div class="search-type">职位</div>
+            <div class="search-type-dropdown">
+              <div class="search-type" @click.stop="searchTypeOpen = !searchTypeOpen">
+                {{ searchTypeLabel }}
+                <span class="search-type-arrow">▾</span>
+              </div>
+              <div v-if="searchTypeOpen" class="search-type-menu">
+                <div :class="['search-type-item', { active: searchType === 'position' }]" @click="selectSearchType('position')">职位</div>
+                <div :class="['search-type-item', { active: searchType === 'company' }]" @click="selectSearchType('company')">公司</div>
+              </div>
+            </div>
             <el-input
               v-model="keyword"
               size="large"
-              placeholder="搜索职位、公司名称"
+              :placeholder="searchType === 'position' ? '搜索职位名称' : '搜索公司名称'"
               :prefix-icon="Search"
               clearable
               class="search-input"
@@ -266,14 +346,47 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- 推荐职位区 -->
-      <section class="jobs-section" v-if="recommendJobs.length > 0">
+      <!-- 热门公司推荐 -->
+      <section class="companies-section" v-if="hotEnterprises.length > 0">
+        <div class="section-inner">
+          <div class="section-header">
+            <h2>热门公司推荐</h2>
+            <button class="view-all-btn" @click="router.push('/company')">查看更多</button>
+          </div>
+          <div class="company-grid">
+            <div
+              v-for="item in hotEnterprises"
+              :key="item.id"
+              class="company-card"
+              @click="router.push(`/company-detail/${item.id}`)"
+            >
+              <div class="company-card-top">
+                <div class="company-card-avatar">
+                  {{ item.companyName.charAt(0) }}
+                </div>
+                <div class="company-card-info">
+                  <h3 class="company-card-name">{{ item.companyName }}</h3>
+                  <span class="company-card-industry">{{ item.industry }}</span>
+                </div>
+                <span class="company-card-score">热度 {{ item.heatScore }}</span>
+              </div>
+              <div class="company-card-bottom">
+                <span class="company-card-region" v-if="item.regionName">{{ item.regionName }}</span>
+                <span class="company-card-jobs">在招 {{ item.activeJobCount }} 个岗位</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 推荐职位区（瀑布流无限加载） -->
+      <section class="jobs-section">
         <div class="section-inner">
           <div class="section-header">
             <h2>推荐职位</h2>
             <button class="view-all-btn" @click="goToJobs()">查看全部职位</button>
           </div>
-          <div class="job-grid">
+          <div v-if="recommendJobs.length > 0" class="job-grid">
             <div
               v-for="job in recommendJobs"
               :key="job.id"
@@ -294,15 +407,17 @@ onMounted(async () => {
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- 数据为空提示 -->
-      <section class="empty-section" v-else>
-        <div class="section-inner">
-          <div class="empty-card">
+          <!-- 空状态 -->
+          <div v-if="recommendJobs.length === 0 && !seekerLoading" class="empty-card">
             <h3>还没有职位数据</h3>
             <p>请先导入种子数据，或由招聘者发布新职位</p>
+          </div>
+
+          <!-- 无限加载触发器 -->
+          <div ref="sentinel" class="sentinel">
+            <div v-if="seekerLoading" class="loading-indicator">加载中...</div>
+            <div v-else-if="recommendJobs.length > 0 && !seekerHasMore" class="no-more">已展示全部职位</div>
           </div>
         </div>
       </section>
@@ -557,15 +672,20 @@ onMounted(async () => {
   align-items: center;
   background: #fff;
   border-radius: 12px;
-  overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   height: 56px;
   max-width: 700px;
   margin: 0 auto;
 }
 
+.search-type-dropdown {
+  position: relative;
+  height: 100%;
+  flex-shrink: 0;
+}
+
 .search-type {
-  padding: 0 24px;
+  padding: 0 20px;
   font-size: 16px;
   color: #1a1a2e;
   font-weight: 600;
@@ -574,6 +694,52 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 12px 0 0 12px;
+}
+
+.search-type:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.search-type-arrow {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.search-type-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  min-width: 100px;
+  background: #fff;
+  border: 1px solid #e8e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.search-type-item {
+  padding: 12px 20px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.search-type-item:hover {
+  background: #f5f7fa;
+}
+
+.search-type-item.active {
+  color: #007AFF;
+  font-weight: 600;
+  background: rgba(0, 122, 255, 0.06);
 }
 
 .search-input {
@@ -597,6 +763,7 @@ onMounted(async () => {
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
+  border-radius: 0 12px 12px 0;
   transition: background 0.2s;
 }
 
@@ -748,6 +915,22 @@ onMounted(async () => {
   color: #999;
 }
 
+/* ── 无限加载 ── */
+.sentinel {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.loading-indicator {
+  font-size: 14px;
+  color: #999;
+}
+
+.no-more {
+  font-size: 13px;
+  color: #ccc;
+}
+
 /* ── 空状态 ── */
 .empty-card {
   text-align: center;
@@ -767,6 +950,93 @@ onMounted(async () => {
   font-size: 14px;
   color: #bbb;
   margin: 0;
+}
+
+/* ── 热门公司卡片 ── */
+.company-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.company-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 20px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: all 0.2s;
+}
+
+.company-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.company-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.company-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #007AFF, #00a8ff);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.company-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.company-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-card-industry {
+  font-size: 12px;
+  color: #999;
+}
+
+.company-card-score {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e67e22;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.company-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #999;
+}
+
+.company-card-region {
+  color: #888;
+}
+
+.company-card-jobs {
+  color: #007AFF;
+  font-weight: 500;
 }
 
 /* ── 响应式 ── */
@@ -793,12 +1063,24 @@ onMounted(async () => {
     padding: 12px 0;
   }
 
+  .search-type-dropdown {
+    width: 100%;
+  }
+
+  .search-type-menu {
+    width: 100%;
+  }
+
   .search-btn {
     width: 100%;
     padding: 14px 0;
   }
 
   .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .company-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 

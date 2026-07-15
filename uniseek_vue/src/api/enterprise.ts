@@ -48,3 +48,19 @@ export const updateEnterprise = async (params: EnterpriseRequest) => {
 /** GET /api/enterprise/list 获取已认证的企业列表 */
 export const getEnterpriseList = () =>
   request.get<any, EnterpriseInfo[]>('/enterprise/list')
+
+// 热门企业信息
+export interface HotEnterprise {
+  id: number
+  companyName: string
+  industry: string
+  regionId: number | null
+  regionName: string
+  description: string
+  heatScore: number
+  activeJobCount: number
+}
+
+/** GET /api/enterprise/hot 获取热门企业列表 */
+export const getHotEnterprises = (limit = 12) =>
+  request.get<any, HotEnterprise[]>('/enterprise/hot', { params: { limit } })

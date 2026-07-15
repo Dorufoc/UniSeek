@@ -7,6 +7,7 @@ import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.EnterpriseMapper;
 import com.uniseek.dao.RealNameAuthMapper;
 import com.uniseek.dto.EnterpriseRequest;
+import com.uniseek.dto.HotEnterpriseVO;
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.RealNameAuth;
 import com.uniseek.service.EnterpriseService;
@@ -151,5 +152,12 @@ public class EnterpriseServiceImpl implements EnterpriseService {
                 new LambdaQueryWrapper<Enterprise>()
                         .eq(Enterprise::getAuditStatus, 1)
                         .orderByDesc(Enterprise::getCreateTime));
+    }
+
+    @Override
+    public List<HotEnterpriseVO> getHotEnterprises(int limit) {
+        if (limit <= 0) limit = 12;
+        if (limit > 50) limit = 50;
+        return enterpriseMapper.selectHotEnterprises(limit);
     }
 }

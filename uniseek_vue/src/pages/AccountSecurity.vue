@@ -200,6 +200,7 @@ const handleDeleteAccount = () => {
             <div class="form-group">
               <label>新密码</label>
               <el-input v-model="passwordForm.newPassword" type="password" placeholder="6-20位字母、数字或特殊字符" show-password size="large" />
+              <p class="field-hint">密码长度需在 6-20 位之间，支持字母、数字和特殊字符</p>
             </div>
             <div class="form-group">
               <label>确认新密码</label>
@@ -360,12 +361,12 @@ const handleDeleteAccount = () => {
 }
 .security-container { max-width: 720px; margin: 0 auto; }
 .page-header { margin-bottom: 20px; }
-.page-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 600; color: var(--text-h); margin: 0 0 6px; }
-.page-subtitle { font-size: 14px; color: #999; margin: 0; }
+.page-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 600; color: #1a1a2e; margin: 0 0 6px; }
+.page-subtitle { font-size: 14px; color: #666; margin: 0; }
 
 .security-score-card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 .score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.score-label { font-size: 15px; font-weight: 600; color: var(--text-h); }
+.score-label { font-size: 15px; font-weight: 600; color: #1a1a2e; }
 .score-level { font-size: 14px; font-weight: 500; padding: 3px 12px; border-radius: 12px; }
 .score-level.high { color: #2ecc71; background: rgba(46,204,113,0.1); }
 .score-level.medium { color: #f0ad4e; background: rgba(240,173,78,0.1); }
@@ -373,8 +374,8 @@ const handleDeleteAccount = () => {
 .score-bar { height: 8px; background: #f0f0f5; border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
 .score-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); border-radius: 4px; }
 .score-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.score-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #bbb; }
-.score-item.checked { color: #666; }
+.score-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #888; }
+.score-item.checked { color: #444; }
 .score-item.checked :deep(.el-icon) { color: #2ecc71; }
 
 .settings-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
@@ -384,26 +385,26 @@ const handleDeleteAccount = () => {
 .settings-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,122,255,0.08); color: #1762FB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .settings-icon.verified { background: rgba(46,204,113,0.08); color: #2ecc71; }
 .settings-info { flex: 1; min-width: 0; }
-.settings-name { display: block; font-size: 15px; font-weight: 500; color: var(--text-h); margin-bottom: 2px; }
-.settings-hint { font-size: 12px; color: #bbb; }
-.settings-value { font-size: 14px; color: #999; flex-shrink: 0; }
+.settings-name { display: block; font-size: 15px; font-weight: 500; color: #1a1a2e; margin-bottom: 2px; }
+.settings-hint { font-size: 12px; color: #888; }
+.settings-value { font-size: 14px; color: #666; flex-shrink: 0; }
 .settings-status { font-size: 13px; padding: 3px 10px; border-radius: 12px; background: rgba(231,76,60,0.08); color: #e74c3c; flex-shrink: 0; }
 .settings-status.verified { background: rgba(46,204,113,0.08); color: #2ecc71; }
-.settings-arrow { color: #ccc; flex-shrink: 0; transition: transform 0.25s; }
+.settings-arrow { color: #999; flex-shrink: 0; transition: transform 0.25s; }
 .settings-arrow.open { transform: rotate(-90deg); }
 
 .settings-body { border-top: 1px solid #f0f0f5; padding: 20px; background: #fafbfc; }
 .form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 14px; color: var(--text); margin-bottom: 6px; font-weight: 500; }
+.form-group label { display: block; font-size: 14px; color: #333; margin-bottom: 6px; font-weight: 500; }
 .field-error { font-size: 12px; color: #e74c3c; margin: 6px 0 0; }
 .field-hint { font-size: 12px; color: #888; margin: 6px 0 0; }
 .save-btn { width: 100%; padding: 12px 0; font-size: 15px; font-weight: 500; color: #fff; background: #1762FB; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
 .save-btn:hover:not(:disabled) { opacity: 0.9; }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.form-note { font-size: 12px; color: #bbb; margin: 10px 0 0; text-align: center; }
+.form-note { font-size: 12px; color: #888; margin: 10px 0 0; text-align: center; }
 .readonly-row { margin-bottom: 12px; }
-.readonly-row label { display: block; font-size: 14px; color: var(--text); margin-bottom: 4px; }
-.readonly-value { font-size: 16px; font-weight: 500; color: var(--text-h); }
+.readonly-row label { display: block; font-size: 14px; color: #333; margin-bottom: 4px; }
+.readonly-value { font-size: 16px; font-weight: 500; color: #1a1a2e; }
 .auth-notice { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
 .auth-notice.success { background: rgba(46,204,113,0.06); color: #27ae60; }
 .auth-notice.warning { background: rgba(240,173,78,0.06); color: #d4a017; }
@@ -413,15 +414,15 @@ const handleDeleteAccount = () => {
 .danger-card { background: #fff; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid rgba(231,76,60,0.15); }
 .danger-card:hover { background: rgba(231,76,60,0.02); }
 .danger-name { font-size: 15px; color: #e74c3c; font-weight: 500; display: block; margin-bottom: 2px; }
-.danger-hint { font-size: 12px; color: #bbb; }
+.danger-hint { font-size: 12px; color: #888; }
 .danger-arrow { color: #e74c3c; }
 
 .login-info-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-.info-title { font-size: 15px; font-weight: 600; color: var(--text-h); margin: 0 0 12px; }
+.info-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin: 0 0 12px; }
 .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
 .info-row:last-child { border-bottom: none; }
-.info-label { font-size: 14px; color: #999; }
-.info-value { font-size: 14px; color: var(--text); }
+.info-label { font-size: 14px; color: #666; }
+.info-value { font-size: 14px; color: #333; }
 
 @media (max-width: 768px) {
   .security-page { padding: 16px 12px; }

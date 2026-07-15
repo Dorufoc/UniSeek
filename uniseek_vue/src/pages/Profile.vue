@@ -282,6 +282,10 @@ const handleMenuClick = (item: string) => {
             <el-icon :size="14"><Phone /></el-icon>
             {{ userPhone }}
           </div>
+          <div class="user-phone-hint">
+            如需更换手机号，请
+            <span class="link-btn" @click="router.push('/account-security')">前往账号安全</span>
+          </div>
           <button class="edit-profile-btn" @click="isRecruiter ? handleMenuClick('editEnterprise') : handleMenuClick('resume')">
             <el-icon :size="14"><Edit /></el-icon>
             {{ isRecruiter ? '编辑企业信息' : '编辑简历' }}
@@ -646,7 +650,24 @@ const handleMenuClick = (item: string) => {
   gap: 6px;
   font-size: 14px;
   color: #000;
+  margin-bottom: 4px;
+}
+
+.user-phone-hint {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
   margin-bottom: 16px;
+}
+
+.link-btn {
+  color: #007AFF;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: #0056b3;
 }
 
 .edit-profile-btn {

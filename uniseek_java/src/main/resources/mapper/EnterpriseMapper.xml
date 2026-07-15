@@ -17,4 +17,40 @@
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
+    <resultMap id="HotEnterpriseMap" type="com.uniseek.dto.HotEnterpriseVO">
+        <id column="id" property="id"/>
+        <result column="company_name" property="companyName"/>
+        <result column="industry" property="industry"/>
+        <result column="region_id" property="regionId"/>
+        <result column="region_name" property="regionName"/>
+        <result column="description" property="description"/>
+        <result column="heat_score" property="heatScore"/>
+        <result column="active_job_count" property="activeJobCount"/>
+    </resultMap>
+
+    <select id="selectHotEnterprises" resultMap="HotEnterpriseMap">
+        SELECT
+            e.id,
+            e.company_name,
+            e.industry,
+            e.region_id,
+            r.name AS region_name,
+            e.description,
+            ROUND(
+                COALESCE(COUNT(DISTINCT ta.id), 0) * 0.5
+                + COALESCE(SUM(CASE WHEN t.status = 1 THEN 1 ELSE 0 END), 0) * 0.3
+                + COALESCE(SUM(t.total_quota), 0) * 0.2
+            , 1) AS heat_score,
+            COUNT(DISTINCT CASE WHEN t.status = 1 THEN t.id END) AS active_job_count
+        FROM enterprise e
+        LEFT JOIN task t ON t.enterprise_id = e.id AND t.status = 1
+        LEFT JOIN task_application ta ON ta.task_id = t.id
+        LEFT JOIN region r ON r.id = e.region_id
+        WHERE e.audit_status = 1
+        GROUP BY e.id
+        HAVING heat_score > 0
+        ORDER BY heat_score DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

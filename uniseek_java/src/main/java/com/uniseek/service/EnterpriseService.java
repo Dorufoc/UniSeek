@@ -1,6 +1,7 @@
 package com.uniseek.service;
 
 import com.uniseek.dto.EnterpriseRequest;
+import com.uniseek.dto.HotEnterpriseVO;
 import com.uniseek.entity.Enterprise;
 import java.util.List;
 
@@ -49,4 +50,12 @@ public interface EnterpriseService {
      * @return 已认证的企业列表
      */
     List<Enterprise> listPublished();
+
+    /**
+     * 获取热门企业列表（按投递数、在招岗位数、总名额综合评分排序）
+     *
+     * @param limit 返回数量
+     * @return 热门企业列表
+     */
+    List<HotEnterpriseVO> getHotEnterprises(int limit);
 }

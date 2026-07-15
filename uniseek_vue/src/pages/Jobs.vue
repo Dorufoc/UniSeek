@@ -79,7 +79,7 @@ const filter = reactive({
 })
 
 const regionCascaderValue = ref<number[]>([])
-const categoryCascaderValue = ref<number[]>([])
+const categoryCascaderValue = ref<number | undefined>(undefined)
 
 const salaryPresets = [
   { label: '3K以下', min: undefined as number | undefined, max: 3000 },
@@ -108,6 +108,28 @@ const setSalaryPreset = (index: number) => {
   loadTasks()
 }
 
+// 递归收集所有子孙分类 ID
+const collectDescendantIds = (nodes: CategoryVO[], targetId: number): number[] => {
+  for (const node of nodes) {
+    if (node.id === targetId) {
+      const ids: number[] = [node.id]
+      const collect = (children: CategoryVO[]) => {
+        for (const child of children) {
+          ids.push(child.id)
+          if (child.children?.length) collect(child.children)
+        }
+      }
+      if (node.children?.length) collect(node.children)
+      return ids
+    }
+    if (node.children?.length) {
+      const result = collectDescendantIds(node.children, targetId)
+      if (result.length > 0) return result
+    }
+  }
+  return []
+}
+
 // ── 级联选择器变更 ──
 const onRegionChange = (val: number[]) => {
   filter.regionId = val.length > 0 ? val[val.length - 1] : undefined
@@ -115,8 +137,15 @@ const onRegionChange = (val: number[]) => {
   loadTasks()
 }
 
-const onCategoryChange = (val: number[]) => {
-  filter.categoryId = val.length > 0 ? val[val.length - 1] : undefined
+const onCategoryChange = (val: number | undefined) => {
+  filter.categoryId = val ?? undefined
+  filter.categoryIds = undefined
+  if (val != null) {
+    const ids = collectDescendantIds(categoryTree.value, val)
+    if (ids.length > 1) {
+      filter.categoryIds = ids.join(',')
+    }
+  }
   page.value = 1
   loadTasks()
 }
@@ -144,7 +173,8 @@ const loadTasks = async () => {
   try {
     const result = await searchTasks({
       keyword: keyword.value || undefined,
-      categoryId: filter.categoryId,
+      categoryId: filter.categoryIds ? undefined : filter.categoryId,
+      categoryIds: filter.categoryIds,
       regionId: filter.regionId,
       jobType: filter.jobType,
       salaryMin: filter.salaryMin,
@@ -171,12 +201,13 @@ const handleSearch = () => {
 const resetFilters = () => {
   filter.regionId = undefined
   filter.categoryId = undefined
+  filter.categoryIds = undefined
   filter.jobType = undefined
   filter.salaryMin = undefined
   filter.salaryMax = undefined
   activeSalaryPreset.value = -1
   regionCascaderValue.value = []
-  categoryCascaderValue.value = []
+  categoryCascaderValue.value = undefined
   keyword.value = ''
   page.value = 1
   loadTasks()
@@ -210,6 +241,18 @@ onMounted(async () => {
   const q = route.query.q as string
   if (q) keyword.value = q
 
+  const categoryIdParam = route.query.categoryId as string
+  if (categoryIdParam) {
+    filter.categoryId = Number(categoryIdParam)
+    if (cats.length > 0) {
+      const ids = collectDescendantIds(cats, filter.categoryId)
+      if (ids.length > 1) {
+        filter.categoryIds = ids.join(',')
+      }
+      categoryCascaderValue.value = filter.categoryId
+    }
+  }
+
   loadTasks()
 })
 </script>
@@ -240,7 +283,7 @@ onMounted(async () => {
           <el-cascader
             v-model="regionCascaderValue"
             :options="regionTree"
-            :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true }"
+            :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true, expandTrigger: 'hover' }"
             placeholder="请选择地区"
             size="default"
             clearable
@@ -254,12 +297,12 @@ onMounted(async () => {
           <el-cascader
             v-model="categoryCascaderValue"
             :options="categoryTree"
-            :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true }"
+            :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: false, expandTrigger: 'hover' }"
             placeholder="请选择类别"
             size="default"
             clearable
             style="width:100%"
-            @change="onCategoryChange as any"
+            @change="onCategoryChange"
           />
         </div>
 

@@ -14,6 +14,7 @@ export interface PageResult<T> {
 export interface TaskSearchParams {
   keyword?: string
   categoryId?: number
+  categoryIds?: string
   regionId?: number
   jobType?: number
   salaryMin?: number

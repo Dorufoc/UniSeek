@@ -97,7 +97,13 @@
             <if test="req.keyword != null and req.keyword != ''">
                 AND task.title LIKE CONCAT('%', #{req.keyword}, '%')
             </if>
-            <if test="req.categoryId != null">
+            <if test="req.categoryIds != null and req.categoryIds != ''">
+                AND task.category_id IN
+                <foreach item="id" collection="req.categoryIds.split(',')" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="req.categoryId != null and (req.categoryIds == null or req.categoryIds == '')">
                 AND task.category_id = #{req.categoryId}
             </if>
             <if test="req.regionId != null">

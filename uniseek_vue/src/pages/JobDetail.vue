@@ -59,48 +59,6 @@ const formatDate = (dateStr: string | null | undefined): string => {
   return dateStr.replace('T', ' ').substring(0, 16)
 }
 
-const handleApply = handleApplyWithAuthCheck
-
-/**
- * 联系 HR：未投递时先创建投递记录（生成会话），然后跳转聊天页
- */
-const handleContactHr = async () => {
-  if (!isLoggedIn.value) {
-    ElMessage.warning('请先登录')
-    router.push('/login')
-    return
-  }
-  if (!isSeeker.value) {
-    ElMessage.warning('仅求职者可联系 HR')
-    return
-  }
-  if (!job.value) return
-
-  contacting.value = true
-  try {
-    let applicationId = job.value.applicationId
-    // 未投递时先自动投递，系统会在投递成功后创建会话
-    if (!hasApplied.value || !applicationId) {
-      const application = await apply({ taskId: job.value.id }) as unknown as TaskApplication
-      if (application && application.id) {
-        applicationId = application.id
-        hasApplied.value = true
-        job.value.applicationId = application.id
-        job.value.hasApplied = true
-      }
-    }
-    if (applicationId) {
-      router.push(`/chat/${applicationId}`)
-    } else {
-      ElMessage.warning('会话创建失败，请稍后重试')
-    }
-  } catch {
-    /* 错误已在拦截器处理 */
-  } finally {
-    contacting.value = false
-  }
-}
-
 const goToTag = (tag: string) => {
   router.push({ path: '/jobs', query: { tag } })
 }
@@ -155,6 +113,48 @@ const handleApplyWithAuthCheck = async () => {
     /* 错误已在拦截器处理 */
   } finally {
     applying.value = false
+  }
+}
+
+const handleApply = handleApplyWithAuthCheck
+
+/**
+ * 联系 HR：未投递时先创建投递记录（生成会话），然后跳转聊天页
+ */
+const handleContactHr = async () => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  if (!isSeeker.value) {
+    ElMessage.warning('仅求职者可联系 HR')
+    return
+  }
+  if (!job.value) return
+
+  contacting.value = true
+  try {
+    let applicationId = job.value.applicationId
+    // 未投递时先自动投递，系统会在投递成功后创建会话
+    if (!hasApplied.value || !applicationId) {
+      const application = await apply({ taskId: job.value.id }) as unknown as TaskApplication
+      if (application && application.id) {
+        applicationId = application.id
+        hasApplied.value = true
+        job.value.applicationId = application.id
+        job.value.hasApplied = true
+      }
+    }
+    if (applicationId) {
+      router.push(`/chat/${applicationId}`)
+    } else {
+      ElMessage.warning('会话创建失败，请稍后重试')
+    }
+  } catch {
+    /* 错误已在拦截器处理 */
+  } finally {
+    contacting.value = false
   }
 }
 

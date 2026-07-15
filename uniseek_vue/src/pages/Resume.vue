@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getResume, saveResume as saveResumeApi, uploadAttachment, publishResume as publishResumeApi, unpublishResume as unpublishResumeApi } from '@/api/resume'
+import { getResume, saveResume as saveResumeApi, uploadAttachment, publishResume as publishResumeApi } from '@/api/resume'
 import type { ResumeSaveParams } from '@/api/resume'
 import {
   User, Edit, Plus, Close, Delete, Top, Bottom, UploadFilled,
@@ -55,38 +55,12 @@ const loadResume = async () => {
       resumeForm.skills = skills
       resumeForm.experience = data.experience || ''
       resumeForm.attachmentUrl = data.attachmentUrl || ''
-      isPublished.value = data.isPublished === 1
     }
   } catch {
     // 未创建简历时不做处理
   }
 }
 loadResume()
-
-// 发布状态
-const isPublished = ref(false)
-
-// 发布到人才市场
-const publishToMarket = async () => {
-  try {
-    await publishResumeApi()
-    isPublished.value = true
-    ElMessage.success('简历已发布到人才市场')
-  } catch {
-    // 错误已在拦截器中处理
-  }
-}
-
-// 从人才市场下架
-const unpublishFromMarket = async () => {
-  try {
-    await unpublishResumeApi()
-    isPublished.value = false
-    ElMessage.success('简历已从人才市场下架')
-  } catch {
-    // 错误已在拦截器中处理
-  }
-}
 
 // 简历完整度计算
 const completionPercent = computed(() => {
@@ -107,6 +81,13 @@ const completionPercent = computed(() => {
     if (val) filled += weight
   })
   return Math.round((filled / total) * 100)
+})
+
+// 简历完整度达到 90% 时自动发布到人才市场
+watch(completionPercent, (val) => {
+  if (val >= 90) {
+    publishResumeApi().catch(() => {})
+  }
 })
 
 // 手机号脱敏显示
@@ -294,20 +275,6 @@ const toggleSection = (key: string) => {
               <button class="btn-edit" @click="startEdit">
                 <el-icon :size="16"><Edit /></el-icon>
                 编辑简历
-              </button>
-              <button
-                v-if="!isPublished"
-                class="btn-publish"
-                @click="publishToMarket"
-              >
-                发布到人才市场
-              </button>
-              <button
-                v-else
-                class="btn-unpublish"
-                @click="unpublishFromMarket"
-              >
-                已发布 - 点击下架
               </button>
             </template>
             <template v-else>
@@ -772,41 +739,7 @@ const toggleSection = (key: string) => {
   background: #0066d6;
 }
 
-.btn-publish {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 22px;
-  font-size: 14px;
-  color: #fff;
-  background: #00b578;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
 
-.btn-publish:hover {
-  background: #009a64;
-}
-
-.btn-unpublish {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 22px;
-  font-size: 14px;
-  color: #666;
-  background: #f0f0f5;
-  border: 1px solid #e0e0e8;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-unpublish:hover {
-  background: #e8e8ed;
-}
 
 /* ========== 简历内容区 - 预览模式 ========== */
 .resume-content {
@@ -1105,7 +1038,7 @@ const toggleSection = (key: string) => {
 }
 
 .form-textarea {
-  flex: 1;
+  width: 100%;
   padding: 12px 14px;
   font-size: 14px;
   border: 1px solid #dcdce4;

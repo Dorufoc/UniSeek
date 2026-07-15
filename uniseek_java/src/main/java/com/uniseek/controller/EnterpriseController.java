@@ -4,6 +4,7 @@ import com.uniseek.common.ApiResult;
 import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.util.UserContext;
 import com.uniseek.dto.EnterpriseRequest;
+import com.uniseek.dto.HotEnterpriseVO;
 import com.uniseek.entity.Enterprise;
 import com.uniseek.service.EnterpriseService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,16 @@ public class EnterpriseController {
     @GetMapping("/list")
     public ApiResult<List<Enterprise>> listEnterprises() {
         List<Enterprise> list = enterpriseService.listPublished();
+        return ApiResult.success(list);
+    }
+
+    /**
+     * 获取热门企业列表（按综合热度评分排序）
+     * GET /api/enterprise/hot?limit=12
+     */
+    @GetMapping("/hot")
+    public ApiResult<List<HotEnterpriseVO>> getHotEnterprises(@RequestParam(defaultValue = "12") int limit) {
+        List<HotEnterpriseVO> list = enterpriseService.getHotEnterprises(limit);
         return ApiResult.success(list);
     }
 

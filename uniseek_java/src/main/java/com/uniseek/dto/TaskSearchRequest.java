@@ -16,6 +16,9 @@ public class TaskSearchRequest {
     /** 分类 ID */
     private Long categoryId;
 
+    /** 分类 ID 集合（逗号分隔，含子孙分类） */
+    private String categoryIds;
+
     /** 地区 ID */
     private Long regionId;
 

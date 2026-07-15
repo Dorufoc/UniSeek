@@ -19,12 +19,19 @@ const loading = ref(false)
 // 文本搜索
 const keyword = ref('')
 
-// 城市筛选
-const allCities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '重庆', '天津', '苏州', '长沙', '郑州', '东莞', '青岛', '宁波', '厦门', '合肥', '福州']
-const selectedCity = ref('')
+// 行业筛选
+const industryOptions = [
+  '互联网/IT', '金融/银行', '教育培训', '医疗健康', '房地产/建筑',
+  '制造业', '贸易/进出口', '物流/仓储', '餐饮/酒店', '旅游/度假',
+  '文化/传媒', '广告/营销', '电商/新零售', '法律/咨询', '会计/审计',
+  '人力资源', '能源/环保', '通信/电子', '汽车/交通', '农业/食品',
+  '体育/娱乐', '设计/创意', '科研/学术', '政府/非营利', '其他'
+]
+const selectedIndustry = ref('')
 
-// 地区树（用于解析 regionId 到名称）
+// 城市筛选（级联选择器）
 const regions = ref<RegionVO[]>([])
+const regionCascaderValue = ref<number[]>([])
 
 // 地区名称映射
 const regionNameMap = ref<Record<number, string>>({})
@@ -35,12 +42,16 @@ const enterpriseJobs = ref<TaskVO[]>([])
 const jobsLoading = ref(false)
 const showDetail = ref(false)
 
+// 地区级联选择器变更
+const onRegionChange = (val: number[]) => {
+  regionCascaderValue.value = val
+}
+
 // 加载地区树
 const loadRegions = async () => {
   try {
     const tree = await getRegionTree()
     regions.value = tree
-    // 构建 ID → 名称映射
     const map: Record<number, string> = {}
     const walk = (list: RegionVO[]) => {
       for (const r of list) {
@@ -67,18 +78,49 @@ const loadEnterprises = async () => {
   }
 }
 
+// 获取地区级联选中路径中最低级ID
+const getSelectedRegionId = (): number | undefined => {
+  const val = regionCascaderValue.value
+  return val.length > 0 ? val[val.length - 1] : undefined
+}
+
+// 检查地区是否匹配（节点ID或其子节点命中）
+const matchRegion = (enterpriseRegionId: number | null, targetId: number): boolean => {
+  if (!enterpriseRegionId) return false
+  if (enterpriseRegionId === targetId) return true
+  const walk = (list: RegionVO[]): boolean => {
+    for (const r of list) {
+      if (r.id === targetId) {
+        // 检查子节点中是否有 enterpriseRegionId
+        const checkChildren = (nodes: RegionVO[]): boolean => {
+          for (const n of nodes) {
+            if (n.id === enterpriseRegionId) return true
+            if (n.children && checkChildren(n.children)) return true
+          }
+          return false
+        }
+        return r.children ? checkChildren(r.children) : false
+      }
+      if (r.children && walk(r.children)) return true
+    }
+    return false
+  }
+  return walk(regions.value)
+}
+
 // 筛选后的企业
 const filteredEnterprises = computed(() => {
   return enterprises.value.filter(e => {
-    // 文本搜索：按企业名或行业匹配
     const kw = keyword.value.trim().toLowerCase()
     if (kw && !e.companyName.toLowerCase().includes(kw) && !(e.industry || '').toLowerCase().includes(kw)) {
       return false
     }
-    // 城市筛选
-    if (selectedCity.value) {
-      const name = e.regionId && regionNameMap.value[e.regionId] ? regionNameMap.value[e.regionId] : ''
-      if (!name.includes(selectedCity.value)) return false
+    if (selectedIndustry.value && e.industry !== selectedIndustry.value) {
+      return false
+    }
+    const regionId = getSelectedRegionId()
+    if (regionId && !matchRegion(e.regionId, regionId)) {
+      return false
     }
     return true
   })
@@ -146,8 +188,30 @@ const jobTypeLabel = (type?: number) => {
         <p class="page-desc">所有已认证的企业</p>
       </div>
 
-      <!-- 搜索栏 -->
+      <!-- 筛选栏 -->
       <div class="search-bar">
+        <div class="filter-group-left">
+          <div class="filter-select-wrap">
+            <span class="filter-label">行业</span>
+            <select v-model="selectedIndustry" class="filter-select">
+              <option value="">全部行业</option>
+              <option v-for="ind in industryOptions" :key="ind" :value="ind">{{ ind }}</option>
+            </select>
+          </div>
+          <div class="filter-select-wrap region-wrap">
+            <span class="filter-label">地区</span>
+            <el-cascader
+              v-model="regionCascaderValue"
+              :options="regions"
+              :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true }"
+              placeholder="请选择地区"
+              size="default"
+              clearable
+              style="width:180px"
+              @change="onRegionChange as any"
+            />
+          </div>
+        </div>
         <div class="search-input-wrap">
           <el-icon :size="16" class="search-icon"><Search /></el-icon>
           <input
@@ -156,13 +220,6 @@ const jobTypeLabel = (type?: number) => {
             class="search-input"
             placeholder="搜索企业名称、行业"
           />
-        </div>
-        <div class="city-select-wrap">
-          <span class="city-label">城市</span>
-          <select v-model="selectedCity" class="city-select">
-            <option value="">全部城市</option>
-            <option v-for="c in allCities" :key="c" :value="c">{{ c }}</option>
-          </select>
         </div>
       </div>
 
@@ -309,20 +366,31 @@ const jobTypeLabel = (type?: number) => {
   color: #000;
 }
 
-.city-select-wrap {
+.filter-group-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.filter-select-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.city-label {
+.region-wrap {
+  min-width: 200px;
+}
+
+.filter-label {
   font-size: 14px;
   color: #333;
   font-weight: 500;
   white-space: nowrap;
 }
 
-.city-select {
+.filter-select {
   padding: 8px 32px 8px 12px;
   font-size: 14px;
   border: 1px solid #dcdce4;
