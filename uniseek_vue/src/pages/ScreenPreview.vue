@@ -10,7 +10,7 @@
         <div class="logo-area">
           <h1 class="brand-title">
             <img src="@/assets/uniseek-icon.png" alt="UniSeek" class="brand-icon" />
-            <img src="@/assets/uniseek-logo.svg" alt="UniSeek优寻" class="brand-logo" />
+            <img src="@/assets/uniseek_text_white_ZH.svg" alt="UniSeek优寻" class="brand-logo" />
           </h1>
           <span class="range-badge">{{ timeRangeLabels[currentRange] || currentRange }}</span>
           <div class="glow-line"></div>

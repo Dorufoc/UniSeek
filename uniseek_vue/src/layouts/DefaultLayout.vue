@@ -22,7 +22,9 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
       <div class="header-inner">
         <!-- 左侧区域：Logo -->
         <div class="header-left">
-          <router-link to="/" class="logo">UniSeek</router-link>
+          <router-link to="/" class="logo">
+            <img src="@/assets/uniseek_text_white_ZH.svg" alt="UniSeek" class="logo-img" />
+          </router-link>
         </div>
 
         <!-- 中部区域：主导航菜单 -->
@@ -101,11 +103,15 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
 }
 
 .logo {
-  font-size: 24px;
-  font-weight: 800;
-  color: #fff;
+  display: flex;
+  align-items: center;
   text-decoration: none;
-  letter-spacing: 1px;
+}
+
+.logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .city-selector {

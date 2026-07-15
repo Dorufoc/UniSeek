@@ -51,7 +51,7 @@ const handleLogout = () => {
     <!-- 左侧菜单栏 -->
     <el-aside :width="isCollapse ? '64px' : '220px'" class="admin-aside">
       <div class="logo-area" @click="router.push('/admin/dashboard')">
-        <span class="logo-text" v-if="!isCollapse">UniSeek 管理后台</span>
+        <img v-if="!isCollapse" src="@/assets/uniseek_text_white_ZH.svg" alt="UniSeek" class="logo-img" />
         <span class="logo-text-mini" v-else>US</span>
       </div>
       <el-menu
@@ -136,11 +136,10 @@ const handleLogout = () => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.logo-text {
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 1px;
+.logo-img {
+  height: 28px;
+  width: auto;
+  display: block;
 }
 
 .logo-text-mini {
