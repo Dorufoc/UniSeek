@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uniseek.common.ApiResult;
 import com.uniseek.common.PageResult;
-import com.uniseek.common.annotation.OperationLog;
+import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.constant.RoleConstant;
 import com.uniseek.dao.EnterpriseMapper;
@@ -41,7 +41,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @OperationLog(module = "职位管理", action = "发布", description = "发布新职位")
+    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK")
     public Task create(Long enterpriseId, TaskRequest request) {
         // 1. 校验企业已认证
         Enterprise enterprise = enterpriseMapper.selectById(enterpriseId);
@@ -125,7 +125,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @OperationLog(module = "职位管理", action = "更新", description = "更新职位信息")
+    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK", targetIdExpression = "#id")
     public Task update(Long enterpriseId, Long id, TaskRequest request) {
         // 1. 查询职位
         Task task = taskMapper.selectById(id);
@@ -186,7 +186,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @OperationLog(module = "职位管理", action = "修改状态", description = "修改职位状态")
+    @OperationLog(operationType = "TASK_OFFLINE", targetType = "TASK", targetIdExpression = "#id")
     public void updateStatus(Long userId, Integer userRole, Long id, Integer targetStatus) {
         // 1. 查询职位
         Task task = taskMapper.selectById(id);

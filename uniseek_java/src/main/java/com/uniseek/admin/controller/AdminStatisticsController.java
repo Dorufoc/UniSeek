@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,5 +37,69 @@ public class AdminStatisticsController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endDate) {
         Map<String, Object> statistics = adminService.getStatistics(startDate, endDate);
         return ApiResult.success(statistics);
+    }
+
+    /**
+     * 行业需求占比
+     * GET /api/admin/statistics/industries（大屏公开，无需鉴权）
+     */
+    @GetMapping("/industries")
+    public ApiResult<List<Map<String, Object>>> getIndustryDistribution() {
+        return ApiResult.success(adminService.getIndustryDistribution());
+    }
+
+    /**
+     * 实时动态
+     * GET /api/admin/statistics/latest-activity（大屏公开，无需鉴权）
+     */
+    @GetMapping("/latest-activity")
+    public ApiResult<List<Map<String, Object>>> getLatestActivity() {
+        return ApiResult.success(adminService.getLatestActivity());
+    }
+
+    /**
+     * 热门岗位 TOP10
+     * GET /api/admin/statistics/hot-tasks（大屏公开，无需鉴权）
+     */
+    @GetMapping("/hot-tasks")
+    public ApiResult<List<Map<String, Object>>> getHotTasks() {
+        return ApiResult.success(adminService.getHotTasks());
+    }
+
+    /**
+     * 人才流向数据
+     * GET /api/admin/statistics/talent-flow
+     */
+    @GetMapping("/talent-flow")
+    public ApiResult<List<Map<String, Object>>> getTalentFlow() {
+        return ApiResult.success(adminService.getTalentFlow());
+    }
+
+    /**
+     * 大屏 KPI 汇总（公开接口，无需鉴权）
+     * GET /api/admin/statistics/summary
+     */
+    @GetMapping("/summary")
+    public ApiResult<Map<String, Object>> getScreenSummary(
+            @RequestParam(required = false, defaultValue = "7d") String range) {
+        return ApiResult.success(adminService.getScreenSummary(range));
+    }
+
+    /**
+     * 投递转化漏斗
+     * GET /api/admin/statistics/application-funnel
+     */
+    @GetMapping("/application-funnel")
+    public ApiResult<Map<String, Object>> getApplicationFunnel() {
+        return ApiResult.success(adminService.getApplicationFunnel());
+    }
+
+    /**
+     * 企业审核 + 实名认证统计
+     * GET /api/admin/statistics/enterprise-summary
+     */
+    @GetMapping("/enterprise-summary")
+    public ApiResult<Map<String, Object>> getEnterpriseSummary() {
+        return ApiResult.success(adminService.getEnterpriseSummary());
     }
 }

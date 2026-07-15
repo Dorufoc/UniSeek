@@ -90,6 +90,43 @@ public interface AdminService {
      */
     Map<String, Object> getStatistics(LocalDateTime startDate, LocalDateTime endDate);
 
+    /**
+     * 获取行业需求占比（按职位分类分组统计，仅统计招聘中职位）
+     */
+    List<Map<String, Object>> getIndustryDistribution();
+
+    /**
+     * 获取热门岗位 TOP10（按投递量倒序）
+     */
+    List<Map<String, Object>> getHotTasks();
+
+    /**
+     * 获取最新动态（operation_log 最新 10 条，拼接可读文案）
+     *
+     * @return 动态列表（包含 id、message、time）
+     */
+    List<Map<String, Object>> getLatestActivity();
+
+    /**
+     * 获取人才流向数据（根据身份证地区码 → 企业地区）
+     */
+    List<Map<String, Object>> getTalentFlow();
+
+    /**
+     * 获取大屏 KPI 汇总数据（公开接口，无需鉴权）
+     */
+    Map<String, Object> getScreenSummary(String range);
+
+    /**
+     * 获取投递转化漏斗数据（按状态分组统计）
+     */
+    Map<String, Object> getApplicationFunnel();
+
+    /**
+     * 获取企业审核 + 实名认证统计
+     */
+    Map<String, Object> getEnterpriseSummary();
+
     // ==================== 操作日志 ====================
 
     /**
