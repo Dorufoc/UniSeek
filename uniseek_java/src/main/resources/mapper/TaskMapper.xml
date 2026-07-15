@@ -179,4 +179,19 @@
         ORDER BY task.create_time DESC
     </select>
 
+    <!-- 查询指定企业的已发布职位（供求职者查看） -->
+    <select id="selectPublishedEnterpriseTasks" resultMap="TaskVOResultMap">
+        SELECT
+        <include refid="selectTaskFields"/>,
+        COALESCE(apps.c, 0) AS application_count
+        <include refid="joinTaskRelations"/>
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS c
+            FROM task_application
+            GROUP BY task_id
+        ) AS apps ON task.id = apps.task_id
+        WHERE task.enterprise_id = #{enterpriseId} AND task.status = 1
+        ORDER BY task.create_time DESC
+    </select>
+
 </mapper>

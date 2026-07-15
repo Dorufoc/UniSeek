@@ -239,4 +239,9 @@ public class TaskServiceImpl implements TaskService {
         List<TaskVO> list = taskMapper.selectEnterpriseTasks(enterpriseId);
         return new PageResult<>(list, list.size(), 1, list.size(), 1);
     }
+
+    @Override
+    public List<TaskVO> getPublishedEnterpriseTasks(Long enterpriseId) {
+        return taskMapper.selectPublishedEnterpriseTasks(enterpriseId);
+    }
 }

@@ -42,4 +42,12 @@ public interface TaskMapper extends BaseMapper<Task> {
      * @return 职位列表
      */
     List<TaskVO> selectEnterpriseTasks(@Param("enterpriseId") Long enterpriseId);
+
+    /**
+     * 查询指定企业的已发布职位（status = 1）
+     *
+     * @param enterpriseId 企业 ID
+     * @return 职位列表
+     */
+    List<TaskVO> selectPublishedEnterpriseTasks(@Param("enterpriseId") Long enterpriseId);
 }

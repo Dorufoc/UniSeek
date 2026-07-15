@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
-import { Location, ArrowDown } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -14,29 +13,6 @@ const isRecruiter = computed(() => userStore.userInfo?.role === 1)
 
 // 判断当前用户是否为管理员（role === 9 或 99）
 const isAdmin = computed(() => userStore.userInfo?.role >= 9)
-
-// 控制城市选择弹窗的显示与隐藏
-const showCityModal = ref(false)
-
-// 热门城市列表，用于城市选择弹窗的快捷选择区域
-const hotCities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安']
-
-// 全国主要城市列表，用于城市选择弹窗的更多城市区域
-const allCities = [
-  '北京', '上海', '天津', '重庆',
-  '石家庄', '太原', '呼和浩特', '沈阳', '长春', '哈尔滨',
-  '南京', '杭州', '合肥', '福州', '南昌', '济南',
-  '郑州', '武汉', '长沙', '广州', '南宁', '海口',
-  '成都', '贵阳', '昆明', '拉萨', '西安', '兰州',
-  '西宁', '银川', '乌鲁木齐', '大连', '青岛', '宁波',
-  '厦门', '深圳', '苏州', '无锡', '佛山', '东莞'
-]
-
-// 选择城市：更新全局城市状态并关闭弹窗
-const selectCity = (city: string) => {
-  appStore.setCity(city)
-  showCityModal.value = false
-}
 </script>
 
 <template>
@@ -44,15 +20,9 @@ const selectCity = (city: string) => {
     <!-- 顶部导航栏 -->
     <header class="layout-header">
       <div class="header-inner">
-        <!-- 左侧区域：Logo 和城市选择器 -->
+        <!-- 左侧区域：Logo -->
         <div class="header-left">
           <router-link to="/" class="logo">UniSeek</router-link>
-          <!-- 城市选择按钮，点击弹出城市选择弹窗 -->
-          <button class="city-selector" @click="showCityModal = true">
-            <el-icon :size="14"><Location /></el-icon>
-            <span>{{ appStore.city }}</span>
-            <el-icon :size="12"><ArrowDown /></el-icon>
-          </button>
         </div>
 
         <!-- 中部区域：主导航菜单 -->
@@ -93,48 +63,7 @@ const selectCity = (city: string) => {
       <router-view />
     </main>
 
-    <!-- 城市选择弹窗：点击遮罩层关闭，点击内容区阻止冒泡 -->
-    <div v-if="showCityModal" class="city-modal" @click="showCityModal = false">
-      <div class="city-modal-content" @click.stop>
-        <div class="city-modal-header">
-          <h3>选择城市</h3>
-          <button class="close-btn" @click="showCityModal = false">×</button>
-        </div>
-        <!-- 当前城市展示区 -->
-        <div class="city-section">
-          <h4>当前城市</h4>
-          <button class="city-tag current">{{ appStore.city }}</button>
-        </div>
-        <!-- 热门城市快捷选择区 -->
-        <div class="city-section">
-          <h4>热门城市</h4>
-          <div class="city-list">
-            <button
-              v-for="city in hotCities"
-              :key="city"
-              :class="['city-tag', { active: city === appStore.city }]"
-              @click="selectCity(city)"
-            >
-              {{ city }}
-            </button>
-          </div>
-        </div>
-        <!-- 全国城市完整选择区 -->
-        <div class="city-section">
-          <h4>更多城市</h4>
-          <div class="city-list">
-            <button
-              v-for="city in allCities"
-              :key="city"
-              :class="['city-tag', { active: city === appStore.city }]"
-              @click="selectCity(city)"
-            >
-              {{ city }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -299,98 +228,7 @@ const selectCity = (city: string) => {
   background: #f5f7fa;
 }
 
-/* 城市选择弹窗 */
-.city-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 120px;
-  z-index: 1000;
-}
 
-.city-modal-content {
-  width: 560px;
-  max-width: 90%;
-  max-height: 70vh;
-  overflow-y: auto;
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.city-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.city-modal-header h3 {
-  font-size: 18px;
-  margin: 0;
-  color: var(--text-h);
-}
-
-.close-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  color: #999;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-btn:hover {
-  color: var(--text-h);
-}
-
-.city-section {
-  margin-bottom: 20px;
-}
-
-.city-section h4 {
-  font-size: 14px;
-  color: #999;
-  margin: 0 0 12px;
-  font-weight: normal;
-}
-
-.city-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.city-tag {
-  padding: 8px 16px;
-  font-size: 14px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.city-tag:hover {
-  border-color: #007AFF;
-  color: #007AFF;
-}
-
-.city-tag.active,
-.city-tag.current {
-  border-color: #007AFF;
-  background: rgba(0, 122, 255, 0.1);
-  color: #007AFF;
-}
 
 @media (max-width: 768px) {
   .header-inner {

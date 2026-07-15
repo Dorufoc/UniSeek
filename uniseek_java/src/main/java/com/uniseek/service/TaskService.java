@@ -5,6 +5,7 @@ import com.uniseek.dto.TaskRequest;
 import com.uniseek.dto.TaskSearchRequest;
 import com.uniseek.dto.TaskVO;
 import com.uniseek.entity.Task;
+import java.util.List;
 
 /**
  * 职位任务服务接口
@@ -75,4 +76,12 @@ public interface TaskService {
      * @return 职位列表
      */
     PageResult<TaskVO> getEnterpriseTasks(Long enterpriseId);
+
+    /**
+     * 查询指定企业的已发布职位（供求职者浏览公司详情）
+     *
+     * @param enterpriseId 企业 ID
+     * @return 职位列表
+     */
+    List<TaskVO> getPublishedEnterpriseTasks(Long enterpriseId);
 }

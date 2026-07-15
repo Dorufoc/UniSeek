@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * 企业资质认证控制器
@@ -48,6 +49,16 @@ public class EnterpriseController {
         Long userId = UserContext.getUserId();
         Enterprise enterprise = enterpriseService.getMyEnterprise(userId);
         return ApiResult.success(enterprise);
+    }
+
+    /**
+     * 获取已认证的企业列表（供求职者浏览）
+     * GET /api/enterprise/list
+     */
+    @GetMapping("/list")
+    public ApiResult<List<Enterprise>> listEnterprises() {
+        List<Enterprise> list = enterpriseService.listPublished();
+        return ApiResult.success(list);
     }
 
     /**
