@@ -1,7 +1,7 @@
 package com.uniseek.controller;
 
 import com.uniseek.common.ApiResult;
-import com.uniseek.common.annotation.OperationLog;
+import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.util.UserContext;
 import com.uniseek.dto.EnterpriseRequest;
 import com.uniseek.entity.Enterprise;
@@ -30,7 +30,7 @@ public class EnterpriseController {
      * @return 企业资质记录
      */
     @PostMapping
-    @OperationLog(module = "企业资质", action = "提交", description = "提交企业资质认证")
+    @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public ApiResult<Enterprise> submit(@Valid @RequestBody EnterpriseRequest request) {
         Long userId = UserContext.getUserId();
         Enterprise enterprise = enterpriseService.submit(userId, request);
@@ -44,7 +44,6 @@ public class EnterpriseController {
      * @return 企业资质记录
      */
     @GetMapping("/my")
-    @OperationLog(module = "企业资质", action = "查询", description = "查询我的企业资质信息")
     public ApiResult<Enterprise> getMyEnterprise() {
         Long userId = UserContext.getUserId();
         Enterprise enterprise = enterpriseService.getMyEnterprise(userId);
@@ -69,7 +68,7 @@ public class EnterpriseController {
      * @return 更新后的企业资质记录
      */
     @PutMapping
-    @OperationLog(module = "企业资质", action = "更新", description = "更新企业资质信息并重新提交审核")
+    @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public ApiResult<Enterprise> update(@Valid @RequestBody EnterpriseRequest request) {
         Long userId = UserContext.getUserId();
         Enterprise enterprise = enterpriseService.update(userId, request);

@@ -195,3 +195,55 @@ export async function listOperationLogs(params: {
   const res: any = await request.get('/admin/operation-logs', { params })
   return res
 }
+
+// ==================== 大屏统计 API ====================
+
+/** 大屏公开 KPI 汇总（无需管理员权限） */
+export async function getScreenSummary(range = '7d'): Promise<{
+  summary: { totalUsers: number; totalEnterprises: number; totalTasks: number; publishedTasks: number; totalApplications: number }
+  latestDeliveries: number
+  dailyList: Array<{ date: string; newUsers: number; newEnterprises: number; newTasks: number; newApplications: number; newInterviews: number; newEntries: number }>
+}> {
+  const res: any = await request.get('/admin/statistics/summary', { params: { range } })
+  return res
+}
+
+export async function getIndustryDistribution(): Promise<Array<{ industry: string; count: number }>> {
+  const res: any = await request.get('/admin/statistics/industries')
+  return res
+}
+
+export async function getHotTasks(): Promise<Array<{ id: number; title: string; companyName: string; applicationCount: number }>> {
+  const res: any = await request.get('/admin/statistics/hot-tasks')
+  return res
+}
+
+export async function getLatestActivity(): Promise<Array<{ id: number; message: string; time: string }>> {
+  const res: any = await request.get('/admin/statistics/latest-activity')
+  return res
+}
+
+export async function getTalentFlow(): Promise<Array<{ fromCode: string; toCode: number; flowCount: number }>> {
+  const res: any = await request.get('/admin/statistics/talent-flow')
+  return res
+}
+
+export async function getApplicationFunnel(): Promise<{
+  total: number
+  todayNew: number
+  statusList: Array<{ status: number; name: string; count: number }>
+}> {
+  const res: any = await request.get('/admin/statistics/application-funnel')
+  return res
+}
+
+export async function getEnterpriseSummary(): Promise<{
+  totalEnterprise: number
+  auditList: Array<{ status: number; name: string; count: number }>
+  totalUser: number
+  authedCount: number
+  unauthedCount: number
+}> {
+  const res: any = await request.get('/admin/statistics/enterprise-summary')
+  return res
+}

@@ -32,7 +32,18 @@ const operationTypes = [
   'APPLICATION_REJECT',
   'COMPLAINT_HANDLE',
   'REAL_NAME_AUTH',
-  'ADMIN_SET_ROLE'
+  'ADMIN_SET_ROLE',
+  'REGISTER',
+  'LOGIN',
+  'LOGOUT',
+  'CHANGE_PASSWORD',
+  'UPDATE_PHONE',
+  'UPDATE_EMAIL',
+  'SAVE_RESUME',
+  'UPLOAD_RESUME',
+  'APPLICATION_INTERVIEW',
+  'APPLICATION_PENDING',
+  'APPLICATION_COMPLETE'
 ]
 
 const operationTypeMap: Record<string, string> = {
@@ -48,7 +59,18 @@ const operationTypeMap: Record<string, string> = {
   APPLICATION_REJECT: '淘汰求职者',
   COMPLAINT_HANDLE: '投诉处理',
   REAL_NAME_AUTH: '实名认证',
-  ADMIN_SET_ROLE: '管理员设权'
+  ADMIN_SET_ROLE: '管理员设权',
+  REGISTER: '注册',
+  LOGIN: '登录',
+  LOGOUT: '登出',
+  CHANGE_PASSWORD: '修改密码',
+  UPDATE_PHONE: '更新手机号',
+  UPDATE_EMAIL: '更新邮箱',
+  SAVE_RESUME: '保存简历',
+  UPLOAD_RESUME: '上传简历',
+  APPLICATION_INTERVIEW: '邀约面试',
+  APPLICATION_PENDING: '待处理',
+  APPLICATION_COMPLETE: '投递结算'
 }
 
 const fetchData = async () => {

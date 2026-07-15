@@ -3,7 +3,7 @@ package com.uniseek.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.uniseek.common.ApiResult;
 import com.uniseek.common.PageResult;
-import com.uniseek.common.annotation.OperationLog;
+import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.common.util.UserContext;
 import com.uniseek.dao.EnterpriseMapper;
@@ -67,7 +67,7 @@ public class TaskController {
      * @return 创建的职位
      */
     @PostMapping("/tasks")
-    @OperationLog(module = "职位管理", action = "发布", description = "发布新职位")
+    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK")
     public ApiResult<Task> create(@Valid @RequestBody TaskRequest request) {
         Long userId = UserContext.getUserId();
         Long enterpriseId = getEnterpriseIdByUserId(userId);
@@ -84,7 +84,7 @@ public class TaskController {
      * @return 更新后的职位
      */
     @PutMapping("/tasks/{id}")
-    @OperationLog(module = "职位管理", action = "更新", description = "更新职位信息")
+    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK", targetIdExpression = "#id")
     public ApiResult<Task> update(@PathVariable Long id,
                                    @Valid @RequestBody TaskRequest request) {
         Long userId = UserContext.getUserId();
@@ -102,7 +102,7 @@ public class TaskController {
      * @return 操作结果
      */
     @PutMapping("/tasks/{id}/status")
-    @OperationLog(module = "职位管理", action = "修改状态", description = "修改职位状态")
+    @OperationLog(operationType = "TASK_OFFLINE", targetType = "TASK", targetIdExpression = "#id")
     public ApiResult<Void> updateStatus(@PathVariable Long id,
                                          @RequestParam Integer targetStatus) {
         Long userId = UserContext.getUserId();
@@ -128,7 +128,7 @@ public class TaskController {
      * @return 职位列表
      */
     @GetMapping("/enterprise/tasks")
-    @OperationLog(module = "职位管理", action = "查询", description = "查询本企业职位列表")
+    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK")
     public ApiResult<PageResult<TaskVO>> getEnterpriseTasks() {
         Long userId = UserContext.getUserId();
         Long enterpriseId = getEnterpriseIdByUserId(userId);
