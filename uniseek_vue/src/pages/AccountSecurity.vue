@@ -381,7 +381,7 @@ const handleDeleteAccount = () => {
 .settings-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
 .settings-row { display: flex; align-items: center; gap: 14px; padding: 18px 20px; cursor: pointer; transition: background 0.15s; }
 .settings-row:hover { background: #f8f9fb; }
-.settings-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,122,255,0.08); color: #007AFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.settings-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,122,255,0.08); color: #1762FB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .settings-icon.verified { background: rgba(46,204,113,0.08); color: #2ecc71; }
 .settings-info { flex: 1; min-width: 0; }
 .settings-name { display: block; font-size: 15px; font-weight: 500; color: var(--text-h); margin-bottom: 2px; }
@@ -396,7 +396,7 @@ const handleDeleteAccount = () => {
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 14px; color: var(--text); margin-bottom: 6px; font-weight: 500; }
 .field-error { font-size: 12px; color: #e74c3c; margin: 6px 0 0; }
-.save-btn { width: 100%; padding: 12px 0; font-size: 15px; font-weight: 500; color: #fff; background: #007AFF; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
+.save-btn { width: 100%; padding: 12px 0; font-size: 15px; font-weight: 500; color: #fff; background: #1762FB; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
 .save-btn:hover:not(:disabled) { opacity: 0.9; }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .form-note { font-size: 12px; color: #bbb; margin: 10px 0 0; text-align: center; }

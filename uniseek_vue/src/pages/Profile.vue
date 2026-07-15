@@ -582,7 +582,7 @@ const handleMenuClick = (item: string) => {
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  color: #007AFF;
+  color: #1762FB;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -625,7 +625,7 @@ const handleMenuClick = (item: string) => {
 }
 
 .role-badge.seeker {
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.1);
 }
 
@@ -655,7 +655,7 @@ const handleMenuClick = (item: string) => {
   gap: 6px;
   padding: 8px 24px;
   font-size: 14px;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
   border: 1px solid rgba(0, 122, 255, 0.2);
   border-radius: 20px;
@@ -685,7 +685,7 @@ const handleMenuClick = (item: string) => {
   display: block;
   font-size: 24px;
   font-weight: 700;
-  color: #007AFF;
+  color: #1762FB;
   line-height: 1.3;
 }
 
@@ -715,7 +715,7 @@ const handleMenuClick = (item: string) => {
   color: #000;
   margin: 0 0 16px;
   padding-left: 4px;
-  border-left: 3px solid #007AFF;
+  border-left: 3px solid #1762FB;
   padding: 0 0 0 10px;
   line-height: 1.2;
 }
@@ -739,7 +739,7 @@ const handleMenuClick = (item: string) => {
 }
 
 .menu-item:hover {
-  border-color: #007AFF;
+  border-color: #1762FB;
   background: rgba(0, 122, 255, 0.03);
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
 }
@@ -756,7 +756,7 @@ const handleMenuClick = (item: string) => {
 
 .menu-icon.seeker-bg {
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .menu-icon.recruiter-bg {

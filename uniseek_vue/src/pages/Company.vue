@@ -291,7 +291,7 @@ const jobTypeLabel = (type?: number) => {
 }
 
 .search-input-wrap:focus-within {
-  border-color: #007AFF;
+  border-color: #1762FB;
 }
 
 .search-icon {
@@ -335,7 +335,7 @@ const jobTypeLabel = (type?: number) => {
 }
 
 .city-select:focus {
-  border-color: #007AFF;
+  border-color: #1762FB;
   outline: none;
 }
 
@@ -367,7 +367,7 @@ const jobTypeLabel = (type?: number) => {
   height: 56px;
   min-width: 56px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #007AFF, #5aacff);
+  background: linear-gradient(135deg, #1762FB, #5aacff);
   color: #fff;
   font-size: 22px;
   font-weight: 600;
@@ -399,7 +399,7 @@ const jobTypeLabel = (type?: number) => {
   display: inline-block;
   padding: 2px 10px;
   font-size: 12px;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.08);
   border-radius: 4px;
 }
@@ -428,7 +428,7 @@ const jobTypeLabel = (type?: number) => {
 .back-btn {
   padding: 8px 0;
   font-size: 14px;
-  color: #007AFF;
+  color: #1762FB;
   background: none;
   border: none;
   cursor: pointer;
@@ -453,7 +453,7 @@ const jobTypeLabel = (type?: number) => {
   height: 72px;
   min-width: 72px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #007AFF, #5aacff);
+  background: linear-gradient(135deg, #1762FB, #5aacff);
   color: #fff;
   font-size: 28px;
   font-weight: 700;
@@ -545,7 +545,7 @@ const jobTypeLabel = (type?: number) => {
 }
 
 .job-type {
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .job-tags {

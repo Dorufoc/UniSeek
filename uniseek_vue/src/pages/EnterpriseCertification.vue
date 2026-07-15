@@ -354,7 +354,7 @@ onMounted(async () => {
   z-index: 10;
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
-.back-btn-top:hover { color: #007AFF; }
+.back-btn-top:hover { color: #1762FB; }
 
 .info-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 .info-row { display: flex; padding: 12px 0; border-bottom: 1px solid var(--border); }
@@ -381,7 +381,7 @@ onMounted(async () => {
   gap: 12px;
   transition: border-color 0.2s;
 }
-.upload-area:hover { border-color: #007AFF; color: #007AFF; }
+.upload-area:hover { border-color: #1762FB; color: #1762FB; }
 .uploaded-area {
   display: flex;
   align-items: center;
@@ -421,7 +421,7 @@ onMounted(async () => {
 .submit-btn {
   flex: 1;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   border: none;
 }
 .submit-btn:hover:not(:disabled) { opacity: 0.92; }
@@ -435,7 +435,7 @@ onMounted(async () => {
 }
 .action-btn.full {
   width: 100%;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0,122,255,0.06);
   border: 1px solid rgba(0,122,255,0.2);
 }
@@ -456,7 +456,7 @@ onMounted(async () => {
   padding: 10px 32px;
   border: none;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   font-size: 15px;
   text-decoration: none;
   margin-top: 8px;

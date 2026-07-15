@@ -413,7 +413,7 @@ onMounted(async () => {
 }
 
 .search-bar {
-  background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);
+  background: linear-gradient(rgba(13,27,42,0.2), rgba(13,27,42,0.2)), url('/background.jpg') center / cover no-repeat;
   padding: 20px 24px;
 }
 
@@ -441,7 +441,7 @@ onMounted(async () => {
   width: 120px;
   height: 48px;
   border: none;
-  background: #007AFF;
+  background: #1762FB;
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -510,14 +510,14 @@ onMounted(async () => {
 }
 
 .filter-option:hover {
-  border-color: #007AFF;
-  color: #007AFF;
+  border-color: #1762FB;
+  color: #1762FB;
 }
 
 .filter-option.active {
-  border-color: #007AFF;
+  border-color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 600;
 }
 
@@ -540,8 +540,8 @@ onMounted(async () => {
 }
 
 .reset-btn:hover {
-  border-color: #007AFF;
-  color: #007AFF;
+  border-color: #1762FB;
+  color: #1762FB;
 }
 
 /* ── 右侧内容 ── */
@@ -587,7 +587,7 @@ onMounted(async () => {
 }
 
 .sort-tab.active {
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
   font-weight: 600;
 }
@@ -659,7 +659,7 @@ onMounted(async () => {
 
 .type-fulltime {
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .type-parttime {
@@ -814,13 +814,13 @@ onMounted(async () => {
 }
 
 .pagination button:hover:not(:disabled):not(.active) {
-  border-color: #007AFF;
-  color: #007AFF;
+  border-color: #1762FB;
+  color: #1762FB;
 }
 
 .pagination button.active {
-  background: #007AFF;
-  border-color: #007AFF;
+  background: #1762FB;
+  border-color: #1762FB;
   color: #fff;
 }
 

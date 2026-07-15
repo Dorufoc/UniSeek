@@ -351,7 +351,7 @@ const genderLabel = (g?: number) => {
 }
 
 .attach-link {
-  color: #007AFF;
+  color: #1762FB;
   font-size: 14px;
   text-decoration: none;
 }

@@ -115,6 +115,7 @@ const switchTab = (tab: 'login' | 'register') => {
   role.value = null
   agreed.value = false
 }
+
 </script>
 
 <template>
@@ -122,10 +123,7 @@ const switchTab = (tab: 'login' | 'register') => {
     <div class="login-card">
       <!-- 左侧品牌展示区 -->
       <div class="card-brand">
-        <div class="brand-content">
-          <h1 class="brand-name">UniSeek</h1>
-          <p class="brand-desc">智能匹配，让求职更高效</p>
-        </div>
+        <img src="@/assets/uniseek_pic.png" alt="UniSeek" class="brand-image" />
       </div>
 
       <!-- 右侧表单区域 -->
@@ -358,61 +356,23 @@ const switchTab = (tab: 'login' | 'register') => {
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 8px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .card-brand {
   flex: 1;
-  background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px;
-  position: relative;
   overflow: hidden;
 }
 
-.card-brand::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
+.brand-image {
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  transform: scale(2);
-}
-
-.card-brand::after {
-  content: '';
-  position: absolute;
-  bottom: -30%;
-  left: -30%;
-  width: 80%;
-  height: 80%;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 50%;
-}
-
-.brand-content {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-}
-
-.brand-name {
-  font-size: 42px;
-  font-weight: 800;
-  color: #fff;
-  margin: 0 0 12px;
-  letter-spacing: 2px;
-}
-
-.brand-desc {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-  letter-spacing: 1px;
+  object-fit: cover;
+  display: block;
 }
 
 .card-form {
@@ -442,7 +402,7 @@ const switchTab = (tab: 'login' | 'register') => {
 }
 
 .tab-btn.active {
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 600;
 }
 
@@ -453,7 +413,7 @@ const switchTab = (tab: 'login' | 'register') => {
   left: 0;
   right: 0;
   height: 2px;
-  background: #007AFF;
+  background: #1762FB;
 }
 
 .form-body {
@@ -493,13 +453,13 @@ const switchTab = (tab: 'login' | 'register') => {
 }
 
 .role-btn:hover {
-  border-color: #007AFF;
+  border-color: #1762FB;
 }
 
 .role-btn.active {
-  border-color: #007AFF;
+  border-color: #1762FB;
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 500;
 }
 
@@ -531,7 +491,7 @@ const switchTab = (tab: 'login' | 'register') => {
 }
 
 .agree-label a {
-  color: #007AFF;
+  color: #1762FB;
   text-decoration: none;
 }
 
@@ -541,7 +501,7 @@ const switchTab = (tab: 'login' | 'register') => {
   font-size: 16px;
   font-weight: 600;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -613,8 +573,8 @@ const switchTab = (tab: 'login' | 'register') => {
 }
 
 .social-btn:hover {
-  border-color: #007AFF;
-  color: #007AFF;
+  border-color: #1762FB;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.1);
 }
 

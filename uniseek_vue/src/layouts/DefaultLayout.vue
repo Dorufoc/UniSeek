@@ -189,7 +189,7 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
   font-size: 14px;
   text-decoration: none;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   transition: opacity 0.2s;
 }
 

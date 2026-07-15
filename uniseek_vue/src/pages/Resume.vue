@@ -609,7 +609,7 @@ const toggleSection = (key: string) => {
   align-items: center;
   justify-content: center;
   margin: 0 0 12px;
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .avatar-name {
@@ -642,7 +642,7 @@ const toggleSection = (key: string) => {
 
 .completion-percent {
   font-weight: 700;
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .completion-bar {
@@ -655,7 +655,7 @@ const toggleSection = (key: string) => {
 
 .completion-fill {
   height: 100%;
-  background: linear-gradient(90deg, #007AFF, #5aacff);
+  background: linear-gradient(90deg, #1762FB, #5aacff);
   border-radius: 3px;
   transition: width 0.4s ease;
 }
@@ -689,12 +689,12 @@ const toggleSection = (key: string) => {
 
 .nav-item:hover {
   background: #f0f4ff;
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .nav-item.active {
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 500;
 }
 
@@ -730,7 +730,7 @@ const toggleSection = (key: string) => {
   padding: 9px 22px;
   font-size: 14px;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -762,7 +762,7 @@ const toggleSection = (key: string) => {
   padding: 9px 22px;
   font-size: 14px;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -844,7 +844,7 @@ const toggleSection = (key: string) => {
 
 .section-toggle {
   font-size: 13px;
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .section-body {
@@ -891,7 +891,7 @@ const toggleSection = (key: string) => {
   display: inline-block;
   padding: 4px 12px;
   font-size: 13px;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.08);
   border-radius: 4px;
 }
@@ -909,7 +909,7 @@ const toggleSection = (key: string) => {
   padding: 2px;
   border: none;
   background: transparent;
-  color: #007AFF;
+  color: #1762FB;
   cursor: pointer;
   opacity: 0.6;
 }
@@ -938,7 +938,7 @@ const toggleSection = (key: string) => {
 
 .attachment-name {
   font-size: 14px;
-  color: #007AFF;
+  color: #1762FB;
   cursor: pointer;
 }
 
@@ -998,7 +998,7 @@ const toggleSection = (key: string) => {
 }
 
 .form-input:focus {
-  border-color: #007AFF;
+  border-color: #1762FB;
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
@@ -1035,13 +1035,13 @@ const toggleSection = (key: string) => {
 }
 
 .gender-btn:hover {
-  border-color: #007AFF;
+  border-color: #1762FB;
 }
 
 .gender-btn.selected {
-  border-color: #007AFF;
+  border-color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .option-tags {
@@ -1061,13 +1061,13 @@ const toggleSection = (key: string) => {
 }
 
 .option-tag:hover {
-  border-color: #007AFF;
+  border-color: #1762FB;
 }
 
 .option-tag.selected {
-  border-color: #007AFF;
+  border-color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .skill-input-row {
@@ -1087,7 +1087,7 @@ const toggleSection = (key: string) => {
   gap: 4px;
   padding: 10px 16px;
   font-size: 13px;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
   border: 1px solid rgba(0, 122, 255, 0.2);
   border-radius: 8px;
@@ -1120,7 +1120,7 @@ const toggleSection = (key: string) => {
 }
 
 .form-textarea:focus {
-  border-color: #007AFF;
+  border-color: #1762FB;
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
@@ -1172,8 +1172,8 @@ const toggleSection = (key: string) => {
 }
 
 .upload-area:hover {
-  border-color: #007AFF;
-  color: #007AFF;
+  border-color: #1762FB;
+  color: #1762FB;
   background: #fff;
 }
 

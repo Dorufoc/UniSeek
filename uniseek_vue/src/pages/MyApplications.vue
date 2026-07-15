@@ -38,7 +38,7 @@ const toggleExpand = (id: number) => {
 
 // 状态配置
 const statusConfig: Record<number, { label: string; color: string; bg: string }> = {
-  0: { label: '已投递', color: '#007AFF', bg: 'rgba(0,122,255,0.08)' },
+  0: { label: '已投递', color: '#1762FB', bg: 'rgba(0,122,255,0.08)' },
   1: { label: '待面试', color: '#f0ad4e', bg: 'rgba(240,173,78,0.1)' },
   2: { label: '待定', color: '#909399', bg: 'rgba(144,147,153,0.1)' },
   3: { label: '已录用', color: '#2ecc71', bg: 'rgba(46,204,113,0.1)' },
@@ -363,12 +363,12 @@ onMounted(() => {
 }
 
 .tab-item:hover {
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0,122,255,0.05);
 }
 
 .tab-item.active {
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0,122,255,0.08);
   font-weight: 500;
 }
@@ -406,7 +406,7 @@ onMounted(() => {
   display: block;
   font-size: 28px;
   font-weight: 700;
-  color: #007AFF;
+  color: #1762FB;
   margin-bottom: 4px;
 }
 
@@ -519,7 +519,7 @@ onMounted(() => {
   color: var(--text);
 }
 
-.detail-value.highlight { color: #007AFF; font-weight: 500; }
+.detail-value.highlight { color: #1762FB; font-weight: 500; }
 .detail-value.danger { color: #e74c3c; }
 .detail-value.note { background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid #f0f0f5; }
 
@@ -535,7 +535,7 @@ onMounted(() => {
   gap: 4px;
   padding: 7px 16px;
   font-size: 13px;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0,122,255,0.06);
   border: 1px solid rgba(0,122,255,0.2);
   border-radius: 6px;
@@ -544,7 +544,7 @@ onMounted(() => {
 }
 
 .action-btn:hover { background: rgba(0,122,255,0.12); }
-.action-btn.primary { color: #fff; background: #007AFF; border-color: #007AFF; }
+.action-btn.primary { color: #fff; background: #1762FB; border-color: #1762FB; }
 .action-btn.primary:hover { background: #0066d6; }
 
 /* 面试邀请 */
@@ -661,7 +661,7 @@ onMounted(() => {
 }
 
 .fav-tag.salary { color: #e74c3c; background: rgba(231,76,60,0.06); }
-.fav-tag.type { color: #007AFF; background: rgba(0,122,255,0.06); }
+.fav-tag.type { color: #1762FB; background: rgba(0,122,255,0.06); }
 
 .fav-btn {
   padding: 8px;
@@ -698,7 +698,7 @@ onMounted(() => {
   padding: 10px 28px;
   font-size: 14px;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   border: none;
   border-radius: 20px;
   cursor: pointer;

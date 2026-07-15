@@ -320,13 +320,13 @@ const handleSubmit = async () => {
   transition: all 0.2s;
 }
 .tag-btn:hover {
-  border-color: #007AFF;
-  color: #007AFF;
+  border-color: #1762FB;
+  color: #1762FB;
 }
 .tag-btn.active {
-  border-color: #007AFF;
+  border-color: #1762FB;
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 500;
 }
 .submit-btn {
@@ -335,7 +335,7 @@ const handleSubmit = async () => {
   font-size: 16px;
   font-weight: 600;
   color: #fff;
-  background: #007AFF;
+  background: #1762FB;
   border: none;
   border-radius: 8px;
   cursor: pointer;

@@ -373,7 +373,7 @@ onMounted(async () => {
 }
 
 .breadcrumb a {
-  color: #007AFF;
+  color: #1762FB;
   text-decoration: none;
 }
 
@@ -462,7 +462,7 @@ onMounted(async () => {
   padding: 5px 14px;
   font-size: 13px;
   background: rgba(0, 122, 255, 0.06);
-  color: #007AFF;
+  color: #1762FB;
   border-radius: 20px;
   cursor: pointer;
   transition: background 0.2s;
@@ -558,7 +558,7 @@ onMounted(async () => {
   width: 52px;
   height: 52px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #007AFF, #5856d6);
+  background: linear-gradient(135deg, #1762FB, #5856d6);
   color: #fff;
   display: flex;
   align-items: center;
@@ -615,7 +615,7 @@ onMounted(async () => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  background: #007AFF;
+  background: #1762FB;
   color: #fff;
 }
 
@@ -638,8 +638,8 @@ onMounted(async () => {
 
 .apply-btn.contact-btn {
   background: #fff;
-  color: #007AFF;
-  border: 1px solid #007AFF;
+  color: #1762FB;
+  border: 1px solid #1762FB;
 }
 
 .apply-btn.contact-btn:hover:not(:disabled) {
@@ -656,7 +656,7 @@ onMounted(async () => {
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #007AFF;
+  border-top: 3px solid #1762FB;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;
@@ -690,7 +690,7 @@ onMounted(async () => {
 
 .back-btn {
   padding: 10px 24px;
-  background: #007AFF;
+  background: #1762FB;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -708,7 +708,7 @@ onMounted(async () => {
   padding: 6px 0;
   margin-bottom: 8px;
   font-size: 14px;
-  color: #007AFF;
+  color: #1762FB;
   background: none;
   border: none;
   cursor: pointer;

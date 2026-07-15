@@ -101,7 +101,7 @@ const parseSnapshot = (snapshot: string | null) => {
   }
 }
 
-const catColors = ['#007AFF', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
+const catColors = ['#1762FB', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
 
 onMounted(async () => {
   if (isRecruiter.value) {
@@ -311,7 +311,7 @@ onMounted(async () => {
 
 /* ── 招聘者头部 ── */
 .recruiter-header {
-  background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);
+  background: linear-gradient(rgba(13,27,42,0.2), rgba(13,27,42,0.2)), url('/background.jpg') center / cover no-repeat;
   padding: 40px 24px;
 }
 
@@ -389,14 +389,14 @@ onMounted(async () => {
   padding: 2px 8px;
   border-radius: 4px;
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
   font-size: 11px;
 }
 
 .applicant-count {
   margin-left: auto;
   font-weight: 500;
-  color: #007AFF;
+  color: #1762FB;
 }
 
 /* ── 求职者卡片 ── */
@@ -460,7 +460,7 @@ onMounted(async () => {
   font-size: 13px;
   border-radius: 6px;
   text-decoration: none;
-  color: #007AFF;
+  color: #1762FB;
   background: rgba(0, 122, 255, 0.06);
   transition: all 0.2s;
   white-space: nowrap;
@@ -507,7 +507,7 @@ onMounted(async () => {
 
 .view-all-btn {
   font-size: 14px;
-  color: #007AFF;
+  color: #1762FB;
   background: none;
   border: none;
   cursor: pointer;
@@ -522,8 +522,8 @@ onMounted(async () => {
 
 /* ── 求职者 Hero ── */
 .hero-section {
-  background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);
-  padding: 60px 24px;
+  background: linear-gradient(rgba(13,27,42,0.2), rgba(13,27,42,0.2)), url('/background.jpg') center / cover no-repeat;
+  padding: 90px 24px;
 }
 
 .hero-content {
@@ -584,7 +584,7 @@ onMounted(async () => {
   width: 120px;
   height: 100%;
   border: none;
-  background: #007AFF;
+  background: #1762FB;
   color: #fff;
   font-size: 17px;
   font-weight: 600;
@@ -639,7 +639,7 @@ onMounted(async () => {
   border-radius: 10px;
   padding: 20px 16px;
   cursor: pointer;
-  border-top: 3px solid #007AFF;
+  border-top: 3px solid #1762FB;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   transition: all 0.2s;
 }
@@ -725,7 +725,7 @@ onMounted(async () => {
   padding: 2px 8px;
   border-radius: 4px;
   background: rgba(0, 122, 255, 0.08);
-  color: #007AFF;
+  color: #1762FB;
 }
 
 .job-card-bottom {
@@ -765,7 +765,7 @@ onMounted(async () => {
 /* ── 响应式 ── */
 @media (max-width: 768px) {
   .hero-section {
-    padding: 40px 16px;
+    padding: 60px 16px;
   }
 
   .hero-tagline {

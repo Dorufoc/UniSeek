@@ -443,7 +443,7 @@ watch(() => route.query.chat, async (newVal) => {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #007AFF, #5856d6);
+  background: linear-gradient(135deg, #1762FB, #5856d6);
   color: #fff;
   display: flex;
   align-items: center;
@@ -557,7 +557,7 @@ watch(() => route.query.chat, async (newVal) => {
 .load-more button {
   background: none;
   border: none;
-  color: #007AFF;
+  color: #1762FB;
   font-size: 13px;
   cursor: pointer;
 }
@@ -581,7 +581,7 @@ watch(() => route.query.chat, async (newVal) => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #007AFF, #5856d6);
+  background: linear-gradient(135deg, #1762FB, #5856d6);
   color: #fff;
   display: flex;
   align-items: center;
@@ -720,15 +720,15 @@ watch(() => route.query.chat, async (newVal) => {
 }
 .resume-download {
   font-size: 13px;
-  color: #007AFF;
+  color: #1762FB;
   text-decoration: none;
   white-space: nowrap;
   padding: 4px 10px;
-  border: 1px solid #007AFF;
+  border: 1px solid #1762FB;
   border-radius: 6px;
 }
 .resume-download:hover {
-  background: #007AFF;
+  background: #1762FB;
   color: #fff;
 }
 
