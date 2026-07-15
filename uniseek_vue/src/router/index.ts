@@ -71,9 +71,7 @@ const router = createRouter({
         },
         {
           path: 'chat/:applicationId',
-          name: 'Chat',
-          component: () => import('@/pages/Chat.vue'),
-          meta: { title: '聊天 - UniSeek' }
+          redirect: (to) => ({ path: '/messages', query: { chat: to.params.applicationId } })
         },
         {
           path: 'resume',
