@@ -30,4 +30,4 @@ jwt:
   secret: UniSeek-JWT-Secret-Key-2026
 
 upload:
-  path: ./upload
+  path: D:/UniSeek/UniSeek/upload

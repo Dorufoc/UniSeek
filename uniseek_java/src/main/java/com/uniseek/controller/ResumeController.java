@@ -65,6 +65,55 @@ public class ResumeController {
     }
 
     /**
+     * 发布简历到人才市场
+     * PATCH /api/resume/publish
+     */
+    @OperationLog(operationType = "PUBLISH_RESUME", targetType = "RESUME")
+    @PatchMapping("/publish")
+    public ApiResult<Void> publishResume() {
+        Long userId = UserContext.getUserId();
+        resumeService.publishResume(userId);
+        return ApiResult.success("发布成功", null);
+    }
+
+    /**
+     * 从人才市场下架简历
+     * PATCH /api/resume/unpublish
+     */
+    @OperationLog(operationType = "UNPUBLISH_RESUME", targetType = "RESUME")
+    @PatchMapping("/unpublish")
+    public ApiResult<Void> unpublishResume() {
+        Long userId = UserContext.getUserId();
+        resumeService.unpublishResume(userId);
+        return ApiResult.success("已下架", null);
+    }
+
+    /**
+     * 搜索人才市场已发布的简历
+     * GET /api/resume/search
+     *
+     * @param keyword 搜索关键词
+     */
+    @GetMapping("/search")
+    public ApiResult<List<Resume>> searchPublishedResumes(@RequestParam(required = false) String keyword) {
+        List<Resume> list = resumeService.searchPublishedResumes(keyword);
+        return ApiResult.success(list);
+    }
+
+    /**
+     * 查看指定用户的已发布简历（供招聘者查看人才详情）
+     * GET /api/resume/user/{userId}
+     */
+    @GetMapping("/user/{userId}")
+    public ApiResult<Resume> getPublishedResume(@PathVariable Long userId) {
+        Resume resume = resumeService.getUserResume(userId);
+        if (resume == null || resume.getIsPublished() != 1) {
+            throw new BusinessException("该用户未发布简历");
+        }
+        return ApiResult.success(resume);
+    }
+
+    /**
      * 上传附件简历
      * POST /api/resume/upload-attachment（需要鉴权）
      *

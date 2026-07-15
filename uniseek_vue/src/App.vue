@@ -14,7 +14,7 @@ html, body, #app {
   width: 100% !important;
   max-width: 100% !important;
   height: 100% !important;
-  overflow: hidden !important;
+  overflow: auto !important;
   background-color: #051024 !important;
   text-align: left !important;
 }

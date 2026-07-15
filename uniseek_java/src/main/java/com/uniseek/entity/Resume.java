@@ -43,6 +43,9 @@ public class Resume {
     /** 附件简历 URL */
     private String attachmentUrl;
 
+    /** 是否已发布到人才市场：0 未发布 / 1 已发布 */
+    private Integer isPublished;
+
     /** 真实姓名（来自 real_name_auth 表 JOIN 查询，非数据库字段） */
     @TableField(exist = false)
     private String realName;

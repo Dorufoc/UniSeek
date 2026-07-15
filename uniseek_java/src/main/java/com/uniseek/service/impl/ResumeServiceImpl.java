@@ -1,6 +1,7 @@
 package com.uniseek.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.ResumeMapper;
 import com.uniseek.dto.ResumeRequest;
 import com.uniseek.entity.Resume;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 简历服务实现
@@ -56,5 +58,38 @@ public class ResumeServiceImpl implements ResumeService {
             resume.setUpdateTime(LocalDateTime.now());
             resumeMapper.insert(resume);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void publishResume(Long userId) {
+        Resume existing = resumeMapper.selectOne(
+                new LambdaQueryWrapper<Resume>()
+                        .eq(Resume::getUserId, userId));
+        if (existing == null) {
+            throw new BusinessException("请先创建简历");
+        }
+        existing.setIsPublished(1);
+        existing.setUpdateTime(LocalDateTime.now());
+        resumeMapper.updateById(existing);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void unpublishResume(Long userId) {
+        Resume existing = resumeMapper.selectOne(
+                new LambdaQueryWrapper<Resume>()
+                        .eq(Resume::getUserId, userId));
+        if (existing == null) {
+            throw new BusinessException("请先创建简历");
+        }
+        existing.setIsPublished(0);
+        existing.setUpdateTime(LocalDateTime.now());
+        resumeMapper.updateById(existing);
+    }
+
+    @Override
+    public List<Resume> searchPublishedResumes(String keyword) {
+        return resumeMapper.selectPublishedResumes(keyword);
     }
 }
