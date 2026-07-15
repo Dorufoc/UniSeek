@@ -70,10 +70,12 @@ const jobTypeStyle = (type: number) => {
 // ── 筛选状态 ──
 const filter = reactive({
   regionId: undefined as number | undefined,
+  regionIds: undefined as string | undefined,
   categoryId: undefined as number | undefined,
   jobType: undefined as number | undefined,
   salaryMin: undefined as number | undefined,
   salaryMax: undefined as number | undefined,
+  salaryUnit: undefined as number | undefined,
   sortBy: 'create_time' as string,
   sortOrder: 'desc' as string
 })
@@ -81,29 +83,29 @@ const filter = reactive({
 const regionCascaderValue = ref<number[]>([])
 const categoryCascaderValue = ref<number | undefined>(undefined)
 
-const salaryPresets = [
-  { label: '3K以下', min: undefined as number | undefined, max: 3000 },
-  { label: '3K-5K', min: 3000, max: 5000 },
-  { label: '5K-10K', min: 5000, max: 10000 },
-  { label: '10K-15K', min: 10000, max: 15000 },
-  { label: '15K-20K', min: 15000, max: 20000 },
-  { label: '20K-50K', min: 20000, max: 50000 },
-  { label: '50K以上', min: 50000, max: undefined as number | undefined }
-]
+// ── 结算方式 & 薪资输入 ──
+const salaryMinInput = ref<number | undefined>(undefined)
+const salaryMaxInput = ref<number | undefined>(undefined)
 
-const activeSalaryPreset = ref<number>(-1)
+const settlementType = ref<number | undefined>(undefined)
 
-const setSalaryPreset = (index: number) => {
-  if (activeSalaryPreset.value === index) {
-    activeSalaryPreset.value = -1
-    filter.salaryMin = undefined
-    filter.salaryMax = undefined
-  } else {
-    activeSalaryPreset.value = index
-    const preset = salaryPresets[index]
-    filter.salaryMin = preset.min
-    filter.salaryMax = preset.max
-  }
+const unitLabel = computed(() => {
+  if (settlementType.value === undefined || settlementType.value === 2) return '元/月'
+  if (settlementType.value === 0) return '元/天'
+  if (settlementType.value === 1) return '元/时'
+  return '元/月'
+})
+
+const setSettlementType = (val: number | undefined) => {
+  settlementType.value = val
+  filter.salaryUnit = val
+  page.value = 1
+  loadTasks()
+}
+
+const onSalaryChange = () => {
+  filter.salaryMin = salaryMinInput.value
+  filter.salaryMax = salaryMaxInput.value
   page.value = 1
   loadTasks()
 }
@@ -130,9 +132,38 @@ const collectDescendantIds = (nodes: CategoryVO[], targetId: number): number[] =
   return []
 }
 
+// 递归收集所有子孙地区 ID
+const collectRegionDescendantIds = (nodes: RegionVO[], targetId: number): number[] => {
+  for (const node of nodes) {
+    if (node.id === targetId) {
+      const ids: number[] = [node.id]
+      const collect = (children: RegionVO[]) => {
+        for (const child of children) {
+          ids.push(child.id)
+          if (child.children?.length) collect(child.children)
+        }
+      }
+      if (node.children?.length) collect(node.children)
+      return ids
+    }
+    if (node.children?.length) {
+      const result = collectRegionDescendantIds(node.children, targetId)
+      if (result.length > 0) return result
+    }
+  }
+  return []
+}
+
 // ── 级联选择器变更 ──
 const onRegionChange = (val: number[]) => {
   filter.regionId = val.length > 0 ? val[val.length - 1] : undefined
+  filter.regionIds = undefined
+  if (val.length > 0) {
+    const ids = collectRegionDescendantIds(regionTree.value, val[val.length - 1])
+    if (ids.length > 1) {
+      filter.regionIds = ids.join(',')
+    }
+  }
   page.value = 1
   loadTasks()
 }
@@ -175,10 +206,12 @@ const loadTasks = async () => {
       keyword: keyword.value || undefined,
       categoryId: filter.categoryIds ? undefined : filter.categoryId,
       categoryIds: filter.categoryIds,
-      regionId: filter.regionId,
+      regionId: filter.regionIds ? undefined : filter.regionId,
+      regionIds: filter.regionIds,
       jobType: filter.jobType,
       salaryMin: filter.salaryMin,
       salaryMax: filter.salaryMax,
+      salaryUnit: filter.salaryUnit,
       sortBy: filter.sortBy,
       sortOrder: filter.sortOrder,
       page: page.value,
@@ -200,12 +233,16 @@ const handleSearch = () => {
 
 const resetFilters = () => {
   filter.regionId = undefined
+  filter.regionIds = undefined
   filter.categoryId = undefined
   filter.categoryIds = undefined
   filter.jobType = undefined
   filter.salaryMin = undefined
   filter.salaryMax = undefined
-  activeSalaryPreset.value = -1
+  filter.salaryUnit = undefined
+  settlementType.value = undefined
+  salaryMinInput.value = undefined
+  salaryMaxInput.value = undefined
   regionCascaderValue.value = []
   categoryCascaderValue.value = undefined
   keyword.value = ''
@@ -328,16 +365,43 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- 结算方式 -->
         <div class="filter-section">
-          <h4 class="filter-title">薪资范围（月）</h4>
-          <div class="filter-options salary-presets">
+          <h4 class="filter-title">结算方式</h4>
+          <div class="filter-options">
             <span
-              v-for="(preset, idx) in salaryPresets"
-              :key="idx"
-              :class="['filter-option', { active: activeSalaryPreset === idx }]"
-              @click="setSalaryPreset(idx)"
-            >{{ preset.label }}</span>
+              :class="['filter-option', { active: settlementType === undefined }]"
+              @click="setSettlementType(undefined)"
+            >不限</span>
+            <span
+              :class="['filter-option', { active: settlementType === 2 }]"
+              @click="setSettlementType(2)"
+            >月结</span>
+            <span
+              :class="['filter-option', { active: settlementType === 0 }]"
+              @click="setSettlementType(0)"
+            >日结</span>
+            <span
+              :class="['filter-option', { active: settlementType === 1 }]"
+              @click="setSettlementType(1)"
+            >时薪</span>
           </div>
+        </div>
+
+        <div class="filter-section">
+          <h4 class="filter-title">薪资范围</h4>
+          <div class="salary-input-row">
+            <div class="salary-input-wrapper">
+              <el-input v-model.number="salaryMinInput" placeholder="最低薪资" size="small" clearable @change="onSalaryChange" />
+              <span class="salary-unit">{{ unitLabel }}</span>
+            </div>
+            <span class="salary-separator">—</span>
+            <div class="salary-input-wrapper">
+              <el-input v-model.number="salaryMaxInput" placeholder="最高薪资" size="small" clearable @change="onSalaryChange" />
+              <span class="salary-unit">{{ unitLabel }}</span>
+            </div>
+          </div>
+          <p v-if="settlementType === undefined" class="salary-hint">* 日结/时薪岗位将按 22天/8小时 统一折算为预估月薪进行匹配</p>
         </div>
 
         <button class="reset-btn" @click="resetFilters">重置筛选</button>
@@ -564,10 +628,42 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.salary-presets .filter-option {
-  width: calc(50% - 4px);
-  text-align: center;
-  padding: 8px 6px;
+.salary-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.salary-input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.salary-input-wrapper :deep(.el-input__wrapper) {
+  padding-right: 50px;
+}
+
+.salary-unit {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #999;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.salary-separator {
+  color: #ccc;
+  flex-shrink: 0;
+}
+
+.salary-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 8px 0 0;
+  line-height: 1.5;
 }
 
 .reset-btn {

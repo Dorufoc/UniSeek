@@ -16,6 +16,7 @@ export interface TaskSearchParams {
   categoryId?: number
   categoryIds?: string
   regionId?: number
+  regionIds?: string
   jobType?: number
   salaryMin?: number
   salaryMax?: number

@@ -246,9 +246,6 @@ const availableActions = (app: TaskApplication) => {
       actions.push({ label: '录用', type: 'success', handler: () => handleSimpleStatus(app, 3, '录用') })
       actions.push({ label: '淘汰', type: 'danger', handler: () => openRejectDialog(app) })
       break
-    case 3:
-      actions.push({ label: '完成结算', type: 'success', handler: () => openCompleteDialog(app) })
-      break
   }
   return actions
 }

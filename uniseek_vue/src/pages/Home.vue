@@ -150,13 +150,6 @@ const closeSearchTypeMenu = (e: MouseEvent) => {
   }
 }
 
-const closeSearchTypeMenu = (e: MouseEvent) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.search-type-dropdown')) {
-    searchTypeOpen.value = false
-  }
-}
-
 onMounted(async () => {
   document.addEventListener('click', closeSearchTypeMenu)
 

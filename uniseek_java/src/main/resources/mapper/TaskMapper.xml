@@ -106,17 +106,23 @@
             <if test="req.categoryId != null and (req.categoryIds == null or req.categoryIds == '')">
                 AND task.category_id = #{req.categoryId}
             </if>
-            <if test="req.regionId != null">
+            <if test="req.regionIds != null and req.regionIds != ''">
+                AND task.region_id IN
+                <foreach item="id" collection="req.regionIds.split(',')" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="req.regionId != null and (req.regionIds == null or req.regionIds == '')">
                 AND task.region_id = #{req.regionId}
             </if>
             <if test="req.jobType != null">
                 AND task.job_type = #{req.jobType}
             </if>
             <if test="req.salaryMin != null">
-                AND task.salary_max >= #{req.salaryMin}
+                AND task.salary_min >= #{req.salaryMin}
             </if>
             <if test="req.salaryMax != null">
-                AND task.salary_min &lt;= #{req.salaryMax}
+                AND task.salary_max &lt;= #{req.salaryMax}
             </if>
             <if test="req.salaryUnit != null">
                 AND task.salary_unit = #{req.salaryUnit}

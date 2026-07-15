@@ -22,6 +22,9 @@ public class TaskSearchRequest {
     /** 地区 ID */
     private Long regionId;
 
+    /** 地区 ID 集合（逗号分隔，含子孙地区） */
+    private String regionIds;
+
     /** 工作类型：0 全职 / 1 兼职 / 2 实习 */
     private Integer jobType;
 

@@ -33,7 +33,7 @@ public class UploadService {
 
     /** 允许的文件扩展名 */
     private static final Set<String> FILE_EXTENSIONS = new HashSet<>(
-            Arrays.asList("pdf", "doc", "docx"));
+            Arrays.asList("pdf"));
 
     /** 图片最大 5MB */
     private static final long IMAGE_MAX_SIZE = 5 * 1024 * 1024L;

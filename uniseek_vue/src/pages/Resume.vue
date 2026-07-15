@@ -170,8 +170,8 @@ const handleFileChange = async (event: Event) => {
   if (!file) return
 
   const ext = file.name.split('.').pop()?.toLowerCase()
-  if (!['pdf', 'doc', 'docx'].includes(ext || '')) {
-    ElMessage.error('仅支持 PDF、DOC、DOCX 格式')
+  if (ext !== 'pdf') {
+    ElMessage.error('仅支持 PDF 格式')
     return
   }
 
@@ -515,13 +515,13 @@ const toggleSection = (key: string) => {
                 <button v-else class="upload-area" @click="triggerUpload">
                   <el-icon :size="28"><UploadFilled /></el-icon>
                   <span>上传附件简历</span>
-                  <span class="upload-hint">支持 PDF、Word 格式，大小不超过10MB</span>
+                  <span class="upload-hint">仅支持 PDF 格式，大小不超过10MB</span>
                 </button>
                 <!-- 隐藏的文件选择器 -->
                 <input
                   ref="fileInput"
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf"
                   style="display: none"
                   @change="handleFileChange"
                 />

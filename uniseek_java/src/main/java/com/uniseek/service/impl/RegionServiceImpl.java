@@ -77,6 +77,12 @@ public class RegionServiceImpl implements RegionService {
                         city.setChildren(toVOList(districtList));
                     }
                 }
+            } else {
+                // 直辖市没有市级节点，直接将区县挂到省下
+                List<Region> districtList = districtMap.get(province.getId());
+                if (districtList != null) {
+                    province.setChildren(toVOList(districtList));
+                }
             }
         }
 
