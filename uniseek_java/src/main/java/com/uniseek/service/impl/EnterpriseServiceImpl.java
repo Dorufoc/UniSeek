@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 企业资质认证服务实现
@@ -143,5 +144,13 @@ public class EnterpriseServiceImpl implements EnterpriseService {
         enterpriseMapper.updateById(existing);
 
         return existing;
+    }
+
+    @Override
+    public List<Enterprise> listPublished() {
+        return enterpriseMapper.selectList(
+                new LambdaQueryWrapper<Enterprise>()
+                        .eq(Enterprise::getAuditStatus, 1)
+                        .orderByDesc(Enterprise::getCreateTime));
     }
 }

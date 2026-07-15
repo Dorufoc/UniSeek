@@ -127,18 +127,12 @@ onMounted(async () => {
     <div class="error-state" v-else-if="error">
       <div class="error-icon">⚠️</div>
       <h3>{{ error }}</h3>
-      <button class="back-btn" @click="router.push('/jobs')">返回职位列表</button>
+      <button class="back-btn" @click="router.back()">返回</button>
     </div>
 
     <!-- 正常内容 -->
     <div class="detail-body" v-else-if="job">
-      <div class="breadcrumb">
-        <router-link to="/">首页</router-link>
-        <span class="sep">/</span>
-        <router-link to="/jobs">职位</router-link>
-        <span class="sep">/</span>
-        <span>{{ job.title }}</span>
-      </div>
+      <button class="top-back-btn" @click="router.push(`/company?id=${job.enterpriseId}`)">&larr; 返回公司</button>
 
       <div class="detail-layout">
         <!-- 左侧：职位详细信息 -->
@@ -604,6 +598,21 @@ onMounted(async () => {
 
 .back-btn:hover {
   background: #0062cc;
+}
+
+.top-back-btn {
+  display: inline-block;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #007AFF;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.top-back-btn:hover {
+  color: #0056b3;
 }
 
 @media (max-width: 900px) {

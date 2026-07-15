@@ -107,3 +107,7 @@ export const getEnterpriseTasks = async (page = 1, pageSize = 100) => {
   const res = await request.get<ApiResponse<PageResult<TaskVO>>>(`/enterprise/tasks?page=${page}&pageSize=${pageSize}`)
   return res
 }
+
+/** GET /api/enterprise/{enterpriseId}/tasks 查询指定企业的已发布职位 */
+export const getEnterprisePublishedTasks = (enterpriseId: number) =>
+  request.get<any, TaskVO[]>(`/enterprise/${enterpriseId}/tasks`)

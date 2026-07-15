@@ -2,6 +2,7 @@ package com.uniseek.service;
 
 import com.uniseek.dto.EnterpriseRequest;
 import com.uniseek.entity.Enterprise;
+import java.util.List;
 
 /**
  * 企业资质认证服务接口
@@ -41,4 +42,11 @@ public interface EnterpriseService {
      * @return 更新后的企业资质记录
      */
     Enterprise update(Long userId, EnterpriseRequest request);
+
+    /**
+     * 获取所有已认证的企业列表（供求职者查看）
+     *
+     * @return 已认证的企业列表
+     */
+    List<Enterprise> listPublished();
 }
