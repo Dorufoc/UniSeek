@@ -1,13 +1,13 @@
 import { router } from '@kit.ArkUI';
-import { ChatService } from '../../services/ChatService';
-import { ChatSessionVO } from '../../services/ChatTypes';
+import { ChatService } from '../../../services/ChatService';
+import { ChatSessionVO } from '../../../services/ChatTypes';
 
 @Component
-export struct ChatPage {
+export struct RecruiterChatTab {
   @State sessions: ChatSessionVO[] = []
 
   aboutToAppear(): void {
-    ChatService.getSessions().then((list) => {
+    ChatService.getSessions().then((list: ChatSessionVO[]) => {
       this.sessions = list
     })
   }
@@ -34,7 +34,7 @@ export struct ChatPage {
         List() {
           ForEach(this.sessions, (session: ChatSessionVO) => {
             ListItem() {
-              this.sessionItem(session)
+              RecruiterSessionItem({ session: session })
             }
           }, (session: ChatSessionVO) => session.applicationId.toString())
         }
@@ -46,10 +46,15 @@ export struct ChatPage {
     .height('100%')
     .backgroundColor('#FFFFFF')
   }
+}
 
-  @Builder sessionItem(session: ChatSessionVO) {
+@Component
+struct RecruiterSessionItem {
+  session: ChatSessionVO = { applicationId: 0, taskId: 0, taskTitle: '', taskStatus: 0, applicationStatus: 0, counterpartId: 0, counterpartName: '', counterpartAvatar: '', lastMessage: '', lastMessageTime: '', unreadCount: 0 }
+
+  build() {
     Row() {
-      Image(session.counterpartAvatar ? session.counterpartAvatar : $r('app.media.theme'))
+      Image(this.session.counterpartAvatar ? this.session.counterpartAvatar : $r('app.media.theme'))
         .width(48)
         .height(48)
         .borderRadius(24)
@@ -57,13 +62,13 @@ export struct ChatPage {
 
       Column() {
         Row() {
-          Text(session.counterpartName)
+          Text(this.session.counterpartName)
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
             .fontColor('#333333')
             .layoutWeight(1)
 
-          Text(session.lastMessageTime)
+          Text(this.session.lastMessageTime)
             .fontSize(12)
             .fontColor('#999999')
         }
@@ -71,7 +76,7 @@ export struct ChatPage {
         .alignItems(VerticalAlign.Center)
 
         Row() {
-          Text(session.lastMessage)
+          Text(this.session.lastMessage)
             .fontSize(14)
             .fontColor('#666666')
             .lineHeight(20)
@@ -79,8 +84,8 @@ export struct ChatPage {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .layoutWeight(1)
 
-          if (session.unreadCount > 0) {
-            Text(session.unreadCount.toString())
+          if (this.session.unreadCount > 0) {
+            Text(this.session.unreadCount.toString())
               .fontSize(11)
               .fontColor('#FFFFFF')
               .backgroundColor('#FF4444')
@@ -113,9 +118,9 @@ export struct ChatPage {
       router.pushUrl({
         url: 'pages/ChatDetailPage',
         params: {
-          applicationId: session.applicationId,
-          counterpartName: session.counterpartName,
-          counterpartAvatar: session.counterpartAvatar
+          applicationId: this.session.applicationId,
+          counterpartName: this.session.counterpartName,
+          counterpartAvatar: this.session.counterpartAvatar
         }
       })
     })

@@ -1,10 +1,10 @@
-import { HomePage } from './tab/seeker/HomePage'
-import { ChatPage } from './tab/seeker/ChatPage'
-import { ProfilePage } from './tab/seeker/ProfilePage'
+import { RecruiterHomeTab } from './tab/recruiter/RecruiterHomeTab'
+import { RecruiterChatTab } from './tab/recruiter/RecruiterChatTab'
+import { RecruiterProfileTab } from './tab/recruiter/RecruiterProfileTab'
 
 @Entry
 @Component
-struct MainPage {
+struct RecruiterHomePage {
   @State currentIndex: number = 0
 
   @Builder tabHome() {
@@ -12,7 +12,7 @@ struct MainPage {
   }
 
   @Builder tabChat() {
-    this.tabItem('聊天', $r('app.media.chat'), 1)
+    this.tabItem('消息', $r('app.media.chat'), 1)
   }
 
   @Builder tabProfile() {
@@ -39,17 +39,17 @@ struct MainPage {
   build() {
     Tabs({ barPosition: BarPosition.End }) {
       TabContent() {
-        HomePage()
+        RecruiterHomeTab()
       }
       .tabBar(this.tabHome)
 
       TabContent() {
-        ChatPage()
+        RecruiterChatTab()
       }
       .tabBar(this.tabChat)
 
       TabContent() {
-        ProfilePage()
+        RecruiterProfileTab()
       }
       .tabBar(this.tabProfile)
     }

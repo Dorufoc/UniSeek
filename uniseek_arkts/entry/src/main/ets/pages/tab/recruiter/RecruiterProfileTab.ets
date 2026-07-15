@@ -1,18 +1,26 @@
 import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
-import { AuthService } from '../../services/AuthService';
+import { AuthService } from '../../../services/AuthService';
+import { RecruiterService } from '../../../services/RecruiterService';
+import { AUDIT_STATUS_LABELS } from '../../../services/RecruiterTypes';
 
 const PREF_NAME = 'user_profile_db';
 const KEY_USERNAME = 'username';
 
 @Component
-export struct ProfilePage {
+export struct RecruiterProfileTab {
   @State username: string = ''
   @State isVerified: boolean = false
+  @State enterpriseAuditStatus: number = -1
 
   aboutToAppear(): void {
     this.loadUsername()
     this.isVerified = AuthService.isRealNameVerified()
+    RecruiterService.getEnterpriseInfo().then((info) => {
+      if (info) {
+        this.enterpriseAuditStatus = info.auditStatus
+      }
+    })
   }
 
   loadUsername(): void {
@@ -22,7 +30,7 @@ export struct ProfilePage {
       this.username = saved
     } else {
       let num = Math.floor(10000 + Math.random() * 90000)
-      this.username = '用户' + num
+      this.username = '企业' + num
       pref.putSync(KEY_USERNAME, this.username)
       pref.flushSync()
     }
@@ -61,6 +69,26 @@ export struct ProfilePage {
                 router.pushUrl({ url: 'pages/RealNameAuthPage' })
               }
             })
+
+            Row() {
+              Text('企业资质：')
+                .fontSize(13)
+                .fontColor('#CCCCCC')
+              Text(this.enterpriseAuditStatus >= 0 ? AUDIT_STATUS_LABELS[this.enterpriseAuditStatus] : '未提交')
+                .fontSize(13)
+                .fontColor(this.enterpriseAuditStatus === 1 ? '#8CE0FF' : '#FFFFFF')
+              if (this.enterpriseAuditStatus !== 1) {
+                Image($r('app.media.right_arrow'))
+                  .width(14)
+                  .height(14)
+                  .fillColor('#FFFFFF')
+                  .margin({ left: 2 })
+              }
+            }
+            .margin({ top: 4 })
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
+            })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
@@ -74,7 +102,7 @@ export struct ProfilePage {
             })
         }
         .width('100%')
-        .height(96)
+        .height(116)
         .padding({ left: 25, right: 25 })
         .alignItems(VerticalAlign.Center)
       }
@@ -87,13 +115,29 @@ export struct ProfilePage {
           .height(6)
 
         Column() {
-          this.menuItem('已投简历', $r('app.media.resume1'), 'pages/SubmittedPage')
+          this.menuItemCheck('资质审核', $r('app.media.resume2'), () => {
+            if (!this.isVerified) {
+              this.getUIContext().showAlertDialog({ message: '请先完成实名认证', confirm: { value: '确定', action: () => {} } })
+              return
+            }
+            router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
+          })
           Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItem('收藏', $r('app.media.star'), 'pages/FavoritesPage')
+          this.menuItemCheck('发布职位', $r('app.media.resume1'), () => {
+            if (this.enterpriseAuditStatus !== 1) {
+              this.getUIContext().showAlertDialog({ message: '企业资质审核未通过，暂无法发布职位', confirm: { value: '确定', action: () => {} } })
+              return
+            }
+            router.pushUrl({ url: 'pages/RecruiterPublishJobPage' })
+          })
           Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItem('个人简历', $r('app.media.resume2'), 'pages/ResumePage')
+          this.menuItemCheck('请求处理', $r('app.media.star'), () => {
+            router.pushUrl({ url: 'pages/RecruiterRequestsPage' })
+          })
           Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItem('设置', $r('app.media.setting'), 'pages/SettingsPage')
+          this.menuItemCheck('设置', $r('app.media.setting'), () => {
+            router.pushUrl({ url: 'pages/SettingsPage' })
+          })
         }
         .width('100%')
         .backgroundColor('#FFFFFF')
@@ -110,7 +154,7 @@ export struct ProfilePage {
     })
   }
 
-  @Builder menuItem(text: string, icon: Resource, target: string) {
+  @Builder menuItemCheck(text: string, icon: Resource, onClick: () => void) {
     Row() {
       Image(icon)
         .width(22)
@@ -122,8 +166,6 @@ export struct ProfilePage {
     }
     .width('100%')
     .height(56)
-    .onClick(() => {
-      router.pushUrl({ url: target })
-    })
+    .onClick(onClick)
   }
 }

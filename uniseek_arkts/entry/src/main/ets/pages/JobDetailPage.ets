@@ -15,6 +15,7 @@ struct JobDetailPage {
   @State hrAvatar: string = ''
   @State applied: boolean = false
   @State favorited: boolean = false
+  @State hideActions: boolean = false
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
@@ -22,6 +23,9 @@ struct JobDetailPage {
       this.job = JSON.parse(params['jobData']) as JobData
       RecordService.addViewedJob(this.job)
       this.favorited = RecordService.isFavorited(this.job.id)
+    }
+    if (params['hideActions']) {
+      this.hideActions = params['hideActions'] === 'true'
     }
   }
 
@@ -153,74 +157,76 @@ struct JobDetailPage {
       .layoutWeight(1)
       .width('100%')
 
-      Row() {
-        Button() {
-          Row() {
-            Image($r('app.media.star'))
-              .width(18)
-              .height(18)
-              .fillColor(this.favorited ? '#FFFFFF' : '#333333')
-            Text('收藏')
-              .fontSize(15)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.favorited ? '#FFFFFF' : '#333333')
-              .margin({ left: 4 })
+      if (!this.hideActions) {
+        Row() {
+          Button() {
+            Row() {
+              Image($r('app.media.star'))
+                .width(18)
+                .height(18)
+                .fillColor(this.favorited ? '#FFFFFF' : '#333333')
+              Text('收藏')
+                .fontSize(15)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(this.favorited ? '#FFFFFF' : '#333333')
+                .margin({ left: 4 })
+            }
+            .alignItems(VerticalAlign.Center)
+            .justifyContent(FlexAlign.Center)
           }
-          .alignItems(VerticalAlign.Center)
-          .justifyContent(FlexAlign.Center)
-        }
-        .layoutWeight(1)
-        .height(48)
-        .backgroundColor(this.favorited ? '#FFD700' : '#FFFFFF')
-        .borderRadius(24)
-        .margin({ right: 10 })
-        .onClick(() => {
-          this.favorited = !this.favorited
-          if (this.favorited) {
-            RecordService.addFavoriteJob(this.job)
-          } else {
-            RecordService.removeFavoriteJob(this.job.id)
-          }
-        })
-
-        Button(this.applied ? '继续沟通' : '立即沟通')
           .layoutWeight(1)
           .height(48)
-          .backgroundColor('#007AFF')
-          .fontColor('#FFFFFF')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
+          .backgroundColor(this.favorited ? '#FFD700' : '#FFFFFF')
           .borderRadius(24)
+          .margin({ right: 10 })
           .onClick(() => {
-            if (this.applied) {
-              router.pushUrl({
-                url: 'pages/ChatDetailPage',
-                params: {
-                  applicationId: 0,
-                  counterpartName: this.hrName,
-                  counterpartAvatar: this.hrAvatar
-                }
-              })
-              return
+            this.favorited = !this.favorited
+            if (this.favorited) {
+              RecordService.addFavoriteJob(this.job)
+            } else {
+              RecordService.removeFavoriteJob(this.job.id)
             }
-            RecordService.addChattedJob(this.job)
-            ChatService.createApplication(Number(this.job.id)).then((app) => {
-              if (app) {
-                this.applied = true
+          })
+
+          Button(this.applied ? '继续沟通' : '立即沟通')
+            .layoutWeight(1)
+            .height(48)
+            .backgroundColor('#007AFF')
+            .fontColor('#FFFFFF')
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .borderRadius(24)
+            .onClick(() => {
+              if (this.applied) {
                 router.pushUrl({
                   url: 'pages/ChatDetailPage',
                   params: {
-                    applicationId: app.id,
+                    applicationId: 0,
                     counterpartName: this.hrName,
                     counterpartAvatar: this.hrAvatar
                   }
                 })
+                return
               }
+              RecordService.addChattedJob(this.job)
+              ChatService.createApplication(Number(this.job.id)).then((app) => {
+                if (app) {
+                  this.applied = true
+                  router.pushUrl({
+                    url: 'pages/ChatDetailPage',
+                    params: {
+                      applicationId: app.id,
+                      counterpartName: this.hrName,
+                      counterpartAvatar: this.hrAvatar
+                    }
+                  })
+                }
+              })
             })
-          })
+        }
+        .width('90%')
+        .margin({ bottom: 24 })
       }
-      .width('90%')
-      .margin({ bottom: 24 })
     }
     .width('100%')
     .height('100%')

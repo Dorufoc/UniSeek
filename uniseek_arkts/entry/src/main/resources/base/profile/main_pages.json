@@ -11,6 +11,12 @@
     "pages/SettingsPage",
     "pages/JobDetailPage",
     "pages/ChatDetailPage",
-    "pages/RealNameAuthPage"
+    "pages/RealNameAuthPage",
+    "pages/RecruiterHomePage",
+    "pages/RecruiterPublishJobPage",
+    "pages/RecruiterApplicationsPage",
+    "pages/RecruiterEnterprisePage",
+    "pages/RecruiterRequestsPage",
+    "pages/RecruiterJobFormPage"
   ]
 }
