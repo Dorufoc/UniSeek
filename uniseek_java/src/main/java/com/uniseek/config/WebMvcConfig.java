@@ -1,6 +1,7 @@
 package com.uniseek.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -15,6 +16,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Autowired
     private JwtAuthInterceptor jwtAuthInterceptor;
+
+    @Value("${upload.path:./upload}")
+    private String uploadPath;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -40,8 +44,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 静态文件访问映射
+        // 静态文件访问映射（与 upload.path 配置对齐）
         registry.addResourceHandler("/api/files/**")
-                .addResourceLocations("file:./upload/");
+                .addResourceLocations("file:" + uploadPath + "/");
     }
 }
