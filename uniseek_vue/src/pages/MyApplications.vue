@@ -4,7 +4,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getMyApplications, type TaskApplication } from '@/api/application'
 import { getTaskById, type TaskVO } from '@/api/task'
-import { getMessages, type NotificationItem } from '@/api/notification'
 import { useUserStore } from '@/stores/user'
 import {
   ArrowLeft, Document, ChatLineSquare, Star, StarFilled,
@@ -26,9 +25,6 @@ const loading = ref(false)
 // 投递记录数据
 const applications = ref<TaskApplication[]>([])
 const appTaskMap = ref<Record<number, TaskVO>>({})
-
-// 面试邀请数据
-const interviews = ref<NotificationItem[]>([])
 
 // 收藏职位数据
 const favorites = ref<TaskVO[]>([])
@@ -74,14 +70,6 @@ const loadApplications = async () => {
   loading.value = false
 }
 
-// 加载面试邀请
-const loadInterviews = async () => {
-  try {
-    const result = await getMessages({ type: 1, pageSize: 50 })
-    interviews.value = result.records
-  } catch { /* API 失败 */ }
-}
-
 // 加载收藏职位
 const loadFavorites = () => {
   try {
@@ -125,7 +113,6 @@ const appStats = computed(() => {
 
 onMounted(() => {
   loadApplications()
-  loadInterviews()
 })
 </script>
 
@@ -153,7 +140,7 @@ onMounted(() => {
         >
           <el-icon :size="16"><VideoCamera /></el-icon>
           <span>面试邀请</span>
-          <span v-if="interviews.length" class="tab-count highlight">{{ interviews.length }}</span>
+          <span v-if="appStats.interviewing" class="tab-count highlight">{{ appStats.interviewing }}</span>
         </button>
         <button
           :class="['tab-item', { active: activeTab === 'favorites' }]"
@@ -257,29 +244,7 @@ onMounted(() => {
 
       <!-- 面试邀请 Tab -->
       <template v-if="activeTab === 'interviews'">
-        <div v-if="interviews.length" class="interview-list">
-          <div
-            v-for="msg in interviews"
-            :key="msg.id"
-            class="interview-card"
-          >
-            <div class="interview-icon">
-              <el-icon :size="22"><VideoCamera /></el-icon>
-            </div>
-            <div class="interview-body">
-              <h4 class="interview-title">{{ msg.title }}</h4>
-              <p class="interview-content">{{ msg.content }}</p>
-              <span class="interview-time">{{ formatTime(msg.createTime) }}</span>
-            </div>
-            <div class="interview-action">
-               <button v-if="msg.bizId" class="action-btn primary" @click="goToJob(msg.bizId)">
-                 查看详情
-               </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="applications.filter(a => a.status === 1).length" class="interview-list">
+        <div v-if="applications.filter(a => a.status === 1).length" class="interview-list">
           <div
             v-for="app in applications.filter(a => a.status === 1)"
             :key="'int-' + app.id"

@@ -43,7 +43,7 @@ const loadTasks = async () => {
   loading.value = true
   try {
     const res = await getEnterpriseTasks()
-    tasks.value = res.data?.records || []
+    tasks.value = res?.records || []
   } catch (err: any) {
     if (err?.message?.includes('未找到企业信息')) {
       ElMessage.warning('请先完成企业资质认证')

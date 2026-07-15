@@ -158,9 +158,15 @@
     <select id="selectDetailById" resultMap="TaskVOResultMap">
         SELECT
         <include refid="selectTaskFields"/>,
-        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied
+        CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied,
+        COALESCE(apps.c, 0) AS application_count
         <include refid="joinTaskRelations"/>
         LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.applicant_id = #{userId}
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS c
+            FROM task_application
+            GROUP BY task_id
+        ) AS apps ON task.id = apps.task_id
         WHERE task.id = #{id}
     </select>
 

@@ -115,7 +115,10 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new BusinessException(ApiResult.CONFLICT, "您已投递过该职位，请勿重复投递");
         }
 
-        // 6. 生成简历快照：Resume 对象序列化为 JSON 字符串
+        // 6. 将实名认证的姓名注入 Resume 对象，确保快照包含真实姓名
+        resume.setRealName(realNameAuth.getRealName());
+
+        // 7. 生成简历快照：Resume 对象序列化为 JSON 字符串
         String resumeSnapshot;
         try {
             resumeSnapshot = objectMapper.writeValueAsString(resume);
@@ -123,7 +126,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new BusinessException("简历快照生成失败");
         }
 
-        // 7. 插入投递记录（status = 0 已投递）
+        // 8. 插入投递记录（status = 0 已投递）
         TaskApplication application = new TaskApplication();
         application.setTaskId(request.getTaskId());
         application.setApplicantId(applicantId);
