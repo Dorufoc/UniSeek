@@ -82,6 +82,8 @@ const handleApply = async () => {
     if (application && application.id) {
       job.value.applicationId = application.id
     }
+    const updated = await getTaskById(job.value.id)
+    if (updated) job.value = updated
   } catch {
     /* 错误已在拦截器处理 */
   } finally {
@@ -259,6 +261,10 @@ onMounted(async () => {
               <div class="stat-item">
                 <span class="stat-num">{{ job.totalQuota || 0 }}</span>
                 <span class="stat-label">招聘名额</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-num">{{ job.remainingQuota ?? 0 }}</span>
+                <span class="stat-label">剩余名额</span>
               </div>
             </div>
           </div>
