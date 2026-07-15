@@ -396,6 +396,7 @@ const handleDeleteAccount = () => {
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 14px; color: var(--text); margin-bottom: 6px; font-weight: 500; }
 .field-error { font-size: 12px; color: #e74c3c; margin: 6px 0 0; }
+.field-hint { font-size: 12px; color: #888; margin: 6px 0 0; }
 .save-btn { width: 100%; padding: 12px 0; font-size: 15px; font-weight: 500; color: #fff; background: #1762FB; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
 .save-btn:hover:not(:disabled) { opacity: 0.9; }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }

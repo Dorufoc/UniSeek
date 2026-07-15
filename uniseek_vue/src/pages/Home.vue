@@ -103,6 +103,13 @@ const parseSnapshot = (snapshot: string | null) => {
 
 const catColors = ['#1762FB', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
 
+const closeSearchTypeMenu = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.search-type-dropdown')) {
+    searchTypeOpen.value = false
+  }
+}
+
 onMounted(async () => {
   if (isRecruiter.value) {
     // ── 招聘者首页：加载企业信息、岗位及投递 ──
