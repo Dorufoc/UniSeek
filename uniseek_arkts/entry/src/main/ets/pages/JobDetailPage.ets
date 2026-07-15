@@ -1,17 +1,7 @@
 import { router } from '@kit.ArkUI';
-
-interface JobData {
-  id: string
-  title: string
-  company: string
-  salary: string
-  salaryMid: number
-  popularity: number
-  region: string
-  type: string
-  category: string
-  description: string
-}
+import { ChatService } from '../services/ChatService';
+import { JobData } from '../services/ChatTypes';
+import { RecordService } from '../services/RecordService';
 
 @Entry
 @Component
@@ -21,18 +11,24 @@ struct JobDetailPage {
     salaryMid: 0, popularity: 0, region: '',
     type: '', category: '', description: ''
   }
+  @State hrName: string = '张经理'
+  @State hrAvatar: string = ''
+  @State applied: boolean = false
+  @State favorited: boolean = false
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     if (params['jobData']) {
       this.job = JSON.parse(params['jobData']) as JobData
+      RecordService.addViewedJob(this.job)
+      this.favorited = RecordService.isFavorited(this.job.id)
     }
   }
 
   build() {
     Column() {
       Row() {
-        Image($r('app.media.search'))
+        Image($r('app.media.left_arrow'))
           .width(24)
           .height(24)
           .fillColor('#333333')
@@ -105,6 +101,39 @@ struct JobDetailPage {
           Divider()
             .margin({ top: 20, bottom: 16 })
 
+          Row() {
+            Image(this.hrAvatar ? this.hrAvatar : $r('app.media.theme'))
+              .width(48)
+              .height(48)
+              .borderRadius(24)
+              .margin({ right: 12 })
+
+            Column() {
+              Text('招聘HR')
+                .fontSize(12)
+                .fontColor('#999999')
+
+              Text(this.hrName)
+                .fontSize(16)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#333333')
+                .margin({ top: 2 })
+            }
+            .alignItems(HorizontalAlign.Start)
+
+            Text(this.job.company)
+              .fontSize(14)
+              .fontColor('#666666')
+              .layoutWeight(1)
+              .textAlign(TextAlign.End)
+          }
+          .width('100%')
+          .padding({ top: 4, bottom: 4 })
+
+
+          Divider()
+            .margin({ top: 16, bottom: 16 })
+
           Text('职位描述')
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
@@ -124,16 +153,74 @@ struct JobDetailPage {
       .layoutWeight(1)
       .width('100%')
 
-      Button('立即投递')
-        .width('90%')
+      Row() {
+        Button() {
+          Row() {
+            Image($r('app.media.star'))
+              .width(18)
+              .height(18)
+              .fillColor(this.favorited ? '#FFFFFF' : '#333333')
+            Text('收藏')
+              .fontSize(15)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.favorited ? '#FFFFFF' : '#333333')
+              .margin({ left: 4 })
+          }
+          .alignItems(VerticalAlign.Center)
+          .justifyContent(FlexAlign.Center)
+        }
+        .layoutWeight(1)
         .height(48)
-        .backgroundColor('#FF6B35')
-        .fontColor('#FFFFFF')
-        .fontSize(16)
-        .fontWeight(FontWeight.Bold)
+        .backgroundColor(this.favorited ? '#FFD700' : '#FFFFFF')
         .borderRadius(24)
-        .margin({ bottom: 24 })
-        .onClick(() => {})
+        .margin({ right: 10 })
+        .onClick(() => {
+          this.favorited = !this.favorited
+          if (this.favorited) {
+            RecordService.addFavoriteJob(this.job)
+          } else {
+            RecordService.removeFavoriteJob(this.job.id)
+          }
+        })
+
+        Button(this.applied ? '继续沟通' : '立即沟通')
+          .layoutWeight(1)
+          .height(48)
+          .backgroundColor('#007AFF')
+          .fontColor('#FFFFFF')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .borderRadius(24)
+          .onClick(() => {
+            if (this.applied) {
+              router.pushUrl({
+                url: 'pages/ChatDetailPage',
+                params: {
+                  applicationId: 0,
+                  counterpartName: this.hrName,
+                  counterpartAvatar: this.hrAvatar
+                }
+              })
+              return
+            }
+            RecordService.addChattedJob(this.job)
+            ChatService.createApplication(Number(this.job.id)).then((app) => {
+              if (app) {
+                this.applied = true
+                router.pushUrl({
+                  url: 'pages/ChatDetailPage',
+                  params: {
+                    applicationId: app.id,
+                    counterpartName: this.hrName,
+                    counterpartAvatar: this.hrAvatar
+                  }
+                })
+              }
+            })
+          })
+      }
+      .width('90%')
+      .margin({ bottom: 24 })
     }
     .width('100%')
     .height('100%')
