@@ -3,7 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getTaskById, type TaskVO } from '@/api/task'
 import { apply, type TaskApplication } from '@/api/application'
-import { ElMessage } from 'element-plus'
+import { getRealNameAuthStatus } from '@/api/auth'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -58,38 +59,7 @@ const formatDate = (dateStr: string | null | undefined): string => {
   return dateStr.replace('T', ' ').substring(0, 16)
 }
 
-const handleApply = async () => {
-  if (!isLoggedIn.value) {
-    ElMessage.warning('请先登录')
-    router.push('/login')
-    return
-  }
-  if (!isSeeker.value) {
-    ElMessage.warning('仅求职者可投递简历')
-    return
-  }
-  if (hasApplied.value) {
-    ElMessage.info('您已投递过该职位')
-    return
-  }
-  if (!job.value) return
-
-  applying.value = true
-  try {
-    const application = await apply({ taskId: job.value.id }) as unknown as TaskApplication
-    ElMessage.success('投递成功')
-    hasApplied.value = true
-    if (application && application.id) {
-      job.value.applicationId = application.id
-    }
-    const updated = await getTaskById(job.value.id)
-    if (updated) job.value = updated
-  } catch {
-    /* 错误已在拦截器处理 */
-  } finally {
-    applying.value = false
-  }
-}
+const handleApply = handleApplyWithAuthCheck
 
 /**
  * 联系 HR：未投递时先创建投递记录（生成会话），然后跳转聊天页
@@ -128,6 +98,63 @@ const handleContactHr = async () => {
     /* 错误已在拦截器处理 */
   } finally {
     contacting.value = false
+  }
+}
+
+const goToTag = (tag: string) => {
+  router.push({ path: '/jobs', query: { tag } })
+}
+
+const handleApplyWithAuthCheck = async () => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  if (!isSeeker.value) {
+    ElMessage.warning('仅求职者可投递简历')
+    return
+  }
+  if (hasApplied.value) {
+    ElMessage.info('您已投递过该职位')
+    return
+  }
+  if (!job.value) return
+
+  try {
+    const status = await getRealNameAuthStatus() as unknown as { isAuth: boolean }
+    if (!status || !status.isAuth) {
+      ElMessageBox.confirm(
+        '投递职位前需要先完成实名认证，是否前往认证？',
+        '实名认证提示',
+        {
+          confirmButtonText: '前往认证',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).then(() => {
+        router.push('/profile?tab=realNameAuth')
+      }).catch(() => {})
+      return
+    }
+  } catch {
+    // 忽略查询实名状态失败，交由后续投递逻辑处理
+  }
+
+  applying.value = true
+  try {
+    const application = await apply({ taskId: job.value.id }) as unknown as TaskApplication
+    ElMessage.success('投递成功')
+    hasApplied.value = true
+    if (application && application.id) {
+      job.value.applicationId = application.id
+    }
+    const updated = await getTaskById(job.value.id)
+    if (updated) job.value = updated
+  } catch {
+    /* 错误已在拦截器处理 */
+  } finally {
+    applying.value = false
   }
 }
 
@@ -176,7 +203,7 @@ onMounted(async () => {
 
     <!-- 正常内容 -->
     <div class="detail-body" v-else-if="job">
-      <button class="top-back-btn" @click="router.push(`/company?id=${job.enterpriseId}`)">&larr; 返回公司</button>
+      <button class="top-back-btn" @click="router.back()">&larr; 返回</button>
 
       <div class="detail-layout">
         <!-- 左侧：职位详细信息 -->
@@ -201,7 +228,7 @@ onMounted(async () => {
           </div>
 
           <div class="tag-section" v-if="job.tag && job.tag.length > 0">
-            <span class="tag-item" v-for="(t, i) in job.tag" :key="i">{{ t }}</span>
+            <span class="tag-item" v-for="(t, i) in job.tag" :key="i" @click="goToTag(t)">{{ t }}</span>
           </div>
 
           <div class="info-grid">
@@ -245,7 +272,7 @@ onMounted(async () => {
 
         <!-- 右侧：企业卡片 + 投递 -->
         <div class="detail-sidebar">
-          <div class="company-card">
+          <div class="company-card" @click="router.push(`/company?id=${job.enterpriseId}`)" style="cursor: pointer;">
             <div class="company-header">
               <div class="company-avatar">{{ (job.enterpriseName || '企')[0] }}</div>
               <div class="company-info">
@@ -437,6 +464,12 @@ onMounted(async () => {
   background: rgba(0, 122, 255, 0.06);
   color: #007AFF;
   border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tag-item:hover {
+  background: rgba(0, 122, 255, 0.14);
 }
 
 .info-grid {
