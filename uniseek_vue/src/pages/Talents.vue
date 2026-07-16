@@ -1,8 +1,41 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Search, User } from '@element-plus/icons-vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Search, User, View, Download, ChatDotRound } from '@element-plus/icons-vue'
 import { searchPublishedResumes } from '@/api/resume'
+import { createDirectSession } from '@/api/chat'
+import { ElMessage } from 'element-plus'
 import type { ResumeData } from '@/api/resume'
+import PdfPreview from '@/components/PdfPreview.vue'
+
+const getFileName = (url: string) => {
+  const name = url.substring(url.lastIndexOf('/') + 1)
+  return decodeURIComponent(name) || '简历附件'
+}
+
+const fileDialogVisible = ref(false)
+const fileDialogUrl = ref('')
+const pdfPreviewVisible = ref(false)
+const openFileAction = (url: string) => {
+  fileDialogUrl.value = url
+  fileDialogVisible.value = true
+}
+const previewFile = () => {
+  pdfPreviewVisible.value = true
+  fileDialogVisible.value = false
+}
+const downloadFile = () => {
+  const a = document.createElement('a')
+  a.href = fileDialogUrl.value
+  a.download = getFileName(fileDialogUrl.value)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  fileDialogVisible.value = false
+}
+
+const router = useRouter()
 
 // 人才筛选标签
 const talentFilters = ['全部', '有附件简历', '在校生', '有工作经验']
@@ -10,19 +43,68 @@ const activeFilter = ref('全部')
 const keyword = ref('')
 const talents = ref<ResumeData[]>([])
 const loading = ref(false)
+const total = ref(0)
+const page = ref(1)
+const pageSize = 20
 
 const loadTalents = async () => {
   loading.value = true
   try {
-    talents.value = await searchPublishedResumes(keyword.value || undefined)
+    const res = await searchPublishedResumes(keyword.value || undefined, page.value, pageSize)
+    talents.value = res.records
+    total.value = res.total
   } catch {
     talents.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
 }
 
+const handleSearch = () => {
+  page.value = 1
+  loadTalents()
+}
+
+const handlePageChange = (p: number) => {
+  page.value = p
+  loadTalents()
+}
+
+const contactingId = ref<number | null>(null)
+const contactTalent = async (talent: ResumeData) => {
+  if (!talent.userId) {
+    ElMessage.warning('无法获取用户信息')
+    return
+  }
+  contactingId.value = talent.id!
+  try {
+    const sessionId = await createDirectSession(talent.userId)
+    router.push(`/messages?chat=${sessionId}`)
+  } catch {
+    ElMessage.error('创建会话失败，请重试')
+  } finally {
+    contactingId.value = null
+  }
+}
+
+watch(keyword, (val) => {
+  if (!val) {
+    page.value = 1
+    loadTalents()
+  }
+})
+
 onMounted(() => loadTalents())
+
+// 预解析技能标签，避免模板中重复调用
+const parsedSkills = computed(() => {
+  const map = new Map<number, string[]>()
+  for (const t of talents.value) {
+    if (t.id != null) map.set(t.id, parseSkills(t.skills))
+  }
+  return map
+})
 
 // 解析技能标签
 const parseSkills = (skillsStr?: string): string[] => {
@@ -75,7 +157,9 @@ const genderLabel = (g?: number) => {
           :prefix-icon="Search"
           clearable
           class="search-input"
+          @keyup.enter="handleSearch"
         />
+        <button class="search-btn" @click="handleSearch">搜索</button>
         <div class="filter-tabs">
           <button
             v-for="filter in talentFilters"
@@ -89,13 +173,12 @@ const genderLabel = (g?: number) => {
       </div>
     </div>
 
-    <div class="talents-list">
+    <div class="talents-list" v-loading="loading">
       <el-card
         v-for="talent in filteredTalents"
         :key="talent.id"
         class="talent-card"
         shadow="hover"
-        v-loading="loading"
         @click="viewDetail(talent)"
       >
         <div class="talent-main">
@@ -107,15 +190,33 @@ const genderLabel = (g?: number) => {
             </div>
             <div class="talent-school">{{ talent.school || '未填' }}</div>
             <div class="talent-tags">
-              <el-tag v-for="tag in parseSkills(talent.skills)" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
+              <el-tag v-for="tag in parsedSkills.get(talent.id!)" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
             </div>
             <div class="talent-summary">{{ talent.experience ? talent.experience.substring(0, 100) + '...' : '暂无工作经历' }}</div>
           </div>
+          <button
+            class="contact-btn"
+            :disabled="contactingId === talent.id"
+            @click.stop="contactTalent(talent)"
+          >
+            <el-icon :size="16"><ChatDotRound /></el-icon>
+            {{ contactingId === talent.id ? '联系中...' : '联系求职者' }}
+          </button>
         </div>
       </el-card>
 
       <div v-if="!loading && filteredTalents.length === 0" class="empty-tip">
         暂无匹配人才
+      </div>
+
+      <div v-if="total > pageSize" class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="page"
+          :page-size="pageSize"
+          :total="total"
+          layout="prev, pager, next"
+          @current-change="handlePageChange"
+        />
       </div>
     </div>
 
@@ -146,10 +247,25 @@ const genderLabel = (g?: number) => {
         </div>
         <div class="detail-section" v-if="selectedTalent.attachmentUrl">
           <h4>附件简历</h4>
-          <a :href="selectedTalent.attachmentUrl" target="_blank" class="attach-link">{{ selectedTalent.attachmentUrl }}</a>
+          <span class="attach-link clickable" @click="openFileAction(selectedTalent.attachmentUrl!)">{{ getFileName(selectedTalent.attachmentUrl) }}</span>
         </div>
       </div>
     </el-dialog>
+
+    <!-- 文件操作弹窗 -->
+    <el-dialog v-model="fileDialogVisible" title="附件简历" width="300px" align-center>
+      <div class="file-action-buttons">
+        <el-button type="primary" size="large" @click="previewFile" class="file-action-btn">
+          <el-icon><View /></el-icon>预览
+        </el-button>
+        <el-button type="primary" size="large" @click="downloadFile" class="file-action-btn">
+          <el-icon><Download /></el-icon>下载
+        </el-button>
+      </div>
+    </el-dialog>
+
+    <!-- PDF 预览弹窗 -->
+    <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
   </div>
 </template>
 
@@ -186,6 +302,24 @@ const genderLabel = (g?: number) => {
   width: 280px;
 }
 
+.search-btn {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  background: #1762FB;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.search-btn:hover {
+  background: #0062cc;
+}
+
 .filter-tabs {
   display: flex;
   gap: 4px;
@@ -210,12 +344,20 @@ const genderLabel = (g?: number) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 200px;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
 }
 
 .talent-card {
   color: #000;
   cursor: pointer;
   transition: transform 0.15s;
+  position: relative;
 }
 
 .talent-card:hover {
@@ -278,6 +420,33 @@ const genderLabel = (g?: number) => {
   font-size: 14px;
   color: #333;
   line-height: 1.5;
+}
+
+.contact-btn {
+  align-self: flex-start;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: 1px solid #1762FB;
+  background: #fff;
+  color: #1762FB;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.contact-btn:hover:not(:disabled) {
+  background: #1762FB;
+  color: #fff;
+}
+
+.contact-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .talent-extra {
@@ -354,6 +523,29 @@ const genderLabel = (g?: number) => {
   color: #1762FB;
   font-size: 14px;
   text-decoration: none;
+}
+
+.attach-link.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 文件操作弹窗 */
+.file-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.file-action-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px;
+  margin: 0 !important;
 }
 
 .empty-text {

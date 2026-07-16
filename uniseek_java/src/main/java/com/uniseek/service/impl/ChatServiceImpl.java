@@ -60,11 +60,30 @@ public class ChatServiceImpl implements ChatService {
     public List<ChatSessionVO> getSessions(Long userId, Integer role) {
         List<ChatSessionVO> sessions;
         if (role == 1) {
-            // HR：查看本企业相关会话
             sessions = chatSessionMapper.selectSessionsByEmployer(userId);
+            List<ChatSessionVO> direct = chatSessionMapper.selectDirectSessionsByEmployer(userId);
+            if (direct != null && !direct.isEmpty()) {
+                if (sessions == null) sessions = direct;
+                else sessions.addAll(direct);
+            }
         } else {
-            // 求职者：查看自己的会话
             sessions = chatSessionMapper.selectSessionsBySeeker(userId);
+            List<ChatSessionVO> direct = chatSessionMapper.selectDirectSessionsBySeeker(userId);
+            if (direct != null && !direct.isEmpty()) {
+                if (sessions == null) sessions = direct;
+                else sessions.addAll(direct);
+            }
+        }
+        // 合并职位投递会话与直接会话后，统一按最后消息时间倒序排序
+        if (sessions != null) {
+            sessions.sort((a, b) -> {
+                LocalDateTime t1 = a.getLastMessageTime();
+                LocalDateTime t2 = b.getLastMessageTime();
+                if (t1 == null && t2 == null) return 0;
+                if (t1 == null) return 1;
+                if (t2 == null) return -1;
+                return t2.compareTo(t1);
+            });
         }
         return sessions != null ? sessions : Collections.emptyList();
     }
@@ -93,8 +112,7 @@ public class ChatServiceImpl implements ChatService {
             return Collections.emptyList();
         }
 
-        // 4. 反转列表（DB 按 id 降序返回，转为升序便于前端展示）
-        Collections.reverse(messages);
+        // DB 按 id 降序返回（最新在前），直接保留该顺序
 
         // 5. 组装 VO（批量查询发送者信息）
         List<ChatMessageVO> voList = new ArrayList<>(messages.size());
@@ -162,6 +180,34 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatSessionVO getSessionDetail(Long applicationId, Long userId, Integer role) {
+        // 直接会话：applicationId = 0 或 applicationId = sessionId
+        boolean isDirect = (applicationId != null && applicationId != 0
+                && chatSessionMapper.selectIdByApplicationId(applicationId) == null);
+        if (isDirect) {
+            // 用 sessionId 查直接会话
+            ChatSession session = chatSessionMapper.selectById(applicationId);
+            if (session == null) {
+                throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
+            }
+            if (role == 1 && !session.getEmployerId().equals(userId) ||
+                role == 0 && !session.getSeekerId().equals(userId)) {
+                throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
+            }
+            // 查询对方用户信息
+            Long counterpartId = role == 1 ? session.getSeekerId() : session.getEmployerId();
+            User user = userMapper.selectById(counterpartId);
+            ChatSessionVO vo = new ChatSessionVO();
+            vo.setApplicationId(applicationId);
+            vo.setCounterpartId(counterpartId);
+            vo.setCounterpartName(user != null ? user.getNickname() : "未知用户");
+            vo.setCounterpartAvatar(user != null ? user.getAvatarUrl() : null);
+            vo.setLastMessage(session.getLastMessage());
+            vo.setLastMessageTime(session.getLastMessageTime());
+            vo.setUnreadCount(0);
+            vo.setCanSend(true);
+            return vo;
+        }
+
         ChatSessionVO vo = chatSessionMapper.selectSessionDetail(applicationId, userId, role);
         if (vo == null) {
             throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
@@ -180,9 +226,13 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markSessionRead(Long applicationId, Long userId) {
-        // 1. 查询会话 ID
+        // 1. 查询会话 ID（直接会话用 applicationId 作为 sessionId）
         Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
         if (sessionId == null) {
+            sessionId = applicationId;
+        }
+        ChatSession session = chatSessionMapper.selectById(sessionId);
+        if (session == null) {
             throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
         }
 
@@ -207,6 +257,26 @@ public class ChatServiceImpl implements ChatService {
         chatSession.setCreateTime(LocalDateTime.now());
         chatSession.setUpdateTime(LocalDateTime.now());
         chatSessionMapper.insert(chatSession);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long createDirectSession(Long employerId, Long seekerId) {
+        // 检查是否已存在直接会话
+        Long existingId = chatSessionMapper.selectDirectSessionId(employerId, seekerId);
+        if (existingId != null) {
+            return existingId;
+        }
+
+        ChatSession chatSession = new ChatSession();
+        chatSession.setTaskApplicationId(null);
+        chatSession.setEmployerId(employerId);
+        chatSession.setSeekerId(seekerId);
+        chatSession.setStatus(0);
+        chatSession.setCreateTime(LocalDateTime.now());
+        chatSession.setUpdateTime(LocalDateTime.now());
+        chatSessionMapper.insert(chatSession);
+        return chatSession.getId();
     }
 
     /**
@@ -250,47 +320,58 @@ public class ChatServiceImpl implements ChatService {
     /**
      * 校验当前用户是否有权访问该会话
      *
-     * @param applicationId 投递记录 ID
+     * @param applicationId 投递记录 ID（直接会话传 session ID）
      * @param userId        当前用户 ID
      * @param role          当前用户角色
      * @return 会话实体
      */
     private ChatSession validateSessionAccess(Long applicationId, Long userId, Integer role) {
-        // 1. 查询投递记录
-        TaskApplication application = taskApplicationMapper.selectById(applicationId);
-        if (application == null) {
-            throw new BusinessException(ApiResult.NOT_FOUND, "投递记录不存在");
+        if (applicationId == null || applicationId == 0) {
+            throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
         }
 
-        // 2. 查询会话
+        // 区分直接会话（task_application_id IS NULL）与职位投递会话
         Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
-        if (sessionId == null) {
-            throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
+        boolean isDirect = (sessionId == null);
+
+        if (isDirect) {
+            // 直接会话：applicationId 就是 sessionId
+            sessionId = applicationId;
         }
         ChatSession session = chatSessionMapper.selectById(sessionId);
         if (session == null) {
             throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
         }
 
-        // 3. 权限校验
-        if (role == 1) {
-            // HR：必须是该职位所属企业的 HR
-            Task task = taskMapper.selectById(application.getTaskId());
-            if (task == null) {
-                throw new BusinessException(ApiResult.NOT_FOUND, "关联职位不存在");
-            }
-            // 校验当前用户是否是该企业的 HR
-            com.uniseek.entity.Enterprise enterprise = enterpriseMapper.selectById(task.getEnterpriseId());
-            if (enterprise == null) {
-                throw new BusinessException(ApiResult.NOT_FOUND, "企业信息不存在");
-            }
-            if (!enterprise.getUserId().equals(userId)) {
+        // 权限校验
+        if (isDirect) {
+            // 直接会话：仅校验 employer/seeker 匹配
+            if (role == 1 && !session.getEmployerId().equals(userId) ||
+                role == 0 && !session.getSeekerId().equals(userId)) {
                 throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
             }
         } else {
-            // 求职者：必须是该会话的 seeker
-            if (!session.getSeekerId().equals(userId)) {
-                throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
+            // 职位投递会话：沿用原有校验（查投递记录 → 职位 → 企业）
+            TaskApplication application = taskApplicationMapper.selectById(applicationId);
+            if (application == null) {
+                throw new BusinessException(ApiResult.NOT_FOUND, "投递记录不存在");
+            }
+            if (role == 1) {
+                Task task = taskMapper.selectById(application.getTaskId());
+                if (task == null) {
+                    throw new BusinessException(ApiResult.NOT_FOUND, "关联职位不存在");
+                }
+                com.uniseek.entity.Enterprise enterprise = enterpriseMapper.selectById(task.getEnterpriseId());
+                if (enterprise == null) {
+                    throw new BusinessException(ApiResult.NOT_FOUND, "企业信息不存在");
+                }
+                if (!enterprise.getUserId().equals(userId)) {
+                    throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
+                }
+            } else {
+                if (!session.getSeekerId().equals(userId)) {
+                    throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
+                }
             }
         }
 

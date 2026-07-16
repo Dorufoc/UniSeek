@@ -1,6 +1,7 @@
 package com.uniseek.controller;
 
 import com.uniseek.common.ApiResult;
+import com.uniseek.common.PageResult;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.common.util.UserContext;
 import com.uniseek.dto.ResumeRequest;
@@ -83,15 +84,20 @@ public class ResumeController {
     }
 
     /**
-     * 搜索人才市场已发布的简历
+     * 分页搜索人才市场已发布的简历
      * GET /api/resume/search
      *
-     * @param keyword 搜索关键词
+     * @param keyword  搜索关键词
+     * @param page     页码（默认 1）
+     * @param pageSize 每页条数（默认 20）
      */
     @GetMapping("/search")
-    public ApiResult<List<Resume>> searchPublishedResumes(@RequestParam(required = false) String keyword) {
-        List<Resume> list = resumeService.searchPublishedResumes(keyword);
-        return ApiResult.success(list);
+    public ApiResult<PageResult<Resume>> searchPublishedResumes(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        PageResult<Resume> result = resumeService.searchPublishedResumes(keyword, page, pageSize);
+        return ApiResult.success(result);
     }
 
     /**

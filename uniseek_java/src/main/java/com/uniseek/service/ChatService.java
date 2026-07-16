@@ -71,4 +71,13 @@ public interface ChatService {
      * @param seekerId      求职者用户 ID
      */
     void createChatSession(Long applicationId, Long employerId, Long seekerId);
+
+    /**
+     * 创建直接会话（人才库联系求职者，无需投递记录）
+     *
+     * @param employerId HR 用户 ID
+     * @param seekerId   求职者用户 ID
+     * @return 会话 ID
+     */
+    Long createDirectSession(Long employerId, Long seekerId);
 }
