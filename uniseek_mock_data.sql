@@ -803,31 +803,6 @@ INSERT INTO `daily_statistics` (`id`, `stat_date`, `new_user_count`, `new_enterp
 (6, DATE_SUB(CURDATE(), INTERVAL 6 DAY),  48, 2, 18, 25, 55, 15, 6,  NOW()),
 (7, DATE_SUB(CURDATE(), INTERVAL 7 DAY),  12, 0, 20, 10, 30, 5,  4,  NOW());
 
--- ====================================================================
--- 12. complaint - 用户投诉处理表（5 条）
---     status: 0-待处理(2条), 1-处理中(1条), 2-已结案(2条)
--- ====================================================================
-
-DELETE FROM `complaint`;
-
-INSERT INTO `complaint` (`id`, `complainant_id`, `target_type`, `target_id`, `type`, `content`, `status`, `handler_id`, `handle_result`, `create_time`, `update_time`) VALUES
-(1, 10, 1, 2, 1,
- '投递了飞速达物流的外卖配送员岗位后，一直没有任何回复，打了招聘信息上的联系电话也打不通，体验非常差，希望能给个说法。',
- 0, NULL, NULL, DATE_SUB(NOW(), INTERVAL 5 DAY), NOW()),
-(2, 14, 1, 1, 2,
- '味美滋餐饮发布的周末餐厅服务员岗位，标注最低120元/天，但实际上只能拿到80元/天，薪资严重不符，涉嫌虚假宣传。',
- 2, 1, '经平台运营核实，味美滋餐饮已确认岗位薪资标注存在误差，已要求企业更正薪资信息，并向求职者致歉补偿。投诉人表示接受处理结果。',
- DATE_SUB(NOW(), INTERVAL 10 DAY), NOW()),
-(3, 11, 2, 13, 1,
- '在参加面试过程中，求职者赵晓燕态度非常不专业，迟到半小时且没有任何解释，沟通时也不尊重人，严重浪费了我们的时间。',
- 0, NULL, NULL, DATE_SUB(NOW(), INTERVAL 3 DAY), NOW()),
-(4, 20, 1, 1, 3,
- '在味美滋后厨帮工期间发现工作环境非常差，卫生条件堪忧，存在严重安全隐患，与招聘时描述的完全不符，希望平台介入处理。',
- 1, 1, NULL, DATE_SUB(NOW(), INTERVAL 7 DAY), NOW()),
-(5, 21, 2, 2, 4,
- '味美滋的HR李经理在沟通中使用不文明用语，说话态度恶劣，让我感到非常不舒服和不受尊重，希望平台能对这种行为进行严肃处理。',
- 2, 1, '经核实，该HR在沟通过程中确实存在言辞不当的情况，已对相关HR进行警告教育，并依据平台规则扣除其信用分10分。投诉人对处理结果表示满意。',
- DATE_SUB(NOW(), INTERVAL 8 DAY), NOW());
 
 -- ====================================================================
 -- 13. operation_log - 操作日志审计表（20 条）
@@ -855,7 +830,7 @@ INSERT INTO `operation_log` (`id`, `operator_id`, `operation_type`, `target_type
 (16, 11,   'APPLY',          'APPLICATION', 5,  '{"taskId":4}',                                   '192.168.1.111', DATE_SUB(NOW(), INTERVAL 7 DAY)),
 (17, 13,   'LOGIN',          'USER',        13, '{}',                                            '192.168.1.113', DATE_SUB(NOW(), INTERVAL 5 DAY)),
 (18, 13,   'APPLY',          'APPLICATION', 11, '{"taskId":12}',                                  '192.168.1.113', DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(19, 1,    'COMPLAINT',      'COMPLAINT',   2,  '{"fromStatus":0,"toStatus":2}',                  '192.168.1.1',   DATE_SUB(NOW(), INTERVAL 8 DAY)),
+
 (20, 1,    'AUDIT_ENTERPRISE','ENTERPRISE', 6,  '{"fromStatus":0,"toStatus":1,"note":"审核通过"}', '192.168.1.1',   DATE_SUB(NOW(), INTERVAL 2 DAY));
 
 -- ====================================================================
@@ -870,8 +845,7 @@ INSERT INTO `operation_log` (`id`, `operator_id`, `operation_type`, `target_type
 -- chat_session:       15 条
 -- chat_message:       60 条
 -- daily_statistics:   7 条
--- complaint:          5 条
--- operation_log:      20 条
+-- operation_log:      19 条
 -- 总计: 280 条记录
 -- ====================================================================
 

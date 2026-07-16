@@ -20,12 +20,13 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ====================================================================
 
 DROP TABLE IF EXISTS `operation_log`;
-DROP TABLE IF EXISTS `complaint`;
+
 DROP TABLE IF EXISTS `daily_statistics`;
 DROP TABLE IF EXISTS `chat_message`;
 DROP TABLE IF EXISTS `chat_session`;
 DROP TABLE IF EXISTS `notification`;
 DROP TABLE IF EXISTS `task_application`;
+DROP TABLE IF EXISTS `favorite`;
 DROP TABLE IF EXISTS `task`;
 DROP TABLE IF EXISTS `region`;
 DROP TABLE IF EXISTS `category`;
@@ -314,29 +315,6 @@ CREATE TABLE `daily_statistics` (
     UNIQUE KEY `uk_stat_date` (`stat_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='运营日报统计表';
 
--- -------------------------------------------------------------------
--- 13. complaint - 用户投诉处理表
--- -------------------------------------------------------------------
-CREATE TABLE `complaint` (
-    `id`            BIGINT(20)  NOT NULL AUTO_INCREMENT  COMMENT '投诉ID',
-    `complainant_id` BIGINT(20)  NOT NULL                 COMMENT '投诉人用户ID',
-    `target_type`   TINYINT(1)  NOT NULL                 COMMENT '被投诉对象类型：1-企业, 2-用户',
-    `target_id`     BIGINT(20)  NOT NULL                 COMMENT '被投诉对象ID',
-    `type`          TINYINT(1)  NOT NULL                 COMMENT '投诉类型',
-    `content`       TEXT        NOT NULL                 COMMENT '投诉内容',
-    `status`        TINYINT(1)  NOT NULL DEFAULT 0       COMMENT '处理状态：0-待处理, 1-处理中, 2-已结案',
-    `handler_id`    BIGINT(20)  DEFAULT NULL             COMMENT '处理人用户ID（运营管理员）',
-    `handle_result` TEXT        DEFAULT NULL             COMMENT '处理结果',
-    `create_time`   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',
-    `update_time`   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
-    KEY `idx_complainant` (`complainant_id`),
-    KEY `idx_status` (`status`),
-    KEY `idx_handler` (`handler_id`),
-    KEY `idx_target` (`target_type`, `target_id`),
-    CONSTRAINT `fk_complaint_complainant` FOREIGN KEY (`complainant_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_complaint_handler`     FOREIGN KEY (`handler_id`)     REFERENCES `user` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户投诉处理表';
 
 -- -------------------------------------------------------------------
 -- 14. operation_log - 操作日志审计表
