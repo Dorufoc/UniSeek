@@ -7,7 +7,7 @@ import {
   DocumentChecked,
   Tickets,
   UserFilled,
-  WarningFilled,
+
   Notebook,
   Fold,
   Expand,
@@ -31,7 +31,7 @@ const menuItems = [
   { path: '/admin/enterprises', title: '企业审核', icon: DocumentChecked },
   { path: '/admin/tasks', title: '职位审核', icon: Tickets },
   { path: '/admin/users', title: '用户管理', icon: UserFilled },
-  { path: '/admin/complaints', title: '投诉处理', icon: WarningFilled },
+
   { path: '/admin/logs', title: '操作日志', icon: Notebook }
 ]
 

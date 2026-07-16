@@ -141,12 +141,7 @@ const router = createRouter({
           component: () => import('@/pages/admin/UserManagement.vue'),
           meta: { title: '用户管理 - UniSeek 管理后台' }
         },
-        {
-          path: 'complaints',
-          name: 'AdminComplaints',
-          component: () => import('@/pages/admin/ComplaintManage.vue'),
-          meta: { title: '投诉处理 - UniSeek 管理后台' }
-        },
+
         {
           path: 'logs',
           name: 'AdminLogs',

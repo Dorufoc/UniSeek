@@ -9,7 +9,7 @@ import com.uniseek.constant.RoleConstant;
 import com.uniseek.common.PageResult;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.common.util.UserContext;
-import com.uniseek.dao.ComplaintMapper;
+
 import com.uniseek.dao.EnterpriseMapper;
 import com.uniseek.dao.NotificationMapper;
 import com.uniseek.dao.OperationLogMapper;
@@ -17,7 +17,7 @@ import com.uniseek.dao.TaskApplicationMapper;
 import com.uniseek.dao.TaskMapper;
 import com.uniseek.dao.UserMapper;
 import com.uniseek.dao.RealNameAuthMapper;
-import com.uniseek.entity.Complaint;
+
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.Notification;
 import com.uniseek.entity.OperationLog;
@@ -59,8 +59,6 @@ public class AdminServiceImpl implements AdminService {
     @Autowired
     private OperationLogMapper operationLogMapper;
 
-    @Autowired
-    private ComplaintMapper complaintMapper;
 
     @Autowired
     private TaskApplicationMapper taskApplicationMapper;
@@ -350,9 +348,6 @@ public class AdminServiceImpl implements AdminService {
         Integer totalApplications = taskApplicationMapper.selectCount(null);
         summary.put("totalApplications", totalApplications != null ? totalApplications : 0);
 
-        // 投诉总数
-        Integer totalComplaints = complaintMapper.selectCount(null);
-        summary.put("totalComplaints", totalComplaints != null ? totalComplaints : 0);
 
         // 每日明细数据（按日期分组统计）
         List<Map<String, Object>> dailyList = getDailyStatistics(startDate, endDate);
@@ -576,8 +571,7 @@ public class AdminServiceImpl implements AdminService {
                 return userName + " 未通过筛选：" + (targetTitle.isEmpty() ? "" : targetTitle);
             case "APPLICATION_COMPLETE":
                 return userName + " 已完成工作结算：" + (targetTitle.isEmpty() ? "" : targetTitle);
-            case "COMPLAINT_HANDLE":
-                return "投诉已处理完成";
+
             case "ADMIN_SET_ROLE":
                 return userName + " 调整了用户角色";
             default:
@@ -814,109 +808,6 @@ public class AdminServiceImpl implements AdminService {
         wrapper.orderByDesc("create_time");
         IPage<OperationLog> result = operationLogMapper.selectPage(new Page<>(page, pageSize), wrapper);
         return PageResult.of(result);
-    }
-
-    // ==================== 投诉处理 ====================
-
-    @Override
-    public PageResult<Complaint> listComplaints(int page, int pageSize, Integer status,
-                                                 Integer targetType) {
-        checkAdmin();
-        QueryWrapper<Complaint> wrapper = new QueryWrapper<>();
-        if (status != null) {
-            wrapper.eq("status", status);
-        }
-        if (targetType != null) {
-            wrapper.eq("target_type", targetType);
-        }
-        wrapper.orderByDesc("create_time");
-        IPage<Complaint> result = complaintMapper.selectPage(new Page<>(page, pageSize), wrapper);
-        return PageResult.of(result);
-    }
-
-    @Override
-    public Map<String, Object> getComplaintDetail(Long id) {
-        checkAdmin();
-        Complaint complaint = complaintMapper.selectById(id);
-        if (complaint == null) {
-            throw new BusinessException("投诉记录不存在");
-        }
-
-        Map<String, Object> detail = new HashMap<>();
-        detail.put("complaint", complaint);
-
-        // 查询投诉人信息
-        User complainant = userMapper.selectById(complaint.getComplainantId());
-        if (complainant != null) {
-            Map<String, Object> complainantInfo = new HashMap<>();
-            complainantInfo.put("id", complainant.getId());
-            complainantInfo.put("nickname", complainant.getNickname());
-            complainantInfo.put("phone", complainant.getPhone());
-            complainantInfo.put("email", complainant.getEmail());
-            detail.put("complainantInfo", complainantInfo);
-        }
-
-        // 查询被投诉对象标题
-        String targetTitle = resolveTargetTitle(complaint.getTargetType(), complaint.getTargetId());
-        detail.put("targetTitle", targetTitle);
-
-        return detail;
-    }
-
-    /**
-     * 根据目标类型和 ID 解析被投诉对象的标题
-     */
-    private String resolveTargetTitle(Integer targetType, Long targetId) {
-        if (targetType == null || targetId == null) {
-            return "未知";
-        }
-        switch (targetType) {
-            case 0: // 职位
-                Task task = taskMapper.selectById(targetId);
-                return task != null ? task.getTitle() : "职位（已删除）";
-            case 1: // 企业
-                Enterprise enterprise = enterpriseMapper.selectById(targetId);
-                return enterprise != null ? enterprise.getCompanyName() : "企业（已删除）";
-            case 2: // 用户
-                User user = userMapper.selectById(targetId);
-                return user != null ? user.getNickname() : "用户（已删除）";
-            default:
-                return "未知";
-        }
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void handleComplaint(Long id, Integer status, String handleResult) {
-        checkAdmin();
-        Complaint complaint = complaintMapper.selectById(id);
-        if (complaint == null) {
-            throw new BusinessException("投诉记录不存在");
-        }
-        if (status != 1 && status != 2) {
-            throw new BusinessException("处理状态不合法，仅支持 1（处理中）或 2（已结案）");
-        }
-        if (handleResult == null || handleResult.trim().isEmpty()) {
-            throw new BusinessException("处理结果不能为空");
-        }
-
-        Long adminId = UserContext.getUserId();
-        LocalDateTime now = LocalDateTime.now();
-
-        complaint.setStatus(status);
-        complaint.setHandlerId(adminId);
-        complaint.setHandleResult(handleResult);
-        complaint.setUpdateTime(now);
-        complaintMapper.updateById(complaint);
-
-        // 发送通知给投诉人
-        String statusText = status == 1 ? "正在处理中" : "已结案";
-        sendNotification(complaint.getComplainantId(), adminId,
-                "投诉处理进度更新",
-                "您提交的投诉已被管理员受理，" + statusText + "。处理结果：" + handleResult,
-                0, complaint.getId());
-
-        log.info("管理员 {} 处理了投诉 {}，状态：{}，结果：{}", adminId, id, status, handleResult);
     }
 
     // ==================== 超级管理员 - 管理员账号管理 ====================

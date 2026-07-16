@@ -2,15 +2,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight } from '@element-plus/icons-vue'
-import { getStatistics, listEnterprises, listPendingTasks, listComplaints } from '@/api/admin'
+import { getStatistics, listEnterprises, listPendingTasks } from '@/api/admin'
 
 const router = useRouter()
 const summary = ref<Record<string, number>>({})
 const dailyStats = ref<Array<Record<string, unknown>>>([])
 const pendingCounts = reactive({
   pendingEnterprises: 0,
-  pendingTasks: 0,
-  pendingComplaints: 0
+  pendingTasks: 0
 })
 const loading = ref(false)
 
@@ -28,17 +27,15 @@ const fetchData = async () => {
     const startDate = formatLocalDate(d) + ' 00:00:00'
     const endDate = formatLocalDate(new Date()) + ' 23:59:59'
 
-    const [stats, entRes, taskRes, compRes] = await Promise.all([
+    const [stats, entRes, taskRes] = await Promise.all([
       getStatistics(startDate, endDate),
       listEnterprises({ page: 1, pageSize: 1, auditStatus: 0 }).catch(() => ({ total: 0 })),
-      listPendingTasks({ page: 1, pageSize: 1 }).catch(() => ({ total: 0 })),
-      listComplaints({ page: 1, pageSize: 1, status: 0 }).catch(() => ({ total: 0 }))
+      listPendingTasks({ page: 1, pageSize: 1 }).catch(() => ({ total: 0 }))
     ])
     summary.value = stats.summary || {}
     dailyStats.value = stats.dailyList || []
     pendingCounts.pendingEnterprises = (entRes as any).total || 0
     pendingCounts.pendingTasks = (taskRes as any).total || 0
-    pendingCounts.pendingComplaints = (compRes as any).total || 0
   } catch {
     // 接口未就绪时留空
   } finally {
@@ -55,8 +52,7 @@ const overviewCards = [
 
 const pendingCards = [
   { label: '待审核企业', key: 'pendingEnterprises', path: '/admin/enterprises', color: '#409eff' },
-  { label: '待审核职位', key: 'pendingTasks', path: '/admin/tasks', color: '#e6a23c' },
-  { label: '待处理投诉', key: 'pendingComplaints', path: '/admin/complaints', color: '#f56c6c' }
+  { label: '待审核职位', key: 'pendingTasks', path: '/admin/tasks', color: '#e6a23c' }
 ]
 
 onMounted(() => {

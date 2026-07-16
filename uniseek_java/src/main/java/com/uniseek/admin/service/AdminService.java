@@ -1,7 +1,7 @@
 package com.uniseek.admin.service;
 
 import com.uniseek.common.PageResult;
-import com.uniseek.entity.Complaint;
+
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.OperationLog;
 import com.uniseek.entity.Task;
@@ -157,36 +157,6 @@ public interface AdminService {
                                                 String operationType, String targetType,
                                                 String targetId, LocalDateTime startTime,
                                                 LocalDateTime endTime);
-
-    // ==================== 投诉处理 ====================
-
-    /**
-     * 分页查询投诉列表
-     *
-     * @param page       页码
-     * @param pageSize   每页条数
-     * @param status     处理状态筛选（可为 null）
-     * @param targetType 被投诉对象类型筛选（可为 null）
-     * @return 投诉分页结果
-     */
-    PageResult<Complaint> listComplaints(int page, int pageSize, Integer status, Integer targetType);
-
-    /**
-     * 获取投诉详情（含投诉人信息 + 被投诉对象标题）
-     *
-     * @param id 投诉 ID
-     * @return 投诉详情 Map
-     */
-    Map<String, Object> getComplaintDetail(Long id);
-
-    /**
-     * 处理投诉
-     *
-     * @param id           投诉 ID
-     * @param status       目标状态（1 处理中 / 2 已结案）
-     * @param handleResult 处理结果
-     */
-    void handleComplaint(Long id, Integer status, String handleResult);
 
     // ==================== 超级管理员 - 管理员账号管理 ====================
 

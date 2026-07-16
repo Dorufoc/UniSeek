@@ -16,7 +16,7 @@ export interface StatisticsSummary {
   totalApplications: number
   pendingEnterprises: number
   pendingTasks: number
-  pendingComplaints: number
+
 }
 
 export interface DailyStatItem {
@@ -80,23 +80,6 @@ export interface UserRecord {
   createTime: string
 }
 
-export interface ComplaintRecord {
-  id: number
-  complainantId: number
-  complainantName: string
-  complainantPhone: string
-  targetType: number
-  targetId: number
-  targetName: string
-  type: number
-  content: string
-  status: number
-  handlerId: number
-  handlerName: string
-  handleResult: string
-  createTime: string
-  updateTime: string
-}
 
 export interface OperationLogRecord {
   id: number
@@ -174,25 +157,6 @@ export function updateUserRole(id: number, role: number): Promise<any> {
   return request.put(`/admin/users/${id}/role`, null, { params: { role } })
 }
 
-// ==================== 投诉处理 API ====================
-
-export async function listComplaints(params: {
-  page: number; pageSize: number; status?: number; targetType?: number
-}): Promise<PageResult<ComplaintRecord>> {
-  const res: any = await request.get('/admin/complaints', { params })
-  return res
-}
-
-export async function getComplaintDetail(id: number): Promise<ComplaintRecord> {
-  const res: any = await request.get(`/admin/complaints/${id}`)
-  return res
-}
-
-export function handleComplaint(id: number, data: { status: number; handleResult: string }): Promise<any> {
-  return request.put(`/admin/complaints/${id}/handle`, null, {
-    params: { status: data.status, handleResult: data.handleResult }
-  })
-}
 
 // ==================== 操作日志 API ====================
 
