@@ -42,10 +42,13 @@ public class AdminStatisticsController {
     /**
      * 职位大类需求占比
      * GET /api/admin/statistics/categories（大屏公开，无需鉴权）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，默认 7d
      */
     @GetMapping("/categories")
-    public ApiResult<List<Map<String, Object>>> getCategoryDistribution() {
-        return ApiResult.success(adminService.getCategoryDistribution());
+    public ApiResult<List<Map<String, Object>>> getCategoryDistribution(
+            @RequestParam(required = false, defaultValue = "7d") String range) {
+        return ApiResult.success(adminService.getCategoryDistribution(range));
     }
 
     /**
@@ -60,19 +63,25 @@ public class AdminStatisticsController {
     /**
      * 热门岗位 TOP10
      * GET /api/admin/statistics/hot-tasks（大屏公开，无需鉴权）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，默认 7d
      */
     @GetMapping("/hot-tasks")
-    public ApiResult<List<Map<String, Object>>> getHotTasks() {
-        return ApiResult.success(adminService.getHotTasks());
+    public ApiResult<List<Map<String, Object>>> getHotTasks(
+            @RequestParam(required = false, defaultValue = "7d") String range) {
+        return ApiResult.success(adminService.getHotTasks(range));
     }
 
     /**
      * 人才流向数据
      * GET /api/admin/statistics/talent-flow
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，默认 7d
      */
     @GetMapping("/talent-flow")
-    public ApiResult<List<Map<String, Object>>> getTalentFlow() {
-        return ApiResult.success(adminService.getTalentFlow());
+    public ApiResult<List<Map<String, Object>>> getTalentFlow(
+            @RequestParam(required = false, defaultValue = "7d") String range) {
+        return ApiResult.success(adminService.getTalentFlow(range));
     }
 
     /**
@@ -88,18 +97,24 @@ public class AdminStatisticsController {
     /**
      * 投递转化漏斗
      * GET /api/admin/statistics/application-funnel
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，默认 7d
      */
     @GetMapping("/application-funnel")
-    public ApiResult<Map<String, Object>> getApplicationFunnel() {
-        return ApiResult.success(adminService.getApplicationFunnel());
+    public ApiResult<Map<String, Object>> getApplicationFunnel(
+            @RequestParam(required = false, defaultValue = "7d") String range) {
+        return ApiResult.success(adminService.getApplicationFunnel(range));
     }
 
     /**
      * 企业审核 + 实名认证统计
      * GET /api/admin/statistics/enterprise-summary
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，默认 7d
      */
     @GetMapping("/enterprise-summary")
-    public ApiResult<Map<String, Object>> getEnterpriseSummary() {
-        return ApiResult.success(adminService.getEnterpriseSummary());
+    public ApiResult<Map<String, Object>> getEnterpriseSummary(
+            @RequestParam(required = false, defaultValue = "7d") String range) {
+        return ApiResult.success(adminService.getEnterpriseSummary(range));
     }
 }

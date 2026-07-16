@@ -12,8 +12,6 @@
             <img src="@/assets/uniseek-icon.png" alt="UniSeek" class="brand-icon" />
             <img src="@/assets/uniseek_text_white_ZH.svg" alt="UniSeek优寻" class="brand-logo" />
           </h1>
-          <span class="range-badge">{{ timeRangeLabels[currentRange] || currentRange }}</span>
-          <div class="glow-line"></div>
         </div>
         <div class="kpi-grid">
           <div class="kpi-card" v-for="(item, index) in kpiData" :key="index">
@@ -37,14 +35,14 @@
           <div class="left-group">
             <div class="card-header">
               <span class="title">供需趋势</span>
-              <span class="subtitle">近7日新增</span>
+              <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
             </div>
             <div id="chart-trend" class="chart-container"></div>
           </div>
           <div class="left-group">
             <div class="card-header">
               <span class="title">职位大类占比</span>
-              <span class="subtitle">按需求量排序</span>
+              <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
             </div>
             <div id="chart-ring" class="chart-container"></div>
           </div>
@@ -53,14 +51,17 @@
         <!-- 中央：岗位地域流向图 + 投递转化进度条 -->
         <section class="chart-card center-panel">
           <div class="card-header">
-            <span class="title">全国岗位流向</span>
-            <span class="subtitle">求职者来源 → 企业所在城市</span>
+              <span class="title">全国岗位流向</span>
+              <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
           </div>
           <div id="chart-map" class="chart-container" style="flex:1;"></div>
           <!-- 投递转化进度条 -->
           <div class="funnel-section">
             <div class="funnel-header">
-              <span class="funnel-title">投递转化率</span>
+              <div class="funnel-title-group">
+                <span class="funnel-title">投递转化率</span>
+                <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
+              </div>
               <span class="funnel-stats">累计投递 <strong id="funnel-total">-</strong> 次 · 今日新增 <strong id="funnel-today">-</strong> 次</span>
             </div>
             <div class="funnel-bar" id="funnel-bar"></div>
@@ -76,7 +77,10 @@
           <!-- 企业资质审核 -->
           <div class="funnel-row">
             <div class="funnel-row-header">
-              <span class="funnel-title">企业资质审核</span>
+              <div class="funnel-title-group">
+                <span class="funnel-title">企业资质审核</span>
+                <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
+              </div>
               <span class="funnel-stats">共 <strong id="ent-total">-</strong> 家企业</span>
             </div>
             <div class="funnel-bar" id="funnel-enterprise"></div>
@@ -89,7 +93,10 @@
           <!-- 实名认证率 -->
           <div class="funnel-row">
             <div class="funnel-row-header">
-              <span class="funnel-title">实名认证率</span>
+              <div class="funnel-title-group">
+                <span class="funnel-title">实名认证率</span>
+                <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
+              </div>
               <span class="funnel-stats">认证率 <strong id="auth-rate">-</strong></span>
             </div>
             <div class="funnel-bar" id="funnel-auth"></div>
@@ -105,22 +112,24 @@
           <div class="right-group">
             <div class="card-header">
               <span class="title">热门岗位 TOP10</span>
-              <span class="subtitle">按需求量排序</span>
+              <span class="funnel-range">{{ timeRangeLabels[currentRange] }}</span>
             </div>
             <div id="chart-bar" class="chart-container"></div>
           </div>
           <div class="right-group">
             <div class="card-header">
-              <span class="title">优寻实时动态</span>
-              <span class="subtitle">最新投递 / 匹配</span>
+              <span class="title">实时动态</span>
+              <span class="subtitle">动态更新</span>
             </div>
-            <div class="feed-container">
-              <div class="feed-list" ref="feedList">
-                <div class="feed-item" v-for="(feed, idx) in feedData" :key="feed.id" :style="{ animationDelay: (idx * 2) + 's' }">
+            <div class="feed-container" ref="feedListRef">
+              <div class="feed-list">
+                <div class="feed-item" v-for="(feed, idx) in displayFeed" :key="'fd-' + feed.id + '-' + idx">
                   <span class="feed-name">{{ feed.name }}</span>
                   <span class="feed-action">{{ feed.action }}</span>
-                  <span class="feed-target">{{ feed.target }}</span>
-                  <span class="feed-time">{{ feed.time }}</span>
+                  <span class="feed-time">
+                    <span class="time-date">{{ feed.time.split(' ')[0] }}</span>
+                    <span class="time-clock">{{ feed.time.split(' ')[1] }}</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -132,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getScreenSummary, getCategoryDistribution, getHotTasks, getLatestActivity, getTalentFlow, getApplicationFunnel, getEnterpriseSummary } from '@/api/admin'
 
@@ -225,14 +234,15 @@ const fetchAllData = async (range?: string) => {
       }
     }
 
-    // 职位大类占比数据
+    // 职位大类占比数据（所有统计都传入当前时间范围）
+    const currentRangeVal = range || currentRange.value
     const [categoryRes, hotTasksRes, activityRes, talentFlowRes, funnelRes, enterpriseRes] = await Promise.allSettled([
-      getCategoryDistribution(),
-      getHotTasks(),
+      getCategoryDistribution(currentRangeVal),
+      getHotTasks(currentRangeVal),
       getLatestActivity(),
-      getTalentFlow(),
-      getApplicationFunnel(),
-      getEnterpriseSummary()
+      getTalentFlow(currentRangeVal),
+      getApplicationFunnel(currentRangeVal),
+      getEnterpriseSummary(currentRangeVal)
     ])
 
     if (categoryRes.status === 'fulfilled' && categoryRes.value && chartRing) {
@@ -252,20 +262,31 @@ const fetchAllData = async (range?: string) => {
 
     if (hotTasksRes.status === 'fulfilled' && hotTasksRes.value && chartBar) {
       const top10 = hotTasksRes.value.slice(0, 10)
+      // 水平条形图 yAxis category 从下往上渲染，需反转使最多在顶部
+      const reversed = [...top10].reverse()
       chartBar.setOption({
-        xAxis: { data: top10.map((t: any) => t.title) },
-        yAxis: { name: '投递量' },
-        series: [{ data: top10.map((t: any) => t.applicationCount) }]
+        yAxis: { data: reversed.map((t: any) => t.title) },
+        series: [{ data: reversed.map((t: any) => t.applicationCount) }]
       })
     }
 
     if (activityRes.status === 'fulfilled' && activityRes.value) {
-      feedData.value = activityRes.value.map((item: any) => ({
-        id: item.id,
-        name: item.userName || '系统',
-        action: item.message || '',
-        target: item.target || '',
-        time: item.time || ''
+      // 反转：后端返回最新在前，旧→新排列使最新条目出现在底部
+      const sorted = [...activityRes.value].reverse()
+      appendFeed(sorted.map((item: any) => {
+        let action = item.message || ''
+        const uname = item.userName
+        // 去掉开头重复的用户名（如 "张小芒 投递了…" → "投递了…"）
+        if (uname && action.startsWith(uname)) {
+          action = action.slice(uname.length).trim()
+        }
+        return {
+          id: item.id,
+          name: uname || '系统',
+          action,
+          target: item.target || '',
+          time: item.time || ''
+        }
       }))
     }
 
@@ -686,7 +707,7 @@ const fetchAllData = async (range?: string) => {
       if (flows.length > 0) {
         // 按热度排序取前 20 条主要流向
         flows.sort((a, b) => b.count - a.count)
-        const topFlows = flows.slice(0, 20)
+        const topFlows = flows.slice(0, 30)
         
         // 更新地图数据
         const mapOption = chartMap.getOption() as any
@@ -763,14 +784,18 @@ const fetchAllData = async (range?: string) => {
       const total = funnelData.total || 0
       const statusList = funnelData.statusList || []
       const funnelEl = document.getElementById('funnel-bar')
-      if (funnelEl && total > 0) {
-        const colors: Record<number, string> = { 0: '#1762FB', 1: '#26E2FF', 2: '#67C23A', 3: '#E6A23C', 4: '#909399', 5: '#F56C6C' }
-        let html = ''
-        statusList.forEach((item: any) => {
-          const pct = ((item.count / total) * 100).toFixed(1)
-          html += `<div class="funnel-segment" style="flex:${item.count};background:${colors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"></div>`
-        })
-        funnelEl.innerHTML = html
+      if (funnelEl) {
+        if (total > 0) {
+          const colors: Record<number, string> = { 0: '#1762FB', 1: '#26E2FF', 2: '#67C23A', 3: '#E6A23C', 4: '#909399', 5: '#F56C6C' }
+          let html = ''
+          statusList.forEach((item: any) => {
+            const pct = ((item.count / total) * 100).toFixed(1)
+            html += `<div class="funnel-segment" style="flex:${item.count};background:${colors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"></div>`
+          })
+          funnelEl.innerHTML = html
+        } else {
+          funnelEl.innerHTML = '<div class="funnel-empty">该时间范围内暂无投递数据</div>'
+        }
         document.getElementById('funnel-total')!.textContent = total.toLocaleString()
         document.getElementById('funnel-today')!.textContent = (funnelData.todayNew || 0).toLocaleString()
       }
@@ -780,14 +805,18 @@ const fetchAllData = async (range?: string) => {
       const auditList = entData.auditList || []
       const entTotal = entData.totalEnterprise || 0
       const entEl = document.getElementById('funnel-enterprise')
-      if (entEl && entTotal > 0) {
-        const entColors: Record<number, string> = { 0: '#E6A23C', 1: '#67C23A', 2: '#F56C6C' }
-        let html = ''
-        auditList.forEach((item: any) => {
-          const pct = ((item.count / entTotal) * 100).toFixed(1)
-          html += `<div class="funnel-segment" style="flex:${item.count};background:${entColors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"></div>`
-        })
-        entEl.innerHTML = html
+      if (entEl) {
+        if (entTotal > 0) {
+          const entColors: Record<number, string> = { 0: '#E6A23C', 1: '#67C23A', 2: '#F56C6C' }
+          let html = ''
+          auditList.forEach((item: any) => {
+            const pct = ((item.count / entTotal) * 100).toFixed(1)
+            html += `<div class="funnel-segment" style="flex:${item.count};background:${entColors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"></div>`
+          })
+          entEl.innerHTML = html
+        } else {
+          entEl.innerHTML = '<div class="funnel-empty">该时间范围内暂无企业数据</div>'
+        }
         document.getElementById('ent-total')!.textContent = entTotal.toLocaleString()
       }
       // 实名认证率
@@ -795,11 +824,15 @@ const fetchAllData = async (range?: string) => {
       const authed = entData.authedCount || 0
       const unauth = entData.unauthedCount || 0
       const authEl = document.getElementById('funnel-auth')
-      if (authEl && totalUser > 0) {
-        authEl.innerHTML = `
-          <div class="funnel-segment" style="flex:${authed};background:#67C23A;" title="已认证: ${authed} (${((authed/totalUser)*100).toFixed(1)}%)"></div>
-          <div class="funnel-segment" style="flex:${unauth};background:#909399;" title="未认证: ${unauth} (${((unauth/totalUser)*100).toFixed(1)}%)"></div>
-        `
+      if (authEl) {
+        if (totalUser > 0) {
+          authEl.innerHTML = `
+            <div class="funnel-segment" style="flex:${authed};background:#67C23A;" title="已认证: ${authed} (${((authed/totalUser)*100).toFixed(1)}%)"></div>
+            <div class="funnel-segment" style="flex:${unauth};background:#909399;" title="未认证: ${unauth} (${((unauth/totalUser)*100).toFixed(1)}%)"></div>
+          `
+        } else {
+          authEl.innerHTML = '<div class="funnel-empty">该时间范围内暂无用户数据</div>'
+        }
         document.getElementById('auth-rate')!.textContent = ((authed / totalUser) * 100).toFixed(1) + '%'
       }
     }
@@ -810,6 +843,61 @@ const fetchAllData = async (range?: string) => {
 
 // 动态流数据
 const feedData = ref<Array<{ id: number; name: string; action: string; target: string; time: string }>>([])
+const feedListRef = ref<HTMLElement | null>(null)
+// 双倍数据用于无缝循环滚动
+const displayFeed = computed(() => {
+  const d = feedData.value
+  return d.length > 0 ? [...d, ...d] : []
+})
+// rAF 滚动控制
+let feedRAF: number | null = null
+let lastFeedTime = 0
+const FEED_TICK_MS = 12500 // 12.5 秒，约大屏 tick 的 80% 速度
+
+/**
+ * 追加新项到 feed 列表（去重，防无限增长）
+ */
+function appendFeed(newItems: Array<{ id: number; name: string; action: string; target: string; time: string }>) {
+  const existingIds = new Set(feedData.value.map(f => f.id))
+  const fresh = newItems.filter(item => !existingIds.has(item.id))
+  if (fresh.length === 0) return
+  feedData.value = [...feedData.value, ...fresh]
+  // 最多保留 50 条，防止无限增长
+  if (feedData.value.length > 50) {
+    feedData.value = feedData.value.slice(-50)
+  }
+}
+
+/**
+ * requestAnimationFrame 驱动的平滑滚动
+ * 每次滚动半屏（双倍数据的 50% 位置），到达后重置到 0，实现无缝循环
+ */
+function startFeedScroll() {
+  if (feedRAF !== null) return
+  lastFeedTime = performance.now()
+  const step = (now: number) => {
+    const el = feedListRef.value
+    if (!el) { feedRAF = null; return }
+    const half = el.scrollHeight / 2
+    if (half <= 0) { lastFeedTime = now; feedRAF = requestAnimationFrame(step); return }
+    // 每帧步长 = 半高 / 总时长(ms)
+    const delta = (half / FEED_TICK_MS) * (now - lastFeedTime)
+    lastFeedTime = now
+    el.scrollTop += delta
+    if (el.scrollTop >= half) {
+      el.scrollTop = 0
+    }
+    feedRAF = requestAnimationFrame(step)
+  }
+  feedRAF = requestAnimationFrame(step)
+}
+
+function stopFeedScroll() {
+  if (feedRAF !== null) {
+    cancelAnimationFrame(feedRAF)
+    feedRAF = null
+  }
+}
 
 // 时间范围轮播
 const timeRanges = ['10y', '12m', '30d', '7d', '24h']
@@ -1016,6 +1104,8 @@ const initECharts = () => {
         tooltip: { trigger: 'item' },
         geo: {
           map: 'china',
+          zoom: 1.2,
+          center: [104, 35],
           roam: false,
           itemStyle: {
             areaColor: '#0A1628',
@@ -1126,13 +1216,13 @@ const initECharts = () => {
     xAxis: { type: 'value', splitLine: { show: false }, axisLabel: { show: false } },
     yAxis: {
       type: 'category',
-      data: ['AI算法', 'Java开发', '产品经理', '数据分析', 'UI设计', '运维', '测试', '运营', '销售', 'HR'],
+      data: ['HR', '销售', '运营', '测试', '运维', 'UI设计', '数据分析', '产品经理', 'Java开发', 'AI算法'],
       axisLabel: { color: '#aaa', fontWeight: 'bold', fontSize: 12 }
     },
     series: [
       {
         type: 'bar',
-        data: [98, 87, 76, 65, 54, 43, 32, 21, 15, 10],
+        data: [10, 15, 21, 32, 43, 54, 65, 76, 87, 98],
         barWidth: 12,
         itemStyle: {
           borderRadius: [0, 6, 6, 0],
@@ -1175,18 +1265,23 @@ onMounted(() => {
     initECharts()
   })
 
-  const intervalId = setInterval(() => {
+  const intervalId = setInterval(async () => {
     if (isUnmounted) return
     rangeIndex = (rangeIndex + 1) % timeRanges.length
-    currentRange.value = timeRanges[rangeIndex]
-    fetchAllData(currentRange.value)
+    const nextRange = timeRanges[rangeIndex]
+    await fetchAllData(nextRange)
+    currentRange.value = nextRange
   }, 10000)
+
+  // 首次数据加载后启动 feed 滚动
+  startFeedScroll()
 
   onUnmounted(() => {
     isUnmounted = true
     window.removeEventListener('resize', handleResize)
     clearInterval(intervalId)
     disposeAllCharts()
+    stopFeedScroll()
   })
 })
 
@@ -1197,7 +1292,7 @@ onMounted(() => {
 /* ===== 全局重置与布局 ===== */
 .dashboard-wrapper {
   position: relative;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
   background-color: #051024;
@@ -1255,7 +1350,7 @@ onMounted(() => {
   align-items: center;
 }
 .brand-logo {
-  height: 18px;
+  height: 36px;
   width: auto;
   display: block;
 }
@@ -1272,25 +1367,6 @@ onMounted(() => {
   -webkit-text-fill-color: rgba(255, 255, 255, 0.6);
   margin-left: 8px;
 }
-.glow-line {
-  width: 60px;
-  height: 2px;
-  background: linear-gradient(90deg, #1762FB, #26E2FF);
-  border-radius: 2px;
-  box-shadow: 0 0 20px #1762FB;
-}
-
-.range-badge {
-  font-size: 11px;
-  color: rgba(255,255,255,0.5);
-  background: rgba(23,98,251,0.15);
-  border: 1px solid rgba(23,98,251,0.3);
-  border-radius: 12px;
-  padding: 2px 10px;
-  margin-left: 12px;
-  white-space: nowrap;
-}
-
 .kpi-grid {
   display: flex;
   gap: 30px;
@@ -1374,6 +1450,9 @@ onMounted(() => {
   width: 100%;
   min-height: 200px;
 }
+#chart-map {
+  overflow: hidden;
+}
 
 .left-panel {
   flex: 1;
@@ -1424,27 +1503,34 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  animation: scrollFeed 20s linear infinite;
-}
-@keyframes scrollFeed {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-50%); }
+  flex-shrink: 0;
 }
 .feed-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 8px 12px;
   background: rgba(23, 98, 251, 0.05);
   border-radius: 8px;
   border-left: 2px solid #1762FB;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #fff;
+  position: relative;
 }
 .feed-name { color: #26E2FF; font-weight: 500; }
-.feed-action { color: #fff; }
-.feed-target { color: rgba(255, 255, 255, 0.6); }
-.feed-time { margin-left: auto; font-size: 11px; color: rgba(255, 255, 255, 0.3); }
+.feed-time {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: right;
+  line-height: 1.35;
+}
+.time-date, .time-clock {
+  display: block;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+}
 
 /* ===== 响应式微调 ===== */
 @media (max-width: 1400px) {
@@ -1473,6 +1559,21 @@ onMounted(() => {
   font-weight: 600;
   color: #fff;
 }
+.funnel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.funnel-range {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  background: rgba(23,98,251,0.12);
+  border: 1px solid rgba(23,98,251,0.2);
+  border-radius: 10px;
+  padding: 0 8px;
+  line-height: 18px;
+  white-space: nowrap;
+}
 .funnel-stats {
   font-size: 11px;
   color: rgba(255,255,255,0.5);
@@ -1495,6 +1596,13 @@ onMounted(() => {
   justify-content: center;
   transition: flex 0.5s ease;
   min-width: 20px;
+}
+.funnel-empty {
+  width: 100%;
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+  line-height: 14px;
 }
 .funnel-labels {
   display: flex;

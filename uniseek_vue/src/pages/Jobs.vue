@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { searchTasks, type TaskVO } from '@/api/task'
+import { searchTasks, getAllTags, type TaskVO } from '@/api/task'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getRegionTree, type RegionVO } from '@/api/region'
 import { useAppStore } from '@/stores/app'
@@ -17,6 +17,25 @@ const tasks = ref<TaskVO[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = 12
+
+// 多标签筛选
+const tags = ref<string[]>([])
+const tagInput = ref('')
+const allTags = ref<string[]>([])          // 所有可用标签（从后端加载）
+const showTagSuggestions = ref(false)      // 是否显示推荐下拉
+const tagInputRef = ref<any>(null)         // 标签输入框引用，用于手动失焦
+
+// 计算推荐标签：有输入时模糊匹配，无输入时随机取 8 个
+const suggestedTags = computed(() => {
+  const input = tagInput.value.trim()
+  let filtered = allTags.value.filter(t => !tags.value.includes(t))
+  if (input) {
+    filtered = filtered.filter(t => t.includes(input))
+  }
+  // 随机打乱后取前 8 个
+  const shuffled = [...filtered].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 8)
+})
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize))
 
@@ -77,7 +96,6 @@ const filter = reactive({
   salaryMin: undefined as number | undefined,
   salaryMax: undefined as number | undefined,
   salaryUnit: undefined as number | undefined,
-  tag: undefined as string | undefined,
   sortBy: 'create_time' as string,
   sortOrder: 'desc' as string
 })
@@ -220,7 +238,7 @@ const loadTasks = async () => {
       salaryMin: filter.salaryMin,
       salaryMax: filter.salaryMax,
       salaryUnit: filter.salaryUnit,
-      tag: filter.tag,
+      tags: tags.value.length > 0 ? tags.value.join(',') : undefined,
       sortBy: filter.sortBy,
       sortOrder: filter.sortOrder,
       page: page.value,
@@ -249,7 +267,7 @@ const resetFilters = () => {
   filter.salaryMin = undefined
   filter.salaryMax = undefined
   filter.salaryUnit = undefined
-  filter.tag = undefined
+  tags.value = []
   settlementType.value = undefined
   salaryMinInput.value = undefined
   salaryMaxInput.value = undefined
@@ -260,8 +278,42 @@ const resetFilters = () => {
   loadTasks()
 }
 
-const clearTagFilter = () => {
-  filter.tag = undefined
+// ── 多标签操作 ──
+const addTag = () => {
+  const val = tagInput.value.trim()
+  if (!val) return
+  // 避免重复标签
+  if (tags.value.includes(val)) {
+    tagInput.value = ''
+    return
+  }
+  tags.value.push(val)
+  tagInput.value = ''
+  showTagSuggestions.value = false
+  page.value = 1
+  loadTasks()
+}
+
+const removeTag = (index: number) => {
+  tags.value.splice(index, 1)
+  page.value = 1
+  loadTasks()
+}
+
+// ── 标签推荐交互 ──
+const onFocusTagInput = () => {
+  showTagSuggestions.value = true
+}
+const onBlurTagInput = () => {
+  // 延迟关闭，让点击推荐项的事件先触发
+  setTimeout(() => { showTagSuggestions.value = false }, 200)
+}
+const addSuggestionTag = (tag: string) => {
+  if (tags.value.includes(tag)) return
+  tags.value.push(tag)
+  tagInput.value = ''
+  showTagSuggestions.value = false
+  tagInputRef.value?.blur()
   page.value = 1
   loadTasks()
 }
@@ -279,10 +331,12 @@ const goToPage = (p: number) => {
 
 // ── 初始化 ──
 onMounted(async () => {
-  const [cats, regions] = await Promise.all([
+  const [cats, regions, tagList] = await Promise.all([
     getCategories().catch(() => [] as CategoryVO[]),
-    getRegionTree().catch(() => [] as RegionVO[])
+    getRegionTree().catch(() => [] as RegionVO[]),
+    getAllTags().catch(() => [] as string[])
   ])
+  allTags.value = tagList || []
   categoryTree.value = cats
   regionTree.value = regions
 
@@ -306,10 +360,10 @@ onMounted(async () => {
     }
   }
 
-  // 读取 tag URL 参数
+  // 读取 tag URL 参数（支持单标签和多标签兜底）
   const tagParam = route.query.tag as string
   if (tagParam) {
-    filter.tag = tagParam
+    tags.value = tagParam.split(',').map(t => t.trim()).filter(Boolean)
   }
 
   loadTasks()
@@ -332,14 +386,6 @@ onMounted(async () => {
         />
         <button class="search-btn" @click="handleSearch">搜索</button>
       </div>
-    </div>
-
-    <!-- 激活的筛选标签 -->
-    <div class="active-filters" v-if="filter.tag">
-      <span class="filter-chip">
-        标签：{{ filter.tag }}
-        <span class="chip-close" @click="clearTagFilter">&times;</span>
-      </span>
     </div>
 
     <div class="jobs-body">
@@ -415,6 +461,47 @@ onMounted(async () => {
               :class="['filter-option', { active: settlementType === 1 }]"
               @click="setSettlementType(1)"
             >时薪</span>
+          </div>
+        </div>
+
+        <!-- 标签筛选 -->
+        <div class="filter-section">
+          <h4 class="filter-title">职位标签</h4>
+          <div class="tag-input-row">
+            <div class="tag-input-relative">
+              <el-input
+                ref="tagInputRef"
+                v-model="tagInput"
+                placeholder="输入标签后按 Enter 添加"
+                size="small"
+                clearable
+                class="tag-input"
+                @keyup.enter="addTag"
+                @focus="onFocusTagInput"
+                @blur="onBlurTagInput"
+              />
+              <!-- 推荐标签下拉 -->
+              <div class="tag-suggestions" v-if="showTagSuggestions && suggestedTags.length > 0">
+                <div class="tag-suggestions-header">推荐标签</div>
+                <div class="tag-suggestions-body">
+                  <span
+                    class="tag-suggestion-item"
+                    v-for="t in suggestedTags"
+                    :key="t"
+                    @mousedown.prevent="addSuggestionTag(t)"
+                  >
+                    {{ t }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button class="tag-add-btn" @click="addTag" :disabled="!tagInput.trim()">添加</button>
+          </div>
+          <div class="tag-list" v-if="tags.length > 0">
+            <span class="tag-chip" v-for="(t, i) in tags" :key="i">
+              {{ t }}
+              <span class="tag-chip-close" @click="removeTag(i)">&times;</span>
+            </span>
           </div>
         </div>
 
@@ -623,6 +710,127 @@ onMounted(async () => {
 }
 .chip-close:hover {
   opacity: 1;
+}
+
+.tag-input-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.tag-input-relative {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.tag-input {
+  width: 100%;
+}
+
+.tag-input :deep(.el-input__wrapper) {
+  border-radius: 6px;
+  padding: 1px 8px;
+}
+
+.tag-add-btn {
+  padding: 0 10px;
+  border: none;
+  background: #1762FB;
+  color: #fff;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.tag-add-btn:hover:not(:disabled) {
+  background: #0062cc;
+}
+
+.tag-add-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 13px;
+  background: rgba(0, 122, 255, 0.08);
+  color: #1762FB;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 16px;
+}
+
+.tag-chip-close {
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  color: #1762FB;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.tag-chip-close:hover {
+  opacity: 1;
+}
+
+.tag-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e4e6ef;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  z-index: 100;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.tag-suggestions-header {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #999;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f5;
+}
+
+.tag-suggestions-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+}
+
+.tag-suggestion-item {
+  padding: 4px 10px;
+  font-size: 13px;
+  border: 1px solid #e4e6ef;
+  color: #666;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.tag-suggestion-item:hover {
+  border-color: #1762FB;
+  color: #1762FB;
+  background: rgba(0, 122, 255, 0.04);
 }
 
 .jobs-body {
@@ -901,6 +1109,9 @@ onMounted(async () => {
   font-size: 14px;
   color: #444;
   margin: 0 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .job-meta {
@@ -917,6 +1128,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .meta-dot {

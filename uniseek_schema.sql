@@ -357,6 +357,21 @@ CREATE TABLE `operation_log` (
     CONSTRAINT `fk_operation_log_operator` FOREIGN KEY (`operator_id`) REFERENCES `user` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志审计表';
 
+-- -------------------------------------------------------------------
+-- 15. favorite - 职位收藏表
+--     用户可收藏心仪的职位，方便后续查看
+-- -------------------------------------------------------------------
+CREATE TABLE `favorite` (
+  `id`          BIGINT    NOT NULL AUTO_INCREMENT  COMMENT '收藏记录ID',
+  `user_id`     BIGINT    NOT NULL                 COMMENT '用户ID',
+  `task_id`     BIGINT    NOT NULL                 COMMENT '职位ID',
+  `create_time` DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_task` (`user_id`, `task_id`) COMMENT '同一用户对同一职位只能收藏一次',
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_task_id` (`task_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='收藏职位表';
+
 -- ====================================================================
 -- 第三部分: 种子数据
 -- ====================================================================

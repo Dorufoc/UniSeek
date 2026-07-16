@@ -84,4 +84,11 @@ public interface TaskService {
      * @return 职位列表
      */
     List<TaskVO> getPublishedEnterpriseTasks(Long enterpriseId);
+
+    /**
+     * 获取所有职位标签（去重）
+     *
+     * @return 所有不重复的标签名称
+     */
+    List<String> getAllTags();
 }

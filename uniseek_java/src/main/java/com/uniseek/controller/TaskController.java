@@ -122,6 +122,16 @@ public class TaskController {
     }
 
     /**
+     * 获取所有职位标签（去重）
+     * GET /api/tasks/tags/all（无需鉴权）
+     */
+    @GetMapping("/tasks/tags/all")
+    public ApiResult<List<String>> getAllTags() {
+        List<String> tags = taskService.getAllTags();
+        return ApiResult.success(tags);
+    }
+
+    /**
      * 本企业职位列表
      * GET /api/enterprise/tasks（需要鉴权）
      *

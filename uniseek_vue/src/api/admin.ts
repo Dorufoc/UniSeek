@@ -179,13 +179,13 @@ export async function getScreenSummary(range = '7d'): Promise<{
   return res
 }
 
-export async function getCategoryDistribution(): Promise<Array<{ categoryName: string; count: number }>> {
-  const res: any = await request.get('/admin/statistics/categories')
+export async function getCategoryDistribution(range = '7d'): Promise<Array<{ categoryName: string; count: number }>> {
+  const res: any = await request.get('/admin/statistics/categories', { params: { range } })
   return res
 }
 
-export async function getHotTasks(): Promise<Array<{ id: number; title: string; companyName: string; applicationCount: number }>> {
-  const res: any = await request.get('/admin/statistics/hot-tasks')
+export async function getHotTasks(range = '7d'): Promise<Array<{ id: number; title: string; companyName: string; applicationCount: number }>> {
+  const res: any = await request.get('/admin/statistics/hot-tasks', { params: { range } })
   return res
 }
 
@@ -194,27 +194,27 @@ export async function getLatestActivity(): Promise<Array<{ id: number; message: 
   return res
 }
 
-export async function getTalentFlow(): Promise<Array<{ fromCode: string; toCode: number; flowCount: number }>> {
-  const res: any = await request.get('/admin/statistics/talent-flow')
+export async function getTalentFlow(range = '7d'): Promise<Array<{ fromCode: string; toCode: number; flowCount: number }>> {
+  const res: any = await request.get('/admin/statistics/talent-flow', { params: { range } })
   return res
 }
 
-export async function getApplicationFunnel(): Promise<{
+export async function getApplicationFunnel(range = '7d'): Promise<{
   total: number
   todayNew: number
   statusList: Array<{ status: number; name: string; count: number }>
 }> {
-  const res: any = await request.get('/admin/statistics/application-funnel')
+  const res: any = await request.get('/admin/statistics/application-funnel', { params: { range } })
   return res
 }
 
-export async function getEnterpriseSummary(): Promise<{
+export async function getEnterpriseSummary(range = '7d'): Promise<{
   totalEnterprise: number
   auditList: Array<{ status: number; name: string; count: number }>
   totalUser: number
   authedCount: number
   unauthedCount: number
 }> {
-  const res: any = await request.get('/admin/statistics/enterprise-summary')
+  const res: any = await request.get('/admin/statistics/enterprise-summary', { params: { range } })
   return res
 }

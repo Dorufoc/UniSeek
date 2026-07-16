@@ -56,8 +56,20 @@ public class TaskSearchRequest {
     /** 工作地址 */
     private String address;
 
-    /** 标签筛选（LIKE 匹配） */
-    private String tag;
+    /** 标签筛选，多个标签用逗号分隔（每个标签 LIKE 匹配） */
+    private String tags;
+
+    /**
+     * 将 tags 按逗号分割并 trim，返回数组供 MyBatis 遍历
+     */
+    public String[] getTagsArray() {
+        if (tags == null || tags.trim().isEmpty()) return null;
+        String[] parts = tags.split(",");
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = parts[i].trim();
+        }
+        return parts;
+    }
 
     /** 排序字段：create_time / salary_max / popular */
     private String sortBy;

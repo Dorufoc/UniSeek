@@ -244,4 +244,9 @@ public class TaskServiceImpl implements TaskService {
     public List<TaskVO> getPublishedEnterpriseTasks(Long enterpriseId) {
         return taskMapper.selectPublishedEnterpriseTasks(enterpriseId);
     }
+
+    @Override
+    public List<String> getAllTags() {
+        return taskMapper.selectAllTags();
+    }
 }
