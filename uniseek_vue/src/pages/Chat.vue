@@ -12,6 +12,8 @@ import {
   type ChatMessageVO
 } from '@/api/chat'
 import { getResume } from '@/api/resume'
+import PdfPreview from '@/components/PdfPreview.vue'
+import { View, Download } from '@element-plus/icons-vue'
 import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
 
 const route = useRoute()
@@ -27,6 +29,10 @@ const sendingResume = ref(false)
 const inputText = ref('')
 const hasMore = ref(true)
 const messageListRef = ref<HTMLElement | null>(null)
+
+const fileDialogVisible = ref(false)
+const fileDialogUrl = ref('')
+const pdfPreviewVisible = ref(false)
 
 const currentUserId = computed(() => userStore.userInfo?.id)
 const isHr = computed(() => userStore.userInfo?.role === 1)
@@ -63,10 +69,9 @@ const loadMessages = async (beforeId?: number) => {
       hasMore.value = false
     }
     if (beforeId) {
-      // 上拉加载更多： prepend 到列表前面
-      messages.value.unshift(...list)
+      messages.value.unshift(...list.reverse())
     } else {
-      messages.value = list
+      messages.value = list.reverse()
     }
   } catch {
     /* 错误已在拦截器处理 */
@@ -133,6 +138,26 @@ const handleSendResume = async () => {
 const getAttachmentName = (url: string) => {
   const name = url.substring(url.lastIndexOf('/') + 1) || '简历附件'
   return name.length > 30 ? name.substring(0, 27) + '...' : name
+}
+
+const openFileAction = (url: string) => {
+  fileDialogUrl.value = url
+  fileDialogVisible.value = true
+}
+
+const previewFile = () => {
+  pdfPreviewVisible.value = true
+  fileDialogVisible.value = false
+}
+
+const downloadFile = () => {
+  const a = document.createElement('a')
+  a.href = fileDialogUrl.value
+  a.download = getAttachmentName(fileDialogUrl.value)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  fileDialogVisible.value = false
 }
 
 const refreshSession = async () => {
@@ -228,7 +253,7 @@ onMounted(async () => {
                     <span class="resume-name">{{ getAttachmentName(msg.content) }}</span>
                     <span class="resume-label">简历附件</span>
                   </div>
-                  <a class="resume-download" :href="msg.content" target="_blank" title="下载简历">下载</a>
+                  <el-button class="resume-preview-btn" size="small" @click="openFileAction(msg.content)">操作</el-button>
                 </div>
               </div>
               <div v-else class="bubble">{{ msg.content }}</div>
@@ -275,6 +300,19 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <el-dialog v-model="fileDialogVisible" title="附件简历" width="300px" align-center>
+      <div class="file-action-buttons">
+        <el-button type="primary" size="large" @click="previewFile" class="file-action-btn">
+          <el-icon><View /></el-icon>预览
+        </el-button>
+        <el-button type="primary" size="large" @click="downloadFile" class="file-action-btn">
+          <el-icon><Download /></el-icon>下载
+        </el-button>
+      </div>
+    </el-dialog>
+
+    <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
   </div>
 </template>
 
@@ -496,17 +534,17 @@ onMounted(async () => {
   font-size: 11px;
   color: #999;
 }
-.resume-download {
+.resume-preview-btn {
   font-size: 13px;
-  color: #1762FB;
-  text-decoration: none;
   white-space: nowrap;
-  padding: 4px 10px;
-  border: 1px solid #1762FB;
-  border-radius: 6px;
 }
-.resume-download:hover {
-  background: #1762FB;
-  color: #fff;
+.file-action-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 8px 0;
+}
+.file-action-btn {
+  flex: 1;
 }
 </style>

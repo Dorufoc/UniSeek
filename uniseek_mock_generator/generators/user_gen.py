@@ -368,6 +368,29 @@ def generate_users(writer: SQLWriter) -> Tuple[List[int], List[int], List[int], 
     # 打乱顺序后再写入 SQL，使输出分布更自然
     random.shuffle(all_users)
 
+    # 确保 id=1 为超级管理员（role=99），id=2 为系统管理员（role=9）
+    super_admin_idx = next(i for i, u in enumerate(all_users) if u["role"] == ROLE_SUPER_ADMIN)
+    admin_idx = next(i for i, u in enumerate(all_users) if u["role"] == ROLE_ADMIN)
+
+    sa = all_users[super_admin_idx]
+    sa["phone"] = 13999999999
+    sa["nickname"] = "超级管理员"
+    pwd_123456, salt_123456 = encrypt_password("123456", "e417419cf2e5194657477ed259440d3e"), "e417419cf2e5194657477ed259440d3e"
+    sa["password"] = pwd_123456
+    sa["salt"] = salt_123456
+
+    a = all_users[admin_idx]
+    a["phone"] = 13999990001
+    a["nickname"] = "系统管理员"
+    pwd_123456_2, salt_123456_2 = encrypt_password("123456", "7973add9a398e87ab80e7f14c7bfdc1f"), "7973add9a398e87ab80e7f14c7bfdc1f"
+    a["password"] = pwd_123456_2
+    a["salt"] = salt_123456_2
+
+    for idx in sorted([super_admin_idx, admin_idx], reverse=True):
+        all_users.pop(idx)
+    all_users.insert(0, a)
+    all_users.insert(0, sa)
+
     # =========================================================================
     # 第三阶段：写入用户数据到 SQL
     # =========================================================================

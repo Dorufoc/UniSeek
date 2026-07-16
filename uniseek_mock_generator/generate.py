@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import (
     NOTIFICATION_COUNT, CHAT_SESSION_COUNT, CHAT_MESSAGE_COUNT,
-    COMPLAINT_COUNT, OPERATION_LOG_COUNT,
+    FAVORITE_COUNT, COMPLAINT_COUNT, OPERATION_LOG_COUNT,
 )
 from sql_output import SQLWriter
 from generators.user_gen import generate_users
@@ -29,6 +29,7 @@ from generators.enterprise_gen import generate_enterprises
 from generators.resume_gen import generate_resumes
 from generators.task_gen import generate_tasks
 from generators.application_gen import generate_applications
+from generators.favorite_gen import generate_favorites
 from generators.notification_chat_gen import generate_notifications_chat_complaints
 from generators.log_stat_gen import generate_operation_logs, generate_daily_statistics
 
@@ -54,12 +55,18 @@ def main():
         # 注意：不删除 category 和 region（种子数据）
         print("Step 1/6: 写入 DELETE 语句...")
         DELETE_ORDER = [
-            "chat_message", "chat_session", "notification",
-            "task_application", "complaint", "operation_log",
+            "chat_message", "chat_session", "notification", "favorite",
+            "task_application", "operation_log",
             "daily_statistics", "task", "resume", "enterprise",
             "real_name_auth", "user",
         ]
         writer.write_delete(DELETE_ORDER)
+
+        # -----------------------------------------------------------------
+        # Step 1.5: ALTER TABLE 允许 task_application_id 为空
+        # -----------------------------------------------------------------
+        writer.write_comment("允许 task_application_id 为空（支持直接会话）")
+        writer.write_update("ALTER TABLE `chat_session` MODIFY COLUMN `task_application_id` BIGINT NULL")
 
         # =====================================================================
         # Step 2: 生成用户数据（含实名认证）
@@ -100,6 +107,13 @@ def main():
         print(f"  -> {len(app_ids)} 条投递记录")
 
         # =====================================================================
+        # Step 6.5: 生成收藏数据
+        # =====================================================================
+        print("Step 5/6: 生成收藏数据...")
+        generate_favorites(writer, seeker_ids, task_ids)
+        print(f"  -> {FAVORITE_COUNT} 条收藏记录")
+
+        # =====================================================================
         # Step 7: 生成通知、聊天会话、聊天消息、投诉
         # =====================================================================
         print("Step 5/6: 生成通知/聊天/投诉数据...")
@@ -110,7 +124,7 @@ def main():
             admin_ids, enterprise_ids, {},
         )
         print(f"  -> {NOTIFICATION_COUNT} 条通知, {CHAT_SESSION_COUNT} 个会话, "
-              f"{CHAT_MESSAGE_COUNT} 条消息, {COMPLAINT_COUNT} 条投诉")
+              f"{CHAT_MESSAGE_COUNT} 条消息, 0 条投诉")
 
         # =====================================================================
         # Step 8: 生成操作日志和运营日报
@@ -128,11 +142,11 @@ def main():
         writer.write_comment("根据实际录用人数（status=3 或 5）更新剩余招聘配额")
         writer.write_update("""
 UPDATE `task` t
-SET t.`remaining_quota` = t.`total_quota` - (
+SET t.`remaining_quota` = GREATEST(0, t.`total_quota` - (
     SELECT COALESCE(COUNT(*), 0)
     FROM `task_application` a
     WHERE a.`task_id` = t.`id` AND a.`status` IN (3, 5)
-)
+))
         """.strip())
 
         writer.write_comment("剩余配额归零的岗位标记为已满员")
@@ -141,6 +155,27 @@ UPDATE `task`
 SET `status` = 2
 WHERE `remaining_quota` <= 0 AND `status` = 1
         """.strip())
+
+        # =====================================================================
+        # Step 10: 将所有招聘者（role=1）的实名认证标记为已通过
+        # =====================================================================
+        print("Step 6/6: 更新招聘者实名认证...")
+        writer.write_comment("将所有招聘者（role=1）的实名认证标记为已通过")
+        writer.write_update("""
+UPDATE `real_name_auth` r
+JOIN `user` u ON r.`user_id` = u.`id`
+SET r.`status` = 1, r.`auth_time` = NOW(), r.`update_time` = NOW()
+WHERE u.`role` = 1
+        """.strip())
+
+        writer.write_comment("为没有实名认证记录的招聘者插入认证记录")
+        writer.write_update("""
+INSERT INTO `real_name_auth` (`user_id`, `real_name`, `id_card`, `status`, `auth_time`, `create_time`, `update_time`)
+SELECT u.`id`, u.`nickname`, CONCAT('ID', LPAD(u.`id`, 16, '0')), 1, NOW(), NOW(), NOW()
+FROM `user` u
+WHERE u.`role` = 1 AND NOT EXISTS (SELECT 1 FROM `real_name_auth` r WHERE r.`user_id` = u.`id`)
+        """.strip())
+        print(f"  -> 招聘者实名认证已更新")
 
         total_rows = writer.get_row_count()
 
