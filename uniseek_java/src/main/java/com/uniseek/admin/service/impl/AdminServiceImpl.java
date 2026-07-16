@@ -94,13 +94,16 @@ public class AdminServiceImpl implements AdminService {
     // ==================== 企业审核 ====================
 
     @Override
-    public PageResult<Enterprise> listEnterprises(int page, int pageSize, Integer auditStatus) {
+    public PageResult<Enterprise> listEnterprises(int page, int pageSize, Integer auditStatus, String keyword) {
         checkAdmin();
         QueryWrapper<Enterprise> wrapper = new QueryWrapper<>();
         if (auditStatus != null) {
             wrapper.eq("audit_status", auditStatus);
         }
-        wrapper.orderByDesc("create_time");
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.like("company_name", keyword);
+        }
+        wrapper.orderByAsc("id");
         IPage<Enterprise> result = enterpriseMapper.selectPage(new Page<>(page, pageSize), wrapper);
         return PageResult.of(result);
     }
@@ -166,6 +169,14 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public PageResult<Task> listTasks(int page, int pageSize, Integer status, String keyword) {
+        checkAdmin();
+        IPage<Task> result = taskMapper.selectAdminTaskPage(
+                new Page<>(page, pageSize), status, keyword);
+        return PageResult.of(result);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void auditTask(Long id, boolean approved, String rejectReason) {
         checkAdmin();
@@ -222,9 +233,20 @@ public class AdminServiceImpl implements AdminService {
         checkAdmin();
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
-            wrapper.and(w -> w.like("phone", keyword)
-                    .or().like("email", keyword)
-                    .or().like("nickname", keyword));
+            String[] tokens = keyword.trim().split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String token : tokens) {
+                if (sb.length() > 0) sb.append(".*");
+                for (int i = 0; i < token.length(); i++) {
+                    if (i > 0) sb.append(".*");
+                    String ch = String.valueOf(token.charAt(i));
+                    sb.append(ch.replaceAll("([.+*?^${}()|\\[\\]\\\\])", "\\\\$1"));
+                }
+            }
+            String kwPattern = sb.toString();
+            wrapper.and(w -> w.apply("phone REGEXP {0}", kwPattern)
+                    .or().apply("email REGEXP {0}", kwPattern)
+                    .or().apply("nickname REGEXP {0}", kwPattern));
         }
         if (role != null) {
             wrapper.eq("role", role);
@@ -232,7 +254,7 @@ public class AdminServiceImpl implements AdminService {
         if (status != null) {
             wrapper.eq("status", status);
         }
-        wrapper.orderByDesc("create_time");
+        wrapper.orderByAsc("id");
         IPage<User> result = userMapper.selectPage(new Page<>(page, pageSize), wrapper);
 
         // 填充实名认证状态

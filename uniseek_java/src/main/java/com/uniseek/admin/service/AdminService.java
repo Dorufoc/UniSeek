@@ -26,7 +26,7 @@ public interface AdminService {
      * @param auditStatus 审核状态筛选（可为 null）
      * @return 企业分页结果
      */
-    PageResult<Enterprise> listEnterprises(int page, int pageSize, Integer auditStatus);
+    PageResult<Enterprise> listEnterprises(int page, int pageSize, Integer auditStatus, String keyword);
 
     /**
      * 审核企业资质
@@ -47,6 +47,17 @@ public interface AdminService {
      * @return 职位分页结果
      */
     PageResult<Task> listPendingTasks(int page, int pageSize);
+
+    /**
+     * 分页查询职位列表（支持状态筛选、关键字搜索、含发布企业名称）
+     *
+     * @param page     页码
+     * @param pageSize 每页条数
+     * @param status   状态筛选（可为 null，查询全部）
+     * @param keyword  关键字搜索职位标题（可为 null）
+     * @return 职位分页结果（含 enterpriseName）
+     */
+    PageResult<Task> listTasks(int page, int pageSize, Integer status, String keyword);
 
     /**
      * 审核职位

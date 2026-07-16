@@ -56,6 +56,10 @@ public class Task {
     /** 工作地址 */
     private String address;
 
+    /** 发布企业名称（非数据库字段，关联查询填充） */
+    @TableField(exist = false)
+    private String enterpriseName;
+
     /** 职位标签，JSON数组格式 */
     @TableField("tag")
     private String tag;

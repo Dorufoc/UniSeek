@@ -13,6 +13,22 @@ public class TaskSearchRequest {
     /** 搜索关键词（匹配标题） */
     private String keyword;
 
+    /** 将关键词转为 MySQL REGEXP：每个字符间插入 .*，实现不连续字符模糊匹配 */
+    public String getKeywordRegex() {
+        if (keyword == null || keyword.trim().isEmpty()) return null;
+        String[] tokens = keyword.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String token : tokens) {
+            if (sb.length() > 0) sb.append(".*");
+            for (int i = 0; i < token.length(); i++) {
+                if (i > 0) sb.append(".*");
+                String ch = String.valueOf(token.charAt(i));
+                sb.append(ch.replaceAll("([.+*?^${}()|\\[\\]\\\\])", "\\\\$1"));
+            }
+        }
+        return sb.toString();
+    }
+
     /** 分类 ID */
     private Long categoryId;
 

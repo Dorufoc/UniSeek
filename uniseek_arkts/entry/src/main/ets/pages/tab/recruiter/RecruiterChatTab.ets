@@ -12,49 +12,9 @@ export struct RecruiterChatTab {
     })
   }
 
-  build() {
-    Column() {
-      Text('消息')
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
-        .width('100%')
-        .padding({ left: 16, top: 12, bottom: 8 })
-
-      if (this.sessions.length === 0) {
-        Column() {
-          Text('暂无会话')
-            .fontSize(16)
-            .fontColor('#999999')
-        }
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-      } else {
-        List() {
-          ForEach(this.sessions, (session: ChatSessionVO) => {
-            ListItem() {
-              RecruiterSessionItem({ session: session })
-            }
-          }, (session: ChatSessionVO) => session.applicationId.toString())
-        }
-        .layoutWeight(1)
-        .width('100%')
-      }
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#FFFFFF')
-  }
-}
-
-@Component
-struct RecruiterSessionItem {
-  session: ChatSessionVO = { applicationId: 0, taskId: 0, taskTitle: '', taskStatus: 0, applicationStatus: 0, counterpartId: 0, counterpartName: '', counterpartAvatar: '', lastMessage: '', lastMessageTime: '', unreadCount: 0 }
-
-  build() {
+  @Builder sessionItem(session: ChatSessionVO) {
     Row() {
-      Image(this.session.counterpartAvatar ? this.session.counterpartAvatar : $r('app.media.theme'))
+      Image(session.counterpartAvatar ? session.counterpartAvatar : $r('app.media.theme'))
         .width(48)
         .height(48)
         .borderRadius(24)
@@ -62,13 +22,13 @@ struct RecruiterSessionItem {
 
       Column() {
         Row() {
-          Text(this.session.counterpartName)
+          Text(session.counterpartName)
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
             .fontColor('#333333')
             .layoutWeight(1)
 
-          Text(this.session.lastMessageTime)
+          Text(session.lastMessageTime)
             .fontSize(12)
             .fontColor('#999999')
         }
@@ -76,7 +36,7 @@ struct RecruiterSessionItem {
         .alignItems(VerticalAlign.Center)
 
         Row() {
-          Text(this.session.lastMessage)
+          Text(session.lastMessage)
             .fontSize(14)
             .fontColor('#666666')
             .lineHeight(20)
@@ -84,8 +44,8 @@ struct RecruiterSessionItem {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .layoutWeight(1)
 
-          if (this.session.unreadCount > 0) {
-            Text(this.session.unreadCount.toString())
+          if (session.unreadCount > 0) {
+            Text(session.unreadCount.toString())
               .fontSize(11)
               .fontColor('#FFFFFF')
               .backgroundColor('#FF4444')
@@ -118,11 +78,46 @@ struct RecruiterSessionItem {
       router.pushUrl({
         url: 'pages/ChatDetailPage',
         params: {
-          applicationId: this.session.applicationId,
-          counterpartName: this.session.counterpartName,
-          counterpartAvatar: this.session.counterpartAvatar
+          applicationId: session.applicationId,
+          counterpartName: session.counterpartName,
+          counterpartAvatar: session.counterpartAvatar
         }
       })
     })
+  }
+
+  build() {
+    Column() {
+      Text('消息')
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#333333')
+        .width('100%')
+        .padding({ left: 16, top: 12, bottom: 8 })
+
+      if (this.sessions.length === 0) {
+        Column() {
+          Text('暂无会话')
+            .fontSize(16)
+            .fontColor('#999999')
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else {
+        List() {
+          ForEach(this.sessions, (session: ChatSessionVO) => {
+            ListItem() {
+              this.sessionItem(session)
+            }
+          }, (session: ChatSessionVO) => session.applicationId.toString())
+        }
+        .layoutWeight(1)
+        .width('100%')
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#FFFFFF')
   }
 }

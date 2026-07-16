@@ -1,11 +1,11 @@
 package com.uniseek.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.uniseek.entity.Resume;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 /**
  * 简历 Mapper
@@ -22,10 +22,12 @@ public interface ResumeMapper extends BaseMapper<Resume> {
     Resume selectResumeWithRealName(@Param("userId") Long userId);
 
     /**
-     * 查询已发布到人才市场的简历（支持关键词搜索）
+     * 分页查询已发布到人才市场的简历（支持关键词搜索）
      *
-     * @param keyword 搜索关键词
-     * @return 已发布的简历列表
+     * @param page     MyBatis-Plus 分页对象
+     * @param keyword  搜索关键词
+     * @param kwPattern 搜索关键词正则
+     * @return 分页结果
      */
-    List<Resume> selectPublishedResumes(@Param("keyword") String keyword);
+    IPage<Resume> selectPublishedResumes(Page<Resume> page, @Param("keyword") String keyword, @Param("kwPattern") String kwPattern);
 }

@@ -139,4 +139,56 @@
         SELECT id FROM chat_session WHERE task_application_id = #{applicationId} LIMIT 1
     </select>
 
+    <!-- 查找 HR 与求职者之间的直接会话 -->
+    <select id="selectDirectSessionId" resultType="java.lang.Long">
+        SELECT id FROM chat_session
+        WHERE employer_id = #{employerId} AND seeker_id = #{seekerId}
+          AND task_application_id IS NULL
+        LIMIT 1
+    </select>
+
+    <!-- 查询 HR 的直接会话列表 -->
+    <select id="selectDirectSessionsByEmployer" resultMap="ChatSessionVOResultMap">
+        SELECT
+            cs.id AS application_id,
+            NULL AS task_id,
+            NULL AS task_title,
+            NULL AS task_status,
+            NULL AS application_status,
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar,
+            cs.last_message,
+            cs.last_message_time,
+            COALESCE(uc.unread_count, 0) AS unread_count
+        FROM chat_session cs
+        JOIN user u ON cs.seeker_id = u.id
+        <include refid="unreadSubquery"/>
+        WHERE cs.employer_id = #{userId}
+          AND cs.task_application_id IS NULL
+        ORDER BY cs.last_message_time DESC
+    </select>
+
+    <!-- 查询求职者的直接会话列表 -->
+    <select id="selectDirectSessionsBySeeker" resultMap="ChatSessionVOResultMap">
+        SELECT
+            cs.id AS application_id,
+            NULL AS task_id,
+            NULL AS task_title,
+            NULL AS task_status,
+            NULL AS application_status,
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar,
+            cs.last_message,
+            cs.last_message_time,
+            COALESCE(uc.unread_count, 0) AS unread_count
+        FROM chat_session cs
+        JOIN user u ON cs.employer_id = u.id
+        <include refid="unreadSubquery"/>
+        WHERE cs.seeker_id = #{userId}
+          AND (cs.task_application_id IS NULL OR cs.task_application_id = 0)
+        ORDER BY cs.last_message_time DESC
+    </select>
+
 </mapper>

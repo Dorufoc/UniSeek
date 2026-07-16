@@ -57,6 +57,7 @@
         <result column="has_applied" property="hasApplied"/>
         <result column="application_id" property="applicationId"/>
         <result column="application_count" property="applicationCount"/>
+        <result column="has_favorited" property="hasFavorited"/>
     </resultMap>
 
     <!-- 通用 SELECT 片段：LEFT JOIN 企业/分类/地区 -->
@@ -95,7 +96,8 @@
     <sql id="searchConditions">
         <where>
             <if test="req.keyword != null and req.keyword != ''">
-                AND task.title LIKE CONCAT('%', #{req.keyword}, '%')
+                AND (task.title REGEXP #{req.keywordRegex}
+                     OR enterprise.company_name REGEXP #{req.keywordRegex})
             </if>
             <if test="req.categoryIds != null and req.categoryIds != ''">
                 AND task.category_id IN
@@ -167,13 +169,14 @@
         <include refid="orderByClause"/>
     </select>
 
-    <!-- 查询职位详情（含 hasApplied、applicationId） -->
+    <!-- 查询职位详情（含 hasApplied、applicationId、hasFavorited） -->
     <select id="selectDetailById" resultMap="TaskVOResultMap">
         SELECT
         <include refid="selectTaskFields"/>,
         CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied,
         ta.id AS application_id,
-        COALESCE(apps.c, 0) AS application_count
+        COALESCE(apps.c, 0) AS application_count,
+        CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END AS has_favorited
         <include refid="joinTaskRelations"/>
         LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.applicant_id = #{userId}
         LEFT JOIN (
@@ -181,6 +184,7 @@
             FROM task_application
             GROUP BY task_id
         ) AS apps ON task.id = apps.task_id
+        LEFT JOIN favorite f ON f.task_id = task.id AND f.user_id = #{userId}
         WHERE task.id = #{id}
     </select>
 
@@ -197,6 +201,22 @@
         ) AS apps ON task.id = apps.task_id
         WHERE task.enterprise_id = #{enterpriseId}
         ORDER BY task.create_time DESC
+    </select>
+
+    <!-- 管理后台分页查询职位列表（LEFT JOIN enterprise 获取企业名称） -->
+    <select id="selectAdminTaskPage" resultMap="BaseResultMap">
+        SELECT task.*, enterprise.company_name AS enterprise_name
+        FROM task
+        LEFT JOIN enterprise ON task.enterprise_id = enterprise.id
+        <where>
+            <if test="status != null">
+                AND task.status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND task.title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY task.id ASC
     </select>
 
     <!-- 查询指定企业的已发布职位（供求职者查看） -->

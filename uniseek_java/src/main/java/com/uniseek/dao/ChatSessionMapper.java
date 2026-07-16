@@ -49,4 +49,29 @@ public interface ChatSessionMapper extends BaseMapper<ChatSession> {
      * @return 会话 ID
      */
     Long selectIdByApplicationId(@Param("applicationId") Long applicationId);
+
+    /**
+     * 查找 HR 与求职者之间的直接会话（无投递记录关联）
+     *
+     * @param employerId HR 用户 ID
+     * @param seekerId   求职者用户 ID
+     * @return 会话 ID（不存在返回 null）
+     */
+    Long selectDirectSessionId(@Param("employerId") Long employerId, @Param("seekerId") Long seekerId);
+
+    /**
+     * 查询 HR 的直接会话列表（无投递关联的会话）
+     *
+     * @param userId HR 用户 ID
+     * @return 会话 VO 列表
+     */
+    List<ChatSessionVO> selectDirectSessionsByEmployer(@Param("userId") Long userId);
+
+    /**
+     * 查询求职者的直接会话列表（无投递关联的会话）
+     *
+     * @param userId 求职者用户 ID
+     * @return 会话 VO 列表
+     */
+    List<ChatSessionVO> selectDirectSessionsBySeeker(@Param("userId") Long userId);
 }

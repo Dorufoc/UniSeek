@@ -52,3 +52,7 @@ export const sendMessage = (applicationId: number, params: SendMessageParams) =>
 /** PUT /chat/sessions/:applicationId/read 标记会话已读 */
 export const markSessionRead = (applicationId: number) =>
   request.put<any, void>(`/chat/sessions/${applicationId}/read`)
+
+/** POST /chat/sessions/direct 创建直接会话（人才库联系求职者） */
+export const createDirectSession = (targetUserId: number) =>
+  request.post<any, number>('/chat/sessions/direct', null, { params: { targetUserId } })

@@ -137,6 +137,13 @@ export function auditEnterprise(id: number, data: { approved: boolean; rejectRea
 
 // ==================== 职位审核 API ====================
 
+export async function listTasks(params: {
+  page: number; pageSize: number; status?: number; keyword?: string
+}): Promise<PageResult<TaskRecord>> {
+  const res: any = await request.get('/admin/tasks', { params })
+  return res
+}
+
 export async function listPendingTasks(params: {
   page: number; pageSize: number; status?: number; keyword?: string
 }): Promise<PageResult<TaskRecord>> {

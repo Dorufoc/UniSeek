@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { getEnterpriseList } from '@/api/enterprise'
@@ -51,7 +51,7 @@ const onRegionChange = (val: number[]) => {
 const loadRegions = async () => {
   try {
     const tree = await getRegionTree()
-    regions.value = tree
+    regions.value = [{ id: 0, name: '全部地区', children: tree } as RegionVO]
     const map: Record<number, string> = {}
     const walk = (list: RegionVO[]) => {
       for (const r of list) {
@@ -78,10 +78,12 @@ const loadEnterprises = async () => {
   }
 }
 
-// 获取地区级联选中路径中最低级ID
+// 获取地区级联选中路径中最低级ID（虚拟根节点 0 视为全部，返回 undefined）
 const getSelectedRegionId = (): number | undefined => {
   const val = regionCascaderValue.value
-  return val.length > 0 ? val[val.length - 1] : undefined
+  if (val.length === 0) return undefined
+  const id = val[val.length - 1]
+  return id === 0 ? undefined : id
 }
 
 // 检查地区是否匹配（节点ID或其子节点命中）
@@ -108,12 +110,16 @@ const matchRegion = (enterpriseRegionId: number | null, targetId: number): boole
   return walk(regions.value)
 }
 
-// 筛选后的企业
+// 筛选后的企业（支持正则多关键词模糊匹配）
 const filteredEnterprises = computed(() => {
   return enterprises.value.filter(e => {
-    const kw = keyword.value.trim().toLowerCase()
-    if (kw && !e.companyName.toLowerCase().includes(kw) && !(e.industry || '').toLowerCase().includes(kw)) {
-      return false
+    const kw = keyword.value.trim()
+    if (kw) {
+      const tokens = kw.split(/\s+/).filter(Boolean)
+      const text = (e.companyName + ' ' + (e.industry || '')).toLowerCase()
+      const escapeReg = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const matchAll = tokens.every(t => new RegExp(t.split('').map(escapeReg).join('.*'), 'i').test(text))
+      if (!matchAll) return false
     }
     if (selectedIndustry.value && e.industry !== selectedIndustry.value) {
       return false
@@ -127,6 +133,8 @@ const filteredEnterprises = computed(() => {
 })
 
 onMounted(() => {
+  const q = route.query.q as string | undefined
+  if (q) keyword.value = q
   loadRegions()
   loadEnterprises().then(() => {
     const id = route.query.id
@@ -135,6 +143,11 @@ onMounted(() => {
       if (target) viewCompany(target)
     }
   })
+})
+
+// 监听路由参数变化（如从首页跳转过来）
+watch(() => route.query.q, (q) => {
+  keyword.value = (q as string) || ''
 })
 
 // 查看公司详情
@@ -220,6 +233,7 @@ const jobTypeLabel = (type?: number) => {
             class="search-input"
             placeholder="搜索企业名称、行业"
           />
+          <button class="search-btn" @click="keyword.value = keyword.value">搜索</button>
         </div>
       </div>
 
@@ -364,6 +378,23 @@ const jobTypeLabel = (type?: number) => {
   font-size: 14px;
   background: transparent;
   color: #000;
+}
+
+.search-input-wrap .search-btn {
+  height: 34px;
+  padding: 0 16px;
+  border: none;
+  background: #1762FB;
+  color: #fff;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.search-input-wrap .search-btn:hover {
+  background: #0062cc;
 }
 
 .filter-group-left {

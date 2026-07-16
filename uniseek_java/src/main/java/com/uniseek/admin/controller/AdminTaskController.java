@@ -26,6 +26,26 @@ public class AdminTaskController {
     private AdminService adminService;
 
     /**
+     * 职位列表（支持状态筛选、关键字搜索）
+     * GET /api/admin/tasks
+     *
+     * @param page     页码（默认 1）
+     * @param pageSize 每页条数（默认 10）
+     * @param status   状态筛选（可选）
+     * @param keyword  关键字搜索（可选，按标题模糊匹配）
+     * @return 职位分页结果（含发布企业名称）
+     */
+    @GetMapping
+    public ApiResult<PageResult<Task>> listTasks(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword) {
+        PageResult<Task> result = adminService.listTasks(page, pageSize, status, keyword);
+        return ApiResult.success(result);
+    }
+
+    /**
      * 待审核职位列表
      * GET /api/admin/tasks/pending
      *

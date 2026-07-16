@@ -2,6 +2,8 @@ package com.uniseek.user.service;
 
 import com.uniseek.auth.dto.UserVO;
 
+import java.util.Map;
+
 /**
  * 用户服务接口
  */
@@ -18,4 +20,13 @@ public interface UserService {
      * @return 脱敏后的用户信息 VO
      */
     UserVO updateProfile(Long userId, String nickname, String avatarUrl, String phone, String email);
+
+    /**
+     * 获取用户统计数据（投递数、面试邀请数、收藏数 / 收到简历数、已录取数）
+     *
+     * @param userId 用户 ID
+     * @param role   用户角色
+     * @return 统计数据 Map
+     */
+    Map<String, Object> getUserStats(Long userId, Integer role);
 }
