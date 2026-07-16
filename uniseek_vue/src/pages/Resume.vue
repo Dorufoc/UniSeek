@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getResume, saveResume as saveResumeApi, uploadAttachment, publishResume as publishResumeApi } from '@/api/resume'
+import { getRealNameAuthStatus } from '@/api/auth'
 import type { ResumeSaveParams } from '@/api/resume'
 import {
   User, Edit, Plus, Close, Delete, Top, Bottom, UploadFilled,
@@ -10,6 +12,7 @@ import {
 } from '@element-plus/icons-vue'
 import PdfPreview from '@/components/PdfPreview.vue'
 
+const router = useRouter()
 const userStore = useUserStore()
 // 隐藏的文件选择器引用
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -85,8 +88,31 @@ const completionPercent = computed(() => {
 })
 
 // 简历完整度达到 90% 时自动发布到人才市场
-watch(completionPercent, (val) => {
+watch(completionPercent, async (val) => {
   if (val >= 90) {
+    // 先检查实名认证状态
+    try {
+      const authStatus = await getRealNameAuthStatus()
+      if (!authStatus?.isAuth) {
+        ElMessageBox.confirm(
+          '为了确保您的简历信息能够更好地展示给企业，请先完成身份验证。',
+          '身份验证',
+          {
+            confirmButtonText: '前往验证',
+            cancelButtonText: '稍后再说',
+            type: 'info',
+            distinguishCancelAndClose: true
+          }
+        ).then(() => {
+          router.push('/profile?tab=realNameAuth')
+        }).catch(() => {
+          // 用户取消或关闭，不做处理
+        })
+        return
+      }
+    } catch {
+      // 查询失败则继续尝试发布
+    }
     publishResumeApi().catch(() => {})
   }
 })
@@ -105,7 +131,29 @@ const genderLabel = computed(() => {
 })
 
 // 开始编辑
-const startEdit = () => {
+const startEdit = async () => {
+  try {
+    const authStatus = await getRealNameAuthStatus()
+    if (!authStatus?.isAuth) {
+      ElMessageBox.confirm(
+        '为了确保您的简历信息完整可信，建议您先完善实名信息。',
+        '完善实名信息',
+        {
+          confirmButtonText: '前往完善',
+          cancelButtonText: '稍后再说',
+          type: 'info',
+          distinguishCancelAndClose: true
+        }
+      ).then(() => {
+        router.push('/profile?tab=realNameAuth')
+      }).catch(() => {
+        // 用户取消或关闭，不做处理
+      })
+      return
+    }
+  } catch {
+    // 查询失败则允许继续编辑
+  }
   isEditing.value = true
 }
 
@@ -452,7 +500,13 @@ const toggleSection = (key: string) => {
                 </div>
                 <div class="form-row">
                   <label>手机号</label>
-                  <span class="readonly-text">{{ maskedPhone }}</span>
+                  <div class="phone-field">
+                    <span class="readonly-text">{{ maskedPhone }}</span>
+                    <button type="button" class="btn-change-phone" @click="router.push('/account-security')">
+                      更换
+                    </button>
+                    <p class="phone-hint">手机号以账号绑定为准，不能在此处直接修改。如需修改请前往「账号安全」修改绑定的手机号</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1007,6 +1061,40 @@ const toggleSection = (key: string) => {
 .readonly-text {
   font-size: 14px;
   color: #000;
+}
+
+.phone-field {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-change-phone {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  font-size: 13px;
+  color: #1762FB;
+  background: rgba(0, 122, 255, 0.06);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-change-phone:hover {
+  background: rgba(0, 122, 255, 0.12);
+  border-color: #1762FB;
+}
+
+.phone-hint {
+  width: 100%;
+  font-size: 12px;
+  color: #999;
+  margin: 4px 0 0;
+  line-height: 1.5;
 }
 
 .date-picker {
