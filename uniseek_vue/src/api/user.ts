@@ -11,3 +11,15 @@ export const updateProfile = async (params: {
   const res = await request.put<ApiResponse<UserInfo>>('/user/profile', null, { params })
   return res
 }
+
+/** 获取用户统计数据 GET /api/user/stats */
+export const getUserStats = async (): Promise<{
+  applications?: number
+  interviews?: number
+  favorites?: number
+  receivedResumes?: number
+  hired?: number
+}> => {
+  const res: any = await request.get('/user/stats')
+  return res
+}

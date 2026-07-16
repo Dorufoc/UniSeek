@@ -3,7 +3,7 @@ import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import {
-  listPendingTasks,
+  listTasks,
   auditTask,
   type TaskRecord,
   type PageResult
@@ -27,7 +27,7 @@ const params = reactive({
 const fetchData = async () => {
   loading.value = true
   try {
-    const data: PageResult<TaskRecord> = await listPendingTasks({
+    const data: PageResult<TaskRecord> = await listTasks({
       page: params.page,
       pageSize: params.pageSize,
       status: params.status,
@@ -129,7 +129,7 @@ onMounted(() => {
         </el-tabs>
         <el-input
           v-model="params.keyword"
-          placeholder="搜索职位标题（前端过滤）"
+           placeholder="搜索职位标题"
           clearable
           style="width: 240px"
           @clear="fetchData"

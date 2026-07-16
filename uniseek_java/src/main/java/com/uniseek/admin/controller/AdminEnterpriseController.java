@@ -38,8 +38,9 @@ public class AdminEnterpriseController {
     public ApiResult<PageResult<Enterprise>> listEnterprises(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) Integer auditStatus) {
-        PageResult<Enterprise> result = adminService.listEnterprises(page, pageSize, auditStatus);
+            @RequestParam(required = false) Integer auditStatus,
+            @RequestParam(required = false) String keyword) {
+        PageResult<Enterprise> result = adminService.listEnterprises(page, pageSize, auditStatus, keyword);
         return ApiResult.success(result);
     }
 

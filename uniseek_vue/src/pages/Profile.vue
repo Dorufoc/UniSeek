@@ -5,7 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getRealNameAuthStatus, submitRealNameAuth, changePassword } from '@/api/auth'
 import type { RealNameAuthStatus } from '@/api/auth'
-import { updateProfile } from '@/api/user'
+import { updateProfile, getUserStats } from '@/api/user'
 import { uploadImage } from '@/api/upload'
 import {
   User, Phone, Postcard, Edit, Document, Star,
@@ -24,9 +24,9 @@ const userPhone = computed(() => {
   return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '未绑定'
 })
 
-// 模拟统计数据（后续对接真实接口）
-const seekerStats = ref({ applications: 12, interviews: 3, favorites: 8 })
-const recruiterStats = ref({ receivedResumes: 23, hired: 3 })
+// 统计数据（初始为 0，由 API 加载）
+const seekerStats = ref({ applications: 0, interviews: 0, favorites: 0 })
+const recruiterStats = ref({ receivedResumes: 0, hired: 0 })
 
 // 实名认证相关状态
 const authDialogVisible = ref(false)
@@ -174,12 +174,23 @@ const handleAuthSubmit = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   checkAuthStatus().then(() => {
     if (route.query.tab === 'realNameAuth') {
       openAuthDialog()
     }
   })
+  try {
+    const stats = await getUserStats()
+    if (isRecruiter.value) {
+      recruiterStats.value.receivedResumes = stats.receivedResumes ?? 0
+      recruiterStats.value.hired = stats.hired ?? 0
+    } else {
+      seekerStats.value.applications = stats.applications ?? 0
+      seekerStats.value.interviews = stats.interviews ?? 0
+      seekerStats.value.favorites = stats.favorites ?? 0
+    }
+  } catch { /* 忽略 */ }
 })
 
 // 修改密码

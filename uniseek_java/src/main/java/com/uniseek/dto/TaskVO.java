@@ -89,4 +89,7 @@ public class TaskVO {
 
     /** 投递数量（热门排序用） */
     private Integer applicationCount;
+
+    /** 当前用户是否已收藏 */
+    private Boolean hasFavorited;
 }

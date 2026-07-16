@@ -57,6 +57,7 @@ export interface TaskVO {
   hasApplied: boolean
   applicationId: number | null
   applicationCount: number
+  hasFavorited: boolean
 }
 
 // 发布职位请求参数

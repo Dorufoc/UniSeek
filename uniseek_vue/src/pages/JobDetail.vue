@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getTaskById, type TaskVO } from '@/api/task'
 import { apply, type TaskApplication } from '@/api/application'
 import { getRealNameAuthStatus } from '@/api/auth'
+import { addFavorite, removeFavorite } from '@/api/favorite'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
@@ -17,6 +18,7 @@ const job = ref<TaskVO | null>(null)
 const hasApplied = ref(false)
 const applying = ref(false)
 const contacting = ref(false)
+const favoriting = ref(false)
 
 const isSeeker = computed(() => userStore.userInfo?.role === 0)
 const isLoggedIn = computed(() => userStore.isLoggedIn)
@@ -155,6 +157,31 @@ const handleContactHr = async () => {
     /* 错误已在拦截器处理 */
   } finally {
     contacting.value = false
+  }
+}
+
+const handleToggleFavorite = async () => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  if (!job.value) return
+  favoriting.value = true
+  try {
+    if (job.value.hasFavorited) {
+      await removeFavorite(job.value.id)
+      job.value.hasFavorited = false
+      ElMessage.success('已取消收藏')
+    } else {
+      await addFavorite(job.value.id)
+      job.value.hasFavorited = true
+      ElMessage.success('收藏成功')
+    }
+  } catch {
+    /* 错误已在拦截器处理 */
+  } finally {
+    favoriting.value = false
   }
 }
 
@@ -346,6 +373,14 @@ onMounted(async () => {
               @click="handleContactHr"
             >
               {{ contacting ? '正在进入聊天...' : '联系 HR' }}
+            </button>
+            <button
+              class="apply-btn fav-btn"
+              :class="{ favorited: job.hasFavorited }"
+              :disabled="favoriting"
+              @click="handleToggleFavorite"
+            >
+              {{ favoriting ? '处理中...' : (job.hasFavorited ? '已收藏' : '收藏职位') }}
             </button>
           </template>
         </div>
@@ -644,6 +679,23 @@ onMounted(async () => {
 
 .apply-btn.contact-btn:hover:not(:disabled) {
   background: rgba(0, 122, 255, 0.06);
+}
+
+.apply-btn.fav-btn {
+  background: #fff;
+  color: #e67e22;
+  border: 1px solid #e67e22;
+  font-size: 15px;
+}
+
+.apply-btn.fav-btn:hover:not(:disabled) {
+  background: rgba(230, 126, 34, 0.06);
+}
+
+.apply-btn.fav-btn.favorited {
+  background: #e67e22;
+  color: #fff;
+  border-color: #e67e22;
 }
 
 .loading-state {

@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getMyApplications, type TaskApplication } from '@/api/application'
 import { getTaskById, type TaskVO } from '@/api/task'
+import { listFavorites as fetchFavorites, removeFavorite } from '@/api/favorite'
 import { useUserStore } from '@/stores/user'
 import {
   ArrowLeft, Document, ChatLineSquare, Star, StarFilled,
@@ -65,37 +66,25 @@ const loadApplications = async () => {
       } catch { /* 职位可能已删除 */ }
     }))
   } catch { /* API 失败 */ }
-  // 同时检查 localStorage 中的收藏
-  loadFavorites()
+  await loadFavorites()
   loading.value = false
 }
 
 // 加载收藏职位
-const loadFavorites = () => {
+const loadFavorites = async () => {
   try {
-    const saved = localStorage.getItem('uniseek_favorites')
-    if (saved) {
-      favorites.value = JSON.parse(saved)
-    }
+    const result = await fetchFavorites(1, 50)
+    favorites.value = result.records || []
   } catch { favorites.value = [] }
 }
 
-// 切换收藏状态
-const toggleFavorite = (task: TaskVO) => {
-  const idx = favorites.value.findIndex(f => f.id === task.id)
-  if (idx > -1) {
-    favorites.value.splice(idx, 1)
+// 取消收藏
+const toggleFavorite = async (task: TaskVO) => {
+  try {
+    await removeFavorite(task.id)
+    favorites.value = favorites.value.filter(f => f.id !== task.id)
     ElMessage.success('已取消收藏')
-  } else {
-    favorites.value.push(task)
-    ElMessage.success('已收藏')
-  }
-  localStorage.setItem('uniseek_favorites', JSON.stringify(favorites.value))
-}
-
-// 是否已收藏
-const isFavorited = (taskId: number) => {
-  return favorites.value.some(f => f.id === taskId)
+  } catch { /* 错误已在拦截器处理 */ }
 }
 
 // 跳转到职位详情
@@ -293,9 +282,8 @@ onMounted(() => {
               </div>
             </div>
             <button class="fav-btn" @click.stop="toggleFavorite(task)">
-              <el-icon :size="20" :color="isFavorited(task.id) ? '#f0ad4e' : '#ccc'">
-                <StarFilled v-if="isFavorited(task.id)" />
-                <Star v-else />
+              <el-icon :size="20" color="#f0ad4e">
+                <StarFilled />
               </el-icon>
             </button>
           </div>
