@@ -74,7 +74,7 @@ export struct RecruiterProfileTab {
               Text('企业资质：')
                 .fontSize(13)
                 .fontColor('#CCCCCC')
-              Text(this.enterpriseAuditStatus >= 0 ? AUDIT_STATUS_LABELS[this.enterpriseAuditStatus] : '未提交')
+              Text(this.enterpriseAuditStatus >= 0 ? AUDIT_STATUS_LABELS[this.enterpriseAuditStatus] : '未审核')
                 .fontSize(13)
                 .fontColor(this.enterpriseAuditStatus === 1 ? '#8CE0FF' : '#FFFFFF')
               if (this.enterpriseAuditStatus !== 1) {
@@ -115,7 +115,7 @@ export struct RecruiterProfileTab {
           .height(6)
 
         Column() {
-          this.menuItemCheck('资质审核', $r('app.media.resume2'), () => {
+          this.menuItemCheck('我的公司', $r('app.media.firm'), () => {
             if (!this.isVerified) {
               this.getUIContext().showAlertDialog({ message: '请先完成实名认证', confirm: { value: '确定', action: () => {} } })
               return
@@ -123,7 +123,7 @@ export struct RecruiterProfileTab {
             router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
           })
           Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItemCheck('发布职位', $r('app.media.resume1'), () => {
+          this.menuItemCheck('发布职位', $r('app.media.post_job'), () => {
             if (this.enterpriseAuditStatus !== 1) {
               this.getUIContext().showAlertDialog({ message: '企业资质审核未通过，暂无法发布职位', confirm: { value: '确定', action: () => {} } })
               return
@@ -131,7 +131,7 @@ export struct RecruiterProfileTab {
             router.pushUrl({ url: 'pages/RecruiterPublishJobPage' })
           })
           Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItemCheck('请求处理', $r('app.media.star'), () => {
+          this.menuItemCheck('请求处理', $r('app.media.pending_requests'), () => {
             router.pushUrl({ url: 'pages/RecruiterRequestsPage' })
           })
           Divider().width('100%').color('#F0F0F0').height(0.5)

@@ -69,6 +69,45 @@ export interface RecruiterUpdateStatusRequest {
   hrNote: string
 }
 
+export interface ResumeCardData {
+  id: string
+  name: string
+  age: number
+  avatar: string
+  education: string
+  school: string
+  major: string
+  experience: string
+  skills: string
+  region: string
+  type: string
+  category: string
+  expectedSalary: string
+  description: string
+}
+
+export interface RecruiterRequestVO {
+  id: number
+  applicantId: number
+  applicantName: string
+  applicantAvatar: string
+  applicantAge: number
+  applicantSchool: string
+  applicantMajor: string
+  applicantEducation: string
+  applicantExperience: string
+  applicantSkills: string
+  applicantRegion: string
+  applicantType: string
+  applicantSalary: string
+  jobTitle: string
+  status: number
+  interviewTime: string
+  interviewLocation: string
+  rejectReason: string
+  createTime: string
+}
+
 export const JOB_STATUS_MAP: number[] = [0, 1, 2, 3, 4]
 export const JOB_STATUS_LABELS: Record<number, string> = {
   0: '待审核',
