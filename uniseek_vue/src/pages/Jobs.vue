@@ -72,10 +72,12 @@ const filter = reactive({
   regionId: undefined as number | undefined,
   regionIds: undefined as string | undefined,
   categoryId: undefined as number | undefined,
+  categoryIds: undefined as string | undefined,
   jobType: undefined as number | undefined,
   salaryMin: undefined as number | undefined,
   salaryMax: undefined as number | undefined,
   salaryUnit: undefined as number | undefined,
+  tag: undefined as string | undefined,
   sortBy: 'create_time' as string,
   sortOrder: 'desc' as string
 })
@@ -212,6 +214,7 @@ const loadTasks = async () => {
       salaryMin: filter.salaryMin,
       salaryMax: filter.salaryMax,
       salaryUnit: filter.salaryUnit,
+      tag: filter.tag,
       sortBy: filter.sortBy,
       sortOrder: filter.sortOrder,
       page: page.value,
@@ -240,12 +243,19 @@ const resetFilters = () => {
   filter.salaryMin = undefined
   filter.salaryMax = undefined
   filter.salaryUnit = undefined
+  filter.tag = undefined
   settlementType.value = undefined
   salaryMinInput.value = undefined
   salaryMaxInput.value = undefined
   regionCascaderValue.value = []
   categoryCascaderValue.value = undefined
   keyword.value = ''
+  page.value = 1
+  loadTasks()
+}
+
+const clearTagFilter = () => {
+  filter.tag = undefined
   page.value = 1
   loadTasks()
 }
@@ -290,6 +300,12 @@ onMounted(async () => {
     }
   }
 
+  // 读取 tag URL 参数
+  const tagParam = route.query.tag as string
+  if (tagParam) {
+    filter.tag = tagParam
+  }
+
   loadTasks()
 })
 </script>
@@ -310,6 +326,14 @@ onMounted(async () => {
         />
         <button class="search-btn" @click="handleSearch">搜索</button>
       </div>
+    </div>
+
+    <!-- 激活的筛选标签 -->
+    <div class="active-filters" v-if="filter.tag">
+      <span class="filter-chip">
+        标签：{{ filter.tag }}
+        <span class="chip-close" @click="clearTagFilter">&times;</span>
+      </span>
     </div>
 
     <div class="jobs-body">
@@ -528,6 +552,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
+  height: 48px;
   gap: 0;
   border-radius: 8px;
   overflow: hidden;
@@ -536,17 +561,23 @@ onMounted(async () => {
 
 .search-input {
   flex: 1;
+  height: 100%;
+}
+
+.search-input :deep(.el-input) {
+  height: 100%;
 }
 
 .search-input :deep(.el-input__wrapper) {
   border-radius: 0;
   box-shadow: none !important;
-  height: 48px;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .search-btn {
   width: 120px;
-  height: 48px;
+  height: 100%;
   border: none;
   background: #1762FB;
   color: #fff;
@@ -559,6 +590,34 @@ onMounted(async () => {
 
 .search-btn:hover {
   background: #0062cc;
+}
+
+.active-filters {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 24px 0;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  background: rgba(0, 122, 255, 0.08);
+  color: #1762FB;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 16px;
+}
+.chip-close {
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: #1762FB;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.chip-close:hover {
+  opacity: 1;
 }
 
 .jobs-body {

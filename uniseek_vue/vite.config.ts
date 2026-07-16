@@ -13,6 +13,8 @@ export default defineConfig({
   },
   // 开发服务器配置
   server: {
+    // 监听所有网络接口，允许跨 IP 访问
+    host: '0.0.0.0',
     proxy: {
       // 代理 /api 请求到 Java 后端（Spring Boot 默认 8080 端口）
       '/api': {

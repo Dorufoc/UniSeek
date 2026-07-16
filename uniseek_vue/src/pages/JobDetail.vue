@@ -63,6 +63,12 @@ const goToTag = (tag: string) => {
   router.push({ path: '/jobs', query: { tag } })
 }
 
+const goToCategory = () => {
+  if (job.value?.categoryId) {
+    router.push({ path: '/jobs', query: { categoryId: job.value.categoryId } })
+  }
+}
+
 const handleApplyWithAuthCheck = async () => {
   if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
@@ -219,7 +225,7 @@ onMounted(async () => {
             <div class="header-meta">
               <span class="meta-tag" v-if="job.address">{{ job.address }}</span>
               <span class="meta-tag">{{ jobTypeLabel(job.jobType) }}</span>
-              <span class="meta-tag" v-if="job.categoryName">{{ job.categoryName }}</span>
+              <span class="meta-tag category-clickable" v-if="job.categoryName" @click="goToCategory">{{ job.categoryName }}</span>
               <span
                 class="meta-tag status-tag"
                 :style="{ background: statusColor(job.status) + '18', color: statusColor(job.status), borderColor: statusColor(job.status) + '40' }"
@@ -447,6 +453,9 @@ onMounted(async () => {
 .status-tag {
   font-weight: 500;
 }
+
+.category-clickable { cursor: pointer; transition: all 0.2s; }
+.category-clickable:hover { border-color: #1762FB; color: #1762FB; }
 
 .tag-section {
   background: #fff;

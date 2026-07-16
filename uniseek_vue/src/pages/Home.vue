@@ -422,7 +422,7 @@ onUnmounted(() => {
               v-for="item in hotEnterprises"
               :key="item.id"
               class="company-card"
-              @click="router.push(`/company-detail/${item.id}`)"
+              @click="router.push(`/company?id=${item.id}`)"
             >
               <div class="company-card-top">
                 <div class="company-card-avatar">

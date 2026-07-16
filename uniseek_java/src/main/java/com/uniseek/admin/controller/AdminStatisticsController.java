@@ -40,12 +40,12 @@ public class AdminStatisticsController {
     }
 
     /**
-     * 行业需求占比
-     * GET /api/admin/statistics/industries（大屏公开，无需鉴权）
+     * 职位大类需求占比
+     * GET /api/admin/statistics/categories（大屏公开，无需鉴权）
      */
-    @GetMapping("/industries")
-    public ApiResult<List<Map<String, Object>>> getIndustryDistribution() {
-        return ApiResult.success(adminService.getIndustryDistribution());
+    @GetMapping("/categories")
+    public ApiResult<List<Map<String, Object>>> getCategoryDistribution() {
+        return ApiResult.success(adminService.getCategoryDistribution());
     }
 
     /**

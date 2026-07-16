@@ -91,9 +91,9 @@ public interface AdminService {
     Map<String, Object> getStatistics(LocalDateTime startDate, LocalDateTime endDate);
 
     /**
-     * 获取行业需求占比（按职位分类分组统计，仅统计招聘中职位）
+     * 获取职位大类需求占比（按顶级分类分组统计，仅统计招聘中职位）
      */
-    List<Map<String, Object>> getIndustryDistribution();
+    List<Map<String, Object>> getCategoryDistribution();
 
     /**
      * 获取热门岗位 TOP10（按投递量倒序）

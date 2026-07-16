@@ -45,8 +45,21 @@ public interface TaskMapper extends BaseMapper<Task> {
      */
     List<TaskVO> selectEnterpriseTasks(@Param("enterpriseId") Long enterpriseId);
 
-    @Select("SELECT c.name AS industry, COUNT(t.id) AS count FROM task t JOIN category c ON t.category_id = c.id WHERE t.status = 1 GROUP BY t.category_id ORDER BY count DESC")
-    List<Map<String, Object>> selectIndustryDistribution();
+    /**
+     * 职位大类需求占比（按顶级分类分组，统计招聘中职位数）
+     */
+    @Select("SELECT cat.name AS categoryName, sub.cnt AS count " +
+            "FROM (" +
+            "  SELECT COALESCE(p.id, c.id) AS categoryId, COUNT(*) AS cnt " +
+            "  FROM task t " +
+            "  JOIN category c ON t.category_id = c.id " +
+            "  LEFT JOIN category p ON c.parent_id = p.id " +
+            "  WHERE t.status = 1 " +
+            "  GROUP BY categoryId" +
+            ") sub " +
+            "JOIN category cat ON sub.categoryId = cat.id " +
+            "ORDER BY sub.cnt DESC")
+    List<Map<String, Object>> selectCategoryDistribution();
 
     @Select("SELECT " +
             "SUBSTRING(rna.id_card, 1, 6) AS fromCode, " +

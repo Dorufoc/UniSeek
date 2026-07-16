@@ -208,8 +208,8 @@ export async function getScreenSummary(range = '7d'): Promise<{
   return res
 }
 
-export async function getIndustryDistribution(): Promise<Array<{ industry: string; count: number }>> {
-  const res: any = await request.get('/admin/statistics/industries')
+export async function getCategoryDistribution(): Promise<Array<{ categoryName: string; count: number }>> {
+  const res: any = await request.get('/admin/statistics/categories')
   return res
 }
 

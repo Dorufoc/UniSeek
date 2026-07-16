@@ -350,8 +350,8 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<Map<String, Object>> getIndustryDistribution() {
-        return taskMapper.selectIndustryDistribution();
+    public List<Map<String, Object>> getCategoryDistribution() {
+        return taskMapper.selectCategoryDistribution();
     }
 
     /**

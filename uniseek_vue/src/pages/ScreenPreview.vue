@@ -43,8 +43,8 @@
           </div>
           <div class="left-group">
             <div class="card-header">
-              <span class="title">行业需求占比</span>
-              <span class="subtitle">热门行业 TOP5</span>
+              <span class="title">职位大类占比</span>
+              <span class="subtitle">按需求量排序</span>
             </div>
             <div id="chart-ring" class="chart-container"></div>
           </div>
@@ -134,7 +134,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { getScreenSummary, getIndustryDistribution, getHotTasks, getLatestActivity, getTalentFlow, getApplicationFunnel, getEnterpriseSummary } from '@/api/admin'
+import { getScreenSummary, getCategoryDistribution, getHotTasks, getLatestActivity, getTalentFlow, getApplicationFunnel, getEnterpriseSummary } from '@/api/admin'
 
 // ============== 1. 品牌配色与数据 ==============
 const COLORS = {
@@ -225,9 +225,9 @@ const fetchAllData = async (range?: string) => {
       }
     }
 
-    // 行业占比数据
-    const [industryRes, hotTasksRes, activityRes, talentFlowRes, funnelRes, enterpriseRes] = await Promise.allSettled([
-      getIndustryDistribution(),
+    // 职位大类占比数据
+    const [categoryRes, hotTasksRes, activityRes, talentFlowRes, funnelRes, enterpriseRes] = await Promise.allSettled([
+      getCategoryDistribution(),
       getHotTasks(),
       getLatestActivity(),
       getTalentFlow(),
@@ -235,11 +235,18 @@ const fetchAllData = async (range?: string) => {
       getEnterpriseSummary()
     ])
 
-    if (industryRes.status === 'fulfilled' && industryRes.value && chartRing) {
+    if (categoryRes.status === 'fulfilled' && categoryRes.value && chartRing) {
+      // 按 count 降序排列，最后 5 项合并到"其他"
+      const sorted = [...categoryRes.value].sort((a, b) => b.count - a.count)
+      const mergeCount = Math.min(5, sorted.length - 1)
+      const topItems = sorted.slice(0, sorted.length - mergeCount)
+      const restCount = sorted.slice(sorted.length - mergeCount).reduce((sum, item) => sum + item.count, 0)
+      const chartData = topItems.map((item: any) => ({ name: item.categoryName, value: item.count }))
+      if (restCount > 0) {
+        chartData.push({ name: '其他', value: restCount })
+      }
       chartRing.setOption({
-        series: [{
-          data: industryRes.value.map((item: any) => ({ name: item.industry, value: item.count }))
-        }]
+        series: [{ data: chartData }]
       })
     }
 
@@ -701,7 +708,7 @@ const fetchAllData = async (range?: string) => {
         // 构建弧线数据
         const linesData = topFlows.map(f => ({
           coords: [f.fromCoord, f.toCoord],
-          lineStyle: { width: Math.min(f.count * 1.5, 4), opacity: 0.3 + Math.min(f.count / 20, 0.5) }
+          lineStyle: { width: 1, opacity: 0.3 + Math.min(f.count / 20, 0.5) }
         }))
 
         // 应用新数据到 ECharts option
@@ -745,13 +752,7 @@ const fetchAllData = async (range?: string) => {
                 shadowBlur: 8,
                 shadowColor: '#26E2FF80'
               },
-              label: {
-                show: true,
-                position: 'right',
-                formatter: '{b}',
-                color: 'rgba(255,255,255,0.7)',
-                fontSize: 10
-              }
+              label: { show: false }
             }
           ]
         })
@@ -1053,7 +1054,7 @@ const initECharts = () => {
     })
     .catch(err => console.warn('地图加载失败，请检查网络', err))
 
-  // 3. 行业需求占比 (环形图)
+  // 3. 职位大类占比 (环形图)
   const ringEl = ensureSize('chart-ring')
   if (ringEl) chartRing = echarts.init(ringEl)
   const ringOption: echarts.EChartsOption = {
@@ -1061,10 +1062,11 @@ const initECharts = () => {
     tooltip: { trigger: 'item' },
     series: [
       {
-        name: '行业占比',
+        name: '职位大类',
         type: 'pie',
         radius: ['40%', '75%'],
-        avoidLabelOverlap: true,
+        avoidLabelOverlap: false,
+        labelLayout: { hideOverlap: false },
         itemStyle: {
           borderRadius: 6,
           borderColor: '#051024',
@@ -1096,8 +1098,19 @@ const initECharts = () => {
           { value: 34, name: '互联网/IT', itemStyle: { color: COLORS.primary } },
           { value: 20, name: '金融', itemStyle: { color: COLORS.secondary } },
           { value: 18, name: '制造业', itemStyle: { color: COLORS.highlight } },
-          { value: 16, name: '医疗', itemStyle: { color: COLORS.primary + '99' } },
-          { value: 12, name: '其他', itemStyle: { color: COLORS.secondary + '99' } }
+          { value: 16, name: '医疗', itemStyle: { color: '#1762FB' } },
+          { value: 12, name: '教育培训', itemStyle: { color: '#685DFF' } },
+          { value: 10, name: '房地产/建筑', itemStyle: { color: '#26E2FF' } },
+          { value: 9, name: '批发/零售', itemStyle: { color: '#67C23A' } },
+          { value: 8, name: '交通运输', itemStyle: { color: '#E6A23C' } },
+          { value: 7, name: '文化传媒', itemStyle: { color: '#F56C6C' } },
+          { value: 6, name: '住宿餐饮', itemStyle: { color: '#36CBCB' } },
+          { value: 5, name: '农林牧渔', itemStyle: { color: '#B37FEB' } },
+          { value: 5, name: '能源环保', itemStyle: { color: '#F06292' } },
+          { value: 4, name: '电子信息', itemStyle: { color: '#4FC3F7' } },
+          { value: 3, name: '法律服务', itemStyle: { color: '#AED581' } },
+          { value: 3, name: '咨询/顾问', itemStyle: { color: '#FFB74D' } },
+          { value: 10, name: '其他', itemStyle: { color: '#909399' } }
         ]
       }
     ]
