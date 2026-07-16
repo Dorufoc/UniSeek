@@ -143,20 +143,41 @@ const loadCategories = async () => {
   }
 }
 
+// 地区父级映射（子ID → 父ID），用于向上查找省市名称
+const regionParentMap = ref<Record<number, number>>({})
+
+// 获取地区显示名：省 + 地级市（跳过区县）
+const getRegionDisplay = (regionId: number | null | undefined): string => {
+  if (!regionId || !regionParentMap.value[regionId]) return ''
+  // 收集从当前节点到根的路径
+  const path: number[] = [regionId]
+  let pid = regionParentMap.value[regionId]
+  while (pid) {
+    path.unshift(pid)
+    pid = regionParentMap.value[pid]
+  }
+  // 取省和地级市（第1、2级），跳过区县
+  const names = path.slice(0, 2).map(id => regionNameMap.value[id] || '').filter(Boolean)
+  return names.join(' ')
+}
+
 // ── 加载地区树 ──
 const loadRegions = async () => {
   try {
     const tree = await getRegionTree()
     regions.value = tree
     const map: Record<number, string> = {}
-    const walk = (list: RegionVO[]) => {
+    const parentMap: Record<number, number> = {}
+    const walk = (list: RegionVO[], parentId?: number) => {
       for (const r of list) {
         map[r.id] = r.name
-        if (r.children) walk(r.children)
+        if (parentId !== undefined) parentMap[r.id] = parentId
+        if (r.children) walk(r.children, r.id)
       }
     }
     walk(tree)
     regionNameMap.value = map
+    regionParentMap.value = parentMap
   } catch {
     regions.value = []
   }
@@ -332,14 +353,14 @@ watch(() => route.query.id, (id) => {
             <h3 class="company-name">{{ item.companyName }}</h3>
             <p class="company-meta">
               <span v-if="item.industry" class="tag">{{ item.industry }}</span>
-              <span v-if="item.regionId && regionNameMap[item.regionId]" class="tag region-tag">{{ regionNameMap[item.regionId] }}</span>
+              <span v-if="item.regionId" class="tag region-tag">{{ getRegionDisplay(item.regionId) }}</span>
             </p>
             <p class="company-desc">{{ item.description || '暂无简介' }}</p>
           </div>
+          </div>
         </div>
-      </div>
-      <!-- 分页 -->
-      <div class="pagination" v-if="totalPages > 1">
+        <!-- 分页 -->
+        <div class="pagination" v-if="totalPages > 1">
           <button :disabled="page === 1" @click="goToPage(page - 1)">上一页</button>
           <button
             v-for="p in displayPages"
@@ -367,7 +388,7 @@ watch(() => route.query.id, (id) => {
             <h2 class="detail-name">{{ selectedEnterprise.companyName }}</h2>
             <p class="detail-meta">
               <span v-if="selectedEnterprise.industry" class="tag">{{ selectedEnterprise.industry }}</span>
-              <span v-if="selectedEnterprise.regionId && regionNameMap[selectedEnterprise.regionId]" class="tag region-tag">{{ regionNameMap[selectedEnterprise.regionId] }}</span>
+              <span v-if="selectedEnterprise.regionId" class="tag region-tag">{{ getRegionDisplay(selectedEnterprise.regionId) }}</span>
             </p>
             <p class="detail-desc">{{ selectedEnterprise.description || '暂无简介' }}</p>
           </div>

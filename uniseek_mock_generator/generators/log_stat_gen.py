@@ -47,7 +47,7 @@ END_DT = datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
 SPAN_SECONDS = int((END_DT - START_DT).total_seconds())
 
 # 目标记录数
-TARGET_LOG_COUNT = 25000
+TARGET_LOG_COUNT = 24700
 TARGET_DAILY_COUNT = 365
 
 # ---- 操作类型分布（共 15 种，对应后端 OperationType.java 常量） ----
@@ -68,7 +68,6 @@ OPERATION_DISTRIBUTION = [
     ("ENTERPRISE_SUBMIT",   "ENTERPRISE",   400,  "1.6% - 提交企业认证"),
     ("ENTERPRISE_AUDIT",    "ENTERPRISE",   300,  "1.2% - 审核企业"),
     ("REAL_NAME_AUTH",      "USER",        1000,  "4% - 实名认证"),
-    ("COMPLAINT_HANDLE",    "COMPLAINT",    300,  "1.2% - 处理投诉"),
 ]
 
 # IP 地址生成常量
@@ -781,24 +780,6 @@ def generate_operation_logs(
             detail=_generate_detail("REAL_NAME_AUTH", operator_id, {
                 "auth_type": "id_card",
                 "status": 1,
-            }),
-            create_time=_random_datetime(),
-        )
-
-    # =========================================================================
-    # 15. COMPLAINT_HANDLE（300 条 — 1.2%）
-    #     对应管理员处理投诉
-    # =========================================================================
-    complaint_admins = _pick_random_items(admin_ids, 300, allow_duplicates=True)
-    for idx, operator_id in enumerate(complaint_admins, start=1):
-        _write_log(
-            operator_id=operator_id,
-            op_type="COMPLAINT_HANDLE",
-            target_type="COMPLAINT",
-            target_id=idx,  # complaint 表共 300 条，ID 从 1 开始
-            detail=_generate_detail("COMPLAINT_HANDLE", idx, {
-                "from_status": 0,
-                "to_status": 2,
             }),
             create_time=_random_datetime(),
         )
