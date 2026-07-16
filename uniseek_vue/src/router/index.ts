@@ -95,7 +95,7 @@ const router = createRouter({
           path: 'account-security',
           name: 'AccountSecurity',
           component: () => import('@/pages/AccountSecurity.vue'),
-          meta: { title: '账号安全 - UniSeek' }
+          meta: { title: '账号管理 - UniSeek' }
         },
         {
           path: 'profile',

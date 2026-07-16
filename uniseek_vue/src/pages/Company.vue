@@ -5,9 +5,11 @@ import { Search } from '@element-plus/icons-vue'
 import { getEnterpriseList } from '@/api/enterprise'
 import { getEnterprisePublishedTasks } from '@/api/task'
 import { getRegionTree } from '@/api/region'
+import { getCategories } from '@/api/category'
 import type { EnterpriseInfo } from '@/api/enterprise'
 import type { TaskVO } from '@/api/task'
 import type { RegionVO } from '@/api/region'
+import type { CategoryVO } from '@/api/category'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,18 +18,29 @@ const router = useRouter()
 const enterprises = ref<EnterpriseInfo[]>([])
 const loading = ref(false)
 
-// 文本搜索
+// 文本搜索（输入框实时绑定）
 const keyword = ref('')
+// 实际用于筛选的关键词（仅在点击搜索后更新）
+const searchKeyword = ref('')
 
-// 行业筛选
-const industryOptions = [
-  '互联网/IT', '金融/银行', '教育培训', '医疗健康', '房地产/建筑',
-  '制造业', '贸易/进出口', '物流/仓储', '餐饮/酒店', '旅游/度假',
-  '文化/传媒', '广告/营销', '电商/新零售', '法律/咨询', '会计/审计',
-  '人力资源', '能源/环保', '通信/电子', '汽车/交通', '农业/食品',
-  '体育/娱乐', '设计/创意', '科研/学术', '政府/非营利', '其他'
-]
-const selectedIndustry = ref('')
+// 行业筛选（从数据库加载完整分类树，支持大分类→子分类级联选择）
+const categoryTree = ref<CategoryVO[]>([])
+// 级联选择器选中值，格式：['大分类'] 或 ['大分类', '子分类']
+const selectedIndustry = ref<string[]>([])
+
+// 加载分类树数据
+const loadCategories = async () => {
+  try {
+    categoryTree.value = await getCategories()
+  } catch {
+    categoryTree.value = []
+  }
+}
+
+// 解析级联选择结果：取顶级分类名称用于匹配 enterprise.industry
+const getSelectedIndustryName = (): string | undefined => {
+  return selectedIndustry.value.length > 0 ? selectedIndustry.value[0] : undefined
+}
 
 // 城市筛选（级联选择器）
 const regions = ref<RegionVO[]>([])
@@ -113,7 +126,7 @@ const matchRegion = (enterpriseRegionId: number | null, targetId: number): boole
 // 筛选后的企业（支持正则多关键词模糊匹配）
 const filteredEnterprises = computed(() => {
   return enterprises.value.filter(e => {
-    const kw = keyword.value.trim()
+    const kw = searchKeyword.value.trim()
     if (kw) {
       const tokens = kw.split(/\s+/).filter(Boolean)
       const text = (e.companyName + ' ' + (e.industry || '')).toLowerCase()
@@ -121,7 +134,8 @@ const filteredEnterprises = computed(() => {
       const matchAll = tokens.every(t => new RegExp(t.split('').map(escapeReg).join('.*'), 'i').test(text))
       if (!matchAll) return false
     }
-    if (selectedIndustry.value && e.industry !== selectedIndustry.value) {
+    const industryName = getSelectedIndustryName()
+    if (industryName && e.industry !== industryName) {
       return false
     }
     const regionId = getSelectedRegionId()
@@ -132,10 +146,19 @@ const filteredEnterprises = computed(() => {
   })
 })
 
+// 执行搜索
+const handleSearch = () => {
+  searchKeyword.value = keyword.value
+}
+
 onMounted(() => {
   const q = route.query.q as string | undefined
-  if (q) keyword.value = q
+  if (q) {
+    keyword.value = q
+    searchKeyword.value = q
+  }
   loadRegions()
+  loadCategories()
   loadEnterprises().then(() => {
     const id = route.query.id
     if (id) {
@@ -148,6 +171,7 @@ onMounted(() => {
 // 监听路由参数变化（如从首页跳转过来）
 watch(() => route.query.q, (q) => {
   keyword.value = (q as string) || ''
+  searchKeyword.value = (q as string) || ''
 })
 
 // 查看公司详情
@@ -162,13 +186,6 @@ const viewCompany = async (item: EnterpriseInfo) => {
   } finally {
     jobsLoading.value = false
   }
-}
-
-// 返回列表
-const backToList = () => {
-  showDetail.value = false
-  selectedEnterprise.value = null
-  enterpriseJobs.value = []
 }
 
 // 跳转职位详情
@@ -204,12 +221,17 @@ const jobTypeLabel = (type?: number) => {
       <!-- 筛选栏 -->
       <div class="search-bar">
         <div class="filter-group-left">
-          <div class="filter-select-wrap">
-            <span class="filter-label">行业</span>
-            <select v-model="selectedIndustry" class="filter-select">
-              <option value="">全部行业</option>
-              <option v-for="ind in industryOptions" :key="ind" :value="ind">{{ ind }}</option>
-            </select>
+          <div class="filter-select-wrap category-wrap">
+            <span class="filter-label">分类</span>
+            <el-cascader
+              v-model="selectedIndustry"
+              :options="categoryTree"
+              :props="{ value: 'name', label: 'name', children: 'children', checkStrictly: true, emitPath: true }"
+              placeholder="全部行业"
+              size="default"
+              clearable
+              style="width:200px"
+            />
           </div>
           <div class="filter-select-wrap region-wrap">
             <span class="filter-label">地区</span>
@@ -232,8 +254,9 @@ const jobTypeLabel = (type?: number) => {
             type="text"
             class="search-input"
             placeholder="搜索企业名称、行业"
+            @keyup.enter="handleSearch"
           />
-          <button class="search-btn" @click="keyword.value = keyword.value">搜索</button>
+          <button class="search-btn" @click="handleSearch">搜索</button>
         </div>
       </div>
 
@@ -264,7 +287,7 @@ const jobTypeLabel = (type?: number) => {
     <!-- 公司详情视图 -->
     <template v-else-if="selectedEnterprise">
       <div class="detail-header">
-        <button class="back-btn" @click="backToList">&larr; 返回企业列表</button>
+        <button class="back-btn" @click="router.back()">&larr; 返回</button>
       </div>
 
       <div class="company-detail-card">

@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "active_work_id": "write-readme-proper-894d2904",
+  "works": {
+    "write-readme-proper-894d2904": {
+      "work_id": "write-readme-proper-894d2904",
+      "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\write-readme-proper.md",
+      "plan_name": "write-readme-proper",
+      "status": "completed",
+      "started_at": "2026-07-16T08:09:28.882Z",
+      "updated_at": "2026-07-16T08:18:03.254Z",
+      "session_ids": [
+        "opencode:ses_09617cdb9ffekH3ZlUh1rID1rs",
+        "opencode:ses_096021a79ffeqaijten4GWW3sB",
+        "opencode:ses_096021478ffeJIJoC4IAeATRYi",
+        "opencode:ses_096020d2cffegekt9XgWfaQtvN"
+      ],
+      "session_origins": {
+        "opencode:ses_09617cdb9ffekH3ZlUh1rID1rs": "direct",
+        "opencode:ses_096021a79ffeqaijten4GWW3sB": "appended",
+        "opencode:ses_096021478ffeJIJoC4IAeATRYi": "appended",
+        "opencode:ses_096020d2cffegekt9XgWfaQtvN": "appended"
+      },
+      "agent": "atlas",
+      "task_sessions": {
+        "todo:0": {
+          "task_key": "todo:0",
+          "task_label": "0",
+          "task_title": "回退 README.md",
+          "session_id": "opencode:ses_096057b46ffeZ7K9nprkNQvPqE",
+          "agent": "general",
+          "updated_at": "2026-07-16T08:13:53.865Z",
+          "started_at": "2026-07-16T08:13:42.804Z",
+          "status": "completed",
+          "ended_at": "2026-07-16T08:13:53.865Z",
+          "elapsed_ms": 11061
+        },
+        "todo:2": {
+          "task_key": "todo:2",
+          "task_label": "2",
+          "task_title": "执行高精度审查",
+          "session_id": "opencode:ses_096020d2cffegekt9XgWfaQtvN",
+          "agent": "explore",
+          "started_at": "2026-07-16T08:15:14.081Z",
+          "status": "completed",
+          "updated_at": "2026-07-16T08:17:26.950Z",
+          "ended_at": "2026-07-16T08:17:26.950Z",
+          "elapsed_ms": 132869
+        }
+      },
+      "ended_at": "2026-07-16T08:18:03.254Z",
+      "elapsed_ms": 514372
+    }
+  },
+  "active_plan": "D:\\Temps\\yaoshi\\Desktop\\code\\istone\\AAAAAAAAAA\\UniSeek\\.omo\\plans\\write-readme-proper.md",
+  "started_at": "2026-07-16T08:09:28.882Z",
+  "status": "completed",
+  "updated_at": "2026-07-16T08:18:03.254Z",
+  "session_ids": [
+    "opencode:ses_09617cdb9ffekH3ZlUh1rID1rs",
+    "opencode:ses_096021a79ffeqaijten4GWW3sB",
+    "opencode:ses_096021478ffeJIJoC4IAeATRYi",
+    "opencode:ses_096020d2cffegekt9XgWfaQtvN"
+  ],
+  "session_origins": {
+    "opencode:ses_09617cdb9ffekH3ZlUh1rID1rs": "direct",
+    "opencode:ses_096021a79ffeqaijten4GWW3sB": "appended",
+    "opencode:ses_096021478ffeJIJoC4IAeATRYi": "appended",
+    "opencode:ses_096020d2cffegekt9XgWfaQtvN": "appended"
+  },
+  "plan_name": "write-readme-proper",
+  "task_sessions": {
+    "todo:0": {
+      "task_key": "todo:0",
+      "task_label": "0",
+      "task_title": "回退 README.md",
+      "session_id": "opencode:ses_096057b46ffeZ7K9nprkNQvPqE",
+      "agent": "general",
+      "updated_at": "2026-07-16T08:13:53.865Z",
+      "started_at": "2026-07-16T08:13:42.804Z",
+      "status": "completed",
+      "ended_at": "2026-07-16T08:13:53.865Z",
+      "elapsed_ms": 11061
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "执行高精度审查",
+      "session_id": "opencode:ses_096020d2cffegekt9XgWfaQtvN",
+      "agent": "explore",
+      "started_at": "2026-07-16T08:15:14.081Z",
+      "status": "completed",
+      "updated_at": "2026-07-16T08:17:26.950Z",
+      "ended_at": "2026-07-16T08:17:26.950Z",
+      "elapsed_ms": 132869
+    }
+  },
+  "agent": "atlas",
+  "ended_at": "2026-07-16T08:18:03.254Z",
+  "elapsed_ms": 514372
+}

@@ -295,7 +295,7 @@ const handleMenuClick = (item: string) => {
           </div>
           <div class="user-phone-hint">
             如需更换手机号，请
-            <span class="link-btn" @click="router.push('/account-security')">前往账号安全</span>
+            <span class="link-btn" @click="router.push('/account-security')">前往账号管理</span>
           </div>
           <button class="edit-profile-btn" @click="isRecruiter ? handleMenuClick('editEnterprise') : handleMenuClick('resume')">
             <el-icon :size="14"><Edit /></el-icon>
@@ -316,15 +316,15 @@ const handleMenuClick = (item: string) => {
             </div>
           </template>
           <template v-else>
-            <div class="stat-item">
+            <div class="stat-item" @click="handleMenuClick('applications')">
               <span class="stat-num">{{ seekerStats.applications }}</span>
               <span class="stat-label">投递数</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" @click="handleMenuClick('interviews')">
               <span class="stat-num">{{ seekerStats.interviews }}</span>
               <span class="stat-label">面试邀请</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" @click="handleMenuClick('favorites')">
               <span class="stat-num">{{ seekerStats.favorites }}</span>
               <span class="stat-label">收藏职位</span>
             </div>
@@ -459,7 +459,7 @@ const handleMenuClick = (item: string) => {
               <div class="menu-icon small neutral-bg">
                 <el-icon :size="18"><Lock /></el-icon>
               </div>
-              <span class="menu-name">账号安全</span>
+              <span class="menu-name">账号管理</span>
               <span class="menu-hint">修改密码、绑定手机</span>
               <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
             </div>
@@ -711,6 +711,14 @@ const handleMenuClick = (item: string) => {
 
 .stat-item {
   text-align: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.stat-item:hover {
+  background: rgba(0, 122, 255, 0.06);
 }
 
 .stat-num {

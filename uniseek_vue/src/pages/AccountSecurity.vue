@@ -4,13 +4,34 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { changePassword, getRealNameAuthStatus, updatePhone, updateEmail } from '@/api/auth'
-import { Lock, Phone, Message, WarningFilled, CircleCheckFilled, ArrowLeft, UserFilled } from '@element-plus/icons-vue'
+import { updateProfile } from '@/api/user'
+import { Edit, Lock, Phone, Message, WarningFilled, CircleCheckFilled, ArrowLeft, UserFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeSection = ref<'password' | 'phone' | 'email' | 'realName' | ''>('')
+const activeSection = ref<'nickname' | 'password' | 'phone' | 'email' | 'realName' | ''>('')
 const loading = ref(false)
+
+// ── 修改昵称 ──
+const nicknameForm = reactive({
+  nickname: ''
+})
+const nicknameLoading = ref(false)
+
+const handleUpdateNickname = async () => {
+  if (!nicknameForm.nickname.trim()) return
+  nicknameLoading.value = true
+  try {
+    const data = await updateProfile({ nickname: nicknameForm.nickname.trim() })
+    userStore.setUserInfo(data)
+    ElMessage.success('昵称修改成功')
+    activeSection.value = ''
+  } catch {
+  } finally {
+    nicknameLoading.value = false
+  }
+}
 
 // ── 修改密码 ──
 const passwordForm = reactive({
@@ -141,10 +162,10 @@ const handleDeleteAccount = () => {
     <div class="security-container">
       <div class="page-header">
         <h2 class="page-title">
-          <el-icon :size="22"><Lock /></el-icon>
-          账号安全
+          <el-icon :size="22"><UserFilled /></el-icon>
+          账号管理
         </h2>
-        <p class="page-subtitle">管理您的密码、绑定信息和安全设置</p>
+        <p class="page-subtitle">管理您的个人信息、密码、绑定与安全设置</p>
       </div>
 
       <div class="security-score-card">
@@ -176,6 +197,34 @@ const handleDeleteAccount = () => {
       </div>
 
       <div class="settings-list">
+
+        <!-- 修改昵称 -->
+        <div class="settings-card">
+          <div class="settings-row" @click="toggleSection('nickname')">
+            <div class="settings-icon">
+              <el-icon :size="20"><Edit /></el-icon>
+            </div>
+            <div class="settings-info">
+              <span class="settings-name">修改昵称</span>
+              <span class="settings-hint">设置您的显示昵称</span>
+            </div>
+            <span class="settings-value">{{ userStore.userInfo?.nickname || '未设置' }}</span>
+            <span class="settings-arrow" :class="{ open: activeSection === 'nickname' }">
+              <el-icon :size="16"><ArrowLeft /></el-icon>
+            </span>
+          </div>
+
+          <div v-if="activeSection === 'nickname'" class="settings-body">
+            <div class="form-group">
+              <label>昵称</label>
+              <el-input v-model="nicknameForm.nickname" placeholder="请输入昵称" size="large" maxlength="20" />
+              <p v-if="nicknameForm.nickname && !nicknameForm.nickname.trim()" class="field-error">昵称不能为空</p>
+            </div>
+            <button class="save-btn" :disabled="!nicknameForm.nickname.trim() || nicknameLoading" @click="handleUpdateNickname">
+              {{ nicknameLoading ? '保存中...' : '确认修改' }}
+            </button>
+          </div>
+        </div>
 
         <!-- 修改密码 -->
         <div class="settings-card">
