@@ -5,7 +5,6 @@ import { ElMessage } from 'element-plus'
 import { Search, User, View, Download, ChatDotRound } from '@element-plus/icons-vue'
 import { searchPublishedResumes } from '@/api/resume'
 import { createDirectSession } from '@/api/chat'
-import { ElMessage } from 'element-plus'
 import type { ResumeData } from '@/api/resume'
 import PdfPreview from '@/components/PdfPreview.vue'
 
