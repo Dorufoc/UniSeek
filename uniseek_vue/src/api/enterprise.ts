@@ -1,5 +1,6 @@
 import request from './index'
 import type { ApiResponse } from './auth'
+import type { PageResult } from './task'
 
 // 企业资质认证请求参数（匹配后端 EnterpriseRequest）
 export interface EnterpriseRequest {
@@ -45,9 +46,18 @@ export const updateEnterprise = async (params: EnterpriseRequest) => {
   return res
 }
 
-/** GET /api/enterprise/list 获取已认证的企业列表 */
-export const getEnterpriseList = () =>
-  request.get<any, EnterpriseInfo[]>('/enterprise/list')
+/** GET /api/enterprise/list 分页获取已认证的企业列表 */
+export interface EnterpriseListParams {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  industry?: string
+  regionId?: number
+  sortBy?: string
+  sortOrder?: string
+}
+export const getEnterpriseList = (params: EnterpriseListParams = {}) =>
+  request.get<any, PageResult<EnterpriseInfo>>('/enterprise/list', { params })
 
 // 热门企业信息
 export interface HotEnterprise {

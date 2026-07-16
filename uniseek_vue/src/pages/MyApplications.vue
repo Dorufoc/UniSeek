@@ -319,8 +319,8 @@ onMounted(() => {
 
 .page-title {
   font-size: 22px;
-  font-weight: 600;
-  color: var(--text-h);
+  font-weight: 700;
+  color: #1a1a1a;
   margin: 0;
 }
 
@@ -403,7 +403,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 13px;
-  color: #999;
+  color: #555;
 }
 
 /* 投递列表 */
@@ -440,8 +440,8 @@ onMounted(() => {
 
 .app-job-title {
   font-size: 16px;
-  font-weight: 500;
-  color: var(--text-h);
+  font-weight: 600;
+  color: #1a1a1a;
   margin: 0 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -450,7 +450,7 @@ onMounted(() => {
 
 .app-company {
   font-size: 13px;
-  color: #999;
+  color: #555;
   margin: 0;
 }
 
@@ -471,7 +471,7 @@ onMounted(() => {
 .app-time {
   display: block;
   font-size: 12px;
-  color: #bbb;
+  color: #777;
 }
 
 /* 展开详情 */
@@ -499,7 +499,7 @@ onMounted(() => {
 
 .detail-label {
   font-size: 12px;
-  color: #999;
+  color: #666;
 }
 
 .detail-value {
@@ -571,21 +571,21 @@ onMounted(() => {
 
 .interview-title {
   font-size: 15px;
-  font-weight: 500;
-  color: var(--text-h);
+  font-weight: 600;
+  color: #1a1a1a;
   margin: 0 0 6px;
 }
 
 .interview-content {
   font-size: 14px;
-  color: #666;
+  color: #333;
   line-height: 1.6;
   margin: 0 0 8px;
 }
 
 .interview-time {
   font-size: 12px;
-  color: #bbb;
+  color: #777;
 }
 
 .interview-action {
@@ -623,14 +623,14 @@ onMounted(() => {
 
 .fav-title {
   font-size: 16px;
-  font-weight: 500;
-  color: var(--text-h);
+  font-weight: 600;
+  color: #1a1a1a;
   margin: 0 0 4px;
 }
 
 .fav-company {
   font-size: 13px;
-  color: #999;
+  color: #555;
   margin: 0 0 8px;
 }
 
@@ -645,7 +645,7 @@ onMounted(() => {
   padding: 2px 8px;
   border-radius: 4px;
   background: #f0f0f5;
-  color: #999;
+  color: #555;
 }
 
 .fav-tag.salary { color: #e74c3c; background: rgba(231,76,60,0.06); }

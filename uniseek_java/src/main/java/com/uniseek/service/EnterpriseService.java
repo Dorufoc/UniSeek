@@ -1,5 +1,6 @@
 package com.uniseek.service;
 
+import com.uniseek.common.PageResult;
 import com.uniseek.dto.EnterpriseRequest;
 import com.uniseek.dto.HotEnterpriseVO;
 import com.uniseek.entity.Enterprise;
@@ -45,11 +46,19 @@ public interface EnterpriseService {
     Enterprise update(Long userId, EnterpriseRequest request);
 
     /**
-     * 获取所有已认证的企业列表（供求职者查看）
+     * 分页获取已认证的企业列表（供求职者查看），支持筛选和排序
      *
-     * @return 已认证的企业列表
+     * @param page      页码
+     * @param pageSize  每页条数
+     * @param keyword   搜索关键词（模糊匹配企业名称）
+     * @param industry  行业筛选（精确匹配）
+     * @param regionId  地区筛选（匹配该地区及其子级）
+     * @param sortBy    排序字段：jobCount / avgSalary / null（创建时间倒序）
+     * @param sortOrder 排序方向：asc / desc
+     * @return 分页企业列表
      */
-    List<Enterprise> listPublished();
+    PageResult<Enterprise> listPublished(int page, int pageSize, String keyword, String industry, Long regionId,
+                                         String sortBy, String sortOrder);
 
     /**
      * 获取热门企业列表（按投递数、在招岗位数、总名额综合评分排序）
