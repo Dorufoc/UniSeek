@@ -1,8 +1,36 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, User } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { Search, User, View, Download } from '@element-plus/icons-vue'
 import { searchPublishedResumes } from '@/api/resume'
 import type { ResumeData } from '@/api/resume'
+import PdfPreview from '@/components/PdfPreview.vue'
+
+const getFileName = (url: string) => {
+  const name = url.substring(url.lastIndexOf('/') + 1)
+  return decodeURIComponent(name) || '简历附件'
+}
+
+const fileDialogVisible = ref(false)
+const fileDialogUrl = ref('')
+const pdfPreviewVisible = ref(false)
+const openFileAction = (url: string) => {
+  fileDialogUrl.value = url
+  fileDialogVisible.value = true
+}
+const previewFile = () => {
+  pdfPreviewVisible.value = true
+  fileDialogVisible.value = false
+}
+const downloadFile = () => {
+  const a = document.createElement('a')
+  a.href = fileDialogUrl.value
+  a.download = getFileName(fileDialogUrl.value)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  fileDialogVisible.value = false
+}
 
 // 人才筛选标签
 const talentFilters = ['全部', '有附件简历', '在校生', '有工作经验']
@@ -146,10 +174,25 @@ const genderLabel = (g?: number) => {
         </div>
         <div class="detail-section" v-if="selectedTalent.attachmentUrl">
           <h4>附件简历</h4>
-          <a :href="selectedTalent.attachmentUrl" target="_blank" class="attach-link">{{ selectedTalent.attachmentUrl }}</a>
+          <span class="attach-link clickable" @click="openFileAction(selectedTalent.attachmentUrl!)">{{ getFileName(selectedTalent.attachmentUrl) }}</span>
         </div>
       </div>
     </el-dialog>
+
+    <!-- 文件操作弹窗 -->
+    <el-dialog v-model="fileDialogVisible" title="附件简历" width="300px" align-center>
+      <div class="file-action-buttons">
+        <el-button type="primary" size="large" @click="previewFile" class="file-action-btn">
+          <el-icon><View /></el-icon>预览
+        </el-button>
+        <el-button type="primary" size="large" @click="downloadFile" class="file-action-btn">
+          <el-icon><Download /></el-icon>下载
+        </el-button>
+      </div>
+    </el-dialog>
+
+    <!-- PDF 预览弹窗 -->
+    <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
   </div>
 </template>
 
@@ -354,6 +397,29 @@ const genderLabel = (g?: number) => {
   color: #1762FB;
   font-size: 14px;
   text-decoration: none;
+}
+
+.attach-link.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 文件操作弹窗 */
+.file-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.file-action-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px;
+  margin: 0 !important;
 }
 
 .empty-text {

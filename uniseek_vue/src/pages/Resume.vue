@@ -6,8 +6,9 @@ import { getResume, saveResume as saveResumeApi, uploadAttachment, publishResume
 import type { ResumeSaveParams } from '@/api/resume'
 import {
   User, Edit, Plus, Close, Delete, Top, Bottom, UploadFilled,
-  Check, ArrowLeft
+  Check, ArrowLeft, View, Download
 } from '@element-plus/icons-vue'
+import PdfPreview from '@/components/PdfPreview.vue'
 
 const userStore = useUserStore()
 // 隐藏的文件选择器引用
@@ -195,6 +196,34 @@ const removeAttachment = () => {
   resumeForm.attachmentUrl = ''
 }
 
+// 从 URL 中提取文件名
+const getFileName = (url: string) => {
+  const name = url.substring(url.lastIndexOf('/') + 1)
+  return decodeURIComponent(name) || '简历附件'
+}
+
+// 文件操作对话框
+const fileDialogVisible = ref(false)
+const fileDialogUrl = ref('')
+const pdfPreviewVisible = ref(false)
+const openFileAction = (url: string) => {
+  fileDialogUrl.value = url
+  fileDialogVisible.value = true
+}
+const previewFile = () => {
+  pdfPreviewVisible.value = true
+  fileDialogVisible.value = false
+}
+const downloadFile = () => {
+  const a = document.createElement('a')
+  a.href = fileDialogUrl.value
+  a.download = getFileName(fileDialogUrl.value)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  fileDialogVisible.value = false
+}
+
 // 右侧面板当前展开的区块（预览模式用）
 const expandedSection = ref('')
 const toggleSection = (key: string) => {
@@ -370,8 +399,8 @@ const toggleSection = (key: string) => {
                 <span class="section-toggle">{{ expandedSection === 'attach' ? '收起' : '展开' }}</span>
               </div>
               <div class="section-body">
-                <div v-if="resumeForm.attachmentUrl" class="attachment-display">
-                  <span class="attachment-name">{{ resumeForm.attachmentUrl }}</span>
+                <div v-if="resumeForm.attachmentUrl" class="attachment-display" @click="openFileAction(resumeForm.attachmentUrl)">
+                  <span class="attachment-name">{{ getFileName(resumeForm.attachmentUrl) }}</span>
                 </div>
                 <span v-else class="empty-text">未上传附件简历</span>
               </div>
@@ -507,7 +536,7 @@ const toggleSection = (key: string) => {
               <h3 class="edit-section-title">附件简历</h3>
               <div class="edit-form">
                 <div v-if="resumeForm.attachmentUrl" class="attachment-item">
-                  <span class="attachment-name">{{ resumeForm.attachmentUrl }}</span>
+                  <span class="attachment-name clickable" @click="openFileAction(resumeForm.attachmentUrl)">{{ getFileName(resumeForm.attachmentUrl) }}</span>
                   <button class="btn-remove-attach" @click="removeAttachment">
                     <el-icon :size="14"><Delete /></el-icon>
                   </button>
@@ -532,6 +561,20 @@ const toggleSection = (key: string) => {
       </div>
     </div>
   </div>
+  <!-- 文件操作弹窗 -->
+  <el-dialog v-model="fileDialogVisible" title="附件简历" width="300px" align-center>
+    <div class="file-action-buttons">
+      <el-button type="primary" size="large" @click="previewFile" class="file-action-btn">
+        <el-icon><View /></el-icon>预览
+      </el-button>
+      <el-button type="primary" size="large" @click="downloadFile" class="file-action-btn">
+        <el-icon><Download /></el-icon>下载
+      </el-button>
+    </div>
+  </el-dialog>
+
+  <!-- PDF 预览弹窗 -->
+  <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
 </template>
 
 <style scoped>
@@ -873,6 +916,32 @@ const toggleSection = (key: string) => {
   font-size: 14px;
   color: #1762FB;
   cursor: pointer;
+}
+
+.attachment-name.clickable {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.attachment-display {
+  cursor: pointer;
+}
+
+/* 文件操作弹窗 */
+.file-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.file-action-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px;
+  margin: 0 !important;
 }
 
 /* ========== 简历内容区 - 编辑模式 ========== */

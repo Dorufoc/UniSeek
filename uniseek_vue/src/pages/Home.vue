@@ -7,7 +7,7 @@ import { searchTasks, getEnterpriseTasks, type TaskVO } from '@/api/task'
 import { getTaskApplications, type TaskApplication } from '@/api/application'
 import { getMyEnterprise, getHotEnterprises, type EnterpriseInfo, type HotEnterprise } from '@/api/enterprise'
 import { getCategories, type CategoryVO } from '@/api/category'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Monitor, Briefcase, TrendCharts, ChatDotSquare, ChatDotRound, User, Brush, DataAnalysis, Files, KnifeFork, Notebook, Box, ShoppingBag, EditPen, Service, Van, Scissor, ToiletPaper, Camera } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -142,6 +142,55 @@ const parseSnapshot = (snapshot: string | null) => {
 }
 
 const catColors = ['#1762FB', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
+const catIcons = [Monitor, Briefcase, TrendCharts, ChatDotSquare, User, Brush, DataAnalysis, Files]
+
+const categoryIconMap: Record<string, any> = {
+  '餐饮服务': KnifeFork,
+  '家教辅导': Notebook,
+  '快递物流': Van,
+  '促销导购': ShoppingBag,
+  '翻译': ChatDotRound,
+  '写作': EditPen,
+  '客服': Service,
+  '物流': Van,
+  '美容美发': Scissor,
+  '家政保洁': ToiletPaper,
+  '摄影摄像': Camera,
+  '话务客服': Service,
+  '文案写作': EditPen,
+}
+const getCategoryIcon = (name: string, fallbackIdx: number) => {
+  return categoryIconMap[name] || catIcons[fallbackIdx % catIcons.length]
+}
+
+interface StaggeredItem { cat: CategoryVO; originalIdx: number; uid: string }
+const staggeredRows = computed(() => {
+  const list = categoryTree.value
+  const row1: StaggeredItem[] = []
+  const row2: StaggeredItem[] = []
+  list.forEach((c, i) => {
+    const item: StaggeredItem = { cat: c, originalIdx: i, uid: String(c.id) }
+    if (i % 2 === 0) row1.push(item)
+    else row2.push(item)
+  })
+  return { row1, row2 }
+})
+const marqueeRow1 = computed(() => {
+  const orig = staggeredRows.value.row1
+  return [...orig, ...orig.map(item => ({ ...item, uid: 'd-' + item.uid }))]
+})
+const marqueeRow2 = computed(() => {
+  const orig = staggeredRows.value.row2
+  return [...orig, ...orig.map(item => ({ ...item, uid: 'd-' + item.uid }))]
+})
+
+const cardStyle = (idx: number) => {
+  const color = catColors[idx % catColors.length]
+  return {
+    '--card-color': color,
+    background: `linear-gradient(135deg, ${color}33, ${color}14)`
+  }
+}
 
 const closeSearchTypeMenu = (e: MouseEvent) => {
   const target = e.target as HTMLElement
@@ -185,7 +234,7 @@ onMounted(async () => {
       getCategories().catch(() => [] as CategoryVO[])
     ])
     hotEnterprises.value = await getHotEnterprises(12).catch(() => [])
-    categoryTree.value = cats.slice(0, 8)
+    categoryTree.value = cats.filter(c => c.name !== '其他')
 
     // 首次加载推荐职位
     await loadMoreJobs()
@@ -317,23 +366,45 @@ onUnmounted(() => {
         </div>
       </section>
 
-      <!-- 分类导航区 -->
+      <!-- 分类导航区（双行自动滚动） -->
       <section class="category-section" v-if="categoryTree.length > 0">
         <div class="section-inner">
           <div class="section-header">
             <h2>热门职位分类</h2>
             <button class="view-all-btn" @click="goToJobs()">查看全部</button>
           </div>
-          <div class="category-grid">
-            <div
-              v-for="(cat, idx) in categoryTree"
-              :key="cat.id"
-              class="category-card"
-              :style="{ borderTopColor: catColors[idx % catColors.length] }"
-              @click="goToJobs(cat.id)"
-            >
-              <span class="cat-name">{{ cat.name }}</span>
-              <span class="cat-count" v-if="cat.children && cat.children.length">{{ cat.children.length }}个子类</span>
+          <div class="category-scroll-2row">
+            <div class="category-track-2row">
+              <div class="category-row">
+                <div
+                  v-for="item in marqueeRow1"
+                  :key="item.uid"
+                  class="category-card"
+                  :style="cardStyle(item.originalIdx)"
+                  @click="goToJobs(item.cat.id)"
+                >
+                  <div class="cat-header">
+                    <component :is="getCategoryIcon(item.cat.name, item.originalIdx)" class="cat-icon" />
+                    <span class="cat-name">{{ item.cat.name }}</span>
+                  </div>
+                  <span class="cat-count" v-if="item.cat.children && item.cat.children.length">{{ item.cat.children.length }}个子类</span>
+                </div>
+              </div>
+              <div class="category-row category-row-offset">
+                <div
+                  v-for="item in marqueeRow2"
+                  :key="item.uid"
+                  class="category-card"
+                  :style="cardStyle(item.originalIdx)"
+                  @click="goToJobs(item.cat.id)"
+                >
+                  <div class="cat-header">
+                    <component :is="getCategoryIcon(item.cat.name, item.originalIdx)" class="cat-icon" />
+                    <span class="cat-name">{{ item.cat.name }}</span>
+                  </div>
+                  <span class="cat-count" v-if="item.cat.children && item.cat.children.length">{{ item.cat.children.length }}个子类</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -795,38 +866,96 @@ onUnmounted(() => {
 }
 
 /* ── 分类卡片 ── */
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.category-scroll-2row {
+  overflow: hidden;
+  padding: 16px 0 28px 0;
+  mask-image: linear-gradient(to right, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+}
+
+.category-track-2row {
+  display: inline-flex;
+  flex-direction: column;
   gap: 12px;
+  animation: category-scroll-2row 60s linear infinite;
+}
+
+.category-scroll-2row:hover .category-track-2row {
+  animation-play-state: paused;
+}
+
+.category-row {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.category-row-offset {
+  margin-left: 140px;
+}
+
+@keyframes category-scroll-2row {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .category-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  min-height: 50px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
   cursor: pointer;
-  border-top: 3px solid #1762FB;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  border: none;
 }
 
 .category-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
+  background: var(--card-color) !important;
+  box-shadow: 0 8px 28px var(--card-color);
+  transform: translateY(-4px);
+}
+
+.category-card:hover .cat-name {
+  color: #fff;
+}
+
+.category-card:hover .cat-icon,
+.category-card:hover .cat-count {
+  color: #fff;
+  opacity: 0.7;
+}
+
+.cat-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .cat-name {
-  display: block;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 6px;
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--card-color);
+  line-height: 1.3;
+}
+
+.cat-icon {
+  width: 27px;
+  height: 27px;
+  color: var(--card-color);
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .cat-count {
-  font-size: 12px;
-  color: #aaa;
+  margin-top: auto;
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--card-color);
+  opacity: 0.5;
 }
 
 /* ── 推荐职位卡片 ── */
@@ -1069,8 +1198,27 @@ onUnmounted(() => {
     padding: 14px 0;
   }
 
-  .category-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .category-card {
+    width: 180px;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+  .cat-name {
+    font-size: 22px;
+  }
+  .cat-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .cat-count {
+    font-size: 10px;
+  }
+  .category-row-offset {
+    margin-left: 90px;
+  }
+  .category-scroll-2row {
+    mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
   }
 
   .company-grid {

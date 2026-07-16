@@ -153,6 +153,7 @@ const kpiData = ref([
 ])
 
 const fetchAllData = async (range?: string) => {
+  if (isUnmounted) return
   try {
     // KPI + 趋势图数据
     const summaryRes = await getScreenSummary(range || currentRange.value)
@@ -264,77 +265,381 @@ const fetchAllData = async (range?: string) => {
     if (talentFlowRes.status === 'fulfilled' && talentFlowRes.value && talentFlowRes.value.length > 0 && chartMap) {
       // 地区编码 → 城市坐标映射（常用城市）
       const regionCoordMap: Record<string, { name: string; coord: [number, number] }> = {
+        // 直辖市
         '110000': { name: '北京市', coord: [116.4, 39.9] },
         '120000': { name: '天津市', coord: [117.2, 39.13] },
-        '130100': { name: '石家庄', coord: [114.48, 38.03] },
-        '130200': { name: '唐山', coord: [118.18, 39.63] },
-        '130300': { name: '秦皇岛', coord: [119.59, 39.93] },
-        '130400': { name: '邯郸', coord: [114.49, 36.61] },
-        '130500': { name: '邢台', coord: [114.5, 37.07] },
-        '130600': { name: '保定', coord: [115.48, 38.87] },
-        '140100': { name: '太原', coord: [112.55, 37.87] },
-        '140200': { name: '大同', coord: [113.3, 40.08] },
-        '210100': { name: '沈阳', coord: [123.43, 41.8] },
-        '210200': { name: '大连', coord: [121.62, 38.92] },
-        '210300': { name: '鞍山', coord: [123.0, 41.1] },
-        '220100': { name: '长春', coord: [125.32, 43.9] },
-        '230100': { name: '哈尔滨', coord: [126.63, 45.75] },
         '310000': { name: '上海市', coord: [121.47, 31.23] },
-        '320100': { name: '南京', coord: [118.78, 32.06] },
-        '320200': { name: '无锡', coord: [120.3, 31.57] },
-        '320300': { name: '徐州', coord: [117.2, 34.26] },
-        '320400': { name: '常州', coord: [119.97, 31.78] },
-        '320500': { name: '苏州', coord: [120.62, 31.32] },
-        '320600': { name: '南通', coord: [120.86, 32.01] },
-        '321000': { name: '扬州', coord: [119.42, 32.39] },
-        '330100': { name: '杭州', coord: [120.19, 30.26] },
-        '330200': { name: '宁波', coord: [121.54, 29.87] },
-        '330300': { name: '温州', coord: [120.7, 28.0] },
-        '330400': { name: '嘉兴', coord: [120.76, 30.77] },
-        '330500': { name: '湖州', coord: [120.09, 30.87] },
-        '330600': { name: '绍兴', coord: [120.58, 30.0] },
-        '331000': { name: '台州', coord: [121.42, 28.65] },
-        '340100': { name: '合肥', coord: [117.27, 31.86] },
-        '340200': { name: '芜湖', coord: [118.38, 31.33] },
-        '350100': { name: '福州', coord: [119.3, 26.08] },
-        '350200': { name: '厦门', coord: [118.1, 24.46] },
-        '350500': { name: '泉州', coord: [118.59, 24.91] },
-        '360100': { name: '南昌', coord: [115.86, 28.68] },
-        '370100': { name: '济南', coord: [117.0, 36.65] },
-        '370200': { name: '青岛', coord: [120.33, 36.07] },
-        '370600': { name: '烟台', coord: [121.39, 37.52] },
-        '370700': { name: '潍坊', coord: [119.1, 36.62] },
-        '410100': { name: '郑州', coord: [113.65, 34.76] },
-        '410300': { name: '洛阳', coord: [112.45, 34.62] },
-        '420100': { name: '武汉', coord: [114.31, 30.52] },
-        '430100': { name: '长沙', coord: [112.98, 28.19] },
-        '430400': { name: '衡阳', coord: [112.57, 26.89] },
-        '440100': { name: '广州', coord: [113.23, 23.16] },
-        '440300': { name: '深圳', coord: [114.07, 22.62] },
-        '440400': { name: '珠海', coord: [113.57, 22.27] },
-        '440500': { name: '汕头', coord: [116.7, 23.37] },
-        '440600': { name: '佛山', coord: [113.12, 23.02] },
-        '440700': { name: '江门', coord: [113.08, 22.58] },
-        '441300': { name: '惠州', coord: [114.42, 23.11] },
-        '441900': { name: '东莞', coord: [113.75, 23.05] },
-        '442000': { name: '中山', coord: [113.38, 22.52] },
-        '450100': { name: '南宁', coord: [108.37, 22.82] },
-        '450300': { name: '桂林', coord: [110.28, 25.27] },
-        '460100': { name: '海口', coord: [110.32, 20.03] },
         '500000': { name: '重庆市', coord: [106.55, 29.57] },
-        '510100': { name: '成都', coord: [104.06, 30.67] },
-        '510300': { name: '自贡', coord: [104.78, 29.34] },
-        '510500': { name: '泸州', coord: [105.44, 28.87] },
-        '510600': { name: '德阳', coord: [104.4, 31.13] },
-        '510700': { name: '绵阳', coord: [104.74, 31.46] },
-        '520100': { name: '贵阳', coord: [106.71, 26.57] },
-        '530100': { name: '昆明', coord: [102.73, 25.04] },
-        '610100': { name: '西安', coord: [108.94, 34.26] },
-        '610300': { name: '宝鸡', coord: [107.15, 34.38] },
-        '620100': { name: '兰州', coord: [103.83, 36.06] },
-        '630100': { name: '西宁', coord: [101.76, 36.63] },
-        '640100': { name: '银川', coord: [106.28, 38.47] },
-        '650100': { name: '乌鲁木齐', coord: [87.62, 43.82] },
+        // 河北省
+        '130100': { name: '石家庄市', coord: [114.48, 38.03] },
+        '130200': { name: '唐山市', coord: [118.18, 39.63] },
+        '130300': { name: '秦皇岛市', coord: [119.59, 39.93] },
+        '130400': { name: '邯郸市', coord: [114.49, 36.61] },
+        '130500': { name: '邢台市', coord: [114.5, 37.07] },
+        '130600': { name: '保定市', coord: [115.48, 38.87] },
+        '130700': { name: '张家口市', coord: [114.88, 40.77] },
+        '130800': { name: '承德市', coord: [117.94, 40.95] },
+        '130900': { name: '沧州市', coord: [116.86, 38.3] },
+        '131000': { name: '廊坊市', coord: [116.7, 39.52] },
+        '131100': { name: '衡水市', coord: [115.68, 37.73] },
+        // 山西省
+        '140100': { name: '太原市', coord: [112.55, 37.87] },
+        '140200': { name: '大同市', coord: [113.3, 40.08] },
+        '140300': { name: '阳泉市', coord: [113.58, 37.86] },
+        '140400': { name: '长治市', coord: [113.12, 36.2] },
+        '140500': { name: '晋城市', coord: [112.85, 35.49] },
+        '140600': { name: '朔州市', coord: [112.43, 39.33] },
+        '140700': { name: '晋中市', coord: [112.75, 37.69] },
+        '140800': { name: '运城市', coord: [111.0, 35.03] },
+        '140900': { name: '忻州市', coord: [112.73, 38.42] },
+        '141000': { name: '临汾市', coord: [111.52, 36.08] },
+        '141100': { name: '吕梁市', coord: [111.14, 37.52] },
+        // 内蒙古
+        '150100': { name: '呼和浩特市', coord: [111.75, 40.84] },
+        '150200': { name: '包头市', coord: [109.85, 40.66] },
+        '150300': { name: '乌海市', coord: [106.8, 39.66] },
+        '150400': { name: '赤峰市', coord: [118.92, 42.26] },
+        '150500': { name: '通辽市', coord: [122.26, 43.61] },
+        '150600': { name: '鄂尔多斯市', coord: [109.78, 39.61] },
+        '150700': { name: '呼伦贝尔市', coord: [119.77, 49.22] },
+        '150800': { name: '巴彦淖尔市', coord: [107.39, 40.74] },
+        '150900': { name: '乌兰察布市', coord: [113.13, 40.99] },
+        '152200': { name: '兴安盟', coord: [122.04, 46.08] },
+        '152500': { name: '锡林郭勒盟', coord: [116.04, 43.94] },
+        '152900': { name: '阿拉善盟', coord: [105.7, 38.84] },
+        // 辽宁省
+        '210100': { name: '沈阳市', coord: [123.43, 41.8] },
+        '210200': { name: '大连市', coord: [121.62, 38.92] },
+        '210300': { name: '鞍山市', coord: [123.0, 41.1] },
+        '210400': { name: '抚顺市', coord: [123.98, 41.88] },
+        '210500': { name: '本溪市', coord: [123.77, 41.3] },
+        '210600': { name: '丹东市', coord: [124.38, 40.13] },
+        '210700': { name: '锦州市', coord: [121.13, 41.1] },
+        '210800': { name: '营口市', coord: [122.24, 40.67] },
+        '210900': { name: '阜新市', coord: [121.67, 42.02] },
+        '211000': { name: '辽阳市', coord: [123.18, 41.27] },
+        '211100': { name: '盘锦市', coord: [122.07, 41.12] },
+        '211200': { name: '铁岭市', coord: [123.85, 42.29] },
+        '211300': { name: '朝阳市', coord: [120.45, 41.58] },
+        '211400': { name: '葫芦岛市', coord: [120.84, 40.71] },
+        // 吉林省
+        '220100': { name: '长春市', coord: [125.32, 43.9] },
+        '220200': { name: '吉林市', coord: [126.55, 43.84] },
+        '220300': { name: '四平市', coord: [124.37, 43.17] },
+        '220400': { name: '辽源市', coord: [125.14, 42.88] },
+        '220500': { name: '通化市', coord: [125.94, 41.73] },
+        '220600': { name: '白山市', coord: [126.42, 41.94] },
+        '220700': { name: '松原市', coord: [124.83, 45.14] },
+        '220800': { name: '白城市', coord: [122.84, 45.62] },
+        '222400': { name: '延边朝鲜族自治州', coord: [129.5, 42.88] },
+        // 黑龙江省
+        '230100': { name: '哈尔滨市', coord: [126.63, 45.75] },
+        '230200': { name: '齐齐哈尔市', coord: [123.98, 47.35] },
+        '230300': { name: '鸡西市', coord: [130.97, 45.3] },
+        '230400': { name: '鹤岗市', coord: [130.28, 47.33] },
+        '230500': { name: '双鸭山市', coord: [131.15, 46.64] },
+        '230600': { name: '大庆市', coord: [125.02, 46.59] },
+        '230700': { name: '伊春市', coord: [128.84, 47.73] },
+        '230800': { name: '佳木斯市', coord: [130.36, 46.81] },
+        '230900': { name: '七台河市', coord: [131.0, 45.77] },
+        '231000': { name: '牡丹江市', coord: [129.6, 44.58] },
+        '231100': { name: '黑河市', coord: [127.5, 50.25] },
+        '231200': { name: '绥化市', coord: [126.98, 46.64] },
+        '232700': { name: '大兴安岭地区', coord: [124.12, 50.41] },
+        // 江苏省
+        '320100': { name: '南京市', coord: [118.78, 32.06] },
+        '320200': { name: '无锡市', coord: [120.3, 31.57] },
+        '320300': { name: '徐州市', coord: [117.2, 34.26] },
+        '320400': { name: '常州市', coord: [119.97, 31.78] },
+        '320500': { name: '苏州市', coord: [120.62, 31.32] },
+        '320600': { name: '南通市', coord: [120.86, 32.01] },
+        '320700': { name: '连云港市', coord: [119.22, 34.6] },
+        '320800': { name: '淮安市', coord: [119.02, 33.61] },
+        '320900': { name: '盐城市', coord: [120.16, 33.35] },
+        '321000': { name: '扬州市', coord: [119.42, 32.39] },
+        '321100': { name: '镇江市', coord: [119.45, 32.2] },
+        '321200': { name: '泰州市', coord: [119.92, 32.46] },
+        '321300': { name: '宿迁市', coord: [118.28, 33.96] },
+        // 浙江省
+        '330100': { name: '杭州市', coord: [120.19, 30.26] },
+        '330200': { name: '宁波市', coord: [121.54, 29.87] },
+        '330300': { name: '温州市', coord: [120.7, 28.0] },
+        '330400': { name: '嘉兴市', coord: [120.76, 30.77] },
+        '330500': { name: '湖州市', coord: [120.09, 30.87] },
+        '330600': { name: '绍兴市', coord: [120.58, 30.0] },
+        '330700': { name: '金华市', coord: [119.65, 29.1] },
+        '330800': { name: '衢州市', coord: [118.87, 28.94] },
+        '330900': { name: '舟山市', coord: [122.2, 30.0] },
+        '331000': { name: '台州市', coord: [121.42, 28.65] },
+        '331100': { name: '丽水市', coord: [119.92, 28.45] },
+        // 安徽省
+        '340100': { name: '合肥市', coord: [117.27, 31.86] },
+        '340200': { name: '芜湖市', coord: [118.38, 31.33] },
+        '340300': { name: '蚌埠市', coord: [117.38, 32.92] },
+        '340400': { name: '淮南市', coord: [117.0, 32.63] },
+        '340500': { name: '马鞍山市', coord: [118.5, 31.7] },
+        '340600': { name: '淮北市', coord: [116.8, 33.96] },
+        '340700': { name: '铜陵市', coord: [117.82, 30.93] },
+        '340800': { name: '安庆市', coord: [117.05, 30.53] },
+        '341000': { name: '黄山市', coord: [118.33, 29.72] },
+        '341100': { name: '滁州市', coord: [118.32, 32.3] },
+        '341200': { name: '阜阳市', coord: [115.82, 32.9] },
+        '341300': { name: '宿州市', coord: [116.98, 33.63] },
+        '341500': { name: '六安市', coord: [116.52, 31.74] },
+        '341600': { name: '亳州市', coord: [115.78, 33.85] },
+        '341700': { name: '池州市', coord: [117.49, 30.66] },
+        '341800': { name: '宣城市', coord: [118.76, 30.94] },
+        // 福建省
+        '350100': { name: '福州市', coord: [119.3, 26.08] },
+        '350200': { name: '厦门市', coord: [118.1, 24.46] },
+        '350300': { name: '莆田市', coord: [119.0, 25.44] },
+        '350400': { name: '三明市', coord: [117.62, 26.26] },
+        '350500': { name: '泉州市', coord: [118.59, 24.91] },
+        '350600': { name: '漳州市', coord: [117.65, 24.52] },
+        '350700': { name: '南平市', coord: [118.18, 26.64] },
+        '350800': { name: '龙岩市', coord: [117.02, 25.08] },
+        '350900': { name: '宁德市', coord: [119.55, 26.67] },
+        // 江西省
+        '360100': { name: '南昌市', coord: [115.86, 28.68] },
+        '360200': { name: '景德镇市', coord: [117.18, 29.27] },
+        '360300': { name: '萍乡市', coord: [113.85, 27.62] },
+        '360400': { name: '九江市', coord: [116.0, 29.71] },
+        '360500': { name: '新余市', coord: [114.92, 27.82] },
+        '360600': { name: '鹰潭市', coord: [117.03, 28.24] },
+        '360700': { name: '赣州市', coord: [114.93, 25.83] },
+        '360800': { name: '吉安市', coord: [114.98, 27.12] },
+        '360900': { name: '宜春市', coord: [114.39, 27.8] },
+        '361000': { name: '抚州市', coord: [116.36, 27.98] },
+        '361100': { name: '上饶市', coord: [117.97, 28.45] },
+        // 山东省
+        '370100': { name: '济南市', coord: [117.0, 36.65] },
+        '370200': { name: '青岛市', coord: [120.33, 36.07] },
+        '370300': { name: '淄博市', coord: [118.05, 36.82] },
+        '370400': { name: '枣庄市', coord: [117.32, 34.81] },
+        '370500': { name: '东营市', coord: [118.67, 37.43] },
+        '370600': { name: '烟台市', coord: [121.39, 37.52] },
+        '370700': { name: '潍坊市', coord: [119.1, 36.62] },
+        '370800': { name: '济宁市', coord: [116.58, 35.42] },
+        '370900': { name: '泰安市', coord: [117.08, 36.2] },
+        '371000': { name: '威海市', coord: [122.12, 37.51] },
+        '371100': { name: '日照市', coord: [119.52, 35.42] },
+        '371300': { name: '临沂市', coord: [118.34, 35.07] },
+        '371400': { name: '德州市', coord: [116.36, 37.44] },
+        '371500': { name: '聊城市', coord: [115.98, 36.46] },
+        '371600': { name: '滨州市', coord: [117.97, 37.38] },
+        '371700': { name: '菏泽市', coord: [115.45, 35.25] },
+        // 河南省
+        '410100': { name: '郑州市', coord: [113.65, 34.76] },
+        '410200': { name: '开封市', coord: [114.34, 34.8] },
+        '410300': { name: '洛阳市', coord: [112.45, 34.62] },
+        '410400': { name: '平顶山市', coord: [113.19, 33.77] },
+        '410500': { name: '安阳市', coord: [114.38, 36.1] },
+        '410600': { name: '鹤壁市', coord: [114.29, 35.9] },
+        '410700': { name: '新乡市', coord: [113.87, 35.3] },
+        '410800': { name: '焦作市', coord: [113.24, 35.22] },
+        '410900': { name: '濮阳市', coord: [115.03, 35.76] },
+        '411000': { name: '许昌市', coord: [113.85, 34.04] },
+        '411100': { name: '漯河市', coord: [114.02, 33.58] },
+        '411200': { name: '三门峡市', coord: [111.2, 34.78] },
+        '411300': { name: '南阳市', coord: [112.53, 33.0] },
+        '411400': { name: '商丘市', coord: [115.65, 34.44] },
+        '411500': { name: '信阳市', coord: [114.07, 32.13] },
+        '411600': { name: '周口市', coord: [114.65, 33.62] },
+        '411700': { name: '驻马店市', coord: [114.02, 33.01] },
+        // 湖北省
+        '420100': { name: '武汉市', coord: [114.31, 30.52] },
+        '420200': { name: '黄石市', coord: [115.07, 30.2] },
+        '420300': { name: '十堰市', coord: [110.8, 32.63] },
+        '420500': { name: '宜昌市', coord: [111.28, 30.7] },
+        '420600': { name: '襄阳市', coord: [112.15, 32.01] },
+        '420700': { name: '鄂州市', coord: [114.89, 30.4] },
+        '420800': { name: '荆门市', coord: [112.2, 31.04] },
+        '420900': { name: '孝感市', coord: [113.92, 30.93] },
+        '421000': { name: '荆州市', coord: [112.24, 30.34] },
+        '421100': { name: '黄冈市', coord: [114.87, 30.45] },
+        '421200': { name: '咸宁市', coord: [114.32, 29.84] },
+        '421300': { name: '随州市', coord: [113.38, 31.72] },
+        '422800': { name: '恩施土家族苗族自治州', coord: [109.48, 30.3] },
+        // 湖南省
+        '430100': { name: '长沙市', coord: [112.98, 28.19] },
+        '430200': { name: '株洲市', coord: [113.13, 27.84] },
+        '430300': { name: '湘潭市', coord: [112.93, 27.84] },
+        '430400': { name: '衡阳市', coord: [112.57, 26.89] },
+        '430500': { name: '邵阳市', coord: [111.47, 27.24] },
+        '430600': { name: '岳阳市', coord: [113.13, 29.37] },
+        '430700': { name: '常德市', coord: [111.7, 29.03] },
+        '430800': { name: '张家界市', coord: [110.48, 29.13] },
+        '430900': { name: '益阳市', coord: [112.35, 28.59] },
+        '431000': { name: '郴州市', coord: [113.01, 25.79] },
+        '431100': { name: '永州市', coord: [111.61, 26.43] },
+        '431200': { name: '怀化市', coord: [109.99, 27.56] },
+        '431300': { name: '娄底市', coord: [112.0, 27.74] },
+        '433100': { name: '湘西土家族苗族自治州', coord: [109.74, 28.32] },
+        // 广东省
+        '440100': { name: '广州市', coord: [113.23, 23.16] },
+        '440200': { name: '韶关市', coord: [113.6, 24.81] },
+        '440300': { name: '深圳市', coord: [114.07, 22.62] },
+        '440400': { name: '珠海市', coord: [113.57, 22.27] },
+        '440500': { name: '汕头市', coord: [116.7, 23.37] },
+        '440600': { name: '佛山市', coord: [113.12, 23.02] },
+        '440700': { name: '江门市', coord: [113.08, 22.58] },
+        '440800': { name: '湛江市', coord: [110.36, 21.27] },
+        '440900': { name: '茂名市', coord: [110.92, 21.66] },
+        '441200': { name: '肇庆市', coord: [112.47, 23.05] },
+        '441300': { name: '惠州市', coord: [114.42, 23.11] },
+        '441400': { name: '梅州市', coord: [116.12, 24.29] },
+        '441500': { name: '汕尾市', coord: [115.37, 22.79] },
+        '441600': { name: '河源市', coord: [114.7, 23.74] },
+        '441700': { name: '阳江市', coord: [111.98, 21.86] },
+        '441800': { name: '清远市', coord: [113.03, 23.7] },
+        '441900': { name: '东莞市', coord: [113.75, 23.05] },
+        '442000': { name: '中山市', coord: [113.38, 22.52] },
+        '445100': { name: '潮州市', coord: [116.62, 23.66] },
+        '445200': { name: '揭阳市', coord: [116.36, 23.55] },
+        '445300': { name: '云浮市', coord: [112.04, 22.92] },
+        // 广西
+        '450100': { name: '南宁市', coord: [108.37, 22.82] },
+        '450200': { name: '柳州市', coord: [109.41, 24.33] },
+        '450300': { name: '桂林市', coord: [110.28, 25.27] },
+        '450400': { name: '梧州市', coord: [111.27, 23.48] },
+        '450500': { name: '北海市', coord: [109.12, 21.48] },
+        '450600': { name: '防城港市', coord: [108.35, 21.7] },
+        '450700': { name: '钦州市', coord: [108.62, 21.96] },
+        '450800': { name: '贵港市', coord: [109.6, 23.11] },
+        '450900': { name: '玉林市', coord: [110.14, 22.63] },
+        '451000': { name: '百色市', coord: [106.62, 23.9] },
+        '451100': { name: '贺州市', coord: [111.57, 24.4] },
+        '451200': { name: '河池市', coord: [108.07, 24.7] },
+        '451300': { name: '来宾市', coord: [109.22, 23.75] },
+        '451400': { name: '崇左市', coord: [107.36, 22.38] },
+        // 海南省
+        '460100': { name: '海口市', coord: [110.32, 20.03] },
+        '460200': { name: '三亚市', coord: [109.51, 18.25] },
+        '460300': { name: '三沙市', coord: [112.33, 16.84] },
+        '460400': { name: '儋州市', coord: [109.58, 19.52] },
+        // 四川省
+        '510100': { name: '成都市', coord: [104.06, 30.67] },
+        '510300': { name: '自贡市', coord: [104.78, 29.34] },
+        '510400': { name: '攀枝花市', coord: [101.72, 26.58] },
+        '510500': { name: '泸州市', coord: [105.44, 28.87] },
+        '510600': { name: '德阳市', coord: [104.4, 31.13] },
+        '510700': { name: '绵阳市', coord: [104.74, 31.46] },
+        '510800': { name: '广元市', coord: [105.84, 32.44] },
+        '510900': { name: '遂宁市', coord: [105.58, 30.53] },
+        '511000': { name: '内江市', coord: [105.06, 29.58] },
+        '511100': { name: '乐山市', coord: [103.76, 29.58] },
+        '511300': { name: '南充市', coord: [106.11, 30.84] },
+        '511400': { name: '眉山市', coord: [103.84, 30.05] },
+        '511500': { name: '宜宾市', coord: [104.62, 28.76] },
+        '511600': { name: '广安市', coord: [106.63, 30.46] },
+        '511700': { name: '达州市', coord: [107.49, 31.21] },
+        '511800': { name: '雅安市', coord: [103.0, 29.99] },
+        '511900': { name: '巴中市', coord: [106.77, 31.86] },
+        '512000': { name: '资阳市', coord: [104.64, 30.12] },
+        '513200': { name: '阿坝藏族羌族自治州', coord: [102.22, 31.9] },
+        '513300': { name: '甘孜藏族自治州', coord: [101.96, 30.05] },
+        '513400': { name: '凉山彝族自治州', coord: [102.26, 27.88] },
+        // 贵州省
+        '520100': { name: '贵阳市', coord: [106.71, 26.57] },
+        '520200': { name: '六盘水市', coord: [104.83, 26.59] },
+        '520300': { name: '遵义市', coord: [106.93, 27.71] },
+        '520400': { name: '安顺市', coord: [105.95, 26.25] },
+        '520500': { name: '毕节市', coord: [105.29, 27.3] },
+        '520600': { name: '铜仁市', coord: [109.18, 27.73] },
+        '522300': { name: '黔西南布依族苗族自治州', coord: [104.9, 25.09] },
+        '522600': { name: '黔东南苗族侗族自治州', coord: [107.97, 26.58] },
+        '522700': { name: '黔南布依族苗族自治州', coord: [107.52, 26.25] },
+        // 云南省
+        '530100': { name: '昆明市', coord: [102.73, 25.04] },
+        '530300': { name: '曲靖市', coord: [103.8, 25.5] },
+        '530400': { name: '玉溪市', coord: [102.55, 24.35] },
+        '530500': { name: '保山市', coord: [99.17, 25.12] },
+        '530600': { name: '昭通市', coord: [103.72, 27.34] },
+        '530700': { name: '丽江市', coord: [100.23, 26.87] },
+        '530800': { name: '普洱市', coord: [100.97, 22.79] },
+        '530900': { name: '临沧市', coord: [100.09, 23.89] },
+        '532300': { name: '楚雄彝族自治州', coord: [101.55, 25.04] },
+        '532500': { name: '红河哈尼族彝族自治州', coord: [103.38, 23.37] },
+        '532600': { name: '文山壮族苗族自治州', coord: [104.24, 23.37] },
+        '532800': { name: '西双版纳傣族自治州', coord: [100.8, 22.01] },
+        '532900': { name: '大理白族自治州', coord: [100.23, 25.6] },
+        '533100': { name: '德宏傣族景颇族自治州', coord: [98.58, 24.43] },
+        '533300': { name: '怒江傈僳族自治州', coord: [98.86, 25.82] },
+        '533400': { name: '迪庆藏族自治州', coord: [99.7, 27.82] },
+        // 西藏
+        '540100': { name: '拉萨市', coord: [91.13, 29.65] },
+        '540200': { name: '日喀则市', coord: [88.88, 29.27] },
+        '540300': { name: '昌都市', coord: [97.18, 31.14] },
+        '540400': { name: '林芝市', coord: [94.37, 29.68] },
+        '540500': { name: '山南市', coord: [91.77, 29.24] },
+        '540600': { name: '那曲市', coord: [92.05, 31.48] },
+        '542500': { name: '阿里地区', coord: [80.1, 32.5] },
+        // 陕西省
+        '610100': { name: '西安市', coord: [108.94, 34.26] },
+        '610200': { name: '铜川市', coord: [108.94, 34.9] },
+        '610300': { name: '宝鸡市', coord: [107.15, 34.38] },
+        '610400': { name: '咸阳市', coord: [108.71, 34.33] },
+        '610500': { name: '渭南市', coord: [109.49, 34.5] },
+        '610600': { name: '延安市', coord: [109.49, 36.6] },
+        '610700': { name: '汉中市', coord: [107.02, 33.07] },
+        '610800': { name: '榆林市', coord: [109.74, 38.29] },
+        '610900': { name: '安康市', coord: [109.02, 32.69] },
+        '611000': { name: '商洛市', coord: [109.93, 33.87] },
+        // 甘肃省
+        '620100': { name: '兰州市', coord: [103.83, 36.06] },
+        '620200': { name: '嘉峪关市', coord: [98.28, 39.78] },
+        '620300': { name: '金昌市', coord: [102.19, 38.52] },
+        '620400': { name: '白银市', coord: [104.14, 36.55] },
+        '620500': { name: '天水市', coord: [105.73, 34.58] },
+        '620600': { name: '武威市', coord: [102.64, 37.93] },
+        '620700': { name: '张掖市', coord: [100.45, 38.93] },
+        '620800': { name: '平凉市', coord: [106.67, 35.54] },
+        '620900': { name: '酒泉市', coord: [98.52, 39.74] },
+        '621000': { name: '庆阳市', coord: [107.64, 35.71] },
+        '621100': { name: '定西市', coord: [104.63, 35.58] },
+        '621200': { name: '陇南市', coord: [104.93, 33.4] },
+        '622900': { name: '临夏回族自治州', coord: [103.21, 35.6] },
+        '623000': { name: '甘南藏族自治州', coord: [102.91, 34.98] },
+        // 青海省
+        '630100': { name: '西宁市', coord: [101.76, 36.63] },
+        '630200': { name: '海东市', coord: [102.12, 36.5] },
+        '632200': { name: '海北藏族自治州', coord: [100.9, 36.96] },
+        '632300': { name: '黄南藏族自治州', coord: [102.02, 35.52] },
+        '632500': { name: '海南藏族自治州', coord: [100.62, 36.28] },
+        '632600': { name: '果洛藏族自治州', coord: [100.24, 34.47] },
+        '632700': { name: '玉树藏族自治州', coord: [97.02, 33.01] },
+        '632800': { name: '海西蒙古族藏族自治州', coord: [97.37, 37.38] },
+        // 宁夏
+        '640100': { name: '银川市', coord: [106.28, 38.47] },
+        '640200': { name: '石嘴山市', coord: [106.38, 39.02] },
+        '640300': { name: '吴忠市', coord: [106.21, 37.99] },
+        '640400': { name: '固原市', coord: [106.28, 36.01] },
+        '640500': { name: '中卫市', coord: [105.19, 37.51] },
+        // 新疆
+        '650100': { name: '乌鲁木齐市', coord: [87.62, 43.82] },
+        '650200': { name: '克拉玛依市', coord: [84.88, 45.6] },
+        '650400': { name: '吐鲁番市', coord: [89.19, 42.95] },
+        '650500': { name: '哈密市', coord: [93.51, 42.83] },
+        '652300': { name: '昌吉回族自治州', coord: [87.31, 44.01] },
+        '652700': { name: '博尔塔拉蒙古自治州', coord: [82.07, 44.91] },
+        '652800': { name: '巴音郭楞蒙古自治州', coord: [86.14, 41.76] },
+        '652900': { name: '阿克苏地区', coord: [80.26, 41.17] },
+        '653000': { name: '克孜勒苏柯尔克孜自治州', coord: [76.17, 39.71] },
+        '653100': { name: '喀什地区', coord: [75.99, 39.47] },
+        '653200': { name: '和田地区', coord: [79.93, 37.11] },
+        '654000': { name: '伊犁哈萨克自治州', coord: [81.32, 43.92] },
+        '654200': { name: '塔城地区', coord: [82.99, 46.75] },
+        '654300': { name: '阿勒泰地区', coord: [88.13, 47.85] },
+        // 台湾省
+        '830100': { name: '台北市', coord: [121.56, 25.04] },
+        '830200': { name: '新北市', coord: [121.47, 25.02] },
+        '830300': { name: '桃园市', coord: [121.3, 24.99] },
+        '830400': { name: '台中市', coord: [120.67, 24.15] },
+        '830500': { name: '台南市', coord: [120.23, 23.0] },
+        '830600': { name: '高雄市', coord: [120.31, 22.62] },
+        '830700': { name: '基隆市', coord: [121.74, 25.13] },
+        '830800': { name: '新竹市', coord: [120.97, 24.81] },
+        '830900': { name: '嘉义市', coord: [120.45, 23.48] },
       }
 
       // 汇总流向：按来源城市聚合
@@ -462,7 +767,7 @@ const fetchAllData = async (range?: string) => {
         let html = ''
         statusList.forEach((item: any) => {
           const pct = ((item.count / total) * 100).toFixed(1)
-          html += `<div class="funnel-segment" style="flex:${item.count};background:${colors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"><span class="funnel-count">${item.count}</span></div>`
+          html += `<div class="funnel-segment" style="flex:${item.count};background:${colors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"></div>`
         })
         funnelEl.innerHTML = html
         document.getElementById('funnel-total')!.textContent = total.toLocaleString()
@@ -479,7 +784,7 @@ const fetchAllData = async (range?: string) => {
         let html = ''
         auditList.forEach((item: any) => {
           const pct = ((item.count / entTotal) * 100).toFixed(1)
-          html += `<div class="funnel-segment" style="flex:${item.count};background:${entColors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"><span class="funnel-count">${item.count}</span></div>`
+          html += `<div class="funnel-segment" style="flex:${item.count};background:${entColors[item.status] || '#333'};" title="${item.name}: ${item.count} (${pct}%)"></div>`
         })
         entEl.innerHTML = html
         document.getElementById('ent-total')!.textContent = entTotal.toLocaleString()
@@ -491,8 +796,8 @@ const fetchAllData = async (range?: string) => {
       const authEl = document.getElementById('funnel-auth')
       if (authEl && totalUser > 0) {
         authEl.innerHTML = `
-          <div class="funnel-segment" style="flex:${authed};background:#67C23A;" title="已认证: ${authed} (${((authed/totalUser)*100).toFixed(1)}%)"><span class="funnel-count">${authed}</span></div>
-          <div class="funnel-segment" style="flex:${unauth};background:#909399;" title="未认证: ${unauth} (${((unauth/totalUser)*100).toFixed(1)}%)"><span class="funnel-count">${unauth}</span></div>
+          <div class="funnel-segment" style="flex:${authed};background:#67C23A;" title="已认证: ${authed} (${((authed/totalUser)*100).toFixed(1)}%)"></div>
+          <div class="funnel-segment" style="flex:${unauth};background:#909399;" title="未认证: ${unauth} (${((unauth/totalUser)*100).toFixed(1)}%)"></div>
         `
         document.getElementById('auth-rate')!.textContent = ((authed / totalUser) * 100).toFixed(1) + '%'
       }
@@ -559,16 +864,18 @@ function getNoiseHelper() {
 const initBgNoise = () => {
   const bgDom = document.getElementById('bg-container')
   if (!bgDom) return
+  // 容器尺寸为 0 时跳过初始化，防止 0 尺寸 canvas 报错
+  if (bgDom.offsetWidth === 0 || bgDom.offsetHeight === 0) return
   bgChart = echarts.init(bgDom)
   const noise = getNoiseHelper()
   
   const config = {
-    frequency: 500,
+    frequency: 1200,
     offsetX: 0,
     offsetY: 100,
     minSize: 1,
     maxSize: 3,
-    duration: 4000,
+    duration: 6000,
     color0: '#1762FB',
     color1: '#051024',
     backgroundColor: '#051024'
@@ -589,7 +896,7 @@ const initBgNoise = () => {
           keyframeAnimation: {
             duration: config.duration,
             loop: true,
-            delay: (rand - 1) * 4000,
+            delay: (rand - 1) * config.duration,
             keyframes: [
               { percent: 0.5, easing: 'sinusoidalInOut', style: { fill: config.color0 }, scaleX: config.minSize / config.maxSize, scaleY: config.minSize / config.maxSize },
               { percent: 1, easing: 'sinusoidalInOut', style: { fill: config.color1 }, scaleX: 1, scaleY: 1 }
@@ -614,6 +921,18 @@ let chartMap: echarts.ECharts | null = null
 let chartRing: echarts.ECharts | null = null
 let chartBar: echarts.ECharts | null = null
 
+/** 标记组件是否已卸载，防止异步回调操作已销毁的图表 */
+let isUnmounted = false
+
+/** 安全销毁所有图表实例并置空引用 */
+const disposeAllCharts = () => {
+  bgChart?.dispose(); bgChart = null
+  chartTrend?.dispose(); chartTrend = null
+  chartMap?.dispose(); chartMap = null
+  chartRing?.dispose(); chartRing = null
+  chartBar?.dispose(); chartBar = null
+}
+
 // 通用 ECharts 主题配置
 const getCommonOption = (): echarts.EChartsOption => ({
   backgroundColor: 'transparent',
@@ -635,8 +954,17 @@ const getCommonOption = (): echarts.EChartsOption => ({
 })
 
 const initECharts = () => {
+  // 容器尺寸校验：防止 0 尺寸 canvas 导致 drawImage 报错
+  const ensureSize = (id: string): HTMLElement | null => {
+    const el = document.getElementById(id)
+    if (!el || el.offsetWidth === 0 || el.offsetHeight === 0) return null
+    return el
+  }
+
   // 1. 供需趋势图 (双轴折线)
-  chartTrend = echarts.init(document.getElementById('chart-trend')!)
+  const trendEl = ensureSize('chart-trend')
+  if (!trendEl) return
+  chartTrend = echarts.init(trendEl)
   const trendOption: echarts.EChartsOption = {
     ...getCommonOption(),
     legend: { data: ['新增岗位', '投递简历'], icon: 'roundRect', right: 10, top: 0, textStyle: { color: '#aaa' } },
@@ -673,12 +1001,14 @@ const initECharts = () => {
   chartTrend.setOption(trendOption)
 
   // 2. 人才热度地图 — 全国人才流向（数据由 fetchAllData 提供真实 API 数据）
-  chartMap = echarts.init(document.getElementById('chart-map')!)
+  const mapEl = ensureSize('chart-map')
+  if (mapEl) chartMap = echarts.init(mapEl)
   const chengdu: [number, number] = [104.06, 30.67]
 
   fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
     .then(res => res.json())
     .then(chinaJson => {
+      if (isUnmounted || !chartMap) return
       echarts.registerMap('china', chinaJson)
 
       const mapOption = {
@@ -719,12 +1049,13 @@ const initECharts = () => {
       }
       chartMap.setOption(mapOption)
       // 地图就绪后再拉取数据
-      fetchAllData()
+      if (!isUnmounted) fetchAllData()
     })
     .catch(err => console.warn('地图加载失败，请检查网络', err))
 
   // 3. 行业需求占比 (环形图)
-  chartRing = echarts.init(document.getElementById('chart-ring')!)
+  const ringEl = ensureSize('chart-ring')
+  if (ringEl) chartRing = echarts.init(ringEl)
   const ringOption: echarts.EChartsOption = {
     ...getCommonOption(),
     tooltip: { trigger: 'item' },
@@ -774,7 +1105,8 @@ const initECharts = () => {
   chartRing.setOption(ringOption)
 
   // 4. 热门岗位排行 (横向条形图)
-  chartBar = echarts.init(document.getElementById('chart-bar')!)
+  const barEl = ensureSize('chart-bar')
+  if (barEl) chartBar = echarts.init(barEl)
   const barOption: echarts.EChartsOption = {
     ...getCommonOption(),
     grid: { left: '15%', right: '15%', top: '10%', bottom: '10%' },
@@ -823,21 +1155,25 @@ const handleResize = () => {
 
 // ============== 4. 生命周期控制 ==============
 onMounted(() => {
-  initBgNoise()
-  initECharts()
+  // 等待 DOM 布局完成后初始化图表，确保容器有有效尺寸
+  nextTick(() => {
+    if (isUnmounted) return
+    initBgNoise()
+    initECharts()
+  })
+
   const intervalId = setInterval(() => {
+    if (isUnmounted) return
     rangeIndex = (rangeIndex + 1) % timeRanges.length
     currentRange.value = timeRanges[rangeIndex]
     fetchAllData(currentRange.value)
   }, 10000)
+
   onUnmounted(() => {
+    isUnmounted = true
     window.removeEventListener('resize', handleResize)
-    bgChart?.dispose()
-    chartTrend?.dispose()
-    chartMap?.dispose()
-    chartRing?.dispose()
-    chartBar?.dispose()
     clearInterval(intervalId)
+    disposeAllCharts()
   })
 })
 
@@ -992,14 +1328,15 @@ onMounted(() => {
 }
 
 .chart-card {
-  background: rgba(5, 16, 36, 0.6);
-  border: 1px solid rgba(23, 98, 251, 0.15);
+  background: rgba(23, 98, 251, 0.08);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 16px;
   padding: 16px;
   backdrop-filter: blur(4px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 40px rgba(23, 98, 251, 0.1);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .card-header {
@@ -1022,7 +1359,7 @@ onMounted(() => {
 .chart-container {
   flex: 1;
   width: 100%;
-  min-height: 0;
+  min-height: 200px;
 }
 
 .left-panel {
@@ -1145,13 +1482,6 @@ onMounted(() => {
   justify-content: center;
   transition: flex 0.5s ease;
   min-width: 20px;
-}
-.funnel-count {
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-  pointer-events: none;
 }
 .funnel-labels {
   display: flex;
