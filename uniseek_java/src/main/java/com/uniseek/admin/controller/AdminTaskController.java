@@ -40,8 +40,9 @@ public class AdminTaskController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword) {
-        PageResult<Task> result = adminService.listTasks(page, pageSize, status, keyword);
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean rejected) {
+        PageResult<Task> result = adminService.listTasks(page, pageSize, status, keyword, rejected);
         return ApiResult.success(result);
     }
 

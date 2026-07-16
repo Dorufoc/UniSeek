@@ -181,6 +181,7 @@ CREATE TABLE `task` (
     `longitude`       DECIMAL(10,7) DEFAULT NULL             COMMENT '经度',
     `latitude`        DECIMAL(10,7) DEFAULT NULL             COMMENT '纬度',
     `status`          TINYINT(1)    NOT NULL DEFAULT 0       COMMENT '状态：0-待审, 1-招聘中, 2-已满员, 3-已过期, 4-已下架',
+    `reject_reason`   VARCHAR(500)  DEFAULT NULL             COMMENT '驳回原因（管理员驳回时填写）',
     `version`         INT(10)       NOT NULL DEFAULT 0       COMMENT '乐观锁版本号',
     `deadline`        DATETIME      DEFAULT NULL             COMMENT '报名截止时间',
     `audit_time`      DATETIME      DEFAULT NULL             COMMENT '审核通过时间（职位状态变更为招聘中的时间）',

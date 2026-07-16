@@ -22,6 +22,7 @@
         <result column="longitude" property="longitude"/>
         <result column="latitude" property="latitude"/>
         <result column="status" property="status"/>
+        <result column="reject_reason" property="rejectReason"/>
         <result column="version" property="version"/>
         <result column="deadline" property="deadline"/>
         <result column="create_time" property="createTime"/>
@@ -48,6 +49,7 @@
         <result column="longitude" property="longitude"/>
         <result column="latitude" property="latitude"/>
         <result column="status" property="status"/>
+        <result column="reject_reason" property="rejectReason"/>
         <result column="deadline" property="deadline"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -75,7 +77,7 @@
         task.salary_min, task.salary_max, task.salary_unit,
         task.job_type, task.total_quota, task.remaining_quota,
         task.address, task.tag, task.longitude, task.latitude,
-        task.status, task.deadline, task.create_time, task.update_time,
+        task.status, task.reject_reason, task.deadline, task.create_time, task.update_time,
         enterprise.company_name AS enterprise_name,
         category.name AS category_name,
         region.name AS region_name
@@ -215,6 +217,12 @@
             </if>
             <if test="keyword != null and keyword != ''">
                 AND task.title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="rejected != null and rejected">
+                AND task.reject_reason IS NOT NULL
+            </if>
+            <if test="rejected != null and !rejected">
+                AND task.reject_reason IS NULL
             </if>
         </where>
         ORDER BY task.id ASC

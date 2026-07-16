@@ -3,19 +3,25 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { getEnterpriseTasks, updateTaskStatus, type TaskVO } from '@/api/task'
+import { getEnterpriseTasks, updateTaskStatus, resubmitTask, type TaskVO } from '@/api/task'
 
 const router = useRouter()
 const loading = ref(false)
 const tasks = ref<TaskVO[]>([])
 
-// 状态映射
-const statusMap: Record<number, { label: string; type: 'success' | 'warning' | 'info' | 'danger' }> = {
-  0: { label: '待审核', type: 'warning' },
-  1: { label: '招聘中', type: 'success' },
-  2: { label: '已满员', type: 'danger' },
-  3: { label: '已过期', type: 'info' },
-  4: { label: '已下架', type: 'info' }
+// 计算状态标签
+const getStatusInfo = (status: number, rejectReason?: string) => {
+  if (status === 0 && rejectReason) {
+    return { label: '已驳回', type: 'danger' as const, reason: rejectReason }
+  }
+  const map: Record<number, { label: string; type: 'success' | 'warning' | 'info' | 'danger' }> = {
+    0: { label: '待审核', type: 'warning' },
+    1: { label: '招聘中', type: 'success' },
+    2: { label: '已满员', type: 'danger' },
+    3: { label: '已过期', type: 'info' },
+    4: { label: '已下架', type: 'info' }
+  }
+  return { ...map[status] || { label: '未知', type: 'info' }, reason: undefined }
 }
 
 // 岗位类型映射
@@ -74,6 +80,18 @@ const toggleStatus = async (task: TaskVO) => {
   }
 }
 
+// 重新提交审核
+const handleResubmit = async (task: TaskVO) => {
+  try {
+    await ElMessageBox.confirm('确定要重新提交审核吗？', '提示', { type: 'warning' })
+    await resubmitTask(task.id)
+    ElMessage.success('已重新提交审核')
+    await loadTasks()
+  } catch {
+    // 用户取消或错误
+  }
+}
+
 // 判断当前状态是否允许上下架操作
 const canToggle = (status: number) => status === 1 || status === 4
 
@@ -105,9 +123,12 @@ onMounted(loadTasks)
         <div class="job-header">
           <div class="job-title-wrap">
             <span class="job-title">{{ task.title }}</span>
-            <el-tag :type="statusMap[task.status]?.type || 'info'" size="small">
-              {{ statusMap[task.status]?.label || '未知' }}
+            <el-tag :type="getStatusInfo(task.status, task.rejectReason).type" size="small">
+              {{ getStatusInfo(task.status, task.rejectReason).label }}
             </el-tag>
+          </div>
+          <div v-if="task.status === 0 && task.rejectReason" class="reject-hint">
+            驳回原因：{{ task.rejectReason }}
           </div>
           <div class="job-salary">
             {{ task.salaryMin }}-{{ task.salaryMax }} 元 / {{ salaryUnitMap[task.salaryUnit] || '月' }}
@@ -133,14 +154,20 @@ onMounted(loadTasks)
             <span class="job-time">发布于 {{ formatDate(task.createTime) }}</span>
           </div>
           <div class="job-actions">
-            <el-button
-              v-if="canToggle(task.status)"
-              :type="task.status === 1 ? 'danger' : 'success'"
-              size="small"
-              @click="toggleStatus(task)"
-            >
-              {{ task.status === 1 ? '下架' : '上架' }}
-            </el-button>
+            <template v-if="task.status === 0 && task.rejectReason">
+              <el-button type="primary" size="small" @click="$router.push(`/post-job?id=${task.id}`)">编辑</el-button>
+              <el-button type="success" size="small" @click="handleResubmit(task)">重新提交</el-button>
+            </template>
+            <template v-else>
+              <el-button
+                v-if="canToggle(task.status)"
+                :type="task.status === 1 ? 'danger' : 'success'"
+                size="small"
+                @click="toggleStatus(task)"
+              >
+                {{ task.status === 1 ? '下架' : '上架' }}
+              </el-button>
+            </template>
             <el-button size="small" @click="$router.push(`/jobs/${task.id}`)">查看详情</el-button>
           </div>
         </div>
@@ -210,6 +237,12 @@ onMounted(loadTasks)
   font-size: 16px;
   font-weight: 600;
   color: #000;
+}
+
+.reject-hint {
+  font-size: 12px;
+  color: #f56c6c;
+  margin-top: 4px;
 }
 
 .job-salary {

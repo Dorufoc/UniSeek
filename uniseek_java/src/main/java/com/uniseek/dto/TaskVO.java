@@ -63,6 +63,9 @@ public class TaskVO {
     /** 状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 */
     private Integer status;
 
+    /** 驳回原因 */
+    private String rejectReason;
+
     /** 报名截止时间 */
     private LocalDateTime deadline;
 

@@ -73,6 +73,9 @@ public class Task {
     /** 状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 */
     private Integer status;
 
+    /** 驳回原因 */
+    private String rejectReason;
+
     /** 乐观锁版本号 */
     @Version
     private Integer version;

@@ -127,7 +127,8 @@ public interface TaskMapper extends BaseMapper<Task> {
      */
     IPage<Task> selectAdminTaskPage(Page<Task> page,
                                     @Param("status") Integer status,
-                                    @Param("keyword") String keyword);
+                                    @Param("keyword") String keyword,
+                                    @Param("rejected") Boolean rejected);
 
     /**
      * 查询指定企业的已发布职位（status = 1）

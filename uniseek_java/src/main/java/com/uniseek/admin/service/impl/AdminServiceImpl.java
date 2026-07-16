@@ -167,10 +167,10 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public PageResult<Task> listTasks(int page, int pageSize, Integer status, String keyword) {
+    public PageResult<Task> listTasks(int page, int pageSize, Integer status, String keyword, Boolean rejected) {
         checkAdmin();
         IPage<Task> result = taskMapper.selectAdminTaskPage(
-                new Page<>(page, pageSize), status, keyword);
+                new Page<>(page, pageSize), status, keyword, rejected);
         return PageResult.of(result);
     }
 
@@ -192,6 +192,7 @@ public class AdminServiceImpl implements AdminService {
         if (approved) {
             // 审核通过，发布职位
             task.setStatus(1); // 已发布
+            task.setRejectReason(null); // 清除驳回原因
             task.setUpdateTime(now);
             task.setAuditTime(now);
             taskMapper.updateById(task);
@@ -204,13 +205,12 @@ public class AdminServiceImpl implements AdminService {
 
             log.info("管理员 {} 通过了职位 {} 的审核并发布", adminId, task.getId());
         } else {
-            // 审核驳回（状态保持 0 不变，但记录驳回原因）
+            // 审核驳回（记录驳回原因，状态保持 0）
             if (rejectReason == null || rejectReason.trim().isEmpty()) {
                 throw new BusinessException("驳回时必须填写原因");
             }
-            // 状态保持 0（待审核），通过 description 记录驳回原因
+            task.setRejectReason(rejectReason);
             task.setUpdateTime(now);
-            // TODO: Todo 20 添加 reject_reason 字段后设置驳回原因
             taskMapper.updateById(task);
 
             // 发送通知给 HR

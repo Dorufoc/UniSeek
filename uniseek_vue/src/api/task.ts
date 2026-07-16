@@ -48,6 +48,7 @@ export interface TaskVO {
   longitude: number
   latitude: number
   status: number
+  rejectReason?: string
   deadline: string | null
   createTime: string
   updateTime: string
@@ -121,3 +122,7 @@ export const getAllTags = async () => {
   const res = await request.get<ApiResponse<string[]>>('/tasks/tags/all')
   return res
 }
+
+/** PUT /api/tasks/{id}/resubmit 重新提交审核 */
+export const resubmitTask = (id: number) =>
+  request.put<any, void>(`/tasks/${id}/resubmit`)
