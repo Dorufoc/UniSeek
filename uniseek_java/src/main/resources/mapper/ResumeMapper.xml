@@ -31,15 +31,15 @@
         WHERE r.user_id = #{userId}
     </select>
 
-    <!-- 查询已发布到人才市场的简历 -->
+    <!-- 查询已发布到人才市场的简历（仅展示已实名认证的用户） -->
     <select id="selectPublishedResumes" resultMap="ResumeWithRealNameMap">
         SELECT r.*, rn.real_name
         FROM resume r
-        LEFT JOIN real_name_auth rn ON r.user_id = rn.user_id AND rn.status = 1
+        INNER JOIN real_name_auth rn ON r.user_id = rn.user_id AND rn.status = 1
         WHERE r.is_published = 1
         <if test="keyword != null and keyword != ''">
-            AND (rn.real_name LIKE CONCAT('%', #{keyword}, '%')
-                 OR r.skills LIKE CONCAT('%', #{keyword}, '%'))
+            AND (rn.real_name REGEXP #{kwPattern}
+                 OR r.skills REGEXP #{kwPattern})
         </if>
         ORDER BY r.update_time DESC
     </select>

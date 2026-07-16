@@ -13,8 +13,7 @@ const userStore = useUserStore()
 const activeTab = ref<'login' | 'register'>('login')
 // 提交加载状态
 const loading = ref(false)
-// 用户协议勾选状态
-const agreed = ref(false)
+
 // 注册时的角色选择：null 未选择，0 求职者，1 招聘者
 const role = ref<0 | 1 | null>(null)
 
@@ -43,14 +42,14 @@ const isNicknameValid = computed(() => form.nickname.trim().length >= 2 && form.
 // 角色是否已选择
 const isRoleValid = computed(() => role.value !== null)
 
-// 登录按钮是否可用：手机号 + 密码 + 协议勾选均满足
+// 登录按钮是否可用：手机号 + 密码均满足
 const canLogin = computed(() => {
-  return isPhoneValid.value && isPasswordValid.value && agreed.value
+  return isPhoneValid.value && isPasswordValid.value
 })
 
-// 注册按钮是否可用：角色 + 手机号 + 邮箱 + 昵称 + 密码 + 确认密码 + 协议勾选均满足
+// 注册按钮是否可用：角色 + 手机号 + 邮箱 + 昵称 + 密码 + 确认密码均满足
 const canRegister = computed(() => {
-  return isRoleValid.value && isPhoneValid.value && isEmailValid.value && isNicknameValid.value && isPasswordValid.value && isConfirmPasswordValid.value && agreed.value
+  return isRoleValid.value && isPhoneValid.value && isEmailValid.value && isNicknameValid.value && isPasswordValid.value && isConfirmPasswordValid.value
 })
 
 // 处理登录：调用登录接口，保存 token 和用户信息，根据角色跳转不同页面
@@ -113,7 +112,6 @@ const switchTab = (tab: 'login' | 'register') => {
   form.confirmPassword = ''
   form.nickname = ''
   role.value = null
-  agreed.value = false
 }
 
 </script>
@@ -170,17 +168,6 @@ const switchTab = (tab: 'login' | 'register') => {
                 show-password
                 :prefix-icon="Lock"
               />
-            </div>
-
-            <!-- 用户协议勾选 -->
-            <div class="form-options">
-              <label class="agree-label">
-                <el-checkbox v-model="agreed" />
-                <span>
-                  已阅读并同意
-                  <a href="#" onclick="return false">《用户协议》</a>和<a href="#" onclick="return false">《隐私政策》</a>
-                </span>
-              </label>
             </div>
 
             <!-- 登录按钮 -->
@@ -283,17 +270,6 @@ const switchTab = (tab: 'login' | 'register') => {
                 :prefix-icon="Lock"
               />
               <span v-if="form.confirmPassword && !isConfirmPasswordValid" class="input-error">两次密码输入不一致</span>
-            </div>
-
-            <!-- 用户协议勾选 -->
-            <div class="form-options">
-              <label class="agree-label">
-                <el-checkbox v-model="agreed" />
-                <span>
-                  已阅读并同意
-                  <a href="#" onclick="return false">《用户协议》</a>和<a href="#" onclick="return false">《隐私政策》</a>
-                </span>
-              </label>
             </div>
 
             <!-- 注册按钮 -->

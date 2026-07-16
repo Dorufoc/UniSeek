@@ -1,8 +1,8 @@
 package com.uniseek.service;
 
+import com.uniseek.common.PageResult;
 import com.uniseek.dto.ResumeRequest;
 import com.uniseek.entity.Resume;
-import java.util.List;
 
 /**
  * 简历服务接口
@@ -37,10 +37,12 @@ public interface ResumeService {
     void unpublishResume(Long userId);
 
     /**
-     * 搜索已发布到人才市场的简历
+     * 分页搜索已发布到人才市场的简历
      *
-     * @param keyword 关键词（匹配姓名和技能标签）
-     * @return 已发布的简历列表
+     * @param keyword  关键词（匹配姓名和技能标签）
+     * @param page     页码
+     * @param pageSize 每页条数
+     * @return 分页结果
      */
-    List<Resume> searchPublishedResumes(String keyword);
+    PageResult<Resume> searchPublishedResumes(String keyword, int page, int pageSize);
 }

@@ -87,7 +87,7 @@ public class ChatController {
      * 发送消息
      * POST /api/chat/sessions/{applicationId}/messages
      *
-     * @param applicationId 投递记录 ID
+     * @param applicationId 投递记录 ID（直接会话传 session ID）
      * @param request       发送消息请求
      * @return 发送的消息
      */
@@ -99,10 +99,13 @@ public class ChatController {
         Integer role = UserContext.getRole();
         ChatMessageVO vo = chatService.sendMessage(applicationId, userId, role, request);
 
-        // 通过 WebSocket 向接收方推送新消息
+        // 查询会话并获取接收方
         Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
-        if (sessionId != null) {
-            ChatSession session = chatSessionMapper.selectById(sessionId);
+        if (sessionId == null) {
+            sessionId = applicationId; // 直接会话：applicationId 就是 sessionId
+        }
+        ChatSession session = chatSessionMapper.selectById(sessionId);
+        if (session != null) {
             Long receiverId = userId.equals(session.getEmployerId())
                     ? session.getSeekerId()
                     : session.getEmployerId();
@@ -110,6 +113,20 @@ public class ChatController {
         }
 
         return ApiResult.success("发送成功", vo);
+    }
+
+    /**
+     * 创建直接会话（人才库联系求职者）
+     * POST /api/chat/sessions/direct
+     *
+     * @param targetUserId 目标用户 ID（求职者）
+     * @return 会话 ID
+     */
+    @PostMapping("/sessions/direct")
+    public ApiResult<Long> createDirectSession(@RequestParam Long targetUserId) {
+        Long userId = UserContext.getUserId();
+        Long sessionId = chatService.createDirectSession(userId, targetUserId);
+        return ApiResult.success(sessionId);
     }
 
     /**

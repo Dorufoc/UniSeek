@@ -1,4 +1,5 @@
 import request from './index'
+import type { PageResult } from './task'
 
 export interface ResumeData {
   id?: number
@@ -51,6 +52,6 @@ export const publishResume = () =>
 export const unpublishResume = () =>
   request.patch<any, void>('/resume/unpublish')
 
-/** GET /resume/search 搜索已发布的简历 */
-export const searchPublishedResumes = (keyword?: string) =>
-  request.get<any, ResumeData[]>('/resume/search', { params: { keyword } })
+/** GET /resume/search 分页搜索已发布的简历 */
+export const searchPublishedResumes = (keyword?: string, page = 1, pageSize = 20) =>
+  request.get<any, PageResult<ResumeData>>('/resume/search', { params: { keyword, page, pageSize } })

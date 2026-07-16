@@ -95,7 +95,8 @@
     <sql id="searchConditions">
         <where>
             <if test="req.keyword != null and req.keyword != ''">
-                AND task.title LIKE CONCAT('%', #{req.keyword}, '%')
+                AND (task.title REGEXP #{req.keywordRegex}
+                     OR enterprise.company_name REGEXP #{req.keywordRegex})
             </if>
             <if test="req.categoryIds != null and req.categoryIds != ''">
                 AND task.category_id IN

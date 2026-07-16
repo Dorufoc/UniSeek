@@ -222,9 +222,20 @@ public class AdminServiceImpl implements AdminService {
         checkAdmin();
         QueryWrapper<User> wrapper = new QueryWrapper<>();
         if (keyword != null && !keyword.trim().isEmpty()) {
-            wrapper.and(w -> w.like("phone", keyword)
-                    .or().like("email", keyword)
-                    .or().like("nickname", keyword));
+            String[] tokens = keyword.trim().split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String token : tokens) {
+                if (sb.length() > 0) sb.append(".*");
+                for (int i = 0; i < token.length(); i++) {
+                    if (i > 0) sb.append(".*");
+                    String ch = String.valueOf(token.charAt(i));
+                    sb.append(ch.replaceAll("([.+*?^${}()|\\[\\]\\\\])", "\\\\$1"));
+                }
+            }
+            String kwPattern = sb.toString();
+            wrapper.and(w -> w.apply("phone REGEXP {0}", kwPattern)
+                    .or().apply("email REGEXP {0}", kwPattern)
+                    .or().apply("nickname REGEXP {0}", kwPattern));
         }
         if (role != null) {
             wrapper.eq("role", role);

@@ -95,7 +95,7 @@ const loadMessages = async (appId: number, beforeId?: number) => {
       hasMore.value = false
     }
     if (beforeId) {
-      messages.value.unshift(...list)
+      messages.value.push(...list)
     } else {
       messages.value = list
     }
@@ -104,11 +104,11 @@ const loadMessages = async (appId: number, beforeId?: number) => {
   }
 }
 
-const scrollToBottom = () => {
+const scrollToTop = () => {
   nextTick(() => {
     const el = messageListRef.value
     if (el) {
-      el.scrollTop = el.scrollHeight
+      el.scrollTop = 0
     }
   })
 }
@@ -131,7 +131,7 @@ const selectSession = async (appId: number) => {
     /* 错误已在拦截器处理 */
   } finally {
     chatLoading.value = false
-    scrollToBottom()
+    scrollToTop()
   }
 }
 
@@ -149,10 +149,11 @@ const handleSend = async () => {
   sending.value = true
   try {
     const msg = await sendMessage(selectedAppId.value, { content: text })
-    messages.value.push(msg)
+    messages.value.unshift(msg)
     inputText.value = ''
+    updateSessionInSidebar(msg)
     await refreshCurrentSession()
-    scrollToBottom()
+    scrollToTop()
     await loadSessions()
   } catch {
     /* 错误已在拦截器处理 */
@@ -176,9 +177,10 @@ const handleSendResume = async () => {
       return
     }
     const msg = await sendMessage(selectedAppId.value, { messageType: 2, content: resume.attachmentUrl })
-    messages.value.push(msg)
+    messages.value.unshift(msg)
+    updateSessionInSidebar(msg)
     await refreshCurrentSession()
-    scrollToBottom()
+    scrollToTop()
     await loadSessions()
   } catch {
     /* 错误已在拦截器处理 */
@@ -201,6 +203,41 @@ const refreshCurrentSession = async () => {
   }
 }
 
+/**
+ * 发送消息后立即更新左侧会话列表：
+ * - 若会话已存在，则更新最后一条消息预览并置顶；
+ * - 若会话不在列表中（如直接会话），则根据当前会话详情构造一条插入顶部。
+ */
+const updateSessionInSidebar = (msg: ChatMessageVO) => {
+  if (!selectedAppId.value) return
+  const appId = selectedAppId.value
+  const idx = sessions.value.findIndex(s => s.applicationId === appId)
+  const preview = msg.messageType === 2 ? '[简历附件]' : msg.content
+  if (idx !== -1) {
+    const item = sessions.value[idx]
+    item.lastMessage = preview
+    item.lastMessageTime = msg.sendTime
+    item.unreadCount = 0
+    sessions.value.splice(idx, 1)
+    sessions.value.unshift(item)
+  } else if (session.value) {
+    sessions.value.unshift({
+      applicationId: appId,
+      taskId: session.value.taskId,
+      taskTitle: session.value.taskTitle,
+      taskStatus: session.value.taskStatus,
+      applicationStatus: session.value.applicationStatus,
+      counterpartId: session.value.counterpartId,
+      counterpartName: session.value.counterpartName,
+      counterpartAvatar: session.value.counterpartAvatar,
+      lastMessage: preview,
+      lastMessageTime: msg.sendTime,
+      unreadCount: 0,
+      canSend: session.value.canSend
+    })
+  }
+}
+
 const handleWsNewMessage = (data: WsNewMessageData) => {
   loadSessions()
   if (data.applicationId !== selectedAppId.value) return
@@ -215,9 +252,9 @@ const handleWsNewMessage = (data: WsNewMessageData) => {
     isRead: data.isRead ?? 1,
     sendTime: data.sendTime
   }
-  messages.value.push(msg)
+  messages.value.unshift(msg)
   refreshCurrentSession()
-  scrollToBottom()
+  scrollToTop()
 }
 
 useChatWebSocket({
@@ -227,15 +264,8 @@ useChatWebSocket({
 
 const handleLoadMore = async () => {
   if (!hasMore.value || messages.value.length === 0 || !selectedAppId.value) return
-  const firstId = messages.value[0].id
-  const oldScrollHeight = messageListRef.value?.scrollHeight || 0
-  await loadMessages(selectedAppId.value, firstId)
-  nextTick(() => {
-    const el = messageListRef.value
-    if (el) {
-      el.scrollTop = el.scrollHeight - oldScrollHeight
-    }
-  })
+  const lastId = messages.value[messages.value.length - 1].id
+  await loadMessages(selectedAppId.value, lastId)
 }
 
 onMounted(async () => {
@@ -301,9 +331,6 @@ watch(() => route.query.chat, async (newVal) => {
         <div class="message-list" ref="messageListRef">
           <div v-if="chatLoading" class="loading-state">加载中...</div>
           <template v-else>
-            <div v-if="hasMore && messages.length > 0" class="load-more">
-              <button @click="handleLoadMore">加载更多</button>
-            </div>
             <div
               v-for="msg in messages"
               :key="msg.id"
@@ -325,6 +352,9 @@ watch(() => route.query.chat, async (newVal) => {
                 <div v-else class="bubble">{{ msg.content }}</div>
                 <div class="message-time">{{ formatTime(msg.sendTime) }}</div>
               </div>
+            </div>
+            <div v-if="hasMore && messages.length > 0" class="load-more">
+              <button @click="handleLoadMore">加载更多</button>
             </div>
             <div v-if="messages.length === 0" class="empty-state">暂无消息，开始沟通吧</div>
           </template>

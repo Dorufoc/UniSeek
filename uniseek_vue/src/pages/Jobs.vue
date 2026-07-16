@@ -103,6 +103,12 @@ const setSettlementType = (val: number | undefined) => {
   loadTasks()
 }
 
+const isSalaryEmpty = computed(() => {
+  const minEmpty = salaryMinInput.value == null || Number.isNaN(salaryMinInput.value)
+  const maxEmpty = salaryMaxInput.value == null || Number.isNaN(salaryMaxInput.value)
+  return minEmpty && maxEmpty
+})
+
 const onSalaryChange = () => {
   filter.salaryMin = salaryMinInput.value
   filter.salaryMax = salaryMaxInput.value
@@ -392,15 +398,14 @@ onMounted(async () => {
           <h4 class="filter-title">薪资范围</h4>
           <div class="salary-input-row">
             <div class="salary-input-wrapper">
-              <el-input v-model.number="salaryMinInput" placeholder="最低薪资" size="small" clearable @change="onSalaryChange" />
-              <span class="salary-unit">{{ unitLabel }}</span>
+              <el-input v-model.number="salaryMinInput" :placeholder="`最低薪资__${unitLabel}`" size="small" clearable />
             </div>
             <span class="salary-separator">—</span>
             <div class="salary-input-wrapper">
-              <el-input v-model.number="salaryMaxInput" placeholder="最高薪资" size="small" clearable @change="onSalaryChange" />
-              <span class="salary-unit">{{ unitLabel }}</span>
+              <el-input v-model.number="salaryMaxInput" :placeholder="`最高薪资__${unitLabel}`" size="small" clearable />
             </div>
           </div>
+          <button class="salary-confirm-btn" :disabled="isSalaryEmpty" @click="onSalaryChange">确定</button>
           <p v-if="settlementType === undefined" class="salary-hint">* 日结/时薪岗位将按 22天/8小时 统一折算为预估月薪进行匹配</p>
         </div>
 
@@ -572,7 +577,7 @@ onMounted(async () => {
 
 /* ── 左侧筛选面板 ── */
 .filter-panel {
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   background: #fff;
   border-radius: 10px;
@@ -640,23 +645,40 @@ onMounted(async () => {
 }
 
 .salary-input-wrapper :deep(.el-input__wrapper) {
-  padding-right: 50px;
+  padding: 1px 4px;
 }
 
-.salary-unit {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+.salary-input-wrapper :deep(.el-input__inner) {
   font-size: 12px;
-  color: #999;
-  pointer-events: none;
-  white-space: nowrap;
+}
+
+.salary-input-wrapper :deep(.el-input__inner::placeholder) {
+  font-size: 11px;
 }
 
 .salary-separator {
   color: #ccc;
   flex-shrink: 0;
+}
+
+.salary-confirm-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px 0;
+  border: none;
+  background: #1762FB;
+  color: #fff;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.salary-confirm-btn:hover:not(:disabled) {
+  background: #0062cc;
+}
+.salary-confirm-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 .salary-hint {
