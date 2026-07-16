@@ -103,13 +103,17 @@ public interface AdminService {
 
     /**
      * 获取职位大类需求占比（按顶级分类分组统计，仅统计招聘中职位）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，为 null 时不限制
      */
-    List<Map<String, Object>> getCategoryDistribution();
+    List<Map<String, Object>> getCategoryDistribution(String range);
 
     /**
      * 获取热门岗位 TOP10（按投递量倒序）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，为 null 时不限制
      */
-    List<Map<String, Object>> getHotTasks();
+    List<Map<String, Object>> getHotTasks(String range);
 
     /**
      * 获取最新动态（operation_log 最新 10 条，拼接可读文案）
@@ -120,8 +124,10 @@ public interface AdminService {
 
     /**
      * 获取人才流向数据（根据身份证地区码 → 企业地区）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，为 null 时不限制
      */
-    List<Map<String, Object>> getTalentFlow();
+    List<Map<String, Object>> getTalentFlow(String range);
 
     /**
      * 获取大屏 KPI 汇总数据（公开接口，无需鉴权）
@@ -130,13 +136,17 @@ public interface AdminService {
 
     /**
      * 获取投递转化漏斗数据（按状态分组统计）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，为 null 时不限制
      */
-    Map<String, Object> getApplicationFunnel();
+    Map<String, Object> getApplicationFunnel(String range);
 
     /**
      * 获取企业审核 + 实名认证统计
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，为 null 时不限制
      */
-    Map<String, Object> getEnterpriseSummary();
+    Map<String, Object> getEnterpriseSummary(String range);
 
     // ==================== 操作日志 ====================
 

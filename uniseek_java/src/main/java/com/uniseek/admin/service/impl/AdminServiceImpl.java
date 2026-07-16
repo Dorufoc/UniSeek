@@ -367,13 +367,15 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<Map<String, Object>> getHotTasks() {
-        return taskMapper.selectHotTasks();
+    public List<Map<String, Object>> getHotTasks(String range) {
+        LocalDateTime[] bounds = parseRange(range);
+        return taskMapper.selectHotTasks(bounds[0], bounds[1]);
     }
 
     @Override
-    public List<Map<String, Object>> getCategoryDistribution() {
-        return taskMapper.selectCategoryDistribution();
+    public List<Map<String, Object>> getCategoryDistribution(String range) {
+        LocalDateTime[] bounds = parseRange(range);
+        return taskMapper.selectCategoryDistribution(bounds[0], bounds[1]);
     }
 
     /**
@@ -424,8 +426,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<Map<String, Object>> getTalentFlow() {
-        return taskMapper.selectTalentFlow();
+    public List<Map<String, Object>> getTalentFlow(String range) {
+        LocalDateTime[] bounds = parseRange(range);
+        return taskMapper.selectTalentFlow(bounds[0], bounds[1]);
     }
 
     @Override
@@ -440,8 +443,8 @@ public class AdminServiceImpl implements AdminService {
             item.put("id", log.getId());
             item.put("time", log.getCreateTime() != null ? log.getCreateTime().toString().replace("T", " ") : "");
 
-            // 查询操作人名称（脱敏）
-            String userName = resolveOperatorName(log.getOperatorId());
+            // 查询操作人名称（用昵称，不脱敏）
+            String userName = resolveRawNickname(log.getOperatorId());
             item.put("userName", userName);
 
             // 查询目标标题（岗位名/公司名等）
@@ -477,6 +480,18 @@ public class AdminServiceImpl implements AdminService {
             return "未知用户";
         }
         return desensitizeName(user.getNickname());
+    }
+
+    /**
+     * 根据操作人 ID 查询完整昵称（不脱敏，用于大屏展示）
+     */
+    private String resolveRawNickname(Long operatorId) {
+        if (operatorId == null) return "系统";
+        User user = userMapper.selectById(operatorId);
+        if (user == null || user.getNickname() == null || user.getNickname().trim().isEmpty()) {
+            return "未知用户";
+        }
+        return user.getNickname().trim();
     }
 
     /**
@@ -689,6 +704,43 @@ public class AdminServiceImpl implements AdminService {
         return result;
     }
 
+    /**
+     * 将时间范围字符串转为起止时间对（用于其他大屏接口的时间过滤）
+     *
+     * @param range 时间范围：24h / 7d / 30d / 12m / 10y，为 null 时不限制
+     * @return 长度为 2 的数组 [start, end]，若 range 为 null 则两个元素均为 null
+     */
+    private LocalDateTime[] parseRange(String range) {
+        if (range == null) return new LocalDateTime[]{null, null};
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start, end;
+        switch (range) {
+            case "24h":
+                end = now;
+                start = now.minusHours(24);
+                break;
+            case "7d":
+                end = now;
+                start = now.minusDays(7);
+                break;
+            case "30d":
+                end = now;
+                start = now.minusDays(30);
+                break;
+            case "12m":
+                end = now;
+                start = now.minusMonths(12);
+                break;
+            case "10y":
+                end = now;
+                start = now.minusYears(10);
+                break;
+            default:
+                return new LocalDateTime[]{null, null};
+        }
+        return new LocalDateTime[]{start, end};
+    }
+
     private Map<String, Object> buildTimeSlotData(LocalDateTime start, LocalDateTime end) {
         Map<String, Object> item = new HashMap<>();
 
@@ -720,10 +772,15 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Map<String, Object> getApplicationFunnel() {
+    public Map<String, Object> getApplicationFunnel(String range) {
         Map<String, Object> result = new HashMap<>();
+        LocalDateTime[] bounds = parseRange(range);
 
-        Integer total = taskApplicationMapper.selectCount(null);
+        // 根据时间范围过滤总投递数
+        QueryWrapper<TaskApplication> totalWrapper = new QueryWrapper<>();
+        if (bounds[0] != null) totalWrapper.ge("create_time", bounds[0]);
+        if (bounds[1] != null) totalWrapper.le("create_time", bounds[1]);
+        Integer total = taskApplicationMapper.selectCount(totalWrapper);
         result.put("total", total != null ? total : 0);
 
         int[] statuses = {0, 1, 2, 3, 4, 5};
@@ -733,6 +790,8 @@ public class AdminServiceImpl implements AdminService {
         for (int i = 0; i < statuses.length; i++) {
             QueryWrapper<TaskApplication> wrapper = new QueryWrapper<>();
             wrapper.eq("status", statuses[i]);
+            if (bounds[0] != null) wrapper.ge("create_time", bounds[0]);
+            if (bounds[1] != null) wrapper.le("create_time", bounds[1]);
             Integer count = taskApplicationMapper.selectCount(wrapper);
             Map<String, Object> item = new HashMap<>();
             item.put("status", statuses[i]);
@@ -742,6 +801,7 @@ public class AdminServiceImpl implements AdminService {
         }
         result.put("statusList", statusList);
 
+        // "今日新增"始终取当天，不受 range 影响
         QueryWrapper<TaskApplication> todayWrapper = new QueryWrapper<>();
         todayWrapper.apply("DATE(create_time) = CURDATE()");
         Integer todayNew = taskApplicationMapper.selectCount(todayWrapper);
@@ -751,16 +811,19 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Map<String, Object> getEnterpriseSummary() {
+    public Map<String, Object> getEnterpriseSummary(String range) {
         Map<String, Object> result = new HashMap<>();
+        LocalDateTime[] bounds = parseRange(range);
         
-        // 1. 企业资质审核状态
+        // 1. 企业资质审核状态（按创建时间过滤）
         int[] auditStatuses = {0, 1, 2};
         String[] auditNames = {"待审核", "已认证", "已驳回"};
         List<Map<String, Object>> auditList = new ArrayList<>();
         for (int i = 0; i < auditStatuses.length; i++) {
             QueryWrapper<Enterprise> wrapper = new QueryWrapper<>();
             wrapper.eq("audit_status", auditStatuses[i]);
+            if (bounds[0] != null) wrapper.ge("create_time", bounds[0]);
+            if (bounds[1] != null) wrapper.le("create_time", bounds[1]);
             Integer count = enterpriseMapper.selectCount(wrapper);
             Map<String, Object> item = new HashMap<>();
             item.put("status", auditStatuses[i]);
@@ -769,15 +832,26 @@ public class AdminServiceImpl implements AdminService {
             auditList.add(item);
         }
         result.put("auditList", auditList);
-        Integer totalEnterprise = enterpriseMapper.selectCount(null);
+        // 时间范围内企业总数
+        QueryWrapper<Enterprise> entTotalWrapper = new QueryWrapper<>();
+        if (bounds[0] != null) entTotalWrapper.ge("create_time", bounds[0]);
+        if (bounds[1] != null) entTotalWrapper.le("create_time", bounds[1]);
+        Integer totalEnterprise = enterpriseMapper.selectCount(entTotalWrapper);
         result.put("totalEnterprise", totalEnterprise != null ? totalEnterprise : 0);
         
-        // 2. 实名认证率
-        Integer totalUser = userMapper.selectCount(null);
-        QueryWrapper<RealNameAuth> authWrapper = new QueryWrapper<>();
-        authWrapper.eq("status", 1);
-        Integer authedCount = realNameAuthMapper.selectCount(authWrapper);
+        // 2. 实名认证率（按用户创建时间过滤）
+        QueryWrapper<User> userTotalWrapper = new QueryWrapper<>();
+        if (bounds[0] != null) userTotalWrapper.ge("create_time", bounds[0]);
+        if (bounds[1] != null) userTotalWrapper.le("create_time", bounds[1]);
+        Integer totalUser = userMapper.selectCount(userTotalWrapper);
         result.put("totalUser", totalUser != null ? totalUser : 0);
+        
+        // 时间范围内已实名认证的用户数（关联 real_name_auth 表）
+        QueryWrapper<User> authedWrapper = new QueryWrapper<>();
+        authedWrapper.inSql("id", "SELECT user_id FROM real_name_auth WHERE status = 1");
+        if (bounds[0] != null) authedWrapper.ge("create_time", bounds[0]);
+        if (bounds[1] != null) authedWrapper.le("create_time", bounds[1]);
+        Integer authedCount = userMapper.selectCount(authedWrapper);
         result.put("authedCount", authedCount != null ? authedCount : 0);
         result.put("unauthedCount", (totalUser != null ? totalUser : 0) - (authedCount != null ? authedCount : 0));
         

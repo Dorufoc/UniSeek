@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import * as pdfjs from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf'
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 import { ZoomIn, ZoomOut, Refresh, ArrowLeft, ArrowRight, Close } from '@element-plus/icons-vue'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
@@ -70,30 +70,34 @@ const onDialogOpened = async () => {
 // 渲染当前页
 const renderPage = async () => {
   if (!pdfDoc || !canvasRef.value) return
-  const page = await pdfDoc.getPage(currentPage.value)
-  const viewport = page.getViewport({ scale: scale.value })
+  try {
+    const page = await pdfDoc.getPage(currentPage.value)
+    const viewport = page.getViewport({ scale: scale.value })
 
-  const canvas = canvasRef.value
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
+    const canvas = canvasRef.value
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-  // 适配容器宽度
-  const container = containerRef.value
-  if (container) {
-    const maxWidth = Math.max(container.clientWidth - 32, 0)
-    if (maxWidth > 0 && viewport.width > maxWidth) {
-      const fitScale = maxWidth / viewport.width
-      const vp = page.getViewport({ scale: scale.value * fitScale })
-      canvas.width = vp.width
-      canvas.height = vp.height
-      await page.render({ canvasContext: ctx, viewport: vp }).promise
-      return
+    // 适配容器宽度
+    const container = containerRef.value
+    if (container) {
+      const maxWidth = Math.max(container.clientWidth - 32, 0)
+      if (maxWidth > 0 && viewport.width > maxWidth) {
+        const fitScale = maxWidth / viewport.width
+        const vp = page.getViewport({ scale: scale.value * fitScale })
+        canvas.width = vp.width
+        canvas.height = vp.height
+        await page.render({ canvasContext: ctx, viewport: vp }).promise
+        return
+      }
     }
-  }
 
-  canvas.width = viewport.width
-  canvas.height = viewport.height
-  await page.render({ canvasContext: ctx, viewport }).promise
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+    await page.render({ canvasContext: ctx, viewport }).promise
+  } catch (e: any) {
+    errorMsg.value = '渲染失败：' + (e?.message || String(e))
+  }
 }
 
 // 页面导航
@@ -165,6 +169,7 @@ watch(() => props.visible, async (val) => {
 // 重新加载 PDF
 const refreshPdf = async () => {
   await loadPdf()
+  await nextTick()
   await renderPage()
 }
 

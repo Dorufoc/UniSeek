@@ -132,8 +132,10 @@
             <if test="req.address != null and req.address != ''">
                 AND task.address LIKE CONCAT('%', #{req.address}, '%')
             </if>
-            <if test="req.tag != null and req.tag != ''">
-                AND task.tag LIKE CONCAT('%', #{req.tag}, '%')
+            <if test="req.tags != null and req.tags != ''">
+                <foreach item="t" collection="req.tagsArray">
+                    AND task.tag LIKE CONCAT('%', #{t}, '%')
+                </foreach>
             </if>
             <!-- 只查询招聘中的职位（1），已满员/已下架的职位不展示 -->
             AND task.status = 1
@@ -217,6 +219,15 @@
             </if>
         </where>
         ORDER BY task.id ASC
+    </select>
+
+    <!-- 获取所有职位标签（去重），仅包含招聘中的职位 -->
+    <select id="selectAllTags" resultType="string">
+        SELECT DISTINCT jt.tag_value
+        FROM task t,
+        JSON_TABLE(t.tag, '$[*]' COLUMNS (tag_value VARCHAR(255) PATH '$')) AS jt
+        WHERE t.tag IS NOT NULL AND t.tag != '' AND t.status = 1
+        ORDER BY jt.tag_value
     </select>
 
     <!-- 查询指定企业的已发布职位（供求职者查看） -->
