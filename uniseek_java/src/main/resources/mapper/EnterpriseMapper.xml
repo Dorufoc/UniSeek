@@ -53,4 +53,42 @@
         LIMIT #{limit}
     </select>
 
+    <select id="selectEnterprisePage" resultMap="BaseResultMap">
+        SELECT e.*
+        FROM enterprise e
+        WHERE e.audit_status = 1
+        <if test="keyword != null and keyword != ''">
+            AND e.company_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="industry != null and industry != ''">
+            AND e.industry = #{industry}
+        </if>
+        <if test="regionIds != null and regionIds.size() > 0">
+            AND e.region_id IN
+            <foreach item="rid" collection="regionIds" open="(" separator="," close=")">
+                #{rid}
+            </foreach>
+        </if>
+        <choose>
+            <when test="sortBy == 'jobCount'">
+                ORDER BY (SELECT COUNT(*) FROM task WHERE enterprise_id = e.id AND status = 1)
+                <choose>
+                    <when test="sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <when test="sortBy == 'avgSalary'">
+                ORDER BY (SELECT COALESCE(AVG((salary_min + salary_max) / 2.0), 0)
+                          FROM task WHERE enterprise_id = e.id AND status = 1)
+                <choose>
+                    <when test="sortOrder == 'asc'">ASC</when>
+                    <otherwise>DESC</otherwise>
+                </choose>
+            </when>
+            <otherwise>
+                ORDER BY e.create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
 </mapper>

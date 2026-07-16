@@ -1,6 +1,7 @@
 package com.uniseek.controller;
 
 import com.uniseek.common.ApiResult;
+import com.uniseek.common.PageResult;
 import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.util.UserContext;
 import com.uniseek.dto.EnterpriseRequest;
@@ -52,13 +53,20 @@ public class EnterpriseController {
     }
 
     /**
-     * 获取已认证的企业列表（供求职者浏览）
-     * GET /api/enterprise/list
+     * 分页获取已认证的企业列表（供求职者浏览），支持关键词/行业/地区筛选和排序
+     * GET /api/enterprise/list?page=1&pageSize=12&keyword=&industry=&regionId=&sortBy=jobCount&sortOrder=desc
      */
     @GetMapping("/list")
-    public ApiResult<List<Enterprise>> listEnterprises() {
-        List<Enterprise> list = enterpriseService.listPublished();
-        return ApiResult.success(list);
+    public ApiResult<PageResult<Enterprise>> listEnterprises(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "12") int pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String industry,
+            @RequestParam(required = false) Long regionId,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortOrder) {
+        PageResult<Enterprise> result = enterpriseService.listPublished(page, pageSize, keyword, industry, regionId, sortBy, sortOrder);
+        return ApiResult.success(result);
     }
 
     /**

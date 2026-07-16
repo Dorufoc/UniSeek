@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
-import { getEnterpriseList } from '@/api/enterprise'
+import { getEnterpriseList, type EnterpriseListParams } from '@/api/enterprise'
 import { getEnterprisePublishedTasks } from '@/api/task'
 import { getRegionTree } from '@/api/region'
 import { getCategories } from '@/api/category'
@@ -14,21 +14,127 @@ import type { CategoryVO } from '@/api/category'
 const route = useRoute()
 const router = useRouter()
 
-// 列表数据
+const PAGE_SIZE = 12
+
+// ── 列表数据（分页加载） ──
 const enterprises = ref<EnterpriseInfo[]>([])
 const loading = ref(false)
+const page = ref(1)
+const total = ref(0)
 
-// 文本搜索（输入框实时绑定）
+const totalPages = computed(() => Math.ceil(total.value / PAGE_SIZE))
+const displayPages = computed(() => computeDisplayPages(page.value, totalPages.value))
+
+// ── 筛选条件 ──
 const keyword = ref('')
-// 实际用于筛选的关键词（仅在点击搜索后更新）
-const searchKeyword = ref('')
-
-// 行业筛选（从数据库加载完整分类树，支持大分类→子分类级联选择）
-const categoryTree = ref<CategoryVO[]>([])
-// 级联选择器选中值，格式：['大分类'] 或 ['大分类', '子分类']
 const selectedIndustry = ref<string[]>([])
+const regionCascaderValue = ref<number[]>([])
 
-// 加载分类树数据
+// ── 排序 ──
+const sortBy = ref<string>('')
+const sortOrder = ref<string>('desc')
+const setSort = (field: string) => {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
+  } else {
+    sortBy.value = field
+    sortOrder.value = 'desc'
+  }
+  resetAndReload()
+}
+
+// ── 其他数据 ──
+const categoryTree = ref<CategoryVO[]>([])
+const regions = ref<RegionVO[]>([])
+const regionNameMap = ref<Record<number, string>>({})
+const selectedEnterprise = ref<EnterpriseInfo | null>(null)
+const enterpriseJobs = ref<TaskVO[]>([])
+const jobsLoading = ref(false)
+const showDetail = ref(false)
+
+// ── 分页展示辅助 ──
+const computeDisplayPages = (current: number, total: number): number[] => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: number[] = []
+  if (current <= 4) {
+    for (let i = 1; i <= 5; i++) pages.push(i)
+    pages.push(-1)
+    pages.push(total)
+  } else if (current >= total - 3) {
+    pages.push(1)
+    pages.push(-1)
+    for (let i = total - 4; i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    pages.push(-1)
+    for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+    pages.push(-1)
+    pages.push(total)
+  }
+  return pages
+}
+
+// ── 翻页 ──
+const goToPage = (p: number) => {
+  if (p < 1 || p > totalPages.value || p === page.value) return
+  page.value = p
+  loadEnterprises()
+}
+
+// ── 构建 API 请求参数 ──
+const buildParams = (): EnterpriseListParams => {
+  const params: EnterpriseListParams = { page: page.value, pageSize: PAGE_SIZE }
+  const kw = keyword.value.trim()
+  if (kw) params.keyword = kw
+  if (selectedIndustry.value.length > 0) {
+    params.industry = selectedIndustry.value[0]
+  }
+  const val = regionCascaderValue.value
+  if (val.length > 0) {
+    params.regionId = val[val.length - 1]
+  }
+  if (sortBy.value) {
+    params.sortBy = sortBy.value
+    params.sortOrder = sortOrder.value
+  }
+  return params
+}
+
+// ── 加载企业列表 ──
+const loadEnterprises = async () => {
+  loading.value = true
+  try {
+    const result = await getEnterpriseList(buildParams())
+    enterprises.value = result.records || []
+    total.value = result.total
+  } catch {
+    enterprises.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+// ── 筛选条件变更 → 重置到第1页并重新加载 ──
+const resetAndReload = () => {
+  page.value = 1
+  loadEnterprises()
+}
+
+// ── 重置筛选 ──
+const resetFilters = () => {
+  keyword.value = ''
+  selectedIndustry.value = []
+  regionCascaderValue.value = []
+  resetAndReload()
+}
+
+// ── 执行搜索 ──
+const handleSearch = () => {
+  resetAndReload()
+}
+
+// ── 加载分类 ──
 const loadCategories = async () => {
   try {
     categoryTree.value = await getCategories()
@@ -37,34 +143,11 @@ const loadCategories = async () => {
   }
 }
 
-// 解析级联选择结果：取顶级分类名称用于匹配 enterprise.industry
-const getSelectedIndustryName = (): string | undefined => {
-  return selectedIndustry.value.length > 0 ? selectedIndustry.value[0] : undefined
-}
-
-// 城市筛选（级联选择器）
-const regions = ref<RegionVO[]>([])
-const regionCascaderValue = ref<number[]>([])
-
-// 地区名称映射
-const regionNameMap = ref<Record<number, string>>({})
-
-// 公司详情
-const selectedEnterprise = ref<EnterpriseInfo | null>(null)
-const enterpriseJobs = ref<TaskVO[]>([])
-const jobsLoading = ref(false)
-const showDetail = ref(false)
-
-// 地区级联选择器变更
-const onRegionChange = (val: number[]) => {
-  regionCascaderValue.value = val
-}
-
-// 加载地区树
+// ── 加载地区树 ──
 const loadRegions = async () => {
   try {
     const tree = await getRegionTree()
-    regions.value = [{ id: 0, name: '全部地区', children: tree } as RegionVO]
+    regions.value = tree
     const map: Record<number, string> = {}
     const walk = (list: RegionVO[]) => {
       for (const r of list) {
@@ -79,105 +162,16 @@ const loadRegions = async () => {
   }
 }
 
-// 加载企业列表
-const loadEnterprises = async () => {
-  loading.value = true
-  try {
-    enterprises.value = await getEnterpriseList()
-  } catch {
-    enterprises.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-// 获取地区级联选中路径中最低级ID（虚拟根节点 0 视为全部，返回 undefined）
-const getSelectedRegionId = (): number | undefined => {
-  const val = regionCascaderValue.value
-  if (val.length === 0) return undefined
-  const id = val[val.length - 1]
-  return id === 0 ? undefined : id
-}
-
-// 检查地区是否匹配（节点ID或其子节点命中）
-const matchRegion = (enterpriseRegionId: number | null, targetId: number): boolean => {
-  if (!enterpriseRegionId) return false
-  if (enterpriseRegionId === targetId) return true
-  const walk = (list: RegionVO[]): boolean => {
-    for (const r of list) {
-      if (r.id === targetId) {
-        // 检查子节点中是否有 enterpriseRegionId
-        const checkChildren = (nodes: RegionVO[]): boolean => {
-          for (const n of nodes) {
-            if (n.id === enterpriseRegionId) return true
-            if (n.children && checkChildren(n.children)) return true
-          }
-          return false
-        }
-        return r.children ? checkChildren(r.children) : false
-      }
-      if (r.children && walk(r.children)) return true
-    }
-    return false
-  }
-  return walk(regions.value)
-}
-
-// 筛选后的企业（支持正则多关键词模糊匹配）
-const filteredEnterprises = computed(() => {
-  return enterprises.value.filter(e => {
-    const kw = searchKeyword.value.trim()
-    if (kw) {
-      const tokens = kw.split(/\s+/).filter(Boolean)
-      const text = (e.companyName + ' ' + (e.industry || '')).toLowerCase()
-      const escapeReg = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      const matchAll = tokens.every(t => new RegExp(t.split('').map(escapeReg).join('.*'), 'i').test(text))
-      if (!matchAll) return false
-    }
-    const industryName = getSelectedIndustryName()
-    if (industryName && e.industry !== industryName) {
-      return false
-    }
-    const regionId = getSelectedRegionId()
-    if (regionId && !matchRegion(e.regionId, regionId)) {
-      return false
-    }
-    return true
-  })
-})
-
-// 执行搜索
-const handleSearch = () => {
-  searchKeyword.value = keyword.value
-}
-
-onMounted(() => {
-  const q = route.query.q as string | undefined
-  if (q) {
-    keyword.value = q
-    searchKeyword.value = q
-  }
-  loadRegions()
-  loadCategories()
-  loadEnterprises().then(() => {
-    const id = route.query.id
-    if (id) {
-      const target = enterprises.value.find(e => String(e.id) === id)
-      if (target) viewCompany(target)
-    }
-  })
-})
-
-// 监听路由参数变化（如从首页跳转过来）
-watch(() => route.query.q, (q) => {
-  keyword.value = (q as string) || ''
-  searchKeyword.value = (q as string) || ''
-})
-
-// 查看公司详情
+// ── 查看公司详情 ──
 const viewCompany = async (item: EnterpriseInfo) => {
   selectedEnterprise.value = item
   showDetail.value = true
+  // 更新URL，使刷新后仍定位到该公司详情；
+  // 用 push 保留列表页历史，返回时回到列表页
+  const currentId = route.query.id
+  if (String(item.id) !== currentId) {
+    router.push({ query: { ...route.query, id: item.id } })
+  }
   jobsLoading.value = true
   try {
     enterpriseJobs.value = await getEnterprisePublishedTasks(item.id)
@@ -188,89 +182,151 @@ const viewCompany = async (item: EnterpriseInfo) => {
   }
 }
 
-// 跳转职位详情
+// ── 跳转职位详情 ──
 const goToJob = (jobId: number) => {
   router.push(`/jobs/${jobId}`)
 }
 
-// 薪资单位
+// ── 薪资/类型辅助 ──
 const salaryUnitLabel = (unit?: number) => {
   if (unit === 0) return '/日'
   if (unit === 1) return '/时'
   return '/月'
 }
-
-// 工作类型
 const jobTypeLabel = (type?: number) => {
   if (type === 1) return '全职'
   if (type === 2) return '兼职'
   if (type === 3) return '实习'
   return ''
 }
+
+onMounted(() => {
+  const q = route.query.q as string | undefined
+  if (q) keyword.value = q
+
+  loadRegions()
+  loadCategories()
+  loadEnterprises().then(() => {
+    // 路由指定企业ID → 直接进入详情
+    const id = route.query.id
+    if (id) {
+      const target = enterprises.value.find(e => String(e.id) === id)
+      if (target) viewCompany(target)
+    }
+  })
+})
+
+// 监听路由参数变化
+watch(() => route.query.q, (q) => {
+  keyword.value = (q as string) || ''
+})
+// 监听 id 参数：消失时返回列表，变化时切换公司详情
+watch(() => route.query.id, (id) => {
+  if (!id) {
+    // 回到列表视图
+    showDetail.value = false
+    selectedEnterprise.value = null
+    enterpriseJobs.value = []
+  } else if (id !== String(selectedEnterprise.value?.id)) {
+    // URL 指向另一个公司，从已加载的列表中查找并展示
+    const target = enterprises.value.find(e => String(e.id) === id)
+    if (target) {
+      viewCompany(target)
+    }
+  }
+})
+
 </script>
 
 <template>
-  <div class="company-page">
-    <!-- 公司列表视图 -->
-    <template v-if="!showDetail">
-      <div class="page-header">
-        <h2 class="page-title">企业列表</h2>
-        <p class="page-desc">所有已认证的企业</p>
+  <!-- 列表视图 -->
+  <div v-if="!showDetail" class="company-page">
+    <!-- 搜索栏（全宽） -->
+    <div class="search-bar">
+      <div class="search-bar-inner">
+        <el-input
+          v-model="keyword"
+          size="large"
+          placeholder="搜索企业名称"
+          :prefix-icon="Search"
+          clearable
+          class="search-input"
+          @keyup.enter="handleSearch"
+        ></el-input>
+        <button class="search-btn" @click="handleSearch">搜索</button>
       </div>
+    </div>
 
-      <!-- 筛选栏 -->
-      <div class="search-bar">
-        <div class="filter-group-left">
-          <div class="filter-select-wrap category-wrap">
-            <span class="filter-label">分类</span>
-            <el-cascader
-              v-model="selectedIndustry"
-              :options="categoryTree"
-              :props="{ value: 'name', label: 'name', children: 'children', checkStrictly: true, emitPath: true }"
-              placeholder="全部行业"
-              size="default"
-              clearable
-              style="width:200px"
-            />
-          </div>
-          <div class="filter-select-wrap region-wrap">
-            <span class="filter-label">地区</span>
-            <el-cascader
-              v-model="regionCascaderValue"
-              :options="regions"
-              :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true }"
-              placeholder="请选择地区"
-              size="default"
-              clearable
-              style="width:180px"
-              @change="onRegionChange as any"
-            />
-          </div>
-        </div>
-        <div class="search-input-wrap">
-          <el-icon :size="16" class="search-icon"><Search /></el-icon>
-          <input
-            v-model="keyword"
-            type="text"
-            class="search-input"
-            placeholder="搜索企业名称、行业"
-            @keyup.enter="handleSearch"
+    <div class="jobs-body">
+      <!-- 左侧筛选面板 -->
+      <aside class="filter-panel">
+        <div class="filter-section">
+          <h4 class="filter-title">分类</h4>
+          <el-cascader
+            v-model="selectedIndustry"
+            :options="categoryTree"
+            :props="{ value: 'name', label: 'name', children: 'children', checkStrictly: true, emitPath: true, expandTrigger: 'hover' }"
+            placeholder="全部行业"
+            size="default"
+            clearable
+            style="width:100%"
+            @change="resetAndReload"
           />
-          <button class="search-btn" @click="handleSearch">搜索</button>
         </div>
-      </div>
+        <div class="filter-section">
+          <h4 class="filter-title">地区</h4>
+          <el-cascader
+            v-model="regionCascaderValue"
+            :options="regions"
+            :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true, expandTrigger: 'hover' }"
+            placeholder="请选择地区"
+            size="default"
+            clearable
+            style="width:100%"
+            @change="resetAndReload"
+          />
+        </div>
+        <button class="reset-btn" @click="resetFilters">重置筛选</button>
+      </aside>
 
-      <div v-if="loading" class="loading-tip">加载中...</div>
+      <!-- 右侧内容 -->
+      <div class="main-content">
+        <div class="page-header">
+          <h2 class="page-title">企业列表</h2>
+          <p class="page-desc">所有已认证的企业</p>
+        </div>
 
-      <div v-else-if="filteredEnterprises.length === 0" class="empty-tip">暂无已认证的企业</div>
+          <div class="sort-bar">
+            <span class="result-count">共 {{ total }} 个企业</span>
+            <div class="sort-tabs">
+              <span
+                :class="['sort-tab', { active: sortBy === '' }]"
+                @click="setSort('')"
+              >默认</span>
+              <span
+                :class="['sort-tab', { active: sortBy === 'jobCount' }]"
+                @click="setSort('jobCount')"
+              >在招岗位
+                <span v-if="sortBy === 'jobCount'" class="sort-arrow">{{ sortOrder === 'desc' ? '↓' : '↑' }}</span>
+              </span>
+              <span
+                :class="['sort-tab', { active: sortBy === 'avgSalary' }]"
+                @click="setSort('avgSalary')"
+              >平均薪资
+                <span v-if="sortBy === 'avgSalary'" class="sort-arrow">{{ sortOrder === 'desc' ? '↓' : '↑' }}</span>
+              </span>
+            </div>
+          </div>
 
-      <div v-else class="company-list">
-        <div
-          v-for="item in filteredEnterprises"
-          :key="item.id"
-          class="company-card"
-          @click="viewCompany(item)"
-        >
+        <div v-if="loading" class="loading-tip">加载中...</div>
+        <div v-else-if="enterprises.length === 0" class="empty-tip">暂无已认证的企业</div>
+        <div v-else class="company-list">
+          <div
+            v-for="item in enterprises"
+            :key="item.id"
+            class="company-card"
+            @click="viewCompany(item)"
+          >
           <div class="company-logo">{{ item.companyName.charAt(0) }}</div>
           <div class="company-info">
             <h3 class="company-name">{{ item.companyName }}</h3>
@@ -282,190 +338,264 @@ const jobTypeLabel = (type?: number) => {
           </div>
         </div>
       </div>
-    </template>
-
-    <!-- 公司详情视图 -->
-    <template v-else-if="selectedEnterprise">
-      <div class="detail-header">
-        <button class="back-btn" @click="router.back()">&larr; 返回</button>
-      </div>
-
-      <div class="company-detail-card">
-        <div class="detail-logo">{{ selectedEnterprise.companyName.charAt(0) }}</div>
-        <div class="detail-info">
-          <h2 class="detail-name">{{ selectedEnterprise.companyName }}</h2>
-          <p class="detail-meta">
-            <span v-if="selectedEnterprise.industry" class="tag">{{ selectedEnterprise.industry }}</span>
-            <span v-if="selectedEnterprise.regionId && regionNameMap[selectedEnterprise.regionId]" class="tag region-tag">{{ regionNameMap[selectedEnterprise.regionId] }}</span>
-          </p>
-          <p class="detail-desc">{{ selectedEnterprise.description || '暂无简介' }}</p>
+      <!-- 分页 -->
+      <div class="pagination" v-if="totalPages > 1">
+          <button :disabled="page === 1" @click="goToPage(page - 1)">上一页</button>
+          <button
+            v-for="p in displayPages"
+            :key="p"
+            :class="{ active: p === page }"
+            @click="goToPage(p)"
+          >{{ p === -1 ? '…' : p }}</button>
+          <button :disabled="page === totalPages" @click="goToPage(page + 1)">下一页</button>
         </div>
       </div>
+    </div>
+  </div>
 
-      <h3 class="section-title">招聘中的职位</h3>
+  <!-- 公司详情视图 -->
+  <div v-else-if="selectedEnterprise" class="company-page">
+    <div class="jobs-body">
+      <div class="detail-container">
+        <div class="detail-header">
+          <button class="back-btn" @click="router.back()">&larr; 返回</button>
+        </div>
 
-      <div v-if="jobsLoading" class="loading-tip">加载中...</div>
-
-      <div v-else-if="enterpriseJobs.length === 0" class="empty-tip">该企业暂无招聘中的职位</div>
-
-      <div v-else class="job-list">
-        <div
-          v-for="job in enterpriseJobs"
-          :key="job.id"
-          class="job-card"
-          @click="goToJob(job.id)"
-        >
-          <div class="job-top">
-            <h4 class="job-title">{{ job.title }}</h4>
-            <span class="job-salary">&yen;{{ job.salaryMin }}-{{ job.salaryMax }}{{ salaryUnitLabel(job.salaryUnit) }}</span>
+        <div class="company-detail-card">
+          <div class="detail-logo">{{ selectedEnterprise.companyName.charAt(0) }}</div>
+          <div class="detail-info">
+            <h2 class="detail-name">{{ selectedEnterprise.companyName }}</h2>
+            <p class="detail-meta">
+              <span v-if="selectedEnterprise.industry" class="tag">{{ selectedEnterprise.industry }}</span>
+              <span v-if="selectedEnterprise.regionId && regionNameMap[selectedEnterprise.regionId]" class="tag region-tag">{{ regionNameMap[selectedEnterprise.regionId] }}</span>
+            </p>
+            <p class="detail-desc">{{ selectedEnterprise.description || '暂无简介' }}</p>
           </div>
-          <div class="job-meta">
-            <span class="job-type">{{ jobTypeLabel(job.jobType) }}</span>
-            <span>{{ job.regionName }}</span>
-            <span>{{ job.address }}</span>
-          </div>
-          <div class="job-tags" v-if="job.tag && job.tag.length > 0">
-            <span v-for="t in job.tag.slice(0, 3)" :key="t" class="tag">{{ t }}</span>
-          </div>
-          <div class="job-bottom">
-            <span class="job-count">{{ job.applicationCount }} 人投递</span>
-            <span class="job-status" v-if="job.status === 1">招聘中</span>
+        </div>
+
+        <h3 class="section-title">招聘中的职位</h3>
+
+        <div v-if="jobsLoading" class="loading-tip">加载中...</div>
+
+        <div v-else-if="enterpriseJobs.length === 0" class="empty-tip">该企业暂无招聘中的职位</div>
+
+        <div v-else class="job-list">
+          <div
+            v-for="job in enterpriseJobs"
+            :key="job.id"
+            class="job-card"
+            @click="goToJob(job.id)"
+          >
+            <div class="job-top">
+              <h4 class="job-title">{{ job.title }}</h4>
+              <span class="job-salary">&yen;{{ job.salaryMin }}-{{ job.salaryMax }}{{ salaryUnitLabel(job.salaryUnit) }}</span>
+            </div>
+            <div class="job-meta">
+              <span class="job-type">{{ jobTypeLabel(job.jobType) }}</span>
+              <span>{{ job.regionName }}</span>
+              <span>{{ job.address }}</span>
+            </div>
+            <div class="job-tags" v-if="job.tag && job.tag.length > 0">
+              <span v-for="t in job.tag.slice(0, 3)" :key="t" class="tag">{{ t }}</span>
+            </div>
+            <div class="job-bottom">
+              <span class="job-count">{{ job.applicationCount }} 人投递</span>
+              <span class="job-status" v-if="job.status === 1">招聘中</span>
+            </div>
           </div>
         </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .company-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 32px 24px;
+  min-height: calc(100vh - 60px);
+  background: #f5f7fa;
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .page-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  color: #000;
-  margin: 0 0 6px;
+  color: #1a1a2e;
+  margin: 0 0 4px;
 }
 
 .page-desc {
   font-size: 14px;
-  color: #666;
+  color: #999;
   margin: 0;
 }
 
 /* 搜索栏 */
 .search-bar {
-  display: flex;
-  gap: 12px;
-  padding: 16px 20px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  margin-bottom: 20px;
-  align-items: center;
+  background: linear-gradient(rgba(31,38,52,0.6), rgba(31,38,52,0.6)), url('/background.jpg') center / cover no-repeat;
+  padding: 20px 24px;
 }
 
-.search-input-wrap {
-  flex: 1;
+.search-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  border: 1px solid #dcdce4;
+  height: 48px;
+  gap: 0;
   border-radius: 8px;
-  background: #f8f9fb;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 
-.search-input-wrap:focus-within {
-  border-color: #1762FB;
-}
-
-.search-icon {
-  color: #999;
-  flex-shrink: 0;
-}
-
-.search-input {
+.search-bar-inner .search-input {
   flex: 1;
-  border: none;
-  outline: none;
-  padding: 10px 0;
-  font-size: 14px;
-  background: transparent;
-  color: #000;
+  height: 100%;
 }
 
-.search-input-wrap .search-btn {
-  height: 34px;
-  padding: 0 16px;
+.search-bar-inner .search-input :deep(.el-input) {
+  height: 100%;
+}
+
+.search-bar-inner .search-input :deep(.el-input__wrapper) {
+  border-radius: 0;
+  box-shadow: none !important;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.search-bar-inner .search-btn {
+  width: 120px;
+  height: 100%;
   border: none;
   background: #1762FB;
   color: #fff;
-  font-size: 14px;
-  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.2s;
 }
 
-.search-input-wrap .search-btn:hover {
+.search-bar-inner .search-btn:hover {
   background: #0062cc;
 }
 
-.filter-group-left {
+/* ── 主体布局（左侧筛选 + 右侧列表） ── */
+.jobs-body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* ── 左侧筛选面板 ── */
+.filter-panel {
+  width: 280px;
   flex-shrink: 0;
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 80px;
 }
 
-.filter-select-wrap {
+.filter-section {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #f0f0f5;
+}
+
+.filter-section:last-of-type {
+  border-bottom: none;
+}
+
+.filter-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+}
+
+.reset-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #e4e6ef;
+  background: #fff;
+  color: #999;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover {
+  border-color: #1762FB;
+  color: #1762FB;
+}
+
+/* ── 右侧内容 ── */
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sort-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.region-wrap {
-  min-width: 200px;
-}
-
-.filter-label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.filter-select {
-  padding: 8px 32px 8px 12px;
-  font-size: 14px;
-  border: 1px solid #dcdce4;
-  border-radius: 8px;
+  justify-content: space-between;
   background: #fff;
-  color: #000;
-  cursor: pointer;
-  appearance: auto;
-  min-width: 120px;
+  border-radius: 10px;
+  padding: 0 20px;
+  height: 48px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
-.city-select:focus {
-  border-color: #1762FB;
-  outline: none;
+.result-count {
+  font-size: 14px;
+  color: #999;
+}
+
+.sort-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.sort-tab {
+  padding: 6px 14px;
+  font-size: 13px;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.sort-tab:hover {
+  background: #f5f7fa;
+}
+
+.sort-tab.active {
+  color: #1762FB;
+  background: rgba(0, 122, 255, 0.06);
+  font-weight: 600;
+}
+
+.sort-arrow {
+  font-size: 11px;
+  margin-left: 2px;
 }
 
 /* 企业列表 */
 .company-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .company-card {
@@ -540,6 +670,12 @@ const jobTypeLabel = (type?: number) => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 公司详情容器 */
+.detail-container {
+  flex: 1;
+  min-width: 0;
 }
 
 /* 公司详情头 */
@@ -694,9 +830,59 @@ const jobTypeLabel = (type?: number) => {
 
 .loading-tip, .empty-tip {
   text-align: center;
-  padding: 48px;
+  padding: 60px 20px;
   color: #999;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
+}
+
+/* ── 分页 ── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 16px 0;
+}
+
+.pagination button {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e4e6ef;
+  background: #fff;
+  color: #555;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.pagination button:hover:not(:disabled):not(.active) {
+  border-color: #1762FB;
+  color: #1762FB;
+}
+
+.pagination button.active {
+  background: #1762FB;
+  border-color: #1762FB;
+  color: #fff;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .jobs-body {
+    flex-direction: column;
+  }
+  .filter-panel {
+    width: 100%;
+    position: static;
+  }
 }
 </style>

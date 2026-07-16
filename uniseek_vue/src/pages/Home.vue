@@ -40,13 +40,21 @@ const handleSearch = () => {
 const quickSearch = (kw: string) => {
   keyword.value = kw
   appStore.setSearchKeyword(kw)
-  router.push('/jobs')
+  if (searchType.value === 'company') {
+    router.push(`/company?q=${encodeURIComponent(kw)}`)
+  } else {
+    router.push('/jobs')
+  }
 }
 
 // ── 求职者首页数据 ──
 const recommendJobs = ref<TaskVO[]>([])
 const categoryTree = ref<CategoryVO[]>([])
-const hotKeywords = ['Java', '前端', '销售', '客服', '服务员', '设计', '运营', '行政', '会计', '编辑']
+const hotKeywords = computed(() =>
+  searchType.value === 'position'
+    ? categoryTree.value.filter(c => c.name !== '其他').slice(0, 10).map(c => c.name)
+    : hotEnterprises.value.slice(0, 10).map(e => e.companyName)
+)
 const hotEnterprises = ref<HotEnterprise[]>([])
 
 // ── 无限加载 ──

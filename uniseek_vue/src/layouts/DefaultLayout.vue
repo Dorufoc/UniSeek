@@ -78,7 +78,7 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
 }
 
 .layout-header {
-  background: linear-gradient(90deg, #0d1b2a 0%, #1b2838 100%);
+  background: #1F2634;
   position: fixed;
   top: 0;
   left: 0;

@@ -1,22 +1,29 @@
 package com.uniseek.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.uniseek.common.ApiResult;
+import com.uniseek.common.PageResult;
 import com.uniseek.operationlog.annotation.OperationLog;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.EnterpriseMapper;
 import com.uniseek.dao.RealNameAuthMapper;
+import com.uniseek.dao.RegionMapper;
 import com.uniseek.dto.EnterpriseRequest;
 import com.uniseek.dto.HotEnterpriseVO;
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.RealNameAuth;
+import com.uniseek.entity.Region;
 import com.uniseek.service.EnterpriseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 企业资质认证服务实现
@@ -29,6 +36,9 @@ public class EnterpriseServiceImpl implements EnterpriseService {
 
     @Autowired
     private RealNameAuthMapper realNameAuthMapper;
+
+    @Autowired
+    private RegionMapper regionMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -147,11 +157,39 @@ public class EnterpriseServiceImpl implements EnterpriseService {
     }
 
     @Override
-    public List<Enterprise> listPublished() {
-        return enterpriseMapper.selectList(
-                new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getAuditStatus, 1)
-                        .orderByDesc(Enterprise::getCreateTime));
+    public PageResult<Enterprise> listPublished(int page, int pageSize, String keyword, String industry, Long regionId,
+                                                String sortBy, String sortOrder) {
+        // 收集子级地区ID
+        List<Long> regionIds = null;
+        if (regionId != null) {
+            regionIds = collectRegionIds(regionId);
+        }
+
+        // 执行自定义分页查询（含排序逻辑）
+        IPage<Enterprise> pageResult = enterpriseMapper.selectEnterprisePage(
+                new Page<>(page, pageSize),
+                keyword,
+                industry,
+                regionIds,
+                sortBy,
+                sortOrder
+        );
+        return PageResult.of(pageResult);
+    }
+
+    /**
+     * 递归收集指定地区及其所有子级地区ID
+     */
+    private List<Long> collectRegionIds(Long parentId) {
+        List<Long> ids = new ArrayList<>();
+        ids.add(parentId);
+        List<Region> children = regionMapper.selectList(
+                new LambdaQueryWrapper<Region>()
+                        .eq(Region::getParentId, parentId));
+        for (Region child : children) {
+            ids.addAll(collectRegionIds(child.getId()));
+        }
+        return ids;
     }
 
     @Override

@@ -378,7 +378,7 @@ onMounted(async () => {
         <el-input
           v-model="keyword"
           size="large"
-          placeholder="搜索职位、公司名称"
+          placeholder="搜索职位名称"
           :prefix-icon="Search"
           clearable
           class="search-input"
