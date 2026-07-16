@@ -30,7 +30,7 @@ const operationTypes = [
   'APPLICATION_DELIVER',
   'APPLICATION_HIRE',
   'APPLICATION_REJECT',
-  'COMPLAINT_HANDLE',
+
   'REAL_NAME_AUTH',
   'ADMIN_SET_ROLE',
   'REGISTER',
@@ -57,7 +57,7 @@ const operationTypeMap: Record<string, string> = {
   APPLICATION_DELIVER: '求职者投递',
   APPLICATION_HIRE: '录用求职者',
   APPLICATION_REJECT: '淘汰求职者',
-  COMPLAINT_HANDLE: '投诉处理',
+
   REAL_NAME_AUTH: '实名认证',
   ADMIN_SET_ROLE: '管理员设权',
   REGISTER: '注册',

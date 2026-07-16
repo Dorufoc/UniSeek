@@ -48,8 +48,6 @@ public final class OperationType {
     /** 结算完成 */
     public static final String APPLICATION_COMPLETE = "APPLICATION_COMPLETE";
 
-    /** 投诉处理 */
-    public static final String COMPLAINT_HANDLE = "COMPLAINT_HANDLE";
 
     /** 实名认证 */
     public static final String REAL_NAME_AUTH = "REAL_NAME_AUTH";
