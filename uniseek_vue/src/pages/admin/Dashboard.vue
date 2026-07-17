@@ -97,7 +97,7 @@ onMounted(() => {
       <el-col :span="8">
         <el-card shadow="never" class="pending-card">
           <template #header>
-            <span>待办事项</span>
+            <span>待办事项 · 数据大屏</span>
           </template>
           <div class="pending-list">
             <div
@@ -113,6 +113,13 @@ onMounted(() => {
               </div>
               </div>
               <el-icon class="pending-arrow"><ArrowRight /></el-icon>
+            </div>
+            <div class="pending-item data-screen-row">
+              <div class="pending-left">
+                <div class="pending-label">数据大屏</div>
+                <div class="pending-desc">实时数据统计与可视化</div>
+              </div>
+              <el-button type="primary" @click="router.push('/screenpreview')">数据展示</el-button>
             </div>
           </div>
         </el-card>
@@ -182,6 +189,23 @@ onMounted(() => {
   border-bottom: none;
 }
 
+.data-screen-row {
+  cursor: default;
+}
+
+.data-screen-row:hover {
+  background: transparent;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.pending-desc {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 2px;
+}
+
 .pending-item:hover {
   background: #f5f7fa;
   margin: 0 -20px;
@@ -204,4 +228,6 @@ onMounted(() => {
   color: #c0c4cc;
   font-size: 16px;
 }
+
+
 </style>

@@ -117,51 +117,70 @@ def _random_skills(count: int = 4) -> List[str]:
     return random.sample(all_skills, k)
 
 
-def generate_resume_snapshot() -> str:
+def generate_resume_snapshot(
+    user_id: int,
+    resume_data_map: Dict[int, dict] = None,
+    user_name_map: Dict[int, str] = None,
+) -> str:
     """生成简历快照 JSON 字符串。
 
-    模拟求职者在投递时刻的简历信息快照，包含姓名、性别、
-    出生日期、学历、学校、技能列表和经历描述。
+    优先使用 resume_data_map 中该用户的真实简历数据，
+    若无法获取则回退到随机生成。
+
+    Args:
+        user_id: 求职者用户 ID
+        resume_data_map: 用户 ID → 简历数据字典的映射
+        user_name_map: 用户 ID → 用户昵称的映射
 
     Returns:
         简历快照 JSON 字符串（ensure_ascii=False）
     """
-    name = _random_name()
-    gender = random.randint(0, 1)
-    birth_year = random.randint(1985, 2005)
-    birth_month = random.randint(1, 12)
-    birth_day = random.randint(1, 28)
-    birth_date = f"{birth_year:04d}-{birth_month:02d}-{birth_day:02d}"
-    education = random.choice(EDUCATION_LEVELS)
-    school = random.choice(SCHOOLS)
-    skills = json.dumps(_random_skills(4), ensure_ascii=False)
-
-    # 随机选取一段经历描述
-    experience_templates = [
-        "<p>曾在多家企业担任相关职位，积累了丰富的行业经验。"
-        "具备良好的团队协作能力和沟通能力，能快速适应新环境。</p>",
-        "<p>工作认真负责，善于学习新知识，不断提升专业技能。"
-        "有较强的执行力和抗压能力，能按时保质完成工作任务。</p>",
-        "<p>熟悉行业规范和操作流程，具备独立处理问题的能力。"
-        "在工作中注重细节，追求卓越的工作品质。</p>",
-        "<p>拥有多年的行业从业经验，熟悉各类办公软件和常用工具。"
-        "善于与客户沟通，能够准确把握客户需求。</p>",
-        "<p>具备扎实的专业基础和丰富的实践经验。"
-        "乐于接受挑战，能在快节奏的工作环境中保持高效产出。</p>",
-        "<p>毕业于知名高校相关专业，理论基础扎实。"
-        "在校期间多次参与社会实践项目，积累了宝贵的工作经验。</p>",
-    ]
-    experience = random.choice(experience_templates)
-
-    snapshot = {
-        "realName": name,
-        "gender": gender,
-        "birthDate": birth_date,
-        "education": education,
-        "school": school,
-        "skills": skills,
-        "experience": experience,
-    }
+    if resume_data_map and user_id in resume_data_map:
+        rd = resume_data_map[user_id]
+        name = (user_name_map or {}).get(user_id, _random_name())
+        snapshot = {
+            "realName": name,
+            "gender": rd["gender"],
+            "birthDate": rd["birth_date"],
+            "education": rd["education"],
+            "school": rd["school"],
+            "skills": rd["skills"],
+            "experience": rd["experience"],
+        }
+    else:
+        name = _random_name()
+        gender = random.randint(0, 1)
+        birth_year = random.randint(1985, 2005)
+        birth_month = random.randint(1, 12)
+        birth_day = random.randint(1, 28)
+        birth_date = f"{birth_year:04d}-{birth_month:02d}-{birth_day:02d}"
+        education = random.choice(EDUCATION_LEVELS)
+        school = random.choice(SCHOOLS)
+        skills = json.dumps(_random_skills(4), ensure_ascii=False)
+        experience_templates = [
+            "曾在多家企业担任相关职位，积累了丰富的行业经验。"
+            "具备良好的团队协作能力和沟通能力，能快速适应新环境。",
+            "工作认真负责，善于学习新知识，不断提升专业技能。"
+            "有较强的执行力和抗压能力，能按时保质完成工作任务。",
+            "熟悉行业规范和操作流程，具备独立处理问题的能力。"
+            "在工作中注重细节，追求卓越的工作品质。",
+            "拥有多年的行业从业经验，熟悉各类办公软件和常用工具。"
+            "善于与客户沟通，能够准确把握客户需求。",
+            "具备扎实的专业基础和丰富的实践经验。"
+            "乐于接受挑战，能在快节奏的工作环境中保持高效产出。",
+            "毕业于知名高校相关专业，理论基础扎实。"
+            "在校期间多次参与社会实践项目，积累了宝贵的工作经验。",
+        ]
+        experience = random.choice(experience_templates)
+        snapshot = {
+            "realName": name,
+            "gender": gender,
+            "birthDate": birth_date,
+            "education": education,
+            "school": school,
+            "skills": skills,
+            "experience": experience,
+        }
     return json.dumps(snapshot, ensure_ascii=False)
 
 
@@ -237,6 +256,8 @@ def _build_application_record(
     task_id: int,
     applicant_id: int,
     enterprise_id: int = None,
+    resume_data_map: Dict[int, dict] = None,
+    user_name_map: Dict[int, str] = None,
 ) -> dict:
     """构建单条投递记录的所有字段（写入 SQL 用）。
 
@@ -245,6 +266,8 @@ def _build_application_record(
         task_id: 岗位 ID
         applicant_id: 求职者用户 ID
         enterprise_id: 岗位所属企业 ID（用于后续 HR 分配）
+        resume_data_map: 用户 ID → 简历数据字典的映射
+        user_name_map: 用户 ID → 用户昵称的映射
 
     Returns:
         包含所有 APPLICATION_COLUMNS 字段值的字典
@@ -256,8 +279,8 @@ def _build_application_record(
     create_time = weighted_random_time()
     update_time = create_time
 
-    # 简历快照
-    resume_snapshot = generate_resume_snapshot()
+    # 简历快照（使用真实简历数据）
+    resume_snapshot = generate_resume_snapshot(applicant_id, resume_data_map, user_name_map)
 
     # 附件 URL（15% 概率有值）
     attachment_url = (
@@ -402,6 +425,8 @@ def generate_applications(
     hr_enterprise_map: Dict[int, int],
     resume_id_map: Dict[int, int],
     task_enterprise_map: Dict[int, int] = None,
+    resume_data_map: Dict[int, dict] = None,
+    user_name_map: Dict[int, str] = None,
 ) -> Tuple[List[int], List[dict]]:
     """生成岗位投递数据并写入 SQL 文件。
 
@@ -419,6 +444,8 @@ def generate_applications(
         hr_enterprise_map: HR 用户 ID → 企业 ID 映射（字典长度 400）
         resume_id_map: 用户 ID → 简历 ID 映射（用于简历引用，当前保留备用）
         task_enterprise_map: 岗位 ID → 企业 ID 映射（用于准确分配 HR）
+        resume_data_map: 用户 ID → 简历数据字典的映射（用于 resume_snapshot）
+        user_name_map: 用户 ID → 用户昵称的映射（用于 resume_snapshot 的 realName）
 
     Returns:
         (application_ids, application_info_list)
@@ -467,7 +494,10 @@ def generate_applications(
             # 构建记录
             app_id = writer.next_id("task_application")
             enterprise_id = (task_enterprise_map or {}).get(task_id)
-            record = _build_application_record(app_id, task_id, seeker_id, enterprise_id)
+            record = _build_application_record(
+                app_id, task_id, seeker_id, enterprise_id,
+                resume_data_map, user_name_map,
+            )
 
             # 根据状态填充条件字段
             _populate_status_fields(record, enterprise_hr_map_rev)
@@ -495,7 +525,11 @@ def generate_applications(
         used_pairs.add((task_id, seeker_id))
 
         app_id = writer.next_id("task_application")
-        record = _build_application_record(app_id, task_id, seeker_id)
+        enterprise_id = (task_enterprise_map or {}).get(task_id)
+        record = _build_application_record(
+            app_id, task_id, seeker_id, enterprise_id,
+            resume_data_map, user_name_map,
+        )
         _populate_status_fields(record, enterprise_hr_map_rev)
 
         writer.add_row(_record_to_row(record))

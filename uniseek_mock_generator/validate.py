@@ -26,7 +26,7 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
     "user": {"count": 8000, "unique": ["phone", "email"]},
     "real_name_auth": {"count": 7000, "unique": ["user_id", "id_card"]},
     "enterprise": {"count": 400, "unique": ["user_id", "credit_code"]},
-    "resume": {"count": 7000, "unique": ["user_id"]},
+    "resume": {"count": 7500, "unique": ["user_id"]},
     "task": {"count": 5000, "unique": []},
     "task_application": {"count": 80000, "unique": ["task_id,applicant_id"]},
     "notification": {"count": 60000, "unique": []},
