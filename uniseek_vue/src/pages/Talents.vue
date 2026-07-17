@@ -144,11 +144,12 @@ const genderLabel = (g?: number) => {
 
 <template>
   <div class="talents-page">
-    <div class="talents-header">
-      <h2 class="talents-title">人才库</h2>
-      <div class="talents-filter">
+    <!-- 搜索栏（全宽背景图样式） -->
+    <div class="search-bar">
+      <div class="search-bar-inner">
         <el-input
           v-model="keyword"
+          size="large"
           placeholder="搜索姓名、技能标签"
           :prefix-icon="Search"
           clearable
@@ -156,6 +157,12 @@ const genderLabel = (g?: number) => {
           @keyup.enter="handleSearch"
         />
         <button class="search-btn" @click="handleSearch">搜索</button>
+      </div>
+    </div>
+
+    <!-- 筛选标签栏 -->
+    <div class="filter-bar">
+      <div class="filter-bar-inner">
         <div class="filter-tabs">
           <button
             v-for="filter in talentFilters"
@@ -268,47 +275,55 @@ const genderLabel = (g?: number) => {
 
 <style scoped>
 .talents-page {
+  height: calc(100vh - 60px);
+  background: #f5f7fa;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 搜索栏（全宽背景图样式，与求职者端一致） */
+.search-bar {
+  background: linear-gradient(rgba(13,27,42,0.2), rgba(13,27,42,0.2)), url('/background.jpg') center / cover no-repeat;
+  padding: 20px 24px;
+}
+
+.search-bar-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
-}
-
-.talents-header {
-  background: #fff;
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
-}
-
-.talents-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #000;
-  margin: 0 0 16px;
-}
-
-.talents-filter {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
+  height: 48px;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 
 .search-input {
-  width: 280px;
+  flex: 1;
+  height: 100%;
+}
+
+.search-input :deep(.el-input) {
+  height: 100%;
+}
+
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 0;
+  box-shadow: none !important;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .search-btn {
-  height: 32px;
-  padding: 0 14px;
+  width: 120px;
+  height: 100%;
   border: none;
   background: #1762FB;
   color: #fff;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  border-radius: 4px;
   flex-shrink: 0;
   transition: background 0.2s;
 }
@@ -317,31 +332,85 @@ const genderLabel = (g?: number) => {
   background: #0062cc;
 }
 
+/* 筛选标签栏 */
+.filter-bar {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.filter-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .filter-tabs {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .filter-tab {
-  padding: 8px 16px;
+  padding: 8px 20px;
   font-size: 14px;
-  border: none;
-  background: transparent;
-  color: #000;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  background: #f5f7fa;
+  color: #666;
+  border-radius: 20px;
   cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  font-weight: 500;
+}
+
+.filter-tab:hover {
+  background: #eef2f8;
+  color: #1762FB;
+  border-color: rgba(23, 98, 251, 0.15);
 }
 
 .filter-tab.active {
   background: #1762FB;
   color: #fff;
+  border-color: #1762FB;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(23, 98, 251, 0.25);
 }
 
+/* 人才列表主体 */
 .talents-list {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 200px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.talents-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.talents-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.talents-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.talents-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .pagination-wrap {
