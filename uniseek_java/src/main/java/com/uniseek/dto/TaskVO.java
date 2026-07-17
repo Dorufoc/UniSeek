@@ -101,4 +101,7 @@ public class TaskVO {
 
     /** 招聘HR头像URL */
     private String hrAvatar;
+
+    /** 当前用户是否是该职位的发布企业 HR */
+    private Boolean isOwner;
 }

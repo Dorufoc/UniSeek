@@ -145,6 +145,9 @@ watch(() => route.path, checkEnterpriseCert)
         <button class="cert-dialog-btn" @click="goToEnterpriseCert">
           前往认证
         </button>
+        <button class="cert-dialog-logout" @click="userStore.logout(); window.location.href = '/'">
+          退出当前账号
+        </button>
       </div>
     </el-dialog>
 
@@ -354,6 +357,20 @@ watch(() => route.path, checkEnterpriseCert)
 }
 .cert-dialog-btn:hover {
   opacity: 0.92;
+}
+
+.cert-dialog-logout {
+  margin-top: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #999;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.cert-dialog-logout:hover {
+  color: #e74c3c;
 }
 
 @media (max-width: 768px) {

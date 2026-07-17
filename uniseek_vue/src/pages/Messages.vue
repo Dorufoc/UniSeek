@@ -518,7 +518,6 @@ watch(() => route.query.chat, async (newVal) => {
           <div class="input-bar">
             <div class="action-wrap">
               <el-button
-                v-if="!isHr"
                 class="bar-btn bar-plus-btn"
                 :class="{ active: showActionMenu }"
                 :disabled="isBlocked"
@@ -536,7 +535,7 @@ watch(() => route.query.chat, async (newVal) => {
                     <div class="action-icon"><el-icon :size="22"><Picture /></el-icon></div>
                     <span class="action-label">上传图片</span>
                   </div>
-                  <div class="action-menu-item" @click="showActionMenu = false; handleSendResume()">
+                  <div v-if="!isHr" class="action-menu-item" @click="showActionMenu = false; handleSendResume()">
                     <div class="action-icon"><el-icon :size="22"><Document /></el-icon></div>
                     <span class="action-label">发送简历</span>
                   </div>

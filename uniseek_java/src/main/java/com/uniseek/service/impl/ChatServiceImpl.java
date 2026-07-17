@@ -291,6 +291,47 @@ public class ChatServiceImpl implements ChatService {
         return chatSession.getId();
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void initChatSession(Long applicationId, Long userId, Integer role) {
+        // 仅 HR 可调用
+        if (role != 1) {
+            throw new BusinessException(ApiResult.FORBIDDEN, "仅 HR 可以创建会话");
+        }
+
+        // 检查会话是否已存在
+        Long existingId = chatSessionMapper.selectIdByApplicationId(applicationId);
+        if (existingId != null) {
+            return; // 已存在，无需创建
+        }
+
+        // 查询投递记录，获取求职者 ID
+        TaskApplication application = taskApplicationMapper.selectById(applicationId);
+        if (application == null) {
+            throw new BusinessException(ApiResult.NOT_FOUND, "投递记录不存在");
+        }
+
+        // 校验 HR 是否为该职位所属企业的人员
+        Task task = taskMapper.selectById(application.getTaskId());
+        if (task == null) {
+            throw new BusinessException(ApiResult.NOT_FOUND, "关联职位不存在");
+        }
+        com.uniseek.entity.Enterprise enterprise = enterpriseMapper.selectById(task.getEnterpriseId());
+        if (enterprise == null || !enterprise.getUserId().equals(userId)) {
+            throw new BusinessException(ApiResult.FORBIDDEN, "您无权操作该投递的会话");
+        }
+
+        // 创建会话
+        ChatSession chatSession = new ChatSession();
+        chatSession.setTaskApplicationId(applicationId);
+        chatSession.setEmployerId(userId);
+        chatSession.setSeekerId(application.getApplicantId());
+        chatSession.setStatus(0);
+        chatSession.setCreateTime(LocalDateTime.now());
+        chatSession.setUpdateTime(LocalDateTime.now());
+        chatSessionMapper.insert(chatSession);
+    }
+
     /**
      * 计算当前用户是否允许在当前会话中发送消息
      * <p>HR  unrestricted；求职者仅在「未发送过消息」或「HR 已回复」时可发送。</p>

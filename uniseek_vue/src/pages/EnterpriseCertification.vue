@@ -174,6 +174,7 @@ onMounted(async () => {
 <template>
   <div class="cert-page">
     <button class="back-btn-top" @click="router.back()"><el-icon :size="18"><ArrowLeft /></el-icon> 返回</button>
+    <button class="logout-btn-top" @click="userStore.logout(); router.push('/')">退出当前账号</button>
     <div class="cert-container">
       <div v-if="loading" class="loading-state">加载中...</div>
 
@@ -319,6 +320,25 @@ onMounted(async () => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 .back-btn-top:hover { color: #1762FB; }
+
+.logout-btn-top {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border: none;
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+.logout-btn-top:hover { color: #e74c3c; }
 
 .info-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 .info-row { display: flex; padding: 12px 0; border-bottom: 1px solid var(--border); }
