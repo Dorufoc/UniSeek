@@ -67,6 +67,8 @@ export interface RealNameAuthStatus {
   isAuth: boolean
   realName: string | null
   idCard: string | null
+  birthDate: string | null
+  gender: number
 }
 
 // 修改密码请求参数

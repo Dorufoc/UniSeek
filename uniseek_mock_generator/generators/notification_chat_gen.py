@@ -211,7 +211,7 @@ def generate_notifications(
             writer.add_row([
                 nid,
                 hr_id,                                              # receiver_id
-                seeker_id,                                          # sender_id = 求职者
+                None,                                               # sender_id = NULL（系统通知）
                 "新投递提醒",                                         # title
                 f"求职者已投递岗位（投递编号：{app_id}），请及时登录平台处理。",  # content
                 0,                                                  # type=系统通知
@@ -418,12 +418,44 @@ def generate_chat_sessions(
         # 会话状态：90% 活跃(0)，10% 已关闭(1)
         status = 0 if random.random() < 0.9 else 1
 
+        # 动态生成 last_message：随机从 HR 或求职者模板选取并格式化
+        if random.random() < 0.5:
+            template = random.choice(CHAT_MESSAGES_HR)
+            last_msg = _safe_format(
+                template,
+                salary=str(random.randint(100, 500)),
+                location=f"{random.choice(_CITIES)}{random.choice(_DISTRICTS)}",
+                content="日常运营工作",
+                hours=str(random.randint(4, 10)),
+                position="兼职岗位",
+                time=f"{random.randint(9, 18)}:00",
+                day=str(random.randint(1, 3)),
+                month=str(random.randint(1, 6)),
+                industry=random.choice(_CATEGORIES),
+                position2="其他岗位",
+            )
+        else:
+            template = random.choice(CHAT_MESSAGES_SEEKER)
+            last_msg = _safe_format(
+                template,
+                position="兼职岗位",
+                nums=str(random.randint(1, 5)),
+                num=str(random.randint(2, 12)),
+                company=random.choice(_COMPANY_NAMES),
+                age=str(random.randint(18, 35)),
+                gender="男" if random.random() < 0.5 else "女",
+                location=f"{random.choice(_CITIES)}{random.choice(_DISTRICTS)}",
+                time=f"{random.randint(9, 18)}:00",
+                time2=f"{random.randint(18, 22)}:00",
+                day="周一",
+            )
+
         writer.add_row([
             sid,
             app_id,                                              # task_application_id
             employer_id,                                         # employer_id = HR
             seeker_id,                                           # seeker_id
-            "您好，很高兴与您沟通。",                                # last_message 占位
+            last_msg,                                            # last_message（动态）
             _format_dt(update_time),                             # last_message_time
             status,
             _format_dt(create_time),

@@ -21,6 +21,7 @@ export interface TaskSearchParams {
   salaryMin?: number
   salaryMax?: number
   salaryUnit?: number
+  includeNegotiable?: boolean
   address?: string
   tags?: string
   sortBy?: string

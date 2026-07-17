@@ -224,6 +224,11 @@ const salaryUnitLabel = (unit?: number) => {
   if (unit === 1) return '/时'
   return '/月'
 }
+
+const jobSalaryText = (min: number, max: number, unit: number): string => {
+  if (min === 0 && max === 0) return '面议'
+  return `¥${min}-${max}${salaryUnitLabel(unit)}`
+}
 const jobTypeLabel = (type?: number) => {
   if (type === 1) return '全职'
   if (type === 2) return '兼职'
@@ -426,7 +431,7 @@ watch(() => route.query.id, (id) => {
           >
             <div class="job-top">
               <h4 class="job-title">{{ job.title }}</h4>
-              <span class="job-salary">&yen;{{ job.salaryMin }}-{{ job.salaryMax }}{{ salaryUnitLabel(job.salaryUnit) }}</span>
+              <span class="job-salary">{{ jobSalaryText(job.salaryMin, job.salaryMax, job.salaryUnit) }}</span>
             </div>
             <div class="job-meta">
               <span class="job-type">{{ jobTypeLabel(job.jobType) }}</span>

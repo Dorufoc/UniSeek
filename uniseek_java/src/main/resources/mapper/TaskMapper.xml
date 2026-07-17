@@ -126,11 +126,29 @@
             <if test="req.jobType != null">
                 AND task.job_type = #{req.jobType}
             </if>
-            <if test="req.salaryMin != null">
-                AND task.salary_min >= #{req.salaryMin}
-            </if>
-            <if test="req.salaryMax != null">
-                AND task.salary_max &lt;= #{req.salaryMax}
+            <if test="req.salaryMin != null or req.salaryMax != null">
+                <choose>
+                    <when test="req.includeNegotiable != null and req.includeNegotiable">
+                        AND (
+                            (task.salary_min = 0 AND task.salary_max = 0)
+                            <if test="req.salaryMin != null">
+                                OR (task.salary_min >= #{req.salaryMin}
+                                <if test="req.salaryMax != null">
+                                    AND task.salary_max &lt;= #{req.salaryMax}
+                                </if>
+                                )
+                            </if>
+                            <if test="req.salaryMin == null and req.salaryMax != null">
+                                OR task.salary_max &lt;= #{req.salaryMax}
+                            </if>
+                        )
+                    </when>
+                    <otherwise>
+                        <if test="req.salaryMin != null">AND task.salary_min >= #{req.salaryMin}</if>
+                        <if test="req.salaryMax != null">AND task.salary_max &lt;= #{req.salaryMax}</if>
+                        AND NOT (task.salary_min = 0 AND task.salary_max = 0)
+                    </otherwise>
+                </choose>
             </if>
             <if test="req.salaryUnit != null">
                 AND task.salary_unit = #{req.salaryUnit}

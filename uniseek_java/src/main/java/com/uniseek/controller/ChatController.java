@@ -100,11 +100,14 @@ public class ChatController {
         ChatMessageVO vo = chatService.sendMessage(applicationId, userId, role, request);
 
         // 查询会话并获取接收方
-        Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
-        if (sessionId == null) {
-            sessionId = applicationId; // 直接会话：applicationId 就是 sessionId
+        ChatSession session = chatSessionMapper.selectById(applicationId);
+        if (session == null) {
+            // applicationId 是 task_application_id，取真正的 session PK
+            Long sid = chatSessionMapper.selectIdByApplicationId(applicationId);
+            if (sid != null) {
+                session = chatSessionMapper.selectById(sid);
+            }
         }
-        ChatSession session = chatSessionMapper.selectById(sessionId);
         if (session != null) {
             Long receiverId = userId.equals(session.getEmployerId())
                     ? session.getSeekerId()

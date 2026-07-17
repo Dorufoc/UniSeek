@@ -719,242 +719,141 @@ COMPANY_DESCRIPTIONS = [
 # =============================================================================
 
 JOB_DESCRIPTION_TEMPLATES = [
-    "<h3>工作内容</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>任职要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>福利待遇</h3>"
-    "<ul><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "工作内容：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "任职要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "福利待遇：\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>岗位职责</h3>"
-    "<ol><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ol>"
-    "<h3>任职资格</h3>"
-    "<ol><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ol>"
-    "<h3>薪资待遇</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。</p>",
+    "岗位职责：\n1. {responsibility1}\n2. {responsibility2}\n3. {responsibility3}\n"
+    "任职资格：\n1. {requirement1}\n2. {requirement2}\n3. {requirement3}\n"
+    "薪资待遇：{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。",
 
-    "<h3>职位描述</h3>"
-    "<p>我们正在寻找一位优秀的{position}加入我们的团队。"
-    "你将负责{responsibility1}，{responsibility2}等工作。</p>"
-    "<h3>岗位要求</h3>"
-    "<p>{requirement1}；{requirement2}；{requirement3}。</p>"
-    "<h3>我们提供</h3>"
-    "<p>{benefit1}、{benefit2}、{benefit3}等福利保障。</p>",
+    "职位描述：\n我们正在寻找一位优秀的{position}加入我们的团队。"
+    "你将负责{responsibility1}，{responsibility2}等工作。\n"
+    "岗位要求：\n{requirement1}；{requirement2}；{requirement3}。\n"
+    "我们提供：\n{benefit1}、{benefit2}、{benefit3}等福利保障。",
 
-    "<h3>工作职责</h3>"
-    "<p>1. {responsibility1}</p><p>2. {responsibility2}</p><p>3. {responsibility3}</p>"
-    "<h3>岗位要求</h3>"
-    "<p>1. {requirement1}</p><p>2. {requirement2}</p><p>3. {requirement3}</p>"
-    "<h3>福利保障</h3>"
-    "<p>缴纳五险一金，提供{benefit1}、{benefit2}、{benefit3}。</p>",
+    "工作职责：\n1. {responsibility1}\n2. {responsibility2}\n3. {responsibility3}\n"
+    "岗位要求：\n1. {requirement1}\n2. {requirement2}\n3. {requirement3}\n"
+    "福利保障：\n缴纳五险一金，提供{benefit1}、{benefit2}、{benefit3}。",
 
-    "<h3>岗位职责</h3>"
-    "<ul><li>负责{responsibility1}</li><li>协助{responsibility2}</li><li>参与{responsibility3}</li></ul>"
-    "<h3>任职条件</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>薪酬福利</h3>"
-    "<ul><li>薪资：{salary_range}元/月</li><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "岗位职责：\n· 负责{responsibility1}\n· 协助{responsibility2}\n· 参与{responsibility3}\n"
+    "任职条件：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "薪酬福利：\n· 薪资：{salary_range}元/月\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>你将做些什么</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>我们希望你</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>加入我们</h3>"
-    "<ul><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "你将做些什么：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "我们希望你：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "加入我们：\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>岗位详情</h3>"
-    "<p>该岗位主要负责{responsibility1}、{responsibility2}等工作内容。</p>"
-    "<p>要求候选人{requirement1}，{requirement2}。</p>"
-    "<p>公司提供{benefit1}、{benefit2}、{benefit3}等优厚待遇。</p>",
+    "岗位详情：\n该岗位主要负责{responsibility1}、{responsibility2}等工作内容。\n"
+    "要求候选人{requirement1}，{requirement2}。\n"
+    "公司提供{benefit1}、{benefit2}、{benefit3}等优厚待遇。",
 
-    "<h3>主要职责</h3>"
-    "<p>&#8226; {responsibility1}</p><p>&#8226; {responsibility2}</p><p>&#8226; {responsibility3}</p>"
-    "<h3>能力要求</h3>"
-    "<p>&#8226; {requirement1}</p><p>&#8226; {requirement2}</p><p>&#8226; {requirement3}</p>"
-    "<h3>薪酬待遇</h3>"
-    "<p>&#8226; 月薪{salary_range}元</p><p>&#8226; {benefit1}</p><p>&#8226; {benefit2}</p><p>&#8226; {benefit3}</p>",
+    "主要职责：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "能力要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "薪酬待遇：\n· 月薪{salary_range}元\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>工作内容</h3>"
-    "<ol><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ol>"
-    "<h3>岗位要求</h3>"
-    "<ol><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ol>"
-    "<h3>薪酬福利</h3>"
-    "<p>基本工资{salary_range}元 + {benefit1} + {benefit2} + {benefit3}</p>",
+    "工作内容：\n1. {responsibility1}\n2. {responsibility2}\n3. {responsibility3}\n"
+    "岗位要求：\n1. {requirement1}\n2. {requirement2}\n3. {requirement3}\n"
+    "薪酬福利：\n基本工资{salary_range}元 + {benefit1} + {benefit2} + {benefit3}",
 
-    "<h3>岗位描述</h3>"
-    "<p>{platform}知名{industry}企业诚聘{position}。"
-    "工作环境好，团队氛围融洽。</p>"
-    "<h3>任职资格</h3>"
-    "<p>{requirement1}，{requirement2}，{requirement3}优先。</p>"
-    "<h3>福利待遇</h3>"
-    "<p>{benefit1}、{benefit2}、{benefit3}。</p>",
+    "岗位描述：\n{platform}知名{industry}企业诚聘{position}。"
+    "工作环境好，团队氛围融洽。\n"
+    "任职资格：\n{requirement1}，{requirement2}，{requirement3}优先。\n"
+    "福利待遇：\n{benefit1}、{benefit2}、{benefit3}。",
 
-    "<h3>岗位职责</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>任职要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>工作时间</h3>"
-    "<p>{work_time}，每周休息{rest_day}天。</p>"
-    "<h3>薪资待遇</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}。</p>",
+    "岗位职责：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "任职要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "工作时间：\n{work_time}，每周休息{rest_day}天。\n"
+    "薪资待遇：\n{salary_range}元/月，{benefit1}，{benefit2}。",
 
-    "<h3>工作内容</h3>"
-    "<ul><li>主要工作：{responsibility1}</li><li>辅助工作：{responsibility2}</li><li>其他：{responsibility3}</li></ul>"
-    "<h3>招聘要求</h3>"
-    "<ul><li>年龄{age_min}-{age_max}岁</li><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>薪资福利</h3>"
-    "<ul><li>薪资：{salary_range}元/月+{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "工作内容：\n· 主要工作：{responsibility1}\n· 辅助工作：{responsibility2}\n· 其他：{responsibility3}\n"
+    "招聘要求：\n· 年龄{age_min}-{age_max}岁\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "薪资福利：\n· 薪资：{salary_range}元/月+{benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>职位亮点</h3>"
-    "<ul><li>轻松的氛围：{benefit1}</li><li>快速的成长：{benefit2}</li><li>优厚的回报：{benefit3}</li></ul>"
-    "<h3>工作职责</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>任职要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>",
+    "职位亮点：\n· 轻松的氛围：{benefit1}\n· 快速的成长：{benefit2}\n· 优厚的回报：{benefit3}\n"
+    "工作职责：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "任职要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}",
 
-    "<h3>岗位介绍</h3>"
-    "<p>本岗位面向{target}招聘，无需经验，提供带薪培训。</p>"
-    "<h3>工作内容</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>薪资待遇</h3>"
-    "<ul><li>{salary_range}元/天，日结/周结可选</li><li>{benefit1}</li><li>{benefit2}</li></ul>",
+    "岗位介绍：\n本岗位面向{target}招聘，无需经验，提供带薪培训。\n"
+    "工作内容：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "薪资待遇：\n· {salary_range}元/天，日结/周结可选\n· {benefit1}\n· {benefit2}",
 
-    "<h3>岗位说明</h3>"
-    "<p>本岗位为兼职/全职均可，适合在校学生和待业人员。</p>"
-    "<h3>工作内容</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>薪资福利</h3>"
-    "<ul><li>时薪{salary_range}元</li><li>{benefit1}</li><li>{benefit2}</li></ul>",
+    "岗位说明：\n本岗位为兼职/全职均可，适合在校学生和待业人员。\n"
+    "工作内容：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "薪资福利：\n· 时薪{salary_range}元\n· {benefit1}\n· {benefit2}",
 
-    "<h3>职位详情</h3>"
-    "<p>我们正在扩大团队，诚邀有经验的{position}加入。</p>"
-    "<h3>工作职责</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>资格要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li></ul>"
-    "<h3>福利</h3>"
-    "<p>{benefit1}、{benefit2}、{benefit3}</p>",
+    "职位详情：\n我们正在扩大团队，诚邀有经验的{position}加入。\n"
+    "工作职责：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "资格要求：\n· {requirement1}\n· {requirement2}\n"
+    "福利：\n{benefit1}、{benefit2}、{benefit3}",
 
-    "<h3>关于这个岗位</h3>"
-    "<p>这是一个{type}性质的岗位，适合{target}人群。</p>"
-    "<h3>你需要做什么</h3>"
-    "<ol><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ol>"
-    "<h3>我们期待你</h3>"
-    "<ol><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ol>",
+    "关于这个岗位：\n这是一个{type}性质的岗位，适合{target}人群。\n"
+    "你需要做什么：\n1. {responsibility1}\n2. {responsibility2}\n3. {responsibility3}\n"
+    "我们期待你：\n1. {requirement1}\n2. {requirement2}\n3. {requirement3}",
 
-    "<h3>招聘详情</h3>"
-    "<ul><li>岗位：{position}</li><li>类型：{type}</li><li>人数：{num}人</li></ul>"
-    "<h3>工作内容</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>任职条件</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>待遇说明</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。</p>",
+    "招聘详情：\n· 岗位：{position}\n· 类型：{type}\n· 人数：{num}人\n"
+    "工作内容：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "任职条件：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "待遇说明：\n{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。",
 
-    "<h3>岗位简介</h3>"
-    "<p>本岗位不需要特殊技能，有专人带教，简单易学。</p>"
-    "<h3>工作内容</h3>"
-    "<p>{responsibility1}、{responsibility2}、{responsibility3}等。</p>"
-    "<h3>岗位要求</h3>"
-    "<p>{requirement1}、{requirement2}。</p>"
-    "<h3>薪资说明</h3>"
-    "<p>{salary_range}元/天，薪资准时发放，不拖欠。</p>",
+    "岗位简介：\n本岗位不需要特殊技能，有专人带教，简单易学。\n"
+    "工作内容：\n{responsibility1}、{responsibility2}、{responsibility3}等。\n"
+    "岗位要求：\n{requirement1}、{requirement2}。\n"
+    "薪资说明：\n{salary_range}元/天，薪资准时发放，不拖欠。",
 
-    "<h3>职位信息</h3>"
-    "<p>招聘{position}，工作地点在{city}{district}，交通便利。</p>"
-    "<h3>工作职责</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li></ul>"
-    "<h3>岗位要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>福利待遇</h3>"
-    "<ul><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "职位信息：\n招聘{position}，工作地点在{city}{district}，交通便利。\n"
+    "工作职责：\n· {responsibility1}\n· {responsibility2}\n"
+    "岗位要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "福利待遇：\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>工作描述</h3>"
-    "<p>该岗位需要负责{area}领域的工作，包括但不限于以下内容：</p>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>任职资格</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>薪酬范围</h3>"
-    "<p>{salary_range}元/月（根据经验和能力面议）</p>"
-    "<h3>福利</h3>"
-    "<p>{benefit1}、{benefit2}、{benefit3}。</p>",
+    "工作描述：\n该岗位需要负责{area}领域的工作，包括但不限于以下内容：\n"
+    "· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "任职资格：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "薪酬范围：\n{salary_range}元/月（根据经验和能力面议）\n"
+    "福利：\n{benefit1}、{benefit2}、{benefit3}。",
 
-    "<h3>诚聘英才</h3>"
-    "<p>{company}因业务扩展，急招{position}{num}名。</p>"
-    "<h3>工作内容</h3>"
-    "<p>{responsibility1}，{responsibility2}，{responsibility3}。</p>"
-    "<h3>要求</h3>"
-    "<p>{requirement1}，{requirement2}，{requirement3}者优先考虑。</p>"
-    "<h3>待遇</h3>"
-    "<p>{salary_range}元/月 + {benefit1} + {benefit2} + {benefit3}</p>",
+    "诚聘英才：\n{company}因业务扩展，急招{position}{num}名。\n"
+    "工作内容：\n{responsibility1}，{responsibility2}，{responsibility3}。\n"
+    "要求：\n{requirement1}，{requirement2}，{requirement3}者优先考虑。\n"
+    "待遇：\n{salary_range}元/月 + {benefit1} + {benefit2} + {benefit3}",
 
-    "<h3>好机会来了！</h3>"
-    "<p>我们正在寻找勤奋踏实的{position}，工作简单易上手。</p>"
-    "<h3>工作内容</h3>"
-    "<p>{responsibility1}；{responsibility2}；{responsibility3}。</p>"
-    "<h3>要求</h3>"
-    "<p>年满{age}周岁，{requirement1}，{requirement2}。</p>"
-    "<h3>薪资福利</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}。</p>",
+    "好机会来了！\n我们正在寻找勤奋踏实的{position}，工作简单易上手。\n"
+    "工作内容：\n{responsibility1}；{responsibility2}；{responsibility3}。\n"
+    "要求：\n年满{age}周岁，{requirement1}，{requirement2}。\n"
+    "薪资福利：\n{salary_range}元/月，{benefit1}，{benefit2}。",
 
-    "<h3>岗位描述</h3>"
-    "<p>负责{responsibility1}、{responsibility2}和{responsibility3}相关工作。</p>"
-    "<h3>应聘条件</h3>"
-    "<ul><li>学历：{education}及以上</li><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>薪资待遇</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。</p>",
+    "岗位描述：\n负责{responsibility1}、{responsibility2}和{responsibility3}相关工作。\n"
+    "应聘条件：\n· 学历：{education}及以上\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "薪资待遇：\n{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。",
 
-    "<h3>招聘信息</h3>"
-    "<ul><li>职位：{position}</li><li>招聘人数：{num}人</li><li>工作性质：{type}</li></ul>"
-    "<h3>岗位职责</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>任职要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>我们的优势</h3>"
-    "<ul><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "招聘信息：\n· 职位：{position}\n· 招聘人数：{num}人\n· 工作性质：{type}\n"
+    "岗位职责：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "任职要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "我们的优势：\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>工作职责描述</h3>"
-    "<ul><li>核心职责：{responsibility1}</li><li>日常事务：{responsibility2}</li><li>团队协作：{responsibility3}</li></ul>"
-    "<h3>岗位要求</h3>"
-    "<ul><li>年龄要求：{age_min}-{age_max}岁</li><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>我们提供</h3>"
-    "<ul><li>薪资：{salary_range}元/月</li><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "工作职责描述：\n· 核心职责：{responsibility1}\n· 日常事务：{responsibility2}\n· 团队协作：{responsibility3}\n"
+    "岗位要求：\n· 年龄要求：{age_min}-{age_max}岁\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "我们提供：\n· 薪资：{salary_range}元/月\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>急需{position}</h3>"
-    "<p>本岗位急招，面试通过即可上岗。工作内容简单，环境舒适。</p>"
-    "<h3>工作内容</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>职位要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li></ul>"
-    "<h3>薪资福利</h3>"
-    "<ul><li>{salary_range}元/月</li><li>{benefit1}</li><li>{benefit2}</li><li>{benefit3}</li></ul>",
+    "急需{position}：\n本岗位急招，面试通过即可上岗。工作内容简单，环境舒适。\n"
+    "工作内容：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "职位要求：\n· {requirement1}\n· {requirement2}\n"
+    "薪资福利：\n· {salary_range}元/月\n· {benefit1}\n· {benefit2}\n· {benefit3}",
 
-    "<h3>岗位详情</h3>"
-    "<p>{company}诚聘{position}，工作稳定，氛围好，期待你的加入。</p>"
-    "<h3>工作内容</h3>"
-    "<p>{responsibility1}。{responsibility2}。{responsibility3}。</p>"
-    "<h3>岗位要求</h3>"
-    "<p>1. {requirement1}<br>2. {requirement2}<br>3. {requirement3}</p>"
-    "<h3>薪资待遇</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。</p>",
+    "岗位详情：\n{company}诚聘{position}，工作稳定，氛围好，期待你的加入。\n"
+    "工作内容：\n{responsibility1}。{responsibility2}。{responsibility3}。\n"
+    "岗位要求：\n1. {requirement1}\n2. {requirement2}\n3. {requirement3}\n"
+    "薪资待遇：\n{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。",
 
-    "<h3>招贤纳士</h3>"
-    "<p>因业务发展需要，现面向社会诚聘{position}若干名。</p>"
-    "<h3>工作内容</h3>"
-    "<p>主要{responsibility1}，同时{responsibility2}，{responsibility3}。</p>"
-    "<h3>应聘条件</h3>"
-    "<p>{requirement1}；{requirement2}；{requirement3}优先。</p>"
-    "<h3>薪酬待遇</h3>"
-    "<p>{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。</p>",
+    "招贤纳士：\n因业务发展需要，现面向社会诚聘{position}若干名。\n"
+    "工作内容：\n主要{responsibility1}，同时{responsibility2}，{responsibility3}。\n"
+    "应聘条件：\n{requirement1}；{requirement2}；{requirement3}优先。\n"
+    "薪酬待遇：\n{salary_range}元/月，{benefit1}，{benefit2}，{benefit3}。",
 
-    "<h3>岗位详情</h3>"
-    "<p>高薪诚聘{position}，工作轻松，环境好。</p>"
-    "<h3>工作内容</h3>"
-    "<ul><li>{responsibility1}</li><li>{responsibility2}</li><li>{responsibility3}</li></ul>"
-    "<h3>要求</h3>"
-    "<ul><li>{requirement1}</li><li>{requirement2}</li><li>{requirement3}</li></ul>"
-    "<h3>待遇</h3>"
-    "<p>{salary_range}元+提成，综合月薪{total}元以上。{benefit1}、{benefit2}。</p>",
+    "岗位详情：\n高薪诚聘{position}，工作轻松，环境好。\n"
+    "工作内容：\n· {responsibility1}\n· {responsibility2}\n· {responsibility3}\n"
+    "要求：\n· {requirement1}\n· {requirement2}\n· {requirement3}\n"
+    "待遇：\n{salary_range}元+提成，综合月薪{total}元以上。{benefit1}、{benefit2}。",
 ]
 
 # =============================================================================

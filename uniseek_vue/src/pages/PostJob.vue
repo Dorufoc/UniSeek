@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts, User } from '@element-plus/icons-vue'
+import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts, User, Close } from '@element-plus/icons-vue'
 import { getTaskById, createTask, updateTask } from '@/api/task'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getRegionTree, type RegionVO } from '@/api/region'
@@ -121,16 +121,43 @@ const toggleTag = (tag: string) => {
   }
 }
 
+// 自定义标签输入
+const customTagInput = ref('')
+
+const addCustomTag = () => {
+  const tag = customTagInput.value.trim()
+  if (!tag) {
+    ElMessage.warning('请输入标签内容')
+    return
+  }
+  if (form.tag.includes(tag)) {
+    ElMessage.warning('该标签已存在')
+    return
+  }
+  form.tag.push(tag)
+  customTagInput.value = ''
+}
+
+const removeTag = (tag: string) => {
+  const idx = form.tag.indexOf(tag)
+  if (idx > -1) {
+    form.tag.splice(idx, 1)
+  }
+}
+
 const isFormValid = computed(() => {
   return form.title.trim() !== ''
     && cascaderValue.value.length > 0
     && form.regionId > 0
     && form.description.trim() !== ''
     && form.salaryMax >= form.salaryMin
-    && form.salaryMax > 0
     && form.totalQuota > 0
     && form.address.trim() !== ''
+    && form.deadline.trim() !== ''
 })
+
+// 判断是否为面议（最低和最高薪资均为 0）
+const isNegotiableSalary = computed(() => form.salaryMin === 0 && form.salaryMax === 0)
 
 const handleSubmit = async () => {
   if (!isFormValid.value) return
@@ -179,14 +206,14 @@ const handleSubmit = async () => {
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><Briefcase /></el-icon>
-            职位标题
-          </label>
-          <el-input v-model="form.title" size="large" placeholder="例如：周末餐厅服务员、前端开发兼职" maxlength="100" clearable />
+             职位标题 <span class="required-mark">*</span>
+            </label>
+            <el-input v-model="form.title" size="large" placeholder="例如：周末餐厅服务员、前端开发兼职" maxlength="100" clearable />
         </div>
 
         <div class="form-row">
           <div class="form-item flex-1">
-            <label class="form-label">职位分类</label>
+            <label class="form-label">职位分类 <span class="required-mark">*</span></label>
             <el-cascader
               v-model="cascaderValue"
               :options="categoryTree"
@@ -199,7 +226,7 @@ const handleSubmit = async () => {
             />
           </div>
           <div class="form-item flex-1">
-            <label class="form-label">工作地区</label>
+            <label class="form-label">工作地区 <span class="required-mark">*</span></label>
             <el-cascader
               v-model="regionCascaderValue"
               :options="regionTree"
@@ -243,6 +270,9 @@ const handleSubmit = async () => {
             </el-select>
           </div>
         </div>
+        <div v-if="isNegotiableSalary" class="salary-reminder">
+          当前薪资设置为 0-0，发布后将在职位列表展示为「<strong>面议</strong>」。若需设定具体薪资，请将最低或最高薪资改为大于 0 的值。
+        </div>
 
         <div class="form-row">
           <div class="form-item flex-1">
@@ -266,9 +296,9 @@ const handleSubmit = async () => {
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><MapLocation /></el-icon>
-            工作地址
-          </label>
-          <el-input v-model="form.address" size="large" placeholder="例如：北京市朝阳区建国路88号" maxlength="200" clearable />
+             工作地址 <span class="required-mark">*</span>
+            </label>
+            <el-input v-model="form.address" size="large" placeholder="例如：北京市朝阳区建国路88号" maxlength="200" clearable />
         </div>
 
         <div class="form-item">
@@ -276,6 +306,7 @@ const handleSubmit = async () => {
             <el-icon :size="16"><Timer /></el-icon>
             职位标签
           </label>
+          <!-- 系统推荐标签 -->
           <div class="tag-group">
             <button
               v-for="tag in tagOptions"
@@ -286,13 +317,35 @@ const handleSubmit = async () => {
               {{ tag }}
             </button>
           </div>
+          <!-- 已选标签展示（含自定义标签） -->
+          <div v-if="form.tag.length > 0" class="selected-tags">
+            <span v-for="tag in form.tag" :key="tag" class="selected-tag">
+              {{ tag }}
+              <el-icon class="tag-remove-icon" @click="removeTag(tag)">
+                <Close />
+              </el-icon>
+            </span>
+          </div>
+          <!-- 自定义标签输入 -->
+          <div class="custom-tag-row">
+            <el-input
+              v-model="customTagInput"
+              size="small"
+              placeholder="输入自定义标签，按回车添加"
+              maxlength="20"
+              clearable
+              style="flex:1"
+              @keyup.enter="addCustomTag"
+            />
+            <button class="add-tag-btn" @click="addCustomTag">添加</button>
+          </div>
         </div>
 
         <div class="form-item">
           <label class="form-label">
             <el-icon :size="16"><Calendar /></el-icon>
-            报名截止时间
-          </label>
+             报名截止时间 <span class="required-mark">*</span>
+            </label>
           <el-date-picker v-model="form.deadline" type="datetime" placeholder="选择截止时间" size="large" style="width:100%" value-format="YYYY-MM-DDTHH:mm:ss" />
         </div>
 
@@ -356,6 +409,11 @@ const handleSubmit = async () => {
   font-weight: 500;
   color: #000;
 }
+.required-mark {
+  color: #e74c3c;
+  font-weight: 700;
+  font-size: 16px;
+}
 .tag-group {
   display: flex;
   flex-wrap: wrap;
@@ -381,6 +439,74 @@ const handleSubmit = async () => {
   color: #1762FB;
   font-weight: 500;
 }
+/* 已选标签展示 */
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.selected-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px 4px 14px;
+  font-size: 13px;
+  border-radius: 16px;
+  background: rgba(0, 122, 255, 0.1);
+  color: #1762FB;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+.tag-remove-icon {
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+}
+.tag-remove-icon:hover {
+  opacity: 1;
+}
+
+/* 自定义标签输入 */
+.custom-tag-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.add-tag-btn {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: #1762FB;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+.add-tag-btn:hover {
+  opacity: 0.9;
+}
+
+/* 面议提示 */
+.salary-reminder {
+  margin-top: -12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e67e22;
+  background: #fef9e7;
+  border: 1px solid #fce4a1;
+  border-radius: 8px;
+}
+.salary-reminder strong {
+  font-weight: 600;
+}
+
 .submit-btn {
   width: 100%;
   height: 48px;

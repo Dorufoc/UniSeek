@@ -32,7 +32,6 @@ TABLE_CONFIG: Dict[str, Dict[str, Any]] = {
     "notification": {"count": 60000, "unique": []},
     "chat_session": {"count": 25000, "unique": ["task_application_id"]},
     "chat_message": {"count": 100000, "unique": []},
-    "complaint": {"count": 300, "unique": []},
     "operation_log": {"count": 25000, "unique": []},
     "daily_statistics": {"count": 365, "unique": ["stat_date"]},
 }
@@ -68,10 +67,6 @@ FK_CONSTRAINTS: Dict[str, List[Tuple[str, str, str]]] = {
     "chat_message": [
         ("session_id", "chat_session", "id"),
         ("sender_id", "user", "id"),
-    ],
-    "complaint": [
-        ("complainant_id", "user", "id"),
-        ("handler_id", "user", "id"),
     ],
     "operation_log": [
         ("operator_id", "user", "id"),

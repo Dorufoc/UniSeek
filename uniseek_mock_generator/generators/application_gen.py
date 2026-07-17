@@ -236,6 +236,7 @@ def _build_application_record(
     app_id: int,
     task_id: int,
     applicant_id: int,
+    enterprise_id: int = None,
 ) -> dict:
     """构建单条投递记录的所有字段（写入 SQL 用）。
 
@@ -243,6 +244,7 @@ def _build_application_record(
         app_id: 投递记录自增 ID
         task_id: 岗位 ID
         applicant_id: 求职者用户 ID
+        enterprise_id: 岗位所属企业 ID（用于后续 HR 分配）
 
     Returns:
         包含所有 APPLICATION_COLUMNS 字段值的字典
@@ -279,6 +281,7 @@ def _build_application_record(
         "version": 0,
         "create_time": create_time,
         "update_time": update_time,
+        "enterprise_id": enterprise_id,
     }
 
 
@@ -289,7 +292,7 @@ def _populate_status_fields(
     """根据投递状态填充 HR 信息、面试时间、拒绝原因等条件字段。
 
     规则：
-    - status >= 1 时，为该投递分配一个随机 HR
+    - status >= 1 时，使用投递岗位所属企业的 HR（而非随机）
     - status == 1 时，填充未来的面试时间和地点
     - status in (2, 3, 5) 时，填充过去的面试时间和地点
     - status == 4 时，填充拒绝原因
@@ -303,8 +306,11 @@ def _populate_status_fields(
     create_time = record["create_time"]
 
     # status >= 1 表示 HR 已处理过该投递
+    # 使用岗位所属企业的 HR，而非随机选取
     if status >= 1 and enterprise_hr_map:
-        enterprise_id = random.choice(list(enterprise_hr_map.keys()))
+        enterprise_id = record.get("enterprise_id")
+        if enterprise_id is None or enterprise_id not in enterprise_hr_map:
+            enterprise_id = random.choice(list(enterprise_hr_map.keys()))
         record["hr_id"] = random.choice(enterprise_hr_map[enterprise_id])
 
     if status == 1:  # 待面试
@@ -374,6 +380,7 @@ def _build_info(record: dict) -> dict:
         "applicant_id": record["applicant_id"],
         "status": record["status"],
         "hr_id": record["hr_id"],
+        "enterprise_id": record.get("enterprise_id"),
         "create_time": _format_dt(record["create_time"]),
         "interview_time": (
             _format_dt(record["interview_time"])
@@ -394,6 +401,7 @@ def generate_applications(
     task_ids: List[int],
     hr_enterprise_map: Dict[int, int],
     resume_id_map: Dict[int, int],
+    task_enterprise_map: Dict[int, int] = None,
 ) -> Tuple[List[int], List[dict]]:
     """生成岗位投递数据并写入 SQL 文件。
 
@@ -410,6 +418,7 @@ def generate_applications(
         task_ids: 岗位 ID 列表（共 5,000 个）
         hr_enterprise_map: HR 用户 ID → 企业 ID 映射（字典长度 400）
         resume_id_map: 用户 ID → 简历 ID 映射（用于简历引用，当前保留备用）
+        task_enterprise_map: 岗位 ID → 企业 ID 映射（用于准确分配 HR）
 
     Returns:
         (application_ids, application_info_list)
@@ -457,7 +466,8 @@ def generate_applications(
 
             # 构建记录
             app_id = writer.next_id("task_application")
-            record = _build_application_record(app_id, task_id, seeker_id)
+            enterprise_id = (task_enterprise_map or {}).get(task_id)
+            record = _build_application_record(app_id, task_id, seeker_id, enterprise_id)
 
             # 根据状态填充条件字段
             _populate_status_fields(record, enterprise_hr_map_rev)

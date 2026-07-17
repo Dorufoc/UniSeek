@@ -162,7 +162,7 @@ onMounted(() => {
         <el-table-column prop="enterpriseName" label="发布企业" width="160" show-overflow-tooltip />
         <el-table-column label="薪资" width="160">
           <template #default="{ row }">
-            {{ row.salaryMin }} - {{ row.salaryMax }} 元/{{ salaryUnitText(row.salaryUnit) }}
+            {{ row.salaryMin === 0 && row.salaryMax === 0 ? '面议' : row.salaryMin + ' - ' + row.salaryMax + ' 元/' + salaryUnitText(row.salaryUnit) }}
           </template>
         </el-table-column>
         <el-table-column label="类型" width="80" align="center">
@@ -229,7 +229,7 @@ onMounted(() => {
             {{ currentTask.enterpriseName || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="薪资">
-            {{ currentTask.salaryMin }} - {{ currentTask.salaryMax }} 元/{{ salaryUnitText(currentTask.salaryUnit) }}
+            {{ currentTask.salaryMin === 0 && currentTask.salaryMax === 0 ? '面议' : currentTask.salaryMin + ' - ' + currentTask.salaryMax + ' 元/' + salaryUnitText(currentTask.salaryUnit) }}
           </el-descriptions-item>
           <el-descriptions-item label="岗位类型">
             {{ jobTypeText(currentTask.jobType) }}

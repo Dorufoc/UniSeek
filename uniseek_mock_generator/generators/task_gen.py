@@ -3,12 +3,12 @@
 # ==============================================================================
 # 生成 5000 条岗位（task）记录，分布在 400 家企业中。
 # 每个岗位包含分类、薪资、地区、描述、标签等完整信息。
-# 职位描述使用 HTML 格式，标签使用 JSON 数组格式。
+# 职位描述使用纯文本格式，标签使用 JSON 数组格式。
 
 import random
 import datetime
 import json
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from config import END_DATE, START_DATE, ALL_REGION_IDS
 from sql_output import SQLWriter
@@ -93,6 +93,24 @@ PARENT_ID_TO_POOL_KEY: Dict[int, str] = {
     14: "摄影摄像",
     15: None,  # 其他 - 没有直接映射
 }
+
+# 企业行业 → 允许的父分类 ID 映射（用于确保岗位分类与企业行业一致）
+INDUSTRY_TO_PARENT_IDS: Dict[str, List[int]] = {
+    "餐饮服务": [1],
+    "物流快递": [3],
+    "IT互联网": [8, 6],
+    "教育培训": [12, 2],
+    "设计创意": [6, 7],
+    "家政服务": [11],
+    "美容美发": [10],
+    "其他": [4, 5, 13, 14, 15, 9],
+}
+
+# 父分类 ID → 子分类 ID 列表（由 CATEGORY_TO_PARENT 逆向构建）
+PARENT_TO_CHILD_IDS: Dict[int, List[int]] = {}
+for child_id, parent_id in CATEGORY_TO_PARENT.items():
+    PARENT_TO_CHILD_IDS.setdefault(parent_id, []).append(child_id)
+
 
 # 其他分类的 fallback 池键名
 FALLBACK_POOL_KEYS = [
@@ -706,14 +724,26 @@ def _format_dt(dt) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _pick_category_id() -> int:
+def _pick_category_id(allowed_parent_ids: List[int] = None) -> int:
     """根据 CATEGORY_DISTRIBUTION 加权随机选取分类 ID。
+
+    若指定 allowed_parent_ids，则只从属于这些父分类的子分类中选取。
+
+    Args:
+        allowed_parent_ids: 允许的父分类 ID 列表（为 None 时不限制）
 
     Returns:
         分类 ID（16-62）
     """
     cat_ids = list(CATEGORY_DISTRIBUTION.keys())
-    weights = list(CATEGORY_DISTRIBUTION.values())
+    if allowed_parent_ids:
+        allowed_child_ids = set()
+        for pid in allowed_parent_ids:
+            allowed_child_ids.update(PARENT_TO_CHILD_IDS.get(pid, []))
+        cat_ids = [cid for cid in cat_ids if cid in allowed_child_ids]
+        if not cat_ids:
+            cat_ids = list(CATEGORY_DISTRIBUTION.keys())
+    weights = [CATEGORY_DISTRIBUTION[cid] for cid in cat_ids]
     return random.choices(cat_ids, weights=weights, k=1)[0]
 
 
@@ -740,14 +770,7 @@ def _pick_title(category_id: int) -> str:
 
 
 def _generate_description(category_id: int) -> str:
-    """使用 datapool 模板生成职位描述（HTML 格式）。
-
-    Args:
-        category_id: 分类 ID
-
-    Returns:
-        包含有效 HTML 的职位描述文本
-    """
+    """使用 datapool 模板生成职位描述（纯文本格式）。"""
     pool_key = _get_pool_key(category_id)
     template = random.choice(JOB_DESCRIPTION_TEMPLATES)
 
@@ -945,28 +968,46 @@ def _generate_create_time(skew_recent: bool = True) -> datetime.datetime:
 # 主生成函数
 # =============================================================================
 
-def generate_tasks(writer: SQLWriter, enterprise_ids: List[int],
-                   hr_enterprise_map: Dict[int, int]) -> List[int]:
+def generate_tasks(
+    writer: SQLWriter,
+    enterprise_ids: List[int],
+    hr_enterprise_map: Dict[int, int],
+    enterprise_industry_map: Dict[int, str] = None,
+    enterprise_audit_map: Dict[int, int] = None,
+) -> Tuple[List[int], Dict[int, int]]:
     """生成岗位数据并写入 SQL 文件。
 
-    生成 5000 条岗位（task）记录，分布在 400 家企业中。
+    生成 5000 条岗位（task）记录，分布在已认证的企业中。
     每个岗位包含完整的分类、薪资、地区、描述、标签等信息。
 
-    职责、要求和福利使用预定义的分类池填充到 HTML 描述模板中。
+    职责、要求和福利使用预定义的分类池填充到纯文本描述模板中。
     标签使用 JSON 数组字符串格式。
     薪资范围基于分类和薪资单位合理分配。
 
     Args:
         writer: SQLWriter 实例，用于输出 SQL
-        enterprise_ids: 企业 ID 列表（长度 400）
+        enterprise_ids: 企业 ID 列表
         hr_enterprise_map: HR 用户 ID → 企业 ID 映射（仅用于参考）
+        enterprise_industry_map: 企业 ID → 行业名称映射（用于分类匹配）
+        enterprise_audit_map: 企业 ID → 审核状态映射（仅过滤已认证企业）
 
     Returns:
-        生成的岗位 ID 列表（长度 5000）
+        (task_ids, task_enterprise_map) 二元组：
+        - task_ids: 生成的岗位 ID 列表
+        - task_enterprise_map: 岗位 ID → 企业 ID 的映射字典
     """
     total_tasks = 5000
-    enterprise_count = len(enterprise_ids)
     task_ids: List[int] = []
+    task_enterprise_map: Dict[int, int] = {}
+
+    # ---- 过滤：只保留已认证的企业 ----
+    if enterprise_audit_map:
+        enterprise_ids = [eid for eid in enterprise_ids if enterprise_audit_map.get(eid) == 1]
+
+    if not enterprise_ids:
+        raise RuntimeError("没有已认证的企业，无法生成岗位数据")
+
+    enterprise_count = len(enterprise_ids)
 
     # =====================================================================
     # 1. 分配各企业的岗位数量（平均分布，每家企业 12-13 个）
@@ -987,9 +1028,9 @@ def generate_tasks(writer: SQLWriter, enterprise_ids: List[int],
     for eid, count in zip(shuffled_ids, enterprise_task_counts):
         task_enterprises.extend([eid] * count)
 
-    assert len(task_enterprises) == total_tasks, "岗位数量必须等于 5000"
+    assert len(task_enterprises) == total_tasks, f"岗位数量必须等于 {total_tasks}"
 
-    writer.write_comment(f"岗位表（{total_tasks} 条记录）")
+    writer.write_comment(f"岗位表（{total_tasks} 条记录，来自 {enterprise_count} 家已认证企业）")
     writer.begin_insert("task", TASK_COLUMNS)
 
     for i in range(total_tasks):
@@ -997,11 +1038,16 @@ def generate_tasks(writer: SQLWriter, enterprise_ids: List[int],
         task_ids.append(tid)
 
         enterprise_id = task_enterprises[i]
+        task_enterprise_map[tid] = enterprise_id
 
         # -----------------------------------------------------------------
-        # 2. 选取分类
+        # 2. 选取分类（根据企业行业限制可选的分类范围）
         # -----------------------------------------------------------------
-        category_id = _pick_category_id()
+        allowed_parents = None
+        if enterprise_industry_map:
+            industry = enterprise_industry_map.get(enterprise_id)
+            allowed_parents = INDUSTRY_TO_PARENT_IDS.get(industry) if industry else None
+        category_id = _pick_category_id(allowed_parents)
         pool_key = _get_pool_key(category_id)
 
         # -----------------------------------------------------------------
@@ -1115,4 +1161,4 @@ def generate_tasks(writer: SQLWriter, enterprise_ids: List[int],
             _format_dt(update_time), # update_time
         ])
 
-    return task_ids
+    return task_ids, task_enterprise_map

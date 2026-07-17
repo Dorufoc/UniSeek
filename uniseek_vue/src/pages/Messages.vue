@@ -365,6 +365,13 @@ const goToJobDetail = (taskId?: number) => {
   }
 }
 
+const ensureSessionInList = async (appId: number) => {
+  const exists = sessions.value.some(s => s.applicationId === appId)
+  if (!exists) {
+    await loadSessions()
+  }
+}
+
 onMounted(async () => {
   await loadSessions()
   const chatParam = route.query.chat
@@ -380,6 +387,7 @@ watch(() => route.query.chat, async (newVal) => {
   if (newVal) {
     const appId = Number(newVal)
     if (!isNaN(appId)) {
+      await ensureSessionInList(appId)
       await selectSession(appId)
     }
   }

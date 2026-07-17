@@ -130,9 +130,9 @@ onMounted(loadTasks)
           <div v-if="task.status === 0 && task.rejectReason" class="reject-hint">
             驳回原因：{{ task.rejectReason }}
           </div>
-          <div class="job-salary">
-            {{ task.salaryMin }}-{{ task.salaryMax }} 元 / {{ salaryUnitMap[task.salaryUnit] || '月' }}
-          </div>
+            <div class="job-salary">
+              {{ task.salaryMin === 0 && task.salaryMax === 0 ? '面议' : task.salaryMin + '-' + task.salaryMax + ' 元 / ' + (salaryUnitMap[task.salaryUnit] || '月') }}
+            </div>
         </div>
 
         <div class="job-meta">
