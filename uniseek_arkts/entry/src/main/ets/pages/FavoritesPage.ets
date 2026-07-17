@@ -7,7 +7,13 @@ struct JobCard {
   job: JobData = {
     id: '', title: '', company: '', salary: '',
     salaryMid: 0, popularity: 0, region: '',
-    type: '', category: '', description: ''
+    type: '', category: '', description: '',
+    enterpriseId: 0, categoryId: 0, regionId: 0,
+    salaryMin: 0, salaryMax: 0, salaryUnit: 0,
+    jobType: 0, status: 0, hasApplied: false,
+    applicationId: 0,
+    tag: [], remainingQuota: 0,
+    hrName: '', hrAvatar: ''
   }
 
   build() {

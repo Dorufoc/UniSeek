@@ -133,9 +133,9 @@ export const AUDIT_STATUS_LABELS: Record<number, string> = {
 }
 
 export const SALARY_UNIT_LABELS: Record<number, string> = {
-  0: '日结',
+  0: '日薪',
   1: '时薪',
-  2: '月结'
+  2: '月薪'
 }
 
 export const JOB_TYPE_LABELS: Record<number, string> = {

@@ -1,4 +1,5 @@
 import { router } from '@kit.ArkUI';
+import { AuthService } from '../services/AuthService';
 import { UserSession } from '../services/UserSession';
 
 @Entry
@@ -121,7 +122,7 @@ struct LoginPage {
     .backgroundColor('#FFFFFF')
   }
 
-  handleLogin() {
+  async handleLogin() {
     if (!this.phone.trim()) {
       this.showError = true
       this.errorMsg = '请输入手机号'
@@ -135,15 +136,16 @@ struct LoginPage {
 
     this.showError = false
 
-    // TODO: 调用后端登录接口
-    console.log('登录:', this.phone, this.password, '角色:', this.role)
-
-    UserSession.role = this.role
-
-    if (this.role === 0) {
-      router.replaceUrl({ url: 'pages/MainPage' })
-    } else {
-      router.replaceUrl({ url: 'pages/RecruiterHomePage' })
+    try {
+      await AuthService.login(this.phone.trim(), this.password.trim())
+      if (UserSession.role === 0) {
+        router.replaceUrl({ url: 'pages/MainPage' })
+      } else {
+        router.replaceUrl({ url: 'pages/RecruiterHomePage' })
+      }
+    } catch (e) {
+      this.showError = true
+      this.errorMsg = (e as Error).message || '登录失败'
     }
   }
 }

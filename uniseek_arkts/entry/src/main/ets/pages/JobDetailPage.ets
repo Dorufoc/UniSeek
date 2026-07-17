@@ -2,6 +2,7 @@ import { router } from '@kit.ArkUI';
 import { ChatService } from '../services/ChatService';
 import { JobData } from '../services/ChatTypes';
 import { RecordService } from '../services/RecordService';
+import { SALARY_UNIT_LABELS } from '../services/RecruiterTypes';
 
 @Entry
 @Component
@@ -9,10 +10,14 @@ struct JobDetailPage {
   @State job: JobData = {
     id: '', title: '', company: '', salary: '',
     salaryMid: 0, popularity: 0, region: '',
-    type: '', category: '', description: ''
+    type: '', category: '', description: '',
+    enterpriseId: 0, categoryId: 0, regionId: 0,
+    salaryMin: 0, salaryMax: 0, salaryUnit: 0,
+    jobType: 0, status: 0, hasApplied: false,
+    applicationId: 0,
+    tag: [], remainingQuota: 0,
+    hrName: '', hrAvatar: ''
   }
-  @State hrName: string = '张经理'
-  @State hrAvatar: string = ''
   @State applied: boolean = false
   @State favorited: boolean = false
   @State hideActions: boolean = false
@@ -65,12 +70,19 @@ struct JobDetailPage {
 
           Row() {
             Text(this.job.salary)
-              .fontSize(20)
+              .fontSize(18)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#FF6B35')
-            Text(this.job.popularity + '人投递')
-              .fontSize(14)
-              .fontColor('#999999')
+              .fontColor('#007AFF')
+            Text(SALARY_UNIT_LABELS[this.job.salaryUnit] ?? '月薪')
+              .fontSize(12)
+              .fontColor('#FFFFFF')
+              .backgroundColor('#007AFF')
+              .borderRadius(4)
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .margin({ left: 8 })
+            Text('剩余:' + this.job.remainingQuota)
+              .fontSize(12)
+              .fontColor('#BBBBBB')
               .margin({ left: 16 })
           }
           .margin({ top: 12 })
@@ -102,11 +114,27 @@ struct JobDetailPage {
           .margin({ top: 12 })
           .width('100%')
 
+          if (this.job.tag && this.job.tag.length > 0) {
+            Row() {
+              ForEach(this.job.tag, (tag: string) => {
+                Text(tag)
+                  .fontSize(12)
+                  .fontColor('#999999')
+                  .backgroundColor('#F5F5F5')
+                  .borderRadius(4)
+                  .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                  .margin({ right: 8 })
+              }, (tag: string) => tag)
+            }
+            .margin({ top: 8 })
+            .width('100%')
+          }
+
           Divider()
             .margin({ top: 20, bottom: 16 })
 
           Row() {
-            Image(this.hrAvatar ? this.hrAvatar : $r('app.media.theme'))
+            Image(this.job.hrAvatar ? this.job.hrAvatar : $r('app.media.theme'))
               .width(48)
               .height(48)
               .borderRadius(24)
@@ -117,23 +145,16 @@ struct JobDetailPage {
                 .fontSize(12)
                 .fontColor('#999999')
 
-              Text(this.hrName)
+              Text(this.job.hrName || '招聘方')
                 .fontSize(16)
                 .fontWeight(FontWeight.Medium)
                 .fontColor('#333333')
                 .margin({ top: 2 })
             }
             .alignItems(HorizontalAlign.Start)
-
-            Text(this.job.company)
-              .fontSize(14)
-              .fontColor('#666666')
-              .layoutWeight(1)
-              .textAlign(TextAlign.End)
           }
           .width('100%')
           .padding({ top: 4, bottom: 4 })
-
 
           Divider()
             .margin({ top: 16, bottom: 16 })
@@ -143,12 +164,9 @@ struct JobDetailPage {
             .fontWeight(FontWeight.Bold)
             .fontColor('#333333')
             .width('100%')
+            .margin({ bottom: 10 })
 
-          Text(this.job.description)
-            .fontSize(15)
-            .fontColor('#666666')
-            .lineHeight(24)
-            .margin({ top: 10 })
+          RichText('<p>' + (this.job.description || '') + '</p>')
             .width('100%')
         }
         .padding({ left: 16, right: 16, bottom: 24 })
@@ -202,8 +220,8 @@ struct JobDetailPage {
                   url: 'pages/ChatDetailPage',
                   params: {
                     applicationId: 0,
-                    counterpartName: this.hrName,
-                    counterpartAvatar: this.hrAvatar
+                    counterpartName: this.job.hrName || '招聘方',
+                    counterpartAvatar: this.job.hrAvatar || ''
                   }
                 })
                 return
@@ -216,8 +234,8 @@ struct JobDetailPage {
                     url: 'pages/ChatDetailPage',
                     params: {
                       applicationId: app.id,
-                      counterpartName: this.hrName,
-                      counterpartAvatar: this.hrAvatar
+                      counterpartName: this.job.hrName || '招聘方',
+                      counterpartAvatar: this.job.hrAvatar || ''
                     }
                   })
                 }

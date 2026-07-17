@@ -1,40 +1,130 @@
-import { preferences } from '@kit.ArkData';
+import { ApiClient, ApiEmpty } from './ApiClient';
+import { UserSession } from './UserSession';
 
-const DB_NAME = 'auth_db'
-const KEY_AUTH_STATUS = 'real_name_status'
-const KEY_REAL_NAME = 'real_name'
-const KEY_ID_CARD = 'id_card'
+// 请求体接口
+export interface LoginRequest {
+  phone: string
+  password: string
+}
 
-function getPref(): preferences.Preferences {
-  return preferences.getPreferencesSync(getContext(), { name: DB_NAME })
+export interface RegisterRequest {
+  phone: string
+  email: string
+  password: string
+  confirmPassword: string
+  nickname: string
+  role: number
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface UpdatePhoneRequest {
+  newPhone: string
+  password: string
+}
+
+export interface UpdateEmailRequest {
+  newEmail: string
+  password: string
+}
+
+// 响应体接口
+export interface UserInfo {
+  id: number
+  phone: string
+  email: string
+  nickname: string
+  avatarUrl: string
+  role: number
+  status: number
+  creditScore: number
+  lastLoginTime: string
+  createTime: string
+}
+
+export interface LoginResult {
+  token: string
+  userInfo: UserInfo
 }
 
 export interface RealNameInfo {
   realName: string
+  idCard: string
+  authTime: string
+}
+
+export interface RealNameStatus {
+  status: number
+  realName: string
+}
+
+export interface UserVO {
+  id: number
+  phone: string
+  email: string
+  nickname: string
+  avatarUrl: string
+  role: number
+  status: number
+  creditScore: number
+  lastLoginTime: string
+  createTime: string
 }
 
 export class AuthService {
-  static isRealNameVerified(): boolean {
-    const pref = getPref()
-    return pref.getSync(KEY_AUTH_STATUS, 'false') as string === 'true'
+  static async login(phone: string, password: string): Promise<LoginResult> {
+    const result = await ApiClient.post<LoginResult>('/api/auth/login', { phone, password } as LoginRequest)
+    ApiClient.saveToken(result.token)
+    UserSession.userId = result.userInfo.id
+    UserSession.role = result.userInfo.role
+    UserSession.nickname = result.userInfo.nickname
+    UserSession.avatarUrl = result.userInfo.avatarUrl
+    return result
   }
 
-  static setRealNameVerified(realName: string, idCard: string): void {
-    const pref = getPref()
-    pref.putSync(KEY_AUTH_STATUS, 'true')
-    pref.putSync(KEY_REAL_NAME, realName)
-    pref.putSync(KEY_ID_CARD, idCard)
-    pref.flushSync()
+  static async register(phone: string, email: string, password: string, confirmPassword: string, nickname: string, role: number): Promise<void> {
+    await ApiClient.post<ApiEmpty>('/api/auth/register', { phone, email, password, confirmPassword, nickname, role } as RegisterRequest)
   }
 
-  static getRealNameInfo(): RealNameInfo | null {
-    const pref = getPref()
-    if (pref.getSync(KEY_AUTH_STATUS, 'false') as string !== 'true') {
-      return null
+  static async logout(): Promise<void> {
+    try {
+      await ApiClient.post<ApiEmpty>('/api/auth/logout')
+    } catch {
     }
-    const info: RealNameInfo = {
-      realName: pref.getSync(KEY_REAL_NAME, '') as string
-    }
-    return info
+    ApiClient.clearToken()
+    UserSession.clear()
+  }
+
+  static async getCurrentUser(): Promise<UserVO> {
+    const user = await ApiClient.get<UserVO>('/api/auth/current-user')
+    UserSession.userId = user.id
+    UserSession.role = user.role
+    UserSession.nickname = user.nickname
+    UserSession.avatarUrl = user.avatarUrl
+    return user
+  }
+
+  static async changePassword(oldPassword: string, newPassword: string, confirmPassword: string): Promise<void> {
+    await ApiClient.put<ApiEmpty>('/api/auth/password', { oldPassword, newPassword, confirmPassword } as ChangePasswordRequest)
+  }
+
+  static async realNameAuth(realName: string, idCard: string): Promise<RealNameInfo> {
+    return ApiClient.post<RealNameInfo>('/api/auth/real-name', { realName, idCard } as RealNameInfo)
+  }
+
+  static async getRealNameStatus(): Promise<RealNameStatus> {
+    return ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
+  }
+
+  static async updatePhone(newPhone: string, password: string): Promise<void> {
+    await ApiClient.put<ApiEmpty>('/api/auth/phone', { newPhone, password } as UpdatePhoneRequest)
+  }
+
+  static async updateEmail(newEmail: string, password: string): Promise<void> {
+    await ApiClient.put<ApiEmpty>('/api/auth/email', { newEmail, password } as UpdateEmailRequest)
   }
 }

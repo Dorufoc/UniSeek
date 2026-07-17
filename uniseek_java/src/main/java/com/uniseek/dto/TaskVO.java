@@ -95,4 +95,10 @@ public class TaskVO {
 
     /** 当前用户是否已收藏 */
     private Boolean hasFavorited;
+
+    /** 招聘HR用户昵称（来自 enterprise.user_id → user.nickname） */
+    private String hrName;
+
+    /** 招聘HR头像URL */
+    private String hrAvatar;
 }

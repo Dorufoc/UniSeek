@@ -8,9 +8,9 @@ interface PickerOption {
 }
 
 const SALARY_UNIT_OPTIONS: PickerOption[] = [
-  { value: 0, label: '日结' },
+  { value: 0, label: '日薪' },
   { value: 1, label: '时薪' },
-  { value: 2, label: '月结' }
+  { value: 2, label: '月薪' }
 ]
 
 const JOB_TYPE_OPTIONS: PickerOption[] = [

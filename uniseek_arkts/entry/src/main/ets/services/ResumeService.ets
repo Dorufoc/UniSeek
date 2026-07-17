@@ -1,42 +1,71 @@
-import { preferences } from '@kit.ArkData';
+import { ApiClient, ApiEmpty } from './ApiClient';
 
 export interface ResumeData {
-  name: string
-  school: string
+  id: number
+  userId: number
+  gender: number
+  birthDate: string
   education: string
-  isFullTime: boolean
+  school: string
   skills: string
   experience: string
   attachmentUrl: string
-  attachmentName: string
+  isPublished: number
+  realName: string
 }
 
-const DB_NAME = 'resume_db'
-const KEY_RESUME = 'resume_data'
-
-function getPref(): preferences.Preferences {
-  return preferences.getPreferencesSync(getContext(), { name: DB_NAME })
+export interface ResumeRequest {
+  gender?: number
+  birthDate?: string
+  education?: string
+  school?: string
+  skills?: string
+  experience?: string
+  attachmentUrl?: string
 }
 
 export class ResumeService {
-  static saveResume(data: ResumeData): void {
-    const pref = getPref()
-    pref.putSync(KEY_RESUME, JSON.stringify(data))
-    pref.flushSync()
-  }
-
-  static loadResume(): ResumeData | null {
-    const pref = getPref()
-    const raw = pref.getSync(KEY_RESUME, '') as string
-    if (!raw) {
+  static async getMyResume(): Promise<ResumeData | null> {
+    try {
+      return await ApiClient.get<ResumeData>('/api/resume')
+    } catch {
       return null
     }
-    return JSON.parse(raw) as ResumeData
   }
 
-  static clearResume(): void {
-    const pref = getPref()
-    pref.putSync(KEY_RESUME, '')
-    pref.flushSync()
+  static async saveResume(data: ResumeRequest): Promise<void> {
+    await ApiClient.put<ApiEmpty>('/api/resume', data)
   }
+
+  static async publishResume(): Promise<void> {
+    await ApiClient.patch<ApiEmpty>('/api/resume/publish')
+  }
+
+  static async unpublishResume(): Promise<void> {
+    await ApiClient.patch<ApiEmpty>('/api/resume/unpublish')
+  }
+
+  static async searchPublishedResumes(keyword?: string, page: number = 1, pageSize: number = 20): Promise<PageResult<ResumeData>> {
+    const params: Array<[string, string]> = [['page', page.toString()], ['pageSize', pageSize.toString()]]
+    if (keyword) {
+      params.push(['keyword', keyword])
+    }
+    return ApiClient.get<PageResult<ResumeData>>('/api/resume/search', params)
+  }
+
+  static async getPublishedResume(userId: number): Promise<ResumeData | null> {
+    try {
+      return await ApiClient.get<ResumeData>('/api/resume/user/' + userId)
+    } catch {
+      return null
+    }
+  }
+}
+
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
