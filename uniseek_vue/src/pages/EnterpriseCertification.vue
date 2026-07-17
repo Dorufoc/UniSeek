@@ -9,6 +9,7 @@ import type { EnterpriseInfo } from '@/api/enterprise'
 import { uploadImage } from '@/api/upload'
 import { getRegionTree } from '@/api/region'
 import type { RegionVO } from '@/api/region'
+import { getCategories, type CategoryVO } from '@/api/category'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,68 +22,29 @@ const submitting = ref(false)
 const enterpriseInfo = ref<EnterpriseInfo | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
-// 地区三级联动
-const provinces = ref<RegionVO[]>([])
-const selectedProvince = ref<number | null>(null)
-const selectedCity = ref<number | null>(null)
+// 分类列表（从后端获取），用于所属行业选择
+const categoryOptions = ref<CategoryVO[]>([])
 
-const cities = computed(() => {
-  const p = provinces.value.find(p => p.id === selectedProvince.value)
-  return p?.children || []
-})
+// 地区树（从后端获取），使用 el-cascader 分层选择
+const regionTree = ref<RegionVO[]>([])
+const regionCascaderValue = ref<number[]>([])
 
-const districts = computed(() => {
-  const p = provinces.value.find(p => p.id === selectedProvince.value)
-  const c = p?.children.find(c => c.id === selectedCity.value)
-  return c?.children || []
-})
-
-const onProvinceChange = () => {
-  selectedCity.value = null
-  form.regionId = null
+const onRegionChange = (val: number[]) => {
+  form.regionId = val.length > 0 ? val[val.length - 1] : null
 }
 
-const onCityChange = () => {
-  form.regionId = null
-}
-
-const onDistrictChange = () => {
-  // form.regionId is already set by v-model
-}
-
-// 根据已有的 regionId 初始化三级选择器
-const initRegionCascade = (regionId: number | null) => {
-  if (!regionId || provinces.value.length === 0) return
-  for (const p of provinces.value) {
-    for (const c of p.children) {
-      for (const d of c.children) {
-        if (d.id === regionId) {
-          selectedProvince.value = p.id
-          selectedCity.value = c.id
-          form.regionId = d.id
-          return
-        }
-      }
-      if (c.id === regionId) {
-        selectedProvince.value = p.id
-        selectedCity.value = c.id
-        form.regionId = c.id
-        return
-      }
-    }
-    if (p.id === regionId) {
-      selectedProvince.value = p.id
-      form.regionId = p.id
-      return
+// 在树中根据叶子 ID 查找完整路径（用于编辑回显）
+const findCascaderPath = (tree: RegionVO[], targetId: number | null): number[] => {
+  if (!targetId) return []
+  for (const node of tree) {
+    if (node.id === targetId) return [node.id]
+    if (node.children) {
+      const path = findCascaderPath(node.children, targetId)
+      if (path.length) return [node.id, ...path]
     }
   }
+  return []
 }
-
-const industryOptions = [
-  '互联网/IT', '金融/保险', '教育培训', '餐饮服务', '零售/批发',
-  '房地产/建筑', '医疗/健康', '文化/传媒', '制造/能源', '物流/运输',
-  '家政/生活服务', '旅游/酒店', '农业/渔业', '其他'
-]
 
 const form = reactive({
   companyName: '',
@@ -110,7 +72,7 @@ const loadEnterprise = async () => {
     form.industry = data.industry || ''
     form.regionId = data.regionId
     form.description = data.description || ''
-    initRegionCascade(data.regionId)
+    regionCascaderValue.value = findCascaderPath(regionTree.value, data.regionId)
   } catch {
     enterpriseInfo.value = null
   } finally {
@@ -130,9 +92,7 @@ const cancelEdit = () => {
     form.industry = enterpriseInfo.value.industry || ''
     form.regionId = enterpriseInfo.value.regionId
     form.description = enterpriseInfo.value.description || ''
-    selectedProvince.value = null
-    selectedCity.value = null
-    initRegionCascade(enterpriseInfo.value.regionId)
+    regionCascaderValue.value = findCascaderPath(regionTree.value, enterpriseInfo.value.regionId)
   }
   editing.value = false
 }
@@ -195,9 +155,13 @@ const handleSave = async () => {
 }
 
 onMounted(async () => {
-  try {
-    provinces.value = await getRegionTree()
-  } catch { provinces.value = [] }
+  // 并行获取地区树和分类列表（行业数据）
+  const [regions, categories] = await Promise.all([
+    getRegionTree().catch(() => [] as RegionVO[]),
+    getCategories().catch(() => [] as CategoryVO[])
+  ])
+  regionTree.value = regions
+  categoryOptions.value = categories
   await loadEnterprise()
   if (!enterpriseInfo.value) {
     editing.value = true
@@ -251,29 +215,29 @@ onMounted(async () => {
             <el-input v-model="form.creditCode" size="large" placeholder="18位统一社会信用代码" maxlength="18" clearable />
           </div>
           <div class="form-row">
-            <div class="form-item flex-1">
+            <div class="form-item" style="flex:1;min-width:0">
               <label class="form-label">所属行业 <span class="required">*</span></label>
-              <el-select v-model="form.industry" placeholder="选择行业" size="large" style="width:100%">
-                <el-option v-for="opt in industryOptions" :key="opt" :label="opt" :value="opt" />
+              <el-select v-model="form.industry" placeholder="选择行业" size="large" style="width:100%" filterable>
+                <el-option
+                  v-for="cat in categoryOptions"
+                  :key="cat.id"
+                  :label="cat.name"
+                  :value="cat.name"
+                />
               </el-select>
             </div>
-            <div class="form-item flex-1">
-              <label class="form-label">所在省</label>
-              <el-select v-model="selectedProvince" placeholder="选择省" size="large" style="width:100%" @change="onProvinceChange">
-                <el-option v-for="p in provinces" :key="p.id" :label="p.name" :value="p.id" />
-              </el-select>
-            </div>
-            <div class="form-item flex-1">
-              <label class="form-label">所在市</label>
-              <el-select v-model="selectedCity" placeholder="选择市" size="large" style="width:100%" :disabled="!selectedProvince" @change="onCityChange">
-                <el-option v-for="c in cities" :key="c.id" :label="c.name" :value="c.id" />
-              </el-select>
-            </div>
-            <div class="form-item flex-1">
-              <label class="form-label">所在区</label>
-              <el-select v-model="form.regionId" placeholder="选择区" size="large" style="width:100%" :disabled="!selectedCity" @change="onDistrictChange">
-                <el-option v-for="d in districts" :key="d.id" :label="d.name" :value="d.id" />
-              </el-select>
+            <div class="form-item" style="flex:2;min-width:0">
+              <label class="form-label">所在地区</label>
+              <el-cascader
+                v-model="regionCascaderValue"
+                :options="regionTree"
+                :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: false }"
+                placeholder="请选择省/市/区"
+                size="large"
+                clearable
+                style="width:100%"
+                @change="onRegionChange"
+              />
             </div>
           </div>
           <div class="form-item">

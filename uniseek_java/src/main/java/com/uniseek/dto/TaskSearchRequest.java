@@ -53,6 +53,9 @@ public class TaskSearchRequest {
     /** 薪资单位 */
     private Integer salaryUnit;
 
+    /** 是否包含面议（salary_min=0, salary_max=0 的职位），默认 true */
+    private Boolean includeNegotiable = true;
+
     /** 工作地址 */
     private String address;
 

@@ -74,6 +74,35 @@ export interface ApplicationResult {
   id: number
 }
 
+export function mapTaskToJobData(task: TaskVO): JobData {
+  return {
+    id: String(task.id),
+    title: task.title || '',
+    company: task.enterpriseName || '',
+    salary: (task.salaryMin != null && task.salaryMax != null) ? Number(task.salaryMin) + '-' + Number(task.salaryMax) + '元' : '',
+    salaryMid: (Number(task.salaryMin) + Number(task.salaryMax)) / 2 || 0,
+    popularity: task.applicationCount || 0,
+    region: task.regionName || '',
+    type: task.categoryName || '',
+    category: task.jobType === 1 ? '全职' : task.jobType === 2 ? '兼职' : task.jobType === 3 ? '实习' : '全职',
+    description: task.description || '',
+    enterpriseId: task.enterpriseId || 0,
+    categoryId: task.categoryId || 0,
+    regionId: task.regionId || 0,
+    salaryMin: Number(task.salaryMin) || 0,
+    salaryMax: Number(task.salaryMax) || 0,
+    salaryUnit: task.salaryUnit ?? 0,
+    jobType: task.jobType || 0,
+    status: task.status ?? 1,
+    hasApplied: !!task.hasApplied,
+    applicationId: task.applicationId || 0,
+    tag: task.tag || [],
+    remainingQuota: task.remainingQuota || 0,
+    hrName: task.hrName || '',
+    hrAvatar: task.hrAvatar || ''
+  } as JobData
+}
+
 export interface ChatMessageVO {
   id: number
   senderId: number

@@ -23,6 +23,12 @@ const educationOptions = ['初中及以下', '高中/中专', '大专', '本科'
 // 是否处于编辑模式
 const isEditing = ref(false)
 
+// 实名认证信息（不可编辑，来自实名认证）
+const authRealName = ref('')
+const isAuth = ref(false)
+const authGender = ref(-1)
+const authBirthDate = ref('')
+
 // 简历表单数据
 const resumeForm = reactive({
   realName: '',
@@ -41,9 +47,12 @@ const newSkill = ref('')
 
 // 从后端加载简历数据
 const loadResume = async () => {
+  // 标记简历是否已存在（已有手动录入的数据）
+  let hasExistingResume = false
   try {
     const data = await getResume()
     if (data) {
+      hasExistingResume = true
       let skills: string[] = []
       if (data.skills) {
         try {
@@ -64,6 +73,60 @@ const loadResume = async () => {
     }
   } catch {
     // 未创建简历时不做处理
+  }
+
+  // 加载实名认证信息，若已实名则覆盖真实姓名/性别/出生日期（不可编辑）
+  try {
+    const authStatus = await getRealNameAuthStatus()
+    if (authStatus?.isAuth) {
+      isAuth.value = true
+      authRealName.value = authStatus.realName || ''
+      authGender.value = authStatus.gender
+      authBirthDate.value = authStatus.birthDate || ''
+
+      // 检查实名信息与简历现有内容是否一致（仅已有简历时弹提示）
+      const nameDiffers = authRealName.value && authRealName.value !== resumeForm.realName
+      const genderDiffers = authGender.value >= 0 && authGender.value !== resumeForm.gender
+      const birthDiffers = authBirthDate.value && authBirthDate.value !== resumeForm.birthDate
+
+      if (hasExistingResume && (nameDiffers || genderDiffers || birthDiffers)) {
+        // 不一致时提示用户将以实名认证数据为准
+        await ElMessageBox.alert(
+          '你已通过实名认证，个人信息（真实姓名、性别、出生日期）将以认证数据为准，原手动填写的内容将被覆盖。',
+          '信息同步提示',
+          {
+            confirmButtonText: '确定',
+            type: 'info',
+            closeOnClickModal: false,
+            closeOnPressEscape: false,
+            showClose: false
+          }
+        )
+        // 将实名认证信息覆盖写入数据库
+        const saveParams: ResumeSaveParams = {}
+        if (authGender.value >= 0) {
+          saveParams.gender = authGender.value
+        }
+        if (authBirthDate.value) {
+          saveParams.birthDate = authBirthDate.value
+        }
+        // 仅当有可覆盖字段时才请求保存
+        if (Object.keys(saveParams).length > 0) {
+          await saveResumeApi(saveParams)
+        }
+      }
+
+      // 用实名信息覆盖当前表单
+      resumeForm.realName = authRealName.value
+      if (authGender.value >= 0) {
+        resumeForm.gender = authGender.value
+      }
+      if (authBirthDate.value) {
+        resumeForm.birthDate = authBirthDate.value
+      }
+    }
+  } catch {
+    // 查询失败不影响简历加载
   }
 }
 loadResume()
@@ -167,7 +230,8 @@ const cancelEdit = () => {
 
 // 保存简历
 const saveResume = async () => {
-  if (!resumeForm.realName.trim()) {
+  // 未实名认证时校验真实姓名，已实名时从实名信息获取无需校验
+  if (!isAuth.value && !resumeForm.realName.trim()) {
     ElMessage.warning('请输入真实姓名')
     return
   }
@@ -470,7 +534,14 @@ const toggleSection = (key: string) => {
               <div class="edit-form">
                 <div class="form-row">
                   <label>真实姓名 <span class="required">*</span></label>
+                  <template v-if="isAuth">
+                    <div class="auth-readonly-field">
+                      <span class="readonly-text">{{ authRealName }}</span>
+                      <span class="auth-badge">来自实名认证</span>
+                    </div>
+                  </template>
                   <input
+                    v-else
                     v-model="resumeForm.realName"
                     type="text"
                     class="form-input"
@@ -480,7 +551,13 @@ const toggleSection = (key: string) => {
                 </div>
                 <div class="form-row">
                   <label>性别</label>
-                  <div class="gender-options">
+                  <template v-if="isAuth && authGender >= 0">
+                    <div class="auth-readonly-field">
+                      <span class="readonly-text">{{ authGender === 0 ? '男' : '女' }}</span>
+                      <span class="auth-badge">来自实名认证</span>
+                    </div>
+                  </template>
+                  <div v-else class="gender-options">
                     <label
                       :class="['gender-btn', { selected: resumeForm.gender === 0 }]"
                     >
@@ -497,7 +574,14 @@ const toggleSection = (key: string) => {
                 </div>
                 <div class="form-row">
                   <label>出生日期</label>
+                  <template v-if="isAuth && authBirthDate">
+                    <div class="auth-readonly-field">
+                      <span class="readonly-text">{{ authBirthDate }}</span>
+                      <span class="auth-badge">来自实名认证</span>
+                    </div>
+                  </template>
                   <el-date-picker
+                    v-else
                     v-model="resumeForm.birthDate"
                     type="date"
                     placeholder="选择出生日期"
@@ -1078,6 +1162,26 @@ const toggleSection = (key: string) => {
 .readonly-text {
   font-size: 14px;
   color: #000;
+}
+
+.auth-readonly-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.auth-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: #1762FB;
+  background: rgba(0, 122, 255, 0.08);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .phone-field {

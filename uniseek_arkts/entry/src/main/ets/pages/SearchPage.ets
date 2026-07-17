@@ -21,7 +21,7 @@ struct SearchPage {
   @State showAll: boolean = false
   @State isDeleting: boolean = false
 
-  aboutToAppear(): void {
+  onPageShow(): void {
     this.loadHistory()
   }
 
@@ -46,19 +46,23 @@ struct SearchPage {
     if (!trimmed) {
       return
     }
-    let idx = this.searchHistory.indexOf(trimmed)
+    let copy = this.searchHistory.slice()
+    let idx = copy.indexOf(trimmed)
     if (idx !== -1) {
-      this.searchHistory.splice(idx, 1)
+      copy.splice(idx, 1)
     }
-    this.searchHistory.unshift(trimmed)
-    if (this.searchHistory.length > MAX_HISTORY) {
-      this.searchHistory = this.searchHistory.slice(0, MAX_HISTORY)
+    copy.unshift(trimmed)
+    if (copy.length > MAX_HISTORY) {
+      copy = copy.slice(0, MAX_HISTORY)
     }
+    this.searchHistory = copy
     this.saveHistory()
   }
 
   removeFromHistory(index: number): void {
-    this.searchHistory.splice(index, 1)
+    let copy = this.searchHistory.slice()
+    copy.splice(index, 1)
+    this.searchHistory = copy
     this.saveHistory()
   }
 
@@ -70,7 +74,8 @@ struct SearchPage {
 
   triggerSearch(text: string): void {
     this.searchText = text
-    console.log('搜索:', text)
+    this.addToHistory(text)
+    router.pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
   }
 
   handleSearch(): void {
@@ -79,7 +84,7 @@ struct SearchPage {
       return
     }
     this.addToHistory(text)
-    console.log('搜索:', text)
+    router.pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
   }
 
   getDisplayList(): string[] {

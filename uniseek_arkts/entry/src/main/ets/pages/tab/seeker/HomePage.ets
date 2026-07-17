@@ -1,7 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { ApiClient } from '../../../services/ApiClient';
 import { DataService, Province, City, District, Field, Occupation } from '../../../services/DataService';
-import { JobData, TaskVO } from '../../../services/ChatTypes';
+import { JobData, TaskVO, mapTaskToJobData } from '../../../services/ChatTypes';
 import { PageResult } from '../../../services/ResumeService';
 import { SALARY_UNIT_LABELS } from '../../../services/RecruiterTypes';
 
@@ -636,7 +636,7 @@ struct SalaryDialog {
 }
 
 @Component
-struct JobCard {
+export struct JobCard {
   job: JobData = {
     id: '', title: '', company: '', salary: '',
     salaryMid: 0, popularity: 0, region: '',
@@ -734,10 +734,26 @@ export struct HomePage {
       const result = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [['page', '1'], ['pageSize', '100']])
       this.currentPage = 1
       this.totalPages = result.totalPages
-      this.allJobs = result.records.map((task: TaskVO) => this.mapTaskToJobData(task))
+      this.allJobs = result.records.map((task: TaskVO) => mapTaskToJobData(task))
       this.applyFilters()
+      this.loadRemainingPages()
     } catch (e) {
       console.error('加载职位列表失败', e)
+    }
+  }
+
+  async loadRemainingPages(): Promise<void> {
+    for (let page = 2; page <= this.totalPages; page++) {
+      if (page <= this.currentPage) continue
+      try {
+        const result = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [['page', String(page)], ['pageSize', '100']])
+        const newJobs = result.records.map((task: TaskVO) => mapTaskToJobData(task))
+        this.allJobs = this.allJobs.concat(newJobs)
+        this.currentPage = page
+        this.applyFilters()
+      } catch (e) {
+        console.error('加载剩余职位失败', e)
+      }
     }
   }
 
@@ -747,7 +763,7 @@ export struct HomePage {
     try {
       const nextPage = this.currentPage + 1
       const result = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [['page', String(nextPage)], ['pageSize', '100']])
-      const newJobs = result.records.map((task: TaskVO) => this.mapTaskToJobData(task))
+      const newJobs = result.records.map((task: TaskVO) => mapTaskToJobData(task))
       this.allJobs = this.allJobs.concat(newJobs)
       this.currentPage = nextPage
       this.applyFilters()
@@ -756,35 +772,6 @@ export struct HomePage {
     } finally {
       this.isLoadingMore = false
     }
-  }
-
-  private mapTaskToJobData(task: TaskVO): JobData {
-    return {
-      id: String(task.id),
-      title: task.title || '',
-      company: task.enterpriseName || '',
-      salary: (task.salaryMin != null && task.salaryMax != null) ? Number(task.salaryMin) + '-' + Number(task.salaryMax) + '元' : '',
-      salaryMid: (Number(task.salaryMin) + Number(task.salaryMax)) / 2 || 0,
-      popularity: task.applicationCount || 0,
-      region: task.regionName || '',
-      type: task.categoryName || '',
-      category: task.jobType === 1 ? '全职' : task.jobType === 2 ? '兼职' : task.jobType === 3 ? '实习' : '全职',
-      description: task.description || '',
-      enterpriseId: task.enterpriseId || 0,
-      categoryId: task.categoryId || 0,
-      regionId: task.regionId || 0,
-      salaryMin: Number(task.salaryMin) || 0,
-      salaryMax: Number(task.salaryMax) || 0,
-      salaryUnit: task.salaryUnit ?? 0,
-      jobType: task.jobType || 0,
-      status: task.status ?? 1,
-      hasApplied: !!task.hasApplied,
-      applicationId: task.applicationId || 0,
-      tag: task.tag || [],
-      remainingQuota: task.remainingQuota || 0,
-      hrName: task.hrName || '',
-      hrAvatar: task.hrAvatar || ''
-    } as JobData
   }
 
   private applyFilters(): void {

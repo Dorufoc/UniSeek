@@ -6,6 +6,7 @@ import { apply, type TaskApplication } from '@/api/application'
 import { getRealNameAuthStatus } from '@/api/auth'
 import { addFavorite, removeFavorite } from '@/api/favorite'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { WarningFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -37,6 +38,11 @@ const salaryUnitLabel = (unit: number) => {
   if (unit === 1) return '时'
   if (unit === 2) return '月'
   return '月'
+}
+
+const salaryRangeText = (min: number, max: number, unit: number): string => {
+  if (min === 0 && max === 0) return '面议'
+  return `${formatSalary(min)}-${formatSalary(max)}/${salaryUnitLabel(unit)}`
 }
 
 const jobTypeLabel = (type: number) => {
@@ -207,6 +213,9 @@ onMounted(async () => {
     const data = await getTaskById(id) as unknown as TaskVO | null
     if (!data) {
       error.value = '职位不存在或已删除'
+    } else if (data.status !== 1) {
+      // 非招聘中的职位不对外展示详情
+      error.value = '当前岗位暂未开放'
     } else {
       job.value = data
       hasApplied.value = data.hasApplied || false
@@ -229,7 +238,7 @@ onMounted(async () => {
 
     <!-- 错误状态 -->
     <div class="error-state" v-else-if="error">
-      <div class="error-icon">⚠️</div>
+      <el-icon :size="48" class="error-icon"><WarningFilled /></el-icon>
       <h3>{{ error }}</h3>
       <button class="back-btn" @click="router.back()">返回</button>
     </div>
@@ -245,8 +254,7 @@ onMounted(async () => {
             <div class="header-top">
               <h1 class="job-title">{{ job.title }}</h1>
               <span class="job-salary-header">
-                {{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}
-                <small v-if="job.salaryMin || job.salaryMax">/{{ salaryUnitLabel(job.salaryUnit) }}</small>
+              {{ salaryRangeText(job.salaryMin, job.salaryMax, job.salaryUnit) }}
               </span>
             </div>
             <div class="header-meta">
@@ -276,8 +284,7 @@ onMounted(async () => {
             <div class="info-item">
               <span class="info-label">薪资</span>
               <span class="info-value">
-                {{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}
-                <span v-if="job.salaryMin || job.salaryMax">/{{ salaryUnitLabel(job.salaryUnit) }}</span>
+              {{ salaryRangeText(job.salaryMin, job.salaryMax, job.salaryUnit) }}
               </span>
             </div>
             <div class="info-item">

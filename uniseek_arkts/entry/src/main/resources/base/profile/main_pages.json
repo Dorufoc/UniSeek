@@ -19,6 +19,7 @@
     "pages/RecruiterRequestsPage",
     "pages/RecruiterJobFormPage",
     "pages/ResumeDetailPage",
-    "pages/RecruiterSearchPage"
+    "pages/RecruiterSearchPage",
+    "pages/SearchResultsPage"
   ]
 }

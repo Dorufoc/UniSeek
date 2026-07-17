@@ -119,6 +119,11 @@ const salaryUnitLabel = (unit: number) => {
   return '月'
 }
 
+const salaryRangeText = (min: number, max: number, unit: number): string => {
+  if (min === 0 && max === 0) return '面议'
+  return `${formatSalary(min)}-${formatSalary(max)}/${salaryUnitLabel(unit)}`
+}
+
 const jobTypeLabel = (type: number) => {
   const map: Record<number, string> = { 1: '全职', 2: '兼职', 3: '实习' }
   return map[type] || ''
@@ -288,13 +293,20 @@ onUnmounted(() => {
           <div v-else-if="jobsWithApplicants.length === 0" class="empty-card">
             <h3>暂无岗位数据</h3>
             <p>还没有发布任何岗位，或没有求职者投递</p>
+            <button
+              v-if="enterprise?.auditStatus === 1"
+              class="add-job-btn"
+              @click="router.push('/post-job')"
+            >
+              添加新岗位
+            </button>
           </div>
           <div v-else class="job-list">
             <div v-for="({ job, applications }) in jobsWithApplicants" :key="job.id" class="job-section">
               <div class="job-section-header" @click="goToJob(job.id)">
                 <div class="job-section-title">
                   <h3>{{ job.title }}</h3>
-                  <span class="job-section-salary">{{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}/{{ salaryUnitLabel(job.salaryUnit) }}</span>
+                  <span class="job-section-salary">{{ salaryRangeText(job.salaryMin, job.salaryMax, job.salaryUnit) }}</span>
                 </div>
                 <div class="job-section-meta">
                   <span class="job-section-type">{{ jobTypeLabel(job.jobType) }}</span>
@@ -467,7 +479,7 @@ onUnmounted(() => {
             >
               <div class="job-card-top">
                 <h3 class="job-card-title">{{ job.title }}</h3>
-                <span class="job-card-salary">{{ formatSalary(job.salaryMin) }}-{{ formatSalary(job.salaryMax) }}/{{ salaryUnitLabel(job.salaryUnit) }}</span>
+                <span class="job-card-salary">{{ salaryRangeText(job.salaryMin, job.salaryMax, job.salaryUnit) }}</span>
               </div>
               <div class="job-card-meta">
                 <span class="job-card-company">{{ job.enterpriseName }}</span>
@@ -1079,7 +1091,25 @@ onUnmounted(() => {
 .empty-card p {
   font-size: 14px;
   color: #bbb;
-  margin: 0;
+  margin: 0 0 20px;
+}
+
+.add-job-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: #1762FB;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.add-job-btn:hover {
+  opacity: 0.92;
 }
 
 /* ── 热门公司卡片 ── */
