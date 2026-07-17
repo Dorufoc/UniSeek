@@ -61,6 +61,7 @@ export interface TaskRecord {
   remainingQuota: number
   address: string
   status: number
+  rejectReason?: string
   deadline: string
   createTime: string
   updateTime: string
@@ -121,7 +122,7 @@ export function auditEnterprise(id: number, data: { approved: boolean; rejectRea
 // ==================== 职位审核 API ====================
 
 export async function listTasks(params: {
-  page: number; pageSize: number; status?: number; keyword?: string
+  page: number; pageSize: number; status?: number; keyword?: string; rejected?: boolean
 }): Promise<PageResult<TaskRecord>> {
   const res: any = await request.get('/admin/tasks', { params })
   return res

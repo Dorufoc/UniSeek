@@ -1,4 +1,5 @@
 import { router } from '@kit.ArkUI';
+import { AuthService } from '../services/AuthService';
 import { UserSession } from '../services/UserSession';
 
 @Entry
@@ -155,7 +156,7 @@ struct RegisterPage {
     .backgroundColor('#FFFFFF')
   }
 
-  handleRegister() {
+  async handleRegister() {
     if (!this.phone.trim()) {
       this.showError = true
       this.errorMsg = '请输入手机号'
@@ -189,15 +190,19 @@ struct RegisterPage {
 
     this.showError = false
 
-    // TODO: 调用后端注册接口
-    console.log('注册:', this.phone, this.email, this.nickname, this.password, '角色:', this.role)
-
-    UserSession.role = this.role
-
-    if (this.role === 0) {
-      router.replaceUrl({ url: 'pages/MainPage' })
-    } else {
-      router.replaceUrl({ url: 'pages/RecruiterHomePage' })
+    try {
+      await AuthService.register(
+        this.phone.trim(),
+        this.email.trim(),
+        this.password.trim(),
+        this.confirmPassword.trim(),
+        this.nickname.trim(),
+        this.role
+      )
+      router.pushUrl({ url: 'pages/LoginPage' })
+    } catch (e) {
+      this.showError = true
+      this.errorMsg = (e as Error).message || '注册失败'
     }
   }
 }

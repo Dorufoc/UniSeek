@@ -9,21 +9,49 @@ export interface JobData {
   type: string
   category: string
   description: string
+  enterpriseId: number
+  categoryId: number
+  regionId: number
+  salaryMin: number
+  salaryMax: number
+  salaryUnit: number
+  jobType: number
+  status: number
+  hasApplied: boolean
+  applicationId: number
+  tag: string[]
+  remainingQuota: number
+  hrName: string
+  hrAvatar: string
 }
 
 export interface TaskVO {
   id: number
   title: string
-  company: string
-  salary: string
-  salaryMid: number
-  popularity: number
-  region: string
-  type: string
-  category: string
+  enterpriseName: string
+  salaryMin: number
+  salaryMax: number
+  salaryUnit: number
+  jobType: number
+  totalQuota: number
+  remainingQuota: number
+  address: string
+  tag: string[]
+  status: number
+  rejectReason: string
   description: string
   enterpriseId: number
-  enterpriseName: string
+  categoryId: number
+  regionId: number
+  categoryName: string
+  regionName: string
+  hasApplied: boolean
+  applicationId: number
+  applicationCount: number
+  hasFavorited: boolean
+  deadline: string
+  createTime: string
+  updateTime: string
   hrName: string
   hrAvatar: string
 }

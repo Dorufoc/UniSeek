@@ -1,6 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { DataService, Province, City, District, Field, Occupation } from '../../../services/DataService';
 import { ResumeCardData } from '../../../services/RecruiterTypes';
+import { ResumeService, ResumeData } from '../../../services/ResumeService';
 
 @CustomDialog
 struct RegionPickerDialog {
@@ -613,23 +614,34 @@ export struct RecruiterHomeTab {
   @State filteredResumes: ResumeCardData[] = []
 
   aboutToAppear(): void {
+    this.loadResumes()
+  }
+
+  async loadResumes(): Promise<void> {
+    try {
+      const result = await ResumeService.searchPublishedResumes(undefined, 1, 100)
+      this.allResumes = result.records.map((r: ResumeData) => ({
+        id: String(r.id),
+        name: r.realName || '',
+        age: 0,
+        avatar: '',
+        education: r.education || '',
+        school: r.school || '',
+        major: '',
+        experience: '',
+        skills: r.skills || '',
+        region: '',
+        type: '',
+        category: '',
+        expectedSalary: '',
+        description: r.experience || ''
+      } as ResumeCardData))
+    } catch {
+    }
     this.applyFilters()
   }
 
-  allResumes: ResumeCardData[] = [
-    { id: '1', name: '张明', age: 24, avatar: '', education: '本科', school: '北京大学', major: '计算机科学与技术', experience: '2年经验', skills: 'Vue, React, TypeScript', region: '北京-海淀区', type: '互联网/IT-前端工程师', category: '全职', expectedSalary: '20k-30k', description: '2年前端开发经验，熟悉主流前端框架，有大型项目开发经验。' },
-    { id: '2', name: '李华', age: 26, avatar: '', education: '硕士', school: '浙江大学', major: '软件工程', experience: '3年经验', skills: 'Java, Spring Cloud, MySQL', region: '浙江-杭州-西湖区', type: '互联网/IT-后端工程师', category: '全职', expectedSalary: '25k-35k', description: '3年后端开发经验，熟悉微服务架构，有高并发系统设计经验。' },
-    { id: '3', name: '王芳', age: 23, avatar: '', education: '本科', school: '中国美术学院', major: '视觉传达设计', experience: '1年经验', skills: 'Figma, Sketch, Photoshop', region: '广东-深圳-南山区', type: '互联网/IT-UI设计师', category: '全职', expectedSalary: '15k-22k', description: '1年UI设计经验，擅长移动端和Web端界面设计。' },
-    { id: '4', name: '赵雷', age: 21, avatar: '', education: '本科', school: '华中科技大学', major: '统计学', experience: '应届生', skills: 'Python, SQL, Excel', region: '北京-朝阳区', type: '互联网/IT-数据分析师', category: '实习', expectedSalary: '4k-6k', description: '在校期间参与多个数据分析项目，熟练使用Python进行数据处理。' },
-    { id: '5', name: '陈雪', age: 27, avatar: '', education: '硕士', school: '复旦大学', major: '金融学', experience: '4年经验', skills: 'CFA, 风险管理, 产品设计', region: '上海-浦东新区', type: '金融-金融产品经理', category: '全职', expectedSalary: '28k-40k', description: '4年金融产品经验，负责过多个零售金融产品线的规划与落地。' },
-    { id: '6', name: '刘洋', age: 22, avatar: '', education: '本科', school: '华南师范大学', major: '数学与应用数学', experience: '应届生', skills: '数学分析, 逻辑思维, 沟通能力', region: '广东-广州-天河区', type: '教育-教师', category: '兼职', expectedSalary: '6k-10k', description: '有家教经验，耐心细致，擅长初中数学教学。' },
-    { id: '7', name: '孙婷', age: 23, avatar: '', education: '硕士', school: '浙江大学', major: '计算机技术', experience: '应届生', skills: 'Java, Python, 数据结构', region: '浙江-杭州-滨江区', type: '互联网/IT-后端工程师', category: '实习', expectedSalary: '5k-8k', description: '在校成绩优异，有企业实习经历，学习能力强。' },
-    { id: '8', name: '周杰', age: 28, avatar: '', education: '博士', school: '上海交通大学', major: '药学', experience: '3年经验', skills: 'GCP, 临床研究, 数据分析', region: '上海-静安区', type: '医疗-临床研究协调员', category: '全职', expectedSalary: '18k-28k', description: '3年临床研究经验，熟悉GCP规范，有多个临床试验项目管理经验。' },
-    { id: '9', name: '吴迪', age: 21, avatar: '', education: '本科', school: '武汉大学', major: '计算机科学与技术', experience: '应届生', skills: 'HTML, CSS, JavaScript, React', region: '北京-海淀区', type: '互联网/IT-前端工程师', category: '实习', expectedSalary: '4k-7k', description: '熟练掌握前端基础技术栈，有个人项目作品。' },
-    { id: '10', name: '郑欣', age: 25, avatar: '', education: '本科', school: '中山大学', major: '市场营销', experience: '2年经验', skills: '市场调研, 活动策划, 数据分析', region: '广东-广州-天河区', type: '消费品-市场营销', category: '全职', expectedSalary: '12k-18k', description: '2年快消品市场营销经验，熟悉线上线下营销活动策划与执行。' },
-    { id: '11', name: '黄磊', age: 29, avatar: '', education: '硕士', school: '同济大学', major: '土木工程', experience: '5年经验', skills: 'AutoCAD, 项目管理, 施工管理', region: '广东-深圳-福田区', type: '房地产-土建工程师', category: '全职', expectedSalary: '18k-28k', description: '5年土建工程经验，持有注册建造师证书，有大型项目现场管理经验。' },
-    { id: '12', name: '林悦', age: 20, avatar: '', education: '本科', school: '中国传媒大学', major: '网络与新媒体', experience: '应届生', skills: '内容策划, 视频剪辑, 社区运营', region: '北京-海淀区', type: '传媒-新媒体运营', category: '实习', expectedSalary: '3k-5k', description: '熟悉各大社交媒体平台运营，有短视频内容创作经验。' }
-  ]
+  @State allResumes: ResumeCardData[] = []
 
   private applyFilters(): void {
     let result = this.allResumes.filter(resume => {

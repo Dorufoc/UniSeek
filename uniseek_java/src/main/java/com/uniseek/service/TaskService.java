@@ -91,4 +91,14 @@ public interface TaskService {
      * @return 所有不重复的标签名称
      */
     List<String> getAllTags();
+
+    /**
+     * 重新提交审核（HR 根据驳回原因修改后重新提交）
+     * <p>
+     * 仅限状态为 0（待审核）且有驳回原因的职位可重新提交
+     *
+     * @param userId 当前 HR 用户 ID
+     * @param id     职位 ID
+     */
+    void resubmit(Long userId, Long id);
 }

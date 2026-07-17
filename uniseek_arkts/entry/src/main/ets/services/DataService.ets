@@ -1,5 +1,26 @@
-export interface District {
+import { ApiClient } from './ApiClient';
+
+// 原始树形接口（API 返回格式）
+export interface RegionNode {
+  id: number
   name: string
+  level: number
+  children: RegionNode[]
+}
+
+export interface CategoryNode {
+  id: number
+  parentId: number | null
+  name: string
+  sortOrder: number
+  children: CategoryNode[]
+}
+
+// UI 扁平接口（Picker 组件使用）
+export interface Province {
+  name: string
+  isMunicipality: boolean
+  cities: City[]
 }
 
 export interface City {
@@ -7,13 +28,7 @@ export interface City {
   districts: District[]
 }
 
-export interface Province {
-  name: string
-  isMunicipality: boolean
-  cities: City[]
-}
-
-export interface Occupation {
+export interface District {
   name: string
 }
 
@@ -22,234 +37,249 @@ export interface Field {
   occupations: Occupation[]
 }
 
-const MOCK_PROVINCES: Province[] = [
-  {
-    name: '北京', isMunicipality: true,
-    cities: [{
-      name: '北京', districts: [
-        { name: '海淀区' }, { name: '朝阳区' }, { name: '东城区' },
-        { name: '西城区' }, { name: '丰台区' }, { name: '通州区' },
-        { name: '大兴区' }, { name: '昌平区' }
-      ]
-    }]
-  },
-  {
-    name: '上海', isMunicipality: true,
-    cities: [{
-      name: '上海', districts: [
-        { name: '浦东新区' }, { name: '黄浦区' }, { name: '徐汇区' },
-        { name: '静安区' }, { name: '长宁区' }, { name: '虹口区' },
-        { name: '杨浦区' }, { name: '宝山区' }
-      ]
-    }]
-  },
-  {
-    name: '天津', isMunicipality: true,
-    cities: [{
-      name: '天津', districts: [
-        { name: '和平区' }, { name: '河东区' }, { name: '河西区' },
-        { name: '南开区' }, { name: '河北区' }, { name: '滨海新区' }
-      ]
-    }]
-  },
-  {
-    name: '重庆', isMunicipality: true,
-    cities: [{
-      name: '重庆', districts: [
-        { name: '渝中区' }, { name: '江北区' }, { name: '南岸区' },
-        { name: '沙坪坝区' }, { name: '九龙坡区' }, { name: '渝北区' }
-      ]
-    }]
-  },
-  {
-    name: '广东', isMunicipality: false,
-    cities: [
-      {
-        name: '广州', districts: [
-          { name: '天河区' }, { name: '越秀区' }, { name: '海珠区' },
-          { name: '白云区' }, { name: '番禺区' }, { name: '南沙区' }
-        ]
-      },
-      {
-        name: '深圳', districts: [
-          { name: '南山区' }, { name: '福田区' }, { name: '罗湖区' },
-          { name: '宝安区' }, { name: '龙岗区' }, { name: '龙华区' }
-        ]
-      },
-      {
-        name: '东莞', districts: [
-          { name: '莞城区' }, { name: '南城区' }, { name: '万江区' },
-          { name: '虎门镇' }
-        ]
-      }
-    ]
-  },
-  {
-    name: '浙江', isMunicipality: false,
-    cities: [
-      {
-        name: '杭州', districts: [
-          { name: '西湖区' }, { name: '上城区' }, { name: '拱墅区' },
-          { name: '滨江区' }, { name: '余杭区' }, { name: '萧山区' }
-        ]
-      },
-      {
-        name: '宁波', districts: [
-          { name: '海曙区' }, { name: '鄞州区' }, { name: '江北区' },
-          { name: '北仑区' }
-        ]
-      }
-    ]
-  },
-  {
-    name: '江苏', isMunicipality: false,
-    cities: [
-      {
-        name: '南京', districts: [
-          { name: '玄武区' }, { name: '秦淮区' }, { name: '建邺区' },
-          { name: '鼓楼区' }, { name: '栖霞区' }, { name: '江宁区' }
-        ]
-      },
-      {
-        name: '苏州', districts: [
-          { name: '姑苏区' }, { name: '吴中区' }, { name: '相城区' },
-          { name: '虎丘区' }, { name: '吴江区' }
-        ]
-      }
-    ]
-  },
-  {
-    name: '四川', isMunicipality: false,
-    cities: [
-      {
-        name: '成都', districts: [
-          { name: '锦江区' }, { name: '青羊区' }, { name: '金牛区' },
-          { name: '武侯区' }, { name: '成华区' }, { name: '高新区' }
-        ]
-      }
-    ]
-  },
-  {
-    name: '湖北', isMunicipality: false,
-    cities: [
-      {
-        name: '武汉', districts: [
-          { name: '武昌区' }, { name: '江汉区' }, { name: '硚口区' },
-          { name: '汉阳区' }, { name: '洪山区' }, { name: '东湖高新区' }
-        ]
-      }
-    ]
-  },
-  {
-    name: '陕西', isMunicipality: false,
-    cities: [
-      {
-        name: '西安', districts: [
-          { name: '雁塔区' }, { name: '碑林区' }, { name: '莲湖区' },
-          { name: '未央区' }, { name: '长安区' }, { name: '高新区' }
-        ]
-      }
-    ]
-  }
-]
+export interface Occupation {
+  name: string
+}
 
-const MOCK_FIELDS: Field[] = [
-  {
-    name: '互联网/IT',
-    occupations: [
-      { name: '前端工程师' }, { name: '后端工程师' }, { name: '移动开发' },
-      { name: '测试工程师' }, { name: '运维工程师' }, { name: '产品经理' },
-      { name: 'UI设计师' }, { name: '数据分析师' }, { name: '算法工程师' }
-    ]
-  },
-  {
-    name: '金融',
-    occupations: [
-      { name: '投资银行' }, { name: '风险管理' }, { name: '金融产品经理' },
-      { name: '证券分析师' }, { name: '保险精算' }, { name: '合规风控' }
-    ]
-  },
-  {
-    name: '教育',
-    occupations: [
-      { name: '教师' }, { name: '教务管理' }, { name: '课程顾问' },
-      { name: '教研员' }, { name: '留学顾问' }, { name: '在线教育运营' }
-    ]
-  },
-  {
-    name: '医疗',
-    occupations: [
-      { name: '临床医生' }, { name: '护士' }, { name: '药剂师' },
-      { name: '医疗器械工程师' }, { name: '临床研究协调员' }, { name: '医疗信息化' }
-    ]
-  },
-  {
-    name: '制造业',
-    occupations: [
-      { name: '机械工程师' }, { name: '电气工程师' }, { name: '生产管理' },
-      { name: '质量工程师' }, { name: '工艺工程师' }
-    ]
-  },
-  {
-    name: '房地产',
-    occupations: [
-      { name: '土建工程师' }, { name: '项目经理' }, { name: '成本控制' },
-      { name: '置业顾问' }, { name: '物业管理' }
-    ]
-  },
-  {
-    name: '传媒',
-    occupations: [
-      { name: '新媒体运营' }, { name: '内容编辑' }, { name: '视频编导' },
-      { name: '广告策划' }, { name: '品牌公关' }
-    ]
-  },
-  {
-    name: '消费品',
-    occupations: [
-      { name: '市场营销' }, { name: '品牌管理' }, { name: '供应链管理' },
-      { name: '销售代表' }, { name: '电商运营' }
-    ]
-  }
-]
+interface TreeNode<T> {
+  id: number
+  name: string
+  children?: T[]
+}
 
 export class DataService {
+  private static regionTree: RegionNode[] | null = null
+  private static categoryTree: CategoryNode[] | null = null
+  private static provincesCache: Province[] | null = null
+  private static fieldsCache: Field[] | null = null
+
+  static async getRegionTree(): Promise<RegionNode[]> {
+    if (DataService.regionTree) {
+      return DataService.regionTree
+    }
+    try {
+      DataService.regionTree = await ApiClient.get<RegionNode[]>('/api/region/tree')
+      DataService.provincesCache = DataService.toProvinces(DataService.regionTree)
+      return DataService.regionTree
+    } catch {
+      DataService.regionTree = DataService.getFallbackRegions()
+      DataService.provincesCache = DataService.toProvinces(DataService.regionTree)
+      return DataService.regionTree
+    }
+  }
+
+  static async getCategoryTree(): Promise<CategoryNode[]> {
+    if (DataService.categoryTree) {
+      return DataService.categoryTree
+    }
+    try {
+      DataService.categoryTree = await ApiClient.get<CategoryNode[]>('/api/categories')
+      DataService.fieldsCache = DataService.toFields(DataService.categoryTree)
+      return DataService.categoryTree
+    } catch {
+      DataService.categoryTree = DataService.getFallbackCategories()
+      DataService.fieldsCache = DataService.toFields(DataService.categoryTree)
+      return DataService.categoryTree
+    }
+  }
+
   static getProvinces(): Province[] {
-    return MOCK_PROVINCES
+    if (DataService.provincesCache) {
+      return DataService.provincesCache
+    }
+    if (DataService.regionTree) {
+      DataService.provincesCache = DataService.toProvinces(DataService.regionTree)
+      return DataService.provincesCache
+    }
+    DataService.regionTree = DataService.getFallbackRegions()
+    DataService.provincesCache = DataService.toProvinces(DataService.regionTree)
+    DataService.getRegionTree()
+    return DataService.provincesCache
+  }
+
+  static getProvinceByName(name: string): Province | null {
+    if (!DataService.regionTree && !DataService.provincesCache) {
+      DataService.getProvinces()
+    }
+    if (DataService.provincesCache) {
+      for (const p of DataService.provincesCache) {
+        if (p.name === name) return p
+      }
+    }
+    return null
+  }
+
+  static async getProvinceChildren(parentId: number): Promise<RegionNode[]> {
+    try {
+      return ApiClient.get<RegionNode[]>('/api/region/children/' + parentId)
+    } catch {
+      const tree = await DataService.getRegionTree()
+      return DataService.findChildren(tree, parentId)
+    }
   }
 
   static getFields(): Field[] {
-    return MOCK_FIELDS
+    if (DataService.fieldsCache) {
+      return DataService.fieldsCache
+    }
+    if (DataService.categoryTree) {
+      DataService.fieldsCache = DataService.toFields(DataService.categoryTree)
+      return DataService.fieldsCache
+    }
+    DataService.categoryTree = DataService.getFallbackCategories()
+    DataService.fieldsCache = DataService.toFields(DataService.categoryTree)
+    DataService.getCategoryTree()
+    return DataService.fieldsCache
   }
 
-  static getProvinceByName(name: string): Province | undefined {
-    return MOCK_PROVINCES.find(p => p.name === name)
+  static getFieldByName(name: string): Field | null {
+    if (!DataService.categoryTree && !DataService.fieldsCache) {
+      DataService.getFields()
+    }
+    if (DataService.fieldsCache) {
+      for (const f of DataService.fieldsCache) {
+        if (f.name === name) return f
+      }
+    }
+    return null
   }
 
-  static getFieldByName(name: string): Field | undefined {
-    return MOCK_FIELDS.find(f => f.name === name)
+  static async getFieldChildren(parentId: number): Promise<CategoryNode[]> {
+    const tree = await DataService.getCategoryTree()
+    return DataService.findChildren(tree, parentId)
   }
 
-  static getCitiesByProvince(provinceName: string): City[] {
-    const province = MOCK_PROVINCES.find(p => p.name === provinceName)
-    return province?.cities || []
+  private static toProvinces(nodes: RegionNode[]): Province[] {
+    const result: Province[] = []
+    for (const n of nodes) {
+      const cities: City[] = []
+      if (n.children) {
+        for (const c of n.children) {
+          const districts: District[] = []
+          if (c.children) {
+            for (const d of c.children) {
+              districts.push({ name: d.name })
+            }
+          }
+          cities.push({ name: c.name, districts })
+        }
+      }
+      result.push({
+        name: n.name,
+        isMunicipality: n.children?.length === 1,
+        cities
+      })
+    }
+    return result
   }
 
-  static getDistrictsByCity(provinceName: string, cityName: string): District[] {
-    const province = MOCK_PROVINCES.find(p => p.name === provinceName)
-    const city = province?.cities.find(c => c.name === cityName)
-    return city?.districts || []
+  private static toFields(nodes: CategoryNode[]): Field[] {
+    const result: Field[] = []
+    for (const n of nodes) {
+      const occupations: Occupation[] = []
+      if (n.children) {
+        for (const c of n.children) {
+          occupations.push({ name: c.name })
+        }
+      }
+      result.push({ name: n.name, occupations })
+    }
+    return result
   }
 
-  static getOccupationsByField(fieldName: string): Occupation[] {
-    const field = MOCK_FIELDS.find(f => f.name === fieldName)
-    return field?.occupations || []
+  private static findChildren<T extends TreeNode<T>>(nodes: T[], parentId: number): T[] {
+    for (const node of nodes) {
+      if (node.id === parentId) {
+        if (node.children) {
+          return node.children
+        }
+        return []
+      }
+      if (node.children) {
+        const found = DataService.findChildren(node.children, parentId)
+        if (found.length > 0) return found
+      }
+    }
+    return []
   }
 
-  // 后续对接后端 API 时，将以上方法替换为 HTTP 请求
-  // 例如：
-  // static async getProvincesFromApi(): Promise<Province[]> {
-  //   const resp = await http.request('https://api.uniseek.com/regions/provinces')
-  //   return JSON.parse(resp.result) as Province[]
-  // }
+  private static findByName<T extends TreeNode<T>>(nodes: T[], name: string): T | null {
+    for (const node of nodes) {
+      if (node.name === name) return node
+      if (node.children) {
+        const found = DataService.findByName(node.children, name)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  private static getFallbackRegions(): RegionNode[] {
+    return [
+      { id: 110000, name: '北京市', level: 1, children: [
+        { id: 110100, name: '北京市', level: 2, children: [
+          { id: 110101, name: '东城区', level: 3, children: [] },
+          { id: 110102, name: '西城区', level: 3, children: [] },
+          { id: 110105, name: '朝阳区', level: 3, children: [] },
+          { id: 110106, name: '丰台区', level: 3, children: [] },
+          { id: 110107, name: '石景山区', level: 3, children: [] },
+          { id: 110108, name: '海淀区', level: 3, children: [] }
+        ]}
+      ]},
+      { id: 310000, name: '上海市', level: 1, children: [
+        { id: 310100, name: '上海市', level: 2, children: [
+          { id: 310101, name: '黄浦区', level: 3, children: [] },
+          { id: 310104, name: '徐汇区', level: 3, children: [] },
+          { id: 310105, name: '长宁区', level: 3, children: [] },
+          { id: 310106, name: '静安区', level: 3, children: [] },
+          { id: 310115, name: '浦东新区', level: 3, children: [] }
+        ]}
+      ]},
+      { id: 440000, name: '广东省', level: 1, children: [
+        { id: 440100, name: '广州市', level: 2, children: [
+          { id: 440103, name: '荔湾区', level: 3, children: [] },
+          { id: 440104, name: '越秀区', level: 3, children: [] },
+          { id: 440105, name: '海珠区', level: 3, children: [] },
+          { id: 440106, name: '天河区', level: 3, children: [] }
+        ]},
+        { id: 440300, name: '深圳市', level: 2, children: [
+          { id: 440303, name: '罗湖区', level: 3, children: [] },
+          { id: 440304, name: '福田区', level: 3, children: [] },
+          { id: 440305, name: '南山区', level: 3, children: [] }
+        ]}
+      ]},
+      { id: 330000, name: '浙江省', level: 1, children: [
+        { id: 330100, name: '杭州市', level: 2, children: [
+          { id: 330102, name: '上城区', level: 3, children: [] },
+          { id: 330103, name: '下城区', level: 3, children: [] },
+          { id: 330106, name: '西湖区', level: 3, children: [] },
+          { id: 330108, name: '滨江区', level: 3, children: [] }
+        ]}
+      ]}
+    ]
+  }
+
+  private static getFallbackCategories(): CategoryNode[] {
+    return [
+      { id: 1, parentId: null, name: '餐饮服务', sortOrder: 1, children: [
+        { id: 16, parentId: 1, name: '服务员', sortOrder: 1, children: [] },
+        { id: 17, parentId: 1, name: '后厨帮工', sortOrder: 2, children: [] },
+        { id: 18, parentId: 1, name: '送餐员', sortOrder: 3, children: [] }
+      ]},
+      { id: 2, parentId: null, name: '家教辅导', sortOrder: 2, children: [
+        { id: 21, parentId: 2, name: '小学陪读', sortOrder: 1, children: [] },
+        { id: 22, parentId: 2, name: '初高中辅导', sortOrder: 2, children: [] }
+      ]},
+      { id: 6, parentId: null, name: '设计创作', sortOrder: 6, children: [
+        { id: 28, parentId: 6, name: '平面设计', sortOrder: 1, children: [] },
+        { id: 29, parentId: 6, name: 'UI设计', sortOrder: 2, children: [] },
+        { id: 30, parentId: 6, name: '视频剪辑', sortOrder: 3, children: [] }
+      ]},
+      { id: 8, parentId: null, name: '技术支持', sortOrder: 8, children: [
+        { id: 40, parentId: 8, name: 'IT运维', sortOrder: 1, children: [] },
+        { id: 41, parentId: 8, name: '软件测试', sortOrder: 2, children: [] },
+        { id: 42, parentId: 8, name: '技术助理', sortOrder: 3, children: [] }
+      ]}
+    ]
+  }
 }

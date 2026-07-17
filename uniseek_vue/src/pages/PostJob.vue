@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts, User } from '@element-plus/icons-vue'
-import { createTask } from '@/api/task'
+import { getTaskById, createTask, updateTask } from '@/api/task'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getRegionTree, type RegionVO } from '@/api/region'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
+const isEditMode = ref(false)
+const editId = ref(0)
 
 const form = reactive({
   title: '',
@@ -62,8 +65,51 @@ const loadOptions = async () => {
   regionTree.value = regs
 }
 
-onMounted(() => {
-  loadOptions()
+const findCascaderPath = (tree: any[], targetId: number): number[] => {
+  for (const node of tree) {
+    if (node.id === targetId) return [node.id]
+    if (node.children) {
+      const path = findCascaderPath(node.children, targetId)
+      if (path.length) return [node.id, ...path]
+    }
+  }
+  return []
+}
+
+const loadTaskForEdit = async (id: number) => {
+  try {
+    const res = await getTaskById(id)
+    if (!res) throw new Error('加载失败')
+    const task = res
+    form.title = task.title || ''
+    form.categoryId = task.categoryId || 0
+    form.regionId = task.regionId || 0
+    form.description = task.description || ''
+    form.salaryMin = task.salaryMin || 0
+    form.salaryMax = task.salaryMax || 0
+    form.salaryUnit = task.salaryUnit ?? 0
+    form.jobType = task.jobType || 1
+    form.totalQuota = task.totalQuota || 1
+    form.address = task.address || ''
+    form.tag = task.tag || []
+    form.deadline = task.deadline || ''
+    // 回填级联选择器
+    cascaderValue.value = findCascaderPath(categoryTree.value, task.categoryId)
+    regionCascaderValue.value = findCascaderPath(regionTree.value, task.regionId)
+  } catch {
+    ElMessage.warning('加载职位信息失败')
+    router.push('/job-management')
+  }
+}
+
+onMounted(async () => {
+  await loadOptions()
+  const idParam = route.query.id
+  if (idParam) {
+    isEditMode.value = true
+    editId.value = Number(idParam)
+    await loadTaskForEdit(editId.value)
+  }
 })
 
 const toggleTag = (tag: string) => {
@@ -89,23 +135,29 @@ const isFormValid = computed(() => {
 const handleSubmit = async () => {
   if (!isFormValid.value) return
   loading.value = true
+  const params = {
+    title: form.title.trim(),
+    categoryId: form.categoryId,
+    regionId: form.regionId,
+    description: form.description.trim(),
+    salaryMin: form.salaryMin,
+    salaryMax: form.salaryMax,
+    salaryUnit: form.salaryUnit,
+    jobType: form.jobType,
+    totalQuota: form.totalQuota,
+    address: form.address.trim(),
+    tag: form.tag,
+    deadline: form.deadline || null
+  }
   try {
-    await createTask({
-      title: form.title.trim(),
-      categoryId: form.categoryId,
-      regionId: form.regionId,
-      description: form.description.trim(),
-      salaryMin: form.salaryMin,
-      salaryMax: form.salaryMax,
-      salaryUnit: form.salaryUnit,
-      jobType: form.jobType,
-      totalQuota: form.totalQuota,
-      address: form.address.trim(),
-      tag: form.tag,
-      deadline: form.deadline || null
-    })
-    ElMessage.success('职位发布成功，等待审核')
-    router.push('/')
+    if (isEditMode.value) {
+      await updateTask(editId.value, params)
+      ElMessage.success('修改已保存')
+    } else {
+      await createTask(params)
+      ElMessage.success('职位发布成功，等待审核')
+    }
+    router.push('/job-management')
   } catch (err: any) {
     if (err?.message?.includes('未找到企业信息')) {
       ElMessage.warning('请先完成企业资质认证')
@@ -120,8 +172,8 @@ const handleSubmit = async () => {
 <template>
   <div class="post-job-page">
     <div class="post-job-container">
-      <h2 class="page-title">发布职位</h2>
-      <p class="page-desc">填写以下信息，发布招聘职位</p>
+      <h2 class="page-title">{{ isEditMode ? '编辑职位' : '发布职位' }}</h2>
+      <p class="page-desc">{{ isEditMode ? '修改职位信息后保存' : '填写以下信息，发布招聘职位' }}</p>
 
       <div class="form-section">
         <div class="form-item">
@@ -245,7 +297,7 @@ const handleSubmit = async () => {
         </div>
 
         <button class="submit-btn" :disabled="!isFormValid || loading" :class="{ loading }" @click="handleSubmit">
-          {{ loading ? '提交中...' : '立即发布' }}
+          {{ loading ? '提交中...' : (isEditMode ? '保存修改' : '立即发布') }}
         </button>
       </div>
     </div>

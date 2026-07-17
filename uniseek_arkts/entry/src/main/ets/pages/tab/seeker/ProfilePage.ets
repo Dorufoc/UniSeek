@@ -12,7 +12,9 @@ export struct ProfilePage {
 
   aboutToAppear(): void {
     this.loadUsername()
-    this.isVerified = AuthService.isRealNameVerified()
+    AuthService.getRealNameStatus().then((info) => {
+      this.isVerified = info.status === 1
+    }).catch(() => {})
   }
 
   loadUsername(): void {

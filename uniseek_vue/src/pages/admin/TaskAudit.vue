@@ -21,6 +21,7 @@ const params = reactive({
   page: 1,
   pageSize: 10,
   status: undefined as number | undefined,
+  rejected: undefined as boolean | undefined,
   keyword: ''
 })
 
@@ -31,7 +32,8 @@ const fetchData = async () => {
       page: params.page,
       pageSize: params.pageSize,
       status: params.status,
-      keyword: params.keyword || undefined
+      keyword: params.keyword || undefined,
+      rejected: params.rejected
     })
     tableData.value = data.records
     total.value = data.total
@@ -45,7 +47,16 @@ const fetchData = async () => {
 const handleTabChange = (tab: number | string) => {
   activeTab.value = tab
   params.page = 1
-  params.status = typeof tab === 'number' ? tab : undefined
+  params.rejected = undefined
+  if (tab === 'rejected') {
+    params.status = 0
+    params.rejected = true
+  } else if (tab === 0) {
+    params.status = 0
+    params.rejected = false
+  } else {
+    params.status = typeof tab === 'number' ? tab : undefined
+  }
   fetchData()
 }
 
@@ -97,7 +108,10 @@ const jobTypeText = (type: number) => {
   return map[type] || '未知'
 }
 
-const getStatusTag = (status: number) => {
+const getStatusTag = (status: number, rejectReason?: string) => {
+  if (status === 0 && rejectReason) {
+    return { text: '已驳回', type: 'danger' }
+  }
   const map: Record<number, { text: string; type: string }> = {
     0: { text: '待审核', type: 'info' },
     1: { text: '招聘中', type: 'success' },
@@ -122,6 +136,7 @@ onMounted(() => {
         <el-tabs v-model="activeTab" @tab-change="handleTabChange">
           <el-tab-pane label="全部" name="all" />
           <el-tab-pane :label="'待审核'" :name="0" />
+          <el-tab-pane label="已驳回" name="rejected" />
           <el-tab-pane :label="'招聘中'" :name="1" />
           <el-tab-pane :label="'已满员'" :name="2" />
           <el-tab-pane :label="'已过期'" :name="3" />
@@ -158,8 +173,8 @@ onMounted(() => {
         <el-table-column prop="createTime" label="发布时间" width="160" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.status).type as any" size="small">
-              {{ getStatusTag(row.status).text }}
+            <el-tag :type="getStatusTag(row.status, row.rejectReason).type as any" size="small">
+              {{ getStatusTag(row.status, row.rejectReason).text }}
             </el-tag>
           </template>
         </el-table-column>
@@ -227,6 +242,9 @@ onMounted(() => {
           </el-descriptions-item>
           <el-descriptions-item label="截止时间">
             {{ currentTask.deadline || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="currentTask.rejectReason" label="驳回原因">
+            <span style="color: #f56c6c;">{{ currentTask.rejectReason }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="职位描述">
             <div v-html="currentTask.description" style="max-height: 200px; overflow-y: auto;"></div>

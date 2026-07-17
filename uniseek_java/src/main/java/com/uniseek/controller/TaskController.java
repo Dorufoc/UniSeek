@@ -147,6 +147,21 @@ public class TaskController {
     }
 
     /**
+     * 重新提交审核（HR 根据驳回原因修改后重新申请）
+     * PUT /api/tasks/{id}/resubmit（需要鉴权）
+     *
+     * @param id 职位 ID
+     * @return 操作结果
+     */
+    @PutMapping("/tasks/{id}/resubmit")
+    @OperationLog(operationType = "TASK_RESUBMIT", targetType = "TASK", targetIdExpression = "#id")
+    public ApiResult<Void> resubmit(@PathVariable Long id) {
+        Long userId = UserContext.getUserId();
+        taskService.resubmit(userId, id);
+        return ApiResult.success("已重新提交审核", null);
+    }
+
+    /**
      * 根据用户 ID 获取企业 ID
      *
      * @param userId 当前用户 ID

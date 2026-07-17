@@ -15,7 +15,9 @@ export struct RecruiterProfileTab {
 
   aboutToAppear(): void {
     this.loadUsername()
-    this.isVerified = AuthService.isRealNameVerified()
+    AuthService.getRealNameStatus().then((info) => {
+      this.isVerified = info.status === 1
+    }).catch(() => {})
     RecruiterService.getEnterpriseInfo().then((info) => {
       if (info) {
         this.enterpriseAuditStatus = info.auditStatus

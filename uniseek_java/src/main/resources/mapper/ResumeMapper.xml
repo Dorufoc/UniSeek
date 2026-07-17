@@ -10,6 +10,7 @@
         <result column="birth_date" property="birthDate"/>
         <result column="education" property="education"/>
         <result column="school" property="school"/>
+        <result column="graduation_date" property="graduationDate"/>
         <result column="skills" property="skills"/>
         <result column="experience" property="experience"/>
         <result column="attachment_url" property="attachmentUrl"/>
@@ -31,7 +32,7 @@
         WHERE r.user_id = #{userId}
     </select>
 
-    <!-- 查询已发布到人才市场的简历（仅展示已实名认证的用户） -->
+    <!-- 查询已发布到人才市场的简历（仅展示已实名认证的用户，支持关键词和筛选） -->
     <select id="selectPublishedResumes" resultMap="ResumeWithRealNameMap">
         SELECT r.*, rn.real_name
         FROM resume r
@@ -40,6 +41,19 @@
         <if test="keyword != null and keyword != ''">
             AND (rn.real_name REGEXP #{kwPattern}
                  OR r.skills REGEXP #{kwPattern})
+        </if>
+        <if test="filter != null and filter != '' and filter != '全部'">
+            <choose>
+                <when test="filter == '有附件简历'">
+                    AND r.attachment_url IS NOT NULL
+                </when>
+                <when test="filter == '在校生'">
+                    AND r.graduation_date IS NOT NULL AND r.graduation_date > CURDATE()
+                </when>
+                <when test="filter == '有工作经验'">
+                    AND r.experience IS NOT NULL AND CHAR_LENGTH(r.experience) > 10
+                </when>
+            </choose>
         </if>
         ORDER BY r.update_time DESC
     </select>

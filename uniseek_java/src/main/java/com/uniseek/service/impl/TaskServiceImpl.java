@@ -203,8 +203,8 @@ public class TaskServiceImpl implements TaskService {
 	            if (enterprise == null || !task.getEnterpriseId().equals(enterprise.getId())) {
 	                throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
 	            }
-	            if (targetStatus != 4) {
-	                throw new BusinessException("HR 只能下架职位");
+	            if (targetStatus != 4 && targetStatus != 1) {
+	                throw new BusinessException("HR 只能上架或下架职位");
 	            }
 	        } else if (userRole == RoleConstant.ADMIN || userRole == RoleConstant.SUPER_ADMIN) {
 	            // Admin 角色：可审核通过（1）或下架（4）
@@ -216,8 +216,8 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // 3. 状态流转校验
-        if (targetStatus == 1 && task.getStatus() != 0) {
-            throw new BusinessException("仅待审核的职位可通过审核");
+        if (targetStatus == 1 && task.getStatus() != 0 && task.getStatus() != 4) {
+            throw new BusinessException("仅待审核或已下架的职位可上架");
         }
         if (targetStatus == 4 && task.getStatus() == 3) {
             throw new BusinessException("已截止的职位无法下架");
@@ -248,5 +248,28 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<String> getAllTags() {
         return taskMapper.selectAllTags();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resubmit(Long userId, Long id) {
+        Task task = taskMapper.selectById(id);
+        if (task == null) {
+            throw new BusinessException(ApiResult.NOT_FOUND, "职位不存在");
+        }
+        // 校验企业归属
+        Enterprise enterprise = enterpriseMapper.selectOne(
+                new LambdaQueryWrapper<Enterprise>()
+                        .eq(Enterprise::getUserId, userId));
+        if (enterprise == null || !task.getEnterpriseId().equals(enterprise.getId())) {
+            throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
+        }
+        // 仅已驳回的职位可重新提交
+        if (task.getStatus() != 0 || task.getRejectReason() == null) {
+            throw new BusinessException("仅已驳回的职位可重新提交审核");
+        }
+        // 更新时间戳，驳回原因保留供管理员参考
+        task.setUpdateTime(LocalDateTime.now());
+        taskMapper.updateById(task);
     }
 }

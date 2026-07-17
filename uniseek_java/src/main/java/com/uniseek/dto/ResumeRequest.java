@@ -20,6 +20,9 @@ public class ResumeRequest {
     /** 毕业院校 */
     private String school;
 
+    /** 毕业时间 */
+    private LocalDate graduationDate;
+
     /** 技能特长 */
     private String skills;
 
@@ -59,6 +62,14 @@ public class ResumeRequest {
 
     public void setSchool(String school) {
         this.school = school;
+    }
+
+    public LocalDate getGraduationDate() {
+        return graduationDate;
+    }
+
+    public void setGraduationDate(LocalDate graduationDate) {
+        this.graduationDate = graduationDate;
     }
 
     public String getSkills() {

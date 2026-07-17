@@ -1,6 +1,9 @@
 import { router } from '@kit.ArkUI';
+import { ApiClient } from '../../../services/ApiClient';
 import { DataService, Province, City, District, Field, Occupation } from '../../../services/DataService';
-import { JobData } from '../../../services/ChatTypes';
+import { JobData, TaskVO } from '../../../services/ChatTypes';
+import { PageResult } from '../../../services/ResumeService';
+import { SALARY_UNIT_LABELS } from '../../../services/RecruiterTypes';
 
 @CustomDialog
 struct RegionPickerDialog {
@@ -528,11 +531,17 @@ struct TypePickerDialog {
 @CustomDialog
 struct SalaryDialog {
   controller?: CustomDialogController
-  onConfirm?: (min: number, max: number) => void
+  selectedUnit: number = -1
+  onConfirm?: (min: number, max: number, unit: number) => void
   onCancel?: () => void
 
   @State minText: string = ''
   @State maxText: string = ''
+  @State currentUnit: number = -1
+
+  aboutToAppear(): void {
+    this.currentUnit = this.selectedUnit
+  }
 
   build() {
     Column() {
@@ -550,7 +559,7 @@ struct SalaryDialog {
       .width('100%')
       .padding({ bottom: 16 })
 
-      TextInput({ placeholder: '最低薪资(k)', text: this.minText })
+      TextInput({ placeholder: '最低薪资(元)', text: this.minText })
         .onChange((value: string) => { this.minText = value })
         .width('100%')
         .height(44)
@@ -558,13 +567,48 @@ struct SalaryDialog {
         .borderRadius(8)
         .margin({ bottom: 12 })
 
-      TextInput({ placeholder: '最高薪资(k)', text: this.maxText })
+      TextInput({ placeholder: '最高薪资(元)', text: this.maxText })
         .onChange((value: string) => { this.maxText = value })
         .width('100%')
         .height(44)
         .backgroundColor('#F5F5F5')
         .borderRadius(8)
-        .margin({ bottom: 20 })
+        .margin({ bottom: 16 })
+
+      Text('薪资类型')
+        .fontSize(15)
+        .fontColor('#333333')
+        .width('100%')
+        .margin({ bottom: 10 })
+
+      Row() {
+        Text('日结')
+          .fontSize(14)
+          .fontColor(this.currentUnit === 0 ? '#FFFFFF' : '#666666')
+          .backgroundColor(this.currentUnit === 0 ? '#007AFF' : '#F5F5F5')
+          .borderRadius(16)
+          .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+          .onClick(() => { this.currentUnit = this.currentUnit === 0 ? -1 : 0 })
+
+        Text('时薪')
+          .fontSize(14)
+          .fontColor(this.currentUnit === 1 ? '#FFFFFF' : '#666666')
+          .backgroundColor(this.currentUnit === 1 ? '#007AFF' : '#F5F5F5')
+          .borderRadius(16)
+          .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+          .onClick(() => { this.currentUnit = this.currentUnit === 1 ? -1 : 1 })
+
+        Text('月结')
+          .fontSize(14)
+          .fontColor(this.currentUnit === 2 ? '#FFFFFF' : '#666666')
+          .backgroundColor(this.currentUnit === 2 ? '#007AFF' : '#F5F5F5')
+          .borderRadius(16)
+          .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+          .onClick(() => { this.currentUnit = this.currentUnit === 2 ? -1 : 2 })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .margin({ bottom: 16 })
 
       Row() {
         Row().layoutWeight(1)
@@ -578,11 +622,11 @@ struct SalaryDialog {
           .onClick(() => {
             const min = parseInt(this.minText) || 0
             const max = parseInt(this.maxText) || 0
-            this.onConfirm?.(min, max)
+            this.onConfirm?.(min, max, this.currentUnit)
           })
       }
       .width('100%')
-      .padding({ top: 16 })
+      .padding({ top: 8 })
     }
     .padding(20)
     .width('100%')
@@ -596,7 +640,13 @@ struct JobCard {
   job: JobData = {
     id: '', title: '', company: '', salary: '',
     salaryMid: 0, popularity: 0, region: '',
-    type: '', category: '', description: ''
+    type: '', category: '', description: '',
+    enterpriseId: 0, categoryId: 0, regionId: 0,
+    salaryMin: 0, salaryMax: 0, salaryUnit: 0,
+    jobType: 0, status: 0, hasApplied: false,
+    applicationId: 0,
+    tag: [], remainingQuota: 0,
+    hrName: '', hrAvatar: ''
   }
 
   build() {
@@ -611,19 +661,23 @@ struct JobCard {
           .fontColor('#666666')
           .margin({ top: 6 })
         Row() {
-          Text(this.job.region)
+          Text(SALARY_UNIT_LABELS[this.job.salaryUnit] ?? '月薪')
             .fontSize(12)
-            .fontColor('#999999')
-            .backgroundColor('#F5F5F5')
+            .fontColor('#FFFFFF')
+            .backgroundColor('#007AFF')
             .borderRadius(4)
             .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          Text(this.job.type)
-            .fontSize(12)
-            .fontColor('#999999')
-            .backgroundColor('#F5F5F5')
-            .borderRadius(4)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .margin({ left: 8 })
+          if (this.job.tag) {
+            ForEach(this.job.tag, (tag: string) => {
+              Text(tag)
+                .fontSize(12)
+                .fontColor('#999999')
+                .backgroundColor('#F5F5F5')
+                .borderRadius(4)
+                .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                .margin({ left: 8 })
+            }, (tag: string) => tag)
+          }
         }
         .margin({ top: 8 })
       }
@@ -634,8 +688,8 @@ struct JobCard {
         Text(this.job.salary)
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#FF6B35')
-        Text(this.job.popularity + '人投递')
+          .fontColor('#007AFF')
+        Text('剩余:' + this.job.remainingQuota)
           .fontSize(12)
           .fontColor('#BBBBBB')
           .margin({ top: 4 })
@@ -662,28 +716,76 @@ export struct HomePage {
   @State popSort: string = 'none'
   @State salaryMin: number = 0
   @State salaryMax: number = 0
+  @State selectedSalaryUnit: number = -1
   @State selectedRegion: string[] = []
   @State selectedType: string[] = []
+  @State allJobs: JobData[] = []
   @State filteredJobs: JobData[] = []
+  @State currentPage: number = 1
+  @State totalPages: number = 1
+  @State isLoadingMore: boolean = false
 
   aboutToAppear(): void {
-    this.applyFilters()
+    this.loadJobs()
   }
 
-  allJobs: JobData[] = [
-    { id: '1', title: '高级前端工程师', company: '字节跳动', salary: '25k-40k', salaryMid: 32.5, popularity: 128, region: '北京-海淀区', type: '互联网/IT-前端工程师', category: '全职', description: '负责公司核心产品的前端架构设计和开发工作，参与技术方案评审，优化用户体验。' },
-    { id: '2', title: 'Java后端开发工程师', company: '阿里巴巴', salary: '20k-35k', salaryMid: 27.5, popularity: 95, region: '浙江-杭州-西湖区', type: '互联网/IT-后端工程师', category: '全职', description: '负责电商平台后端服务的设计、开发与维护，保障系统高并发下的稳定性。' },
-    { id: '3', title: 'UI/UX设计师', company: '腾讯科技', salary: '18k-30k', salaryMid: 24, popularity: 73, region: '广东-深圳-南山区', type: '互联网/IT-UI设计师', category: '全职', description: '负责产品界面设计，制定设计规范，输出高质量交互原型和视觉稿。' },
-    { id: '4', title: '数据分析实习生', company: '美团', salary: '4k-6k', salaryMid: 5, popularity: 210, region: '北京-朝阳区', type: '互联网/IT-数据分析师', category: '实习', description: '协助数据分析师完成业务数据提取、清洗和分析，输出数据报告。' },
-    { id: '5', title: '金融产品经理', company: '招商银行', salary: '22k-38k', salaryMid: 30, popularity: 56, region: '上海-浦东新区', type: '金融-金融产品经理', category: '全职', description: '负责银行零售金融产品的规划与设计，协调开发团队推进产品落地。' },
-    { id: '6', title: '初中数学家教', company: '学而思', salary: '8k-12k', salaryMid: 10, popularity: 45, region: '广东-广州-天河区', type: '教育-教师', category: '兼职', description: '负责初中数学一对一辅导，制定个性化教学方案，帮助学生提升成绩。' },
-    { id: '7', title: 'Java开发实习生', company: '网易', salary: '5k-8k', salaryMid: 6.5, popularity: 180, region: '浙江-杭州-滨江区', type: '互联网/IT-后端工程师', category: '实习', description: '参与公司内部工具和平台的后端开发，学习和实践企业级开发流程。' },
-    { id: '8', title: '临床研究协调员', company: '辉瑞制药', salary: '15k-25k', salaryMid: 20, popularity: 38, region: '上海-静安区', type: '医疗-临床研究协调员', category: '全职', description: '负责临床试验项目的协调与管理，确保试验流程符合GCP规范。' },
-    { id: '9', title: '前端开发实习生', company: '百度', salary: '5k-7k', salaryMid: 6, popularity: 165, region: '北京-海淀区', type: '互联网/IT-前端工程师', category: '实习', description: '协助前端团队完成产品页面的开发和维护，学习主流前端技术栈。' },
-    { id: '10', title: '市场营销专员', company: '宝洁', salary: '12k-20k', salaryMid: 16, popularity: 62, region: '广东-广州-天河区', type: '消费品-市场营销', category: '全职', description: '负责品牌营销活动的策划与执行，分析市场数据，优化营销策略。' },
-    { id: '11', title: '土木工程师', company: '万科集团', salary: '15k-25k', salaryMid: 20, popularity: 41, region: '广东-深圳-福田区', type: '房地产-土建工程师', category: '全职', description: '负责工程项目设计图纸审核、现场施工管理和质量监督。' },
-    { id: '12', title: '新媒体运营实习', company: '抖音', salary: '3k-5k', salaryMid: 4, popularity: 240, region: '北京-海淀区', type: '传媒-新媒体运营', category: '实习', description: '协助运营团队进行内容策划、社区维护和数据统计。' }
-  ]
+  async loadJobs(): Promise<void> {
+    try {
+      const result = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [['page', '1'], ['pageSize', '100']])
+      this.currentPage = 1
+      this.totalPages = result.totalPages
+      this.allJobs = result.records.map((task: TaskVO) => this.mapTaskToJobData(task))
+      this.applyFilters()
+    } catch (e) {
+      console.error('加载职位列表失败', e)
+    }
+  }
+
+  async loadMoreJobs(): Promise<void> {
+    if (this.isLoadingMore || this.currentPage >= this.totalPages) return
+    this.isLoadingMore = true
+    try {
+      const nextPage = this.currentPage + 1
+      const result = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [['page', String(nextPage)], ['pageSize', '100']])
+      const newJobs = result.records.map((task: TaskVO) => this.mapTaskToJobData(task))
+      this.allJobs = this.allJobs.concat(newJobs)
+      this.currentPage = nextPage
+      this.applyFilters()
+    } catch (e) {
+      console.error('加载更多职位失败', e)
+    } finally {
+      this.isLoadingMore = false
+    }
+  }
+
+  private mapTaskToJobData(task: TaskVO): JobData {
+    return {
+      id: String(task.id),
+      title: task.title || '',
+      company: task.enterpriseName || '',
+      salary: (task.salaryMin != null && task.salaryMax != null) ? Number(task.salaryMin) + '-' + Number(task.salaryMax) + '元' : '',
+      salaryMid: (Number(task.salaryMin) + Number(task.salaryMax)) / 2 || 0,
+      popularity: task.applicationCount || 0,
+      region: task.regionName || '',
+      type: task.categoryName || '',
+      category: task.jobType === 1 ? '全职' : task.jobType === 2 ? '兼职' : task.jobType === 3 ? '实习' : '全职',
+      description: task.description || '',
+      enterpriseId: task.enterpriseId || 0,
+      categoryId: task.categoryId || 0,
+      regionId: task.regionId || 0,
+      salaryMin: Number(task.salaryMin) || 0,
+      salaryMax: Number(task.salaryMax) || 0,
+      salaryUnit: task.salaryUnit ?? 0,
+      jobType: task.jobType || 0,
+      status: task.status ?? 1,
+      hasApplied: !!task.hasApplied,
+      applicationId: task.applicationId || 0,
+      tag: task.tag || [],
+      remainingQuota: task.remainingQuota || 0,
+      hrName: task.hrName || '',
+      hrAvatar: task.hrAvatar || ''
+    } as JobData
+  }
 
   private applyFilters(): void {
     let result = this.allJobs.filter(job => {
@@ -692,6 +794,8 @@ export struct HomePage {
       if (this.selectedType.length > 0 && !this.selectedType.some(t => job.type.startsWith(t))) return false
       if (this.salaryMin > 0 && job.salaryMid < this.salaryMin) return false
       if (this.salaryMax > 0 && job.salaryMid > this.salaryMax) return false
+      if (this.selectedSalaryUnit >= 0 && job.salaryUnit !== this.selectedSalaryUnit) return false
+      if (job.status === 0 || job.status === 3 || job.status === 4) return false
       return true
     })
 
@@ -764,9 +868,11 @@ export struct HomePage {
   private showSalaryDialog(): void {
     let dialog = new CustomDialogController({
       builder: SalaryDialog({
-        onConfirm: (min: number, max: number) => {
+        selectedUnit: this.selectedSalaryUnit,
+        onConfirm: (min: number, max: number, unit: number) => {
           this.salaryMin = min
           this.salaryMax = max
+          this.selectedSalaryUnit = unit
           this.applyFilters()
           dialog.close()
         },
@@ -781,10 +887,12 @@ export struct HomePage {
   }
 
   private salaryLabel(): string {
-    if (this.salaryMin > 0 && this.salaryMax > 0) return this.salaryMin + 'k-' + this.salaryMax + 'k'
-    if (this.salaryMin > 0) return '≥' + this.salaryMin + 'k'
-    if (this.salaryMax > 0) return '≤' + this.salaryMax + 'k'
-    return ''
+    let parts: string[] = []
+    if (this.salaryMin > 0 && this.salaryMax > 0) parts.push(this.salaryMin + '-' + this.salaryMax + '元')
+    else if (this.salaryMin > 0) parts.push('≥' + this.salaryMin + '元')
+    else if (this.salaryMax > 0) parts.push('≤' + this.salaryMax + '元')
+    if (this.selectedSalaryUnit >= 0) parts.push(SALARY_UNIT_LABELS[this.selectedSalaryUnit])
+    return parts.join('/')
   }
 
   build() {
@@ -851,12 +959,12 @@ export struct HomePage {
         .onClick(() => { this.popSort = this.nextSort(this.popSort); this.applyFilters() })
 
         Row() {
-          Text(this.salaryMin > 0 || this.salaryMax > 0 ? this.salaryLabel() : '薪资')
+          Text(this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0 ? this.salaryLabel() : '薪资')
             .fontSize(13)
-            .fontColor(this.salaryMin > 0 || this.salaryMax > 0 ? '#007AFF' : '#666666')
+            .fontColor(this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0 ? '#007AFF' : '#666666')
         }
         .height(32)
-        .backgroundColor(this.salaryMin > 0 || this.salaryMax > 0 ? '#EBF5FF' : '#F5F5F5')
+        .backgroundColor(this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0 ? '#EBF5FF' : '#F5F5F5')
         .borderRadius(16)
         .padding({ left: 14, right: 14 })
         .layoutWeight(1)
@@ -900,10 +1008,25 @@ export struct HomePage {
             JobCard({ job: job })
           }
         }, (job: JobData) => job.id)
+
+        if (this.isLoadingMore) {
+          ListItem() {
+            Row() {
+              LoadingProgress().width(24).height(24)
+              Text('加载中...').fontSize(14).fontColor('#999999').margin({ left: 8 })
+            }.width('100%').justifyContent(FlexAlign.Center).padding(16)
+          }
+        } else if (this.currentPage >= this.totalPages && this.allJobs.length > 0) {
+          ListItem() {
+            Text('没有更多了').fontSize(14).fontColor('#999999')
+              .width('100%').textAlign(TextAlign.Center).padding(16)
+          }
+        }
       }
       .layoutWeight(1)
       .width('100%')
       .padding({ left: 12, right: 12, top: 4 })
+      .onReachEnd(() => { this.loadMoreJobs() })
     }
     .width('100%')
     .height('100%')

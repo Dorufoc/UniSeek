@@ -6,16 +6,20 @@ import { AuthService } from '../services/AuthService';
 struct RealNameAuthPage {
   @State realName: string = ''
   @State idCard: string = ''
-  @State idCardDisplay: string = ''
   @State showError: boolean = false
   @State errorMsg: string = ''
   @State submitted: boolean = false
+  @State existing: boolean = false
 
   aboutToAppear(): void {
-    const info = AuthService.getRealNameInfo()
-    if (info) {
-      // TODO: 对接后端后从 API 获取已认证信息
-    }
+    AuthService.getRealNameStatus().then((info) => {
+      if (info.status === 1) {
+        this.existing = true
+        this.submitted = true
+        this.realName = info.realName
+      }
+    }).catch(() => {
+    })
   }
 
   build() {
@@ -48,6 +52,15 @@ struct RealNameAuthPage {
               .margin({ bottom: 12 })
           }
 
+          if (this.existing) {
+            Text('您已通过实名认证')
+              .fontSize(16)
+              .fontColor('#34C759')
+              .fontWeight(FontWeight.Medium)
+              .width('100%')
+              .margin({ bottom: 20 })
+          }
+
           Text('真实姓名')
             .fontSize(15)
             .fontWeight(FontWeight.Medium)
@@ -62,6 +75,7 @@ struct RealNameAuthPage {
             .borderRadius(8)
             .padding({ left: 14 })
             .margin({ bottom: 20 })
+            .enabled(!this.existing)
 
           Text('身份证号')
             .fontSize(15)
@@ -79,18 +93,21 @@ struct RealNameAuthPage {
             .borderRadius(8)
             .padding({ left: 14 })
             .margin({ bottom: 32 })
+            .enabled(!this.existing)
 
-          Button('提交认证')
-            .width('100%')
-            .height(48)
-            .backgroundColor('#007AFF')
-            .fontColor('#FFFFFF')
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .borderRadius(8)
-            .onClick(() => {
-              this.handleSubmit()
-            })
+          if (!this.existing) {
+            Button('提交认证')
+              .width('100%')
+              .height(48)
+              .backgroundColor('#007AFF')
+              .fontColor('#FFFFFF')
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+              .borderRadius(8)
+              .onClick(() => {
+                this.handleSubmit()
+              })
+          }
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 16 })
@@ -103,7 +120,7 @@ struct RealNameAuthPage {
     .backgroundColor('#FFFFFF')
   }
 
-  handleSubmit(): void {
+  async handleSubmit(): Promise<void> {
     this.showError = false
 
     if (!this.realName.trim()) {
@@ -124,7 +141,13 @@ struct RealNameAuthPage {
       return
     }
 
-    AuthService.setRealNameVerified(this.realName.trim(), id)
-    router.back()
+    try {
+      await AuthService.realNameAuth(this.realName.trim(), id)
+      this.submitted = true
+      this.existing = true
+    } catch (e) {
+      this.showError = true
+      this.errorMsg = (e as Error).message || '认证失败'
+    }
   }
 }

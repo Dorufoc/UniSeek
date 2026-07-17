@@ -9,6 +9,7 @@ export interface ResumeData {
   birthDate?: string
   education?: string
   school?: string
+  graduationDate?: string
   skills?: string
   experience?: string
   attachmentUrl?: string
@@ -22,6 +23,7 @@ export interface ResumeSaveParams {
   birthDate?: string
   education?: string
   school?: string
+  graduationDate?: string
   skills?: string
   experience?: string
   attachmentUrl?: string
@@ -52,6 +54,6 @@ export const publishResume = () =>
 export const unpublishResume = () =>
   request.patch<any, void>('/resume/unpublish')
 
-/** GET /resume/search 分页搜索已发布的简历 */
-export const searchPublishedResumes = (keyword?: string, page = 1, pageSize = 20) =>
-  request.get<any, PageResult<ResumeData>>('/resume/search', { params: { keyword, page, pageSize } })
+/** GET /resume/search 分页搜索已发布的简历（支持筛选） */
+export const searchPublishedResumes = (keyword?: string, page = 1, pageSize = 20, filter = '全部') =>
+  request.get<any, PageResult<ResumeData>>('/resume/search', { params: { keyword, page, pageSize, filter } })

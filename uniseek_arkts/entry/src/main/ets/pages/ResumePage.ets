@@ -133,17 +133,15 @@ struct ResumePage {
   @State attachmentName: string = ''
 
   aboutToAppear(): void {
-    // TODO: 对接后端后从 API 获取用户姓名
-    const saved = ResumeService.loadResume()
-    if (saved) {
-      this.name = saved.name
-      this.school = saved.school
-      this.education = saved.education
-      this.isFullTime = saved.isFullTime
-      this.skills = saved.skills
-      this.experience = saved.experience
-      this.attachmentName = saved.attachmentName
-    }
+    ResumeService.getMyResume().then((saved) => {
+      if (saved) {
+        this.school = saved.school || ''
+        this.education = saved.education || ''
+        this.skills = saved.skills || ''
+        this.experience = saved.experience || ''
+        this.attachmentName = saved.attachmentUrl ? saved.attachmentUrl.split('/').pop() || '' : ''
+      }
+    }).catch(() => {})
   }
 
   educationLabel(): string {

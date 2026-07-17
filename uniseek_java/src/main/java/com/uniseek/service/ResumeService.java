@@ -42,7 +42,8 @@ public interface ResumeService {
      * @param keyword  关键词（匹配姓名和技能标签）
      * @param page     页码
      * @param pageSize 每页条数
+     * @param filter   筛选条件：全部 / 有附件简历 / 在校生 / 有工作经验
      * @return 分页结果
      */
-    PageResult<Resume> searchPublishedResumes(String keyword, int page, int pageSize);
+    PageResult<Resume> searchPublishedResumes(String keyword, int page, int pageSize, String filter);
 }
