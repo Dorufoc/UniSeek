@@ -13,6 +13,8 @@ const userStore = useUserStore()
 const activeTab = ref<'login' | 'register'>('login')
 // 提交加载状态
 const loading = ref(false)
+// 用户协议和隐私政策勾选状态
+const agreed = ref(false)
 
 // 注册时的角色选择：null 未选择，0 求职者，1 招聘者
 const role = ref<0 | 1 | null>(null)
@@ -42,9 +44,9 @@ const isNicknameValid = computed(() => form.nickname.trim().length >= 2 && form.
 // 角色是否已选择
 const isRoleValid = computed(() => role.value !== null)
 
-// 登录按钮是否可用：手机号 + 密码均满足
+// 登录按钮是否可用：手机号 + 密码 + 同意协议均满足
 const canLogin = computed(() => {
-  return isPhoneValid.value && isPasswordValid.value
+  return isPhoneValid.value && isPasswordValid.value && agreed.value
 })
 
 // 注册按钮是否可用：角色 + 手机号 + 邮箱 + 昵称 + 密码 + 确认密码均满足
@@ -168,6 +170,17 @@ const switchTab = (tab: 'login' | 'register') => {
                 show-password
                 :prefix-icon="Lock"
               />
+            </div>
+
+            <!-- 用户协议和隐私政策勾选 -->
+            <div class="form-options">
+              <label class="agree-label">
+                <el-checkbox v-model="agreed" size="small" />
+                <span>我已阅读并同意</span>
+                <router-link to="/user-agreement" target="_blank">用户协议</router-link>
+                <span>和</span>
+                <router-link to="/privacy-policy" target="_blank">隐私政策</router-link>
+              </label>
             </div>
 
             <!-- 登录按钮 -->

@@ -163,6 +163,18 @@ const router = createRouter({
       meta: { title: '登录 - UniSeek' }
     },
     {
+      path: '/user-agreement',
+      name: 'UserAgreement',
+      component: () => import('@/pages/UserAgreement.vue'),
+      meta: { title: '用户协议 - UniSeek' }
+    },
+    {
+      path: '/privacy-policy',
+      name: 'PrivacyPolicy',
+      component: () => import('@/pages/PrivacyPolicy.vue'),
+      meta: { title: '隐私政策 - UniSeek' }
+    },
+    {
       // 通用错误页：支持 /error/502 或 /error?code=502
       path: '/error/:code?',
       name: 'Error',

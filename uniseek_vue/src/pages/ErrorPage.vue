@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Refresh, Position } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -150,18 +150,9 @@ const onMouseMove = (e: MouseEvent) => {
 // 故障链路动画
 const showChain = ref(false)
 
-// 手动刷新
+// 返回首页
 const handleGoHome = () => {
   router.push('/')
-}
-
-const handleRetry = () => {
-  // 当前如果是错误路由，刷新当前页；否则回到上一页
-  if (route.name === 'Error') {
-    router.go(0)
-  } else {
-    router.back()
-  }
 }
 
 onMounted(() => {
@@ -241,10 +232,6 @@ onUnmounted(() => {
             <el-icon><ArrowLeft /></el-icon>
             <span>返回首页</span>
           </button>
-          <button class="action-btn" @click="handleRetry">
-            <el-icon><Refresh /></el-icon>
-            <span>刷新页面</span>
-          </button>
         </div>
       </div>
     </main>
@@ -252,10 +239,6 @@ onUnmounted(() => {
     <!-- 底部信息条 -->
     <footer class="error-footer">
       <span class="footer-left">© UniSeek · 让好工作主动来找你</span>
-      <span class="footer-right">
-        <el-icon class="footer-icon"><Position /></el-icon>
-        请求路径：{{ route.fullPath }}
-      </span>
     </footer>
   </div>
 </template>
@@ -592,16 +575,6 @@ onUnmounted(() => {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.35);
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
-}
-
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.footer-icon {
-  font-size: 13px;
 }
 
 /* ── 响应式 ── */

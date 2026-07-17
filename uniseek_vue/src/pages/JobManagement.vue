@@ -107,9 +107,10 @@ onMounted(loadTasks)
   <div class="job-management-page">
     <div class="management-header">
       <h2 class="management-title">职位管理</h2>
-      <el-button type="primary" :icon="Plus" @click="router.push('/post-job')">
-        发布职位
-      </el-button>
+      <button class="jm-btn jm-btn-primary" @click="router.push('/post-job')">
+        <el-icon><Plus /></el-icon>
+        <span>发布职位</span>
+      </button>
     </div>
 
     <div v-if="loading" class="loading-tip">加载中...</div>
@@ -155,20 +156,19 @@ onMounted(loadTasks)
           </div>
           <div class="job-actions">
             <template v-if="task.status === 0 && task.rejectReason">
-              <el-button type="primary" size="small" @click="$router.push(`/post-job?id=${task.id}`)">编辑</el-button>
-              <el-button type="success" size="small" @click="handleResubmit(task)">重新提交</el-button>
+              <button class="jm-btn" @click="$router.push(`/post-job?id=${task.id}`)">编辑</button>
+              <button class="jm-btn jm-btn-success" @click="handleResubmit(task)">重新提交</button>
             </template>
             <template v-else>
-              <el-button
+              <button
                 v-if="canToggle(task.status)"
-                :type="task.status === 1 ? 'danger' : 'success'"
-                size="small"
+                :class="['jm-btn', task.status === 1 ? 'jm-btn-danger' : 'jm-btn-success']"
                 @click="toggleStatus(task)"
               >
                 {{ task.status === 1 ? '下架' : '上架' }}
-              </el-button>
+              </button>
             </template>
-            <el-button size="small" @click="$router.push(`/jobs/${task.id}`)">查看详情</el-button>
+            <button class="jm-btn" @click="$router.push(`/jobs/${task.id}`)">查看详情</button>
           </div>
         </div>
       </el-card>
@@ -293,5 +293,90 @@ onMounted(loadTasks)
 .job-actions {
   display: flex;
   gap: 8px;
+}
+
+/* 自定义按钮样式：覆写 Element Plus 原生样式，与 PostJob 等页面保持一致 */
+/* 类型层级：primary（主操作，仅页面级 CTA）> success/danger（语义状态操作）> 默认描边（次级操作） */
+.jm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2329;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.12s, box-shadow 0.2s;
+}
+.jm-btn:hover {
+  border-color: #1762FB;
+  color: #1762FB;
+  background: rgba(23, 98, 251, 0.06);
+}
+.jm-btn:active {
+  transform: translateY(1px);
+}
+.jm-btn:focus-visible {
+  outline: 2px solid rgba(23, 98, 251, 0.4);
+  outline-offset: 2px;
+}
+
+/* 主操作：蓝色实心 */
+.jm-btn-primary {
+  background: #1762FB;
+  border-color: #1762FB;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(23, 98, 251, 0.25);
+}
+.jm-btn-primary:hover {
+  background: #0d4edb;
+  border-color: #0d4edb;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(23, 98, 251, 0.35);
+}
+.jm-btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(23, 98, 251, 0.3);
+}
+
+/* 正向操作：绿色实心（上架、重新提交） */
+.jm-btn-success {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.jm-btn-success:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+/* 负向操作：红色实心（下架） */
+.jm-btn-danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+.jm-btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+/* 禁用态 */
+.jm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 </style>
