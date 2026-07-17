@@ -231,25 +231,214 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  max-width: 1400px;
+  animation: admin-fade-in 0.4s ease;
+}
+
+@keyframes admin-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 24px;
+  letter-spacing: -0.3px;
 }
 
 .filter-bar {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.filter-bar :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+
+.filter-bar :deep(.el-input__wrapper:hover) {
+  border-color: #1762FB;
+}
+
+.filter-bar :deep(.el-input__wrapper.is-focus) {
+  border-color: #1762FB;
+  box-shadow: 0 0 0 3px rgba(23, 98, 251, 0.1);
+}
+
+.filter-bar :deep(.el-select .el-input__wrapper) {
+  border-radius: 8px;
+}
+
+.filter-bar :deep(.el-button--primary) {
+  background: linear-gradient(135deg, #1762FB 0%, #0052e6 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.filter-bar :deep(.el-button--primary:hover) {
+  box-shadow: 0 4px 12px rgba(23, 98, 251, 0.3);
+}
+
+:deep(.el-table) {
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+:deep(.el-table::before) {
+  display: none;
+}
+
+:deep(.el-table th) {
+  background: #f1f5f9 !important;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+:deep(.el-table th .cell) {
+  padding: 0 16px;
+}
+
+:deep(.el-table td) {
+  color: #334155;
+  font-size: 13px;
+  padding: 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+:deep(.el-table td .cell) {
+  padding: 10px 16px;
+  line-height: 1.5;
+}
+
+:deep(.el-table__body tr) {
+  transition: background 0.2s ease;
+}
+
+:deep(.el-table__row:hover > td) {
+  background: #f8fafc !important;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: #fafbfc !important;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped:hover > td) {
+  background: #f1f5f9 !important;
+}
+
+:deep(.el-table__body tr:last-child td) {
+  border-bottom: none;
+}
+
+:deep(.el-tag) {
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: none;
+}
+
+:deep(.el-tag--success) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+:deep(.el-tag--danger) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+:deep(.el-tag--warning) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+:deep(.el-tag--info) {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+}
+
+:deep(.el-button--primary.is-link) {
+  color: #1762FB;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-button--primary.is-link:hover) {
+  color: #0052e6;
+}
+
+:deep(.el-button--danger.is-link) {
+  color: #ef4444;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-button--danger.is-link:hover) {
+  color: #dc2626;
+}
+
+:deep(.el-button--success.is-link) {
+  color: #10b981;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-button--success.is-link:hover) {
+  color: #059669;
+}
+
+:deep(.el-button--warning.is-link) {
+  color: #f59e0b;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-button--warning.is-link:hover) {
+  color: #d97706;
 }
 
 .table-pagination {
-  margin-top: 16px;
+  margin-top: 24px;
   justify-content: flex-end;
+  padding: 16px 0;
+}
+
+:deep(.el-pagination .el-pager li) {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background: linear-gradient(135deg, #1762FB 0%, #0052e6 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(23, 98, 251, 0.3);
+}
+
+:deep(.el-pagination .el-pager li:hover) {
+  /* 移除位移动画 */
 }
 </style>

@@ -322,6 +322,8 @@ const switchTab = (tab: 'login' | 'register') => {
 <style scoped>
 .login-container {
   min-height: 100vh;
+  /* 防止被 #app 弹性容器压缩，确保内容超高时背景完整铺开 */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -115,6 +115,8 @@ const goBack = () => {
 <style scoped>
 .agreement-page {
   min-height: 100vh;
+  /* 防止被 #app 弹性容器压缩，确保背景随文档内容完整铺开 */
+  flex-shrink: 0;
   background: #f5f7fa;
   padding: 24px;
   box-sizing: border-box;

@@ -1,0 +1,265 @@
+/* UniSeek Admin 全局设计系统 */
+/* 与 HR 端和求职者端保持统一的视觉语言 */
+
+:root {
+  /* 主色调系统 - 统一使用 #1762FB 作为强调色 */
+  --admin-primary: #1762FB;
+  --admin-primary-hover: #0052e6;
+  --admin-primary-light: rgba(23, 98, 251, 0.08);
+  --admin-primary-border: rgba(23, 98, 251, 0.15);
+  
+  /* 功能色 */
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+  --admin-info: #6366f1;
+  
+  /* 中性色系统 */
+  --admin-text-primary: #1a1a2e;
+  --admin-text-secondary: #64748b;
+  --admin-text-muted: #94a3b8;
+  --admin-border: #e2e8f0;
+  --admin-bg-page: #f8fafc;
+  --admin-bg-card: #ffffff;
+  
+  /* 间距系统 */
+  --admin-space-xs: 4px;
+  --admin-space-sm: 8px;
+  --admin-space-md: 16px;
+  --admin-space-lg: 24px;
+  --admin-space-xl: 32px;
+  
+  /* 圆角系统 */
+  --admin-radius-sm: 6px;
+  --admin-radius-md: 8px;
+  --admin-radius-lg: 12px;
+  
+  /* 阴影系统 */
+  --admin-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --admin-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --admin-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --admin-shadow-hover: 0 4px 16px rgba(23, 98, 251, 0.12);
+  
+  /* 动画系统 */
+  --admin-transition-fast: 0.15s ease;
+  --admin-transition-normal: 0.25s ease;
+  --admin-transition-slow: 0.35s ease;
+}
+
+/* 全局重置 - 覆盖 Element Plus 默认样式 */
+.admin-layout {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 页面标题统一样式 */
+.admin-layout .page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--admin-text-primary);
+  margin: 0 0 var(--admin-space-lg);
+  letter-spacing: -0.3px;
+}
+
+/* 卡片统一样式 */
+.admin-layout .el-card {
+  border-radius: var(--admin-radius-lg);
+  border: 1px solid var(--admin-border);
+  box-shadow: var(--admin-shadow-sm);
+  transition: box-shadow var(--admin-transition-normal);
+}
+
+.admin-layout .el-card:hover {
+  box-shadow: var(--admin-shadow-md);
+}
+
+/* 表格统一样式 */
+.admin-layout .el-table {
+  border-radius: var(--admin-radius-md);
+  overflow: hidden;
+}
+
+.admin-layout .el-table th {
+  background-color: #f8fafc;
+  color: var(--admin-text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.admin-layout .el-table td {
+  color: var(--admin-text-primary);
+  font-size: 14px;
+}
+
+.admin-layout .el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: #fafbfc;
+}
+
+/* 标签统一样式 */
+.admin-layout .el-tag {
+  border-radius: var(--admin-radius-sm);
+  font-weight: 500;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* 按钮统一样式 */
+.admin-layout .el-button {
+  border-radius: var(--admin-radius-sm);
+  font-weight: 500;
+  transition: all var(--admin-transition-fast);
+}
+
+.admin-layout .el-button--primary:not(.is-link):not(.is-text) {
+  background-color: var(--admin-primary);
+  border-color: var(--admin-primary);
+}
+
+.admin-layout .el-button--primary:not(.is-link):not(.is-text):hover {
+  background-color: var(--admin-primary-hover);
+  border-color: var(--admin-primary-hover);
+}
+
+.admin-layout .el-button--primary.is-link {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--admin-primary);
+}
+
+.admin-layout .el-button--primary.is-link:hover {
+  color: var(--admin-primary-hover);
+  background-color: transparent;
+}
+
+/* 输入框统一样式 */
+.admin-layout .el-input__wrapper {
+  border-radius: var(--admin-radius-sm);
+  transition: all var(--admin-transition-fast);
+}
+
+.admin-layout .el-input__wrapper:hover {
+  border-color: var(--admin-primary);
+}
+
+.admin-layout .el-input__wrapper.is-focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-primary-light);
+}
+
+/* 分页器统一样式 */
+.admin-layout .el-pagination {
+  margin-top: var(--admin-space-lg);
+  justify-content: flex-end;
+}
+
+.admin-layout .el-pagination .el-pager li {
+  border-radius: var(--admin-radius-sm);
+  font-weight: 500;
+}
+
+.admin-layout .el-pagination .el-pager li.is-active {
+  background-color: var(--admin-primary);
+  color: white;
+}
+
+/* 选项卡统一样式 */
+.admin-layout .el-tabs__item {
+  font-weight: 500;
+  transition: all var(--admin-transition-fast);
+}
+
+.admin-layout .el-tabs__item.is-active {
+  color: var(--admin-primary);
+  font-weight: 600;
+}
+
+.admin-layout .el-tabs__active-bar {
+  background-color: var(--admin-primary);
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* 对话框统一样式 */
+.admin-layout .el-dialog {
+  border-radius: var(--admin-radius-lg);
+  overflow: hidden;
+}
+
+.admin-layout .el-dialog__header {
+  background-color: #f8fafc;
+  border-bottom: 1px solid var(--admin-border);
+  padding: var(--admin-space-md) var(--admin-space-lg);
+}
+
+.admin-layout .el-dialog__title {
+  font-weight: 600;
+  color: var(--admin-text-primary);
+  font-size: 16px;
+}
+
+/* 描述列表统一样式 */
+.admin-layout .el-descriptions {
+  border-radius: var(--admin-radius-md);
+  overflow: hidden;
+}
+
+.admin-layout .el-descriptions__label {
+  font-weight: 600;
+  color: var(--admin-text-secondary);
+  background-color: #f8fafc;
+}
+
+/* 加载状态统一样式 */
+.admin-layout .el-loading-mask {
+  border-radius: var(--admin-radius-md);
+}
+
+/* 筛选栏统一样式 */
+.admin-layout .filter-bar {
+  display: flex;
+  gap: var(--admin-space-md);
+  margin-bottom: var(--admin-space-lg);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 表格头部统一样式 */
+.admin-layout .table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--admin-space-md);
+}
+
+/* 表格分页统一样式 */
+.admin-layout .table-pagination {
+  margin-top: var(--admin-space-lg);
+  justify-content: flex-end;
+}
+
+/* 审核操作区统一样式 */
+.admin-layout .audit-actions {
+  margin-top: var(--admin-space-lg);
+}
+
+.admin-layout .audit-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--admin-space-md);
+  margin-top: var(--admin-space-md);
+}
+
+/* 动画效果 */
+@keyframes admin-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-layout .page-container {
+  animation: admin-fade-in 0.3s ease;
+}
