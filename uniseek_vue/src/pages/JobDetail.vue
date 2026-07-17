@@ -213,8 +213,8 @@ onMounted(async () => {
     const data = await getTaskById(id) as unknown as TaskVO | null
     if (!data) {
       error.value = '职位不存在或已删除'
-    } else if (data.status !== 1) {
-      // 非招聘中的职位不对外展示详情
+    } else if (data.status !== 1 && !data.isOwner) {
+      // 非招聘中的职位不对外展示详情（HR 本人发布的岗位始终可见）
       error.value = '当前岗位暂未开放'
     } else {
       job.value = data

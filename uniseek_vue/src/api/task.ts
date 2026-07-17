@@ -60,6 +60,9 @@ export interface TaskVO {
   applicationId: number | null
   applicationCount: number
   hasFavorited: boolean
+  hrName?: string
+  hrAvatar?: string
+  isOwner?: boolean
 }
 
 // 发布职位请求参数

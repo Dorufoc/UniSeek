@@ -62,6 +62,7 @@
         <result column="has_favorited" property="hasFavorited"/>
         <result column="hr_name" property="hrName"/>
         <result column="hr_avatar" property="hrAvatar"/>
+        <result column="is_owner" property="isOwner"/>
     </resultMap>
 
     <!-- 通用 SELECT 片段：LEFT JOIN 企业/分类/地区/用户 -->
@@ -195,14 +196,15 @@
         <include refid="orderByClause"/>
     </select>
 
-    <!-- 查询职位详情（含 hasApplied、applicationId、hasFavorited） -->
+    <!-- 查询职位详情（含 hasApplied、applicationId、hasFavorited、isOwner） -->
     <select id="selectDetailById" resultMap="TaskVOResultMap">
         SELECT
         <include refid="selectTaskFields"/>,
         CASE WHEN ta.id IS NOT NULL THEN 1 ELSE 0 END AS has_applied,
         ta.id AS application_id,
         COALESCE(apps.c, 0) AS application_count,
-        CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END AS has_favorited
+        CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END AS has_favorited,
+        CASE WHEN enterprise.user_id = #{userId} THEN 1 ELSE 0 END AS is_owner
         <include refid="joinTaskRelations"/>
         LEFT JOIN task_application ta ON ta.task_id = task.id AND ta.applicant_id = #{userId}
         LEFT JOIN (

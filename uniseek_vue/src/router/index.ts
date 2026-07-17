@@ -161,6 +161,18 @@ const router = createRouter({
       name: 'Login',
       component: () => import('@/pages/Login.vue'),
       meta: { title: '登录 - UniSeek' }
+    },
+    {
+      // 通用错误页：支持 /error/502 或 /error?code=502
+      path: '/error/:code?',
+      name: 'Error',
+      component: () => import('@/pages/ErrorPage.vue'),
+      meta: { title: '出错了 - UniSeek' }
+    },
+    {
+      // 通配路由：所有未匹配到的路径统一跳转到 404 错误页
+      path: '/:pathMatch(.*)*',
+      redirect: () => ({ path: '/error/404' })
     }
   ]
 })

@@ -31,12 +31,15 @@ request.interceptors.response.use(
     // 后端统一用 HTTP 200 + code 字段区分成功/失败
     // code !== 200 时视为业务错误，弹出提示并拒绝 Promise
     if (data.code && data.code !== 200) {
-      ElMessage.error(data.message || '请求失败')
+      if (!(response.config as any)._silent) {
+        ElMessage.error(data.message || '请求失败')
+      }
       return Promise.reject(data)
     }
     return data.data
   },
   (error) => {
+    // 401：未授权，清除本地登录态并跳转登录页
     if (error.response?.status === 401) {
       localStorage.removeItem('uniseek_token')
       localStorage.removeItem('uniseek_user')
@@ -45,8 +48,17 @@ request.interceptors.response.use(
       setTimeout(() => { window.location.href = '/login' }, 1500)
       return Promise.reject(error)
     }
-    const msg = error.response?.data?.message || '网络异常，请稍后重试'
-    ElMessage.error(msg)
+    // 5xx 服务端错误：统一跳转到错误页（避免在错误页自身内再触发跳转）
+    const status = error.response?.status
+    if (status && status >= 500 && status < 600 && !window.location.pathname.startsWith('/error')) {
+      window.location.href = `/error/${status}`
+      return Promise.reject(error)
+    }
+    // 其余情况按原逻辑提示
+    if (!error.config?._silent) {
+      const msg = error.response?.data?.message || '网络异常，请稍后重试'
+      ElMessage.error(msg)
+    }
     return Promise.reject(error)
   }
 )

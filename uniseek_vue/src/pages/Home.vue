@@ -7,6 +7,8 @@ import { searchTasks, getEnterpriseTasks, type TaskVO } from '@/api/task'
 import { getTaskApplications, type TaskApplication } from '@/api/application'
 import { getMyEnterprise, getHotEnterprises, type EnterpriseInfo, type HotEnterprise } from '@/api/enterprise'
 import { getCategories, type CategoryVO } from '@/api/category'
+import { initChatSession } from '@/api/chat'
+import request from '@/api/index'
 import { Search, Monitor, Briefcase, TrendCharts, ChatDotSquare, ChatDotRound, User, Brush, DataAnalysis, Files, KnifeFork, Notebook, Box, ShoppingBag, EditPen, Service, Van, Scissor, ToiletPaper, Camera } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -91,6 +93,20 @@ interface JobWithApplicants {
 const jobsWithApplicants = ref<JobWithApplicants[]>([])
 const recruiterLoading = ref(false)
 
+// 每个岗位的折叠状态（true=折叠，false=展开）
+const collapsedJobs = ref<Record<number, boolean>>({})
+
+const toggleCollapse = (jobId: number) => {
+  collapsedJobs.value[jobId] = !collapsedJobs.value[jobId]
+}
+
+const isCollapsed = (jobId: number) => {
+  return collapsedJobs.value[jobId] === true // 默认折叠
+}
+
+// 首页仅显示待处理状态的投递：0=已投递(待审核), 1=待面试, 2=待定
+const ACTIVE_STATUSES = [0, 1, 2]
+
 const goToJob = (id: number) => {
   router.push(`/jobs/${id}`)
 }
@@ -102,6 +118,16 @@ const goToJobs = (categoryId?: number) => {
   } else {
     router.push('/jobs')
   }
+}
+
+/** HR 联系求职者：先确保会话存在，再跳转到消息页 */
+const handleContact = async (appId: number) => {
+  try {
+    await initChatSession(appId)
+  } catch {
+    // 静默，已存在则跳过
+  }
+  router.push(`/messages?chat=${appId}`)
 }
 
 const formatSalary = (val: number): string => {
@@ -152,6 +178,53 @@ const parseSnapshot = (snapshot: string | null) => {
   } catch {
     return null
   }
+}
+
+// 解析技能列表（支持 JSON 数组字符串 或 逗号分隔字符串）
+const parseSkills = (skills: unknown): string[] => {
+  if (!skills) return []
+  if (Array.isArray(skills)) return skills
+  if (typeof skills === 'string') {
+    try {
+      const parsed = JSON.parse(skills)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return skills.split(',').map(s => s.trim()).filter(Boolean)
+    }
+  }
+  return []
+}
+
+// ── 简历发送状态检查 ──
+// 记录每个投递记录中求职者是否曾通过聊天发送过简历（messageType=2）
+const hasSentResumeMap = ref<Record<number, boolean>>({})
+
+/** 批量检查所有求职者是否发送过简历 */
+const checkSentResumes = async (allApps: { applicationId: number; applicantId: number }[]) => {
+  const map: Record<number, boolean> = {}
+  // 分批并发，每批最多 6 个
+  const batchSize = 6
+  for (let i = 0; i < allApps.length; i += batchSize) {
+    const batch = allApps.slice(i, i + batchSize)
+    await Promise.allSettled(
+      batch.map(async ({ applicationId, applicantId }) => {
+        try {
+          const messages = await request.get<any, any[]>(
+            `/chat/sessions/${applicationId}/messages`,
+            { params: { pageSize: 20 }, _silent: true } as any
+          )
+          // 检查是否有求职者发出的类型为 2（简历文件）的消息
+          const hasResume = messages.some(
+            (msg: any) => msg.senderId === applicantId && msg.messageType === 2
+          )
+          if (hasResume) map[applicationId] = true
+        } catch {
+          // 无会话或获取失败，视为未发送
+        }
+      })
+    )
+  }
+  hasSentResumeMap.value = map
 }
 
 const catColors = ['#1762FB', '#e74c3c', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
@@ -235,6 +308,12 @@ onMounted(async () => {
         jobsWithApplicants.value = results
           .filter(r => r.status === 'fulfilled')
           .map(r => (r as PromiseFulfilledResult<JobWithApplicants>).value)
+
+        // 投递加载完成后检查求职者是否发送过简历附件
+        const allApps = jobsWithApplicants.value.flatMap(({ applications }) =>
+          applications.map(app => ({ applicationId: app.id, applicantId: app.applicantId }))
+        )
+        checkSentResumes(allApps)
       }
     } catch {
       // 静默失败
@@ -303,7 +382,10 @@ onUnmounted(() => {
           </div>
           <div v-else class="job-list">
             <div v-for="({ job, applications }) in jobsWithApplicants" :key="job.id" class="job-section">
-              <div class="job-section-header" @click="goToJob(job.id)">
+              <div class="job-section-header" @click="toggleCollapse(job.id)">
+                <div class="collapse-toggle">
+                  <span :class="['collapse-arrow', { collapsed: !isCollapsed(job.id) }]">▾</span>
+                </div>
                 <div class="job-section-title">
                   <h3>{{ job.title }}</h3>
                   <span class="job-section-salary">{{ salaryRangeText(job.salaryMin, job.salaryMax, job.salaryUnit) }}</span>
@@ -313,32 +395,65 @@ onUnmounted(() => {
                   <span class="job-section-address" v-if="job.address">{{ job.address }}</span>
                   <span class="applicant-count">{{ applications.length }} 人投递</span>
                 </div>
+                <button class="detail-btn" @click.stop="goToJob(job.id)">详情</button>
               </div>
 
-              <div class="applicants-list" v-if="applications.length > 0">
-                <div v-for="app in applications" :key="app.id" class="applicant-card">
-                  <div class="applicant-info">
-                    <div class="applicant-name">
-                      {{ parseSnapshot(app.resumeSnapshot)?.realName || '未知' }}
+              <div class="applicants-list" v-show="isCollapsed(job.id)">
+                <template v-if="applications.length > 0">
+                  <div
+                    v-for="app in applications.filter(a => ACTIVE_STATUSES.includes(a.status))"
+                    :key="app.id"
+                    class="applicant-card"
+                  >
+                    <div class="applicant-info">
+                      <div class="applicant-name">
+                        {{ parseSnapshot(app.resumeSnapshot)?.realName || '未知' }}
+                      </div>
+                      <div class="applicant-detail">
+                        <span v-if="parseSnapshot(app.resumeSnapshot)?.education">{{ parseSnapshot(app.resumeSnapshot)?.education }}</span>
+                        <span v-if="parseSnapshot(app.resumeSnapshot)?.school">{{ parseSnapshot(app.resumeSnapshot)?.school }}</span>
+                      </div>
+                    <div class="applicant-skills" v-if="parseSkills(parseSnapshot(app.resumeSnapshot)?.skills).length > 0">
+                      <span
+                        v-for="skill in parseSkills(parseSnapshot(app.resumeSnapshot)?.skills).slice(0, 5)"
+                        :key="skill"
+                        class="skill-tag"
+                      >{{ skill }}</span>
+                      <span
+                        v-if="parseSkills(parseSnapshot(app.resumeSnapshot)?.skills).length > 5"
+                        class="skill-tag-more"
+                      >+{{ parseSkills(parseSnapshot(app.resumeSnapshot)?.skills).length - 5 }}</span>
                     </div>
-                    <div class="applicant-detail">
-                      <span v-if="parseSnapshot(app.resumeSnapshot)?.education">{{ parseSnapshot(app.resumeSnapshot)?.education }}</span>
-                      <span v-if="parseSnapshot(app.resumeSnapshot)?.school">{{ parseSnapshot(app.resumeSnapshot)?.school }}</span>
                     </div>
-                    <div class="applicant-skills" v-if="parseSnapshot(app.resumeSnapshot)?.skills">
-                      技能：{{ parseSnapshot(app.resumeSnapshot)?.skills }}
+                    <div class="applicant-status">
+                      <el-tag :type="statusType(app.status)" size="small">{{ statusLabel(app.status) }}</el-tag>
+                    </div>
+                    <div class="applicant-actions">
+                      <button class="action-btn" @click="handleContact(app.id)">联系</button>
+                      <el-tooltip
+                        :content="hasSentResumeMap[app.id] ? '' : '当前用户暂未向您发送过简历'"
+                        :disabled="!!hasSentResumeMap[app.id]"
+                        placement="top"
+                        :show-after="300"
+                      >
+                        <router-link
+                          v-if="hasSentResumeMap[app.id]"
+                          :to="`/resume-pool?applicantId=${app.applicantId}`"
+                          class="action-btn"
+                        >查看简历</router-link>
+                        <span v-else class="action-btn action-btn-disabled">查看简历</span>
+                      </el-tooltip>
                     </div>
                   </div>
-                  <div class="applicant-status">
-                    <el-tag :type="statusType(app.status)" size="small">{{ statusLabel(app.status) }}</el-tag>
+                  <div
+                    v-if="applications.filter(a => !ACTIVE_STATUSES.includes(a.status)).length > 0"
+                    class="applicant-hidden-hint"
+                  >
+                    还有 {{ applications.filter(a => !ACTIVE_STATUSES.includes(a.status)).length }} 个已结束的投递记录
                   </div>
-                  <div class="applicant-actions">
-                    <router-link :to="`/messages?chat=${app.id}`" class="action-btn">联系</router-link>
-                    <router-link :to="`/resume-pool?applicantId=${app.applicantId}`" class="action-btn">查看简历</router-link>
-                  </div>
-                </div>
+                </template>
+                <div v-else class="no-applicants">暂无投递</div>
               </div>
-              <div v-else class="no-applicants">暂无投递</div>
             </div>
           </div>
         </div>
@@ -605,6 +720,61 @@ onUnmounted(() => {
   color: #1762FB;
 }
 
+.detail-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 6px 16px;
+  font-size: 13px;
+  border: 1px solid #1762FB;
+  border-radius: 6px;
+  background: #fff;
+  color: #1762FB;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.detail-btn:hover {
+  background: #1762FB;
+  color: #fff;
+}
+
+/* ── 折叠/展开 ── */
+.job-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapse-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: #999;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+}
+
+.collapse-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #555;
+}
+
+.collapse-arrow {
+  font-size: 18px;
+  transition: transform 0.25s ease;
+  display: inline-block;
+  user-select: none;
+}
+
+.collapse-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
 /* ── 求职者卡片 ── */
 .applicants-list {
   padding: 12px 24px;
@@ -643,12 +813,30 @@ onUnmounted(() => {
 }
 
 .applicant-skills {
-  font-size: 12px;
-  color: #aaa;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 300px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.skill-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #1762FB;
+  background: rgba(0, 122, 255, 0.08);
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.skill-tag-more {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: #999;
+  background: #f5f5f5;
+  border-radius: 4px;
+  line-height: 1.5;
 }
 
 .applicant-status {
@@ -670,10 +858,20 @@ onUnmounted(() => {
   background: rgba(0, 122, 255, 0.06);
   transition: all 0.2s;
   white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1.5;
 }
 
 .action-btn:hover {
   background: rgba(0, 122, 255, 0.12);
+}
+
+.action-btn-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  user-select: none;
 }
 
 .no-applicants {
@@ -681,6 +879,15 @@ onUnmounted(() => {
   text-align: center;
   font-size: 14px;
   color: #bbb;
+}
+
+.applicant-hidden-hint {
+  padding: 12px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #ccc;
+  border-top: 1px solid #f5f5f5;
+  margin-top: 4px;
 }
 
 .loading-tip {

@@ -13,7 +13,8 @@ import {
 } from '@/api/chat'
 import { getResume } from '@/api/resume'
 import PdfPreview from '@/components/PdfPreview.vue'
-import { View, Download } from '@element-plus/icons-vue'
+import { View, Download, Picture, Plus, Close } from '@element-plus/icons-vue'
+import { uploadImage } from '@/api/upload'
 import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
 
 const route = useRoute()
@@ -33,6 +34,10 @@ const messageListRef = ref<HTMLElement | null>(null)
 const fileDialogVisible = ref(false)
 const fileDialogUrl = ref('')
 const pdfPreviewVisible = ref(false)
+const imagePreviewVisible = ref(false)
+const imagePreviewUrl = ref('')
+const showActionMenu = ref(false)
+const sendingImage = ref(false)
 
 const currentUserId = computed(() => userStore.userInfo?.id)
 const isHr = computed(() => userStore.userInfo?.role === 1)
@@ -135,6 +140,47 @@ const handleSendResume = async () => {
   }
 }
 
+const toggleActionMenu = () => {
+  showActionMenu.value = !showActionMenu.value
+}
+
+const handleSendImage = async () => {
+  if (isBlocked.value) {
+    ElMessage.warning(blockedTip.value)
+    return
+  }
+  // 创建隐藏的文件输入框
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    sendingImage.value = true
+    try {
+      const { url } = await uploadImage(file)
+      if (!url) {
+        ElMessage.error('图片上传失败')
+        return
+      }
+      const msg = await sendMessage(applicationId, { messageType: 1, content: url })
+      messages.value.push(msg)
+      refreshSession()
+      scrollToBottom()
+    } catch {
+      ElMessage.error('图片上传失败')
+    } finally {
+      sendingImage.value = false
+    }
+  }
+  input.click()
+}
+
+const previewImage = (url: string) => {
+  imagePreviewUrl.value = url
+  imagePreviewVisible.value = true
+}
+
 const getAttachmentName = (url: string) => {
   const name = url.substring(url.lastIndexOf('/') + 1) || '简历附件'
   return name.length > 30 ? name.substring(0, 27) + '...' : name
@@ -225,7 +271,13 @@ onMounted(async () => {
       <div class="chat-header">
         <button class="back-btn" @click="router.back()">&larr; 返回</button>
         <div class="chat-title">
-          <h3>{{ session?.counterpartName || '对方' }}</h3>
+          <h3>
+            <span class="counterpart-name">{{ session?.counterpartName || '对方' }}</span>
+            <span v-if="session?.counterpartCompany" class="company-tag">
+              <span class="at-symbol">@</span>
+              <span class="company-link">{{ session.counterpartCompany }}</span>
+            </span>
+          </h3>
           <span class="subtitle">{{ session?.taskTitle || '' }}</span>
         </div>
         <span class="placeholder"></span>
@@ -245,7 +297,13 @@ onMounted(async () => {
           >
             <div class="avatar">{{ (msg.senderName || '用')[0] }}</div>
             <div class="message-content">
-              <div class="sender-name">{{ msg.senderName }}</div>
+              <div class="sender-name">
+                <span>{{ msg.senderName }}</span>
+                <span v-if="msg.senderId !== currentUserId && session?.counterpartCompany" class="company-tag">
+                  <span class="at-symbol">@</span>
+                  <span class="company-link">{{ session.counterpartCompany }}</span>
+                </span>
+              </div>
               <div v-if="msg.messageType === 2" class="bubble resume-bubble">
                 <div class="resume-card">
                   <span class="resume-icon">📄</span>
@@ -255,6 +313,9 @@ onMounted(async () => {
                   </div>
                   <el-button class="resume-preview-btn" size="small" @click="openFileAction(msg.content)">操作</el-button>
                 </div>
+              </div>
+              <div v-else-if="msg.messageType === 1" class="bubble image-bubble">
+                <img class="chat-image" :src="msg.content" alt="图片消息" @click="previewImage(msg.content)" />
               </div>
               <div v-else class="bubble">{{ msg.content }}</div>
               <div class="message-time">{{ formatTime(msg.sendTime) }}</div>
@@ -270,11 +331,33 @@ onMounted(async () => {
           <span>{{ blockedTip }}</span>
         </div>
         <div class="input-row">
+          <div class="action-wrap">
+            <el-button
+              class="bar-btn bar-plus-btn"
+              :class="{ active: showActionMenu }"
+              :disabled="isBlocked || sendingImage"
+              @click="toggleActionMenu"
+              title="更多"
+            >
+              <el-icon :size="20"><Plus /></el-icon>
+            </el-button>
+            <Transition name="action-fade">
+              <div v-if="showActionMenu" class="action-menu-backdrop" @click="showActionMenu = false"></div>
+            </Transition>
+            <Transition name="action-fade">
+              <div v-if="showActionMenu" class="action-menu">
+                <div class="action-menu-item" @click="showActionMenu = false; handleSendImage()">
+                  <div class="action-icon"><el-icon :size="22"><Picture /></el-icon></div>
+                  <span class="action-label">上传图片</span>
+                </div>
+              </div>
+            </Transition>
+          </div>
           <el-input
             v-model="inputText"
             type="textarea"
             :rows="2"
-            :disabled="isBlocked || sending"
+            :disabled="isBlocked || sending || sendingImage"
             placeholder="请输入消息..."
             maxlength="2000"
             show-word-limit
@@ -283,7 +366,7 @@ onMounted(async () => {
           <el-button
             v-if="!isHr"
             type="warning"
-            :disabled="isBlocked || sendingResume"
+            :disabled="isBlocked || sendingResume || sendingImage"
             :loading="sendingResume"
             @click="handleSendResume"
           >
@@ -291,7 +374,7 @@ onMounted(async () => {
           </el-button>
           <el-button
             type="primary"
-            :disabled="isBlocked || sending || !inputText.trim()"
+            :disabled="isBlocked || sending || sendingImage || !inputText.trim()"
             :loading="sending"
             @click="handleSend"
           >
@@ -313,6 +396,16 @@ onMounted(async () => {
     </el-dialog>
 
     <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
+
+    <!-- 图片预览轻量弹窗 -->
+    <Transition name="lightbox-fade">
+      <div v-if="imagePreviewVisible" class="lightbox-overlay" @click.self="imagePreviewVisible = false">
+        <img :src="imagePreviewUrl" class="lightbox-image" alt="图片预览" />
+        <button class="lightbox-close" @click="imagePreviewVisible = false">
+          <el-icon :size="24"><Close /></el-icon>
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -439,11 +532,6 @@ onMounted(async () => {
   align-items: flex-end;
 }
 
-.sender-name {
-  font-size: 12px;
-  color: #999;
-}
-
 .bubble {
   padding: 10px 14px;
   border-radius: 12px;
@@ -546,5 +634,207 @@ onMounted(async () => {
 }
 .file-action-btn {
   flex: 1;
+}
+
+/* ── @公司名称 ── */
+.counterpart-name {
+  white-space: nowrap;
+}
+.company-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.at-symbol {
+  color: #999;
+  font-weight: 400;
+}
+.company-link {
+  color: #1762FB;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.company-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+/* ── 发送者名称行支持公司标签 ── */
+.sender-name {
+  font-size: 12px;
+  color: #999;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+/* ── 加号按钮 ── */
+.action-wrap {
+  position: relative;
+}
+.bar-btn {
+  height: 52px;
+  padding: 0 24px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  border: 1px solid #e8e8e8;
+  background: #f7f8fa;
+  color: #666;
+  transition: all 0.2s;
+}
+.bar-plus-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 20px;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+.bar-plus-btn:hover {
+  background: #eff0f2;
+  border-color: #1762FB;
+  color: #1762FB;
+}
+.bar-plus-btn.active {
+  background: #1762FB;
+  border-color: #1762FB;
+  color: #fff;
+}
+
+/* ── 操作菜单 ── */
+.action-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+.action-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+}
+.action-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.action-menu-item:hover {
+  background: #f0f4ff;
+}
+.action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f0f4ff;
+  color: #1762FB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-menu-item:hover .action-icon {
+  background: #dde6ff;
+}
+.action-label {
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* ── 菜单动画 ── */
+.action-fade-enter-active,
+.action-fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.action-fade-enter-from,
+.action-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* ── 图片消息气泡 ── */
+.image-bubble {
+  padding: 4px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  max-width: 280px;
+}
+.chat-image {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.chat-image:hover {
+  opacity: 0.9;
+}
+
+/* ── 图片预览轻量弹窗 ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.lightbox-image {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: 6px;
+  cursor: default;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+.lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 2001;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ── 预览弹窗过渡动画 ── */
+.lightbox-fade-enter-active,
+.lightbox-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.lightbox-fade-enter-from,
+.lightbox-fade-leave-to {
+  opacity: 0;
 }
 </style>

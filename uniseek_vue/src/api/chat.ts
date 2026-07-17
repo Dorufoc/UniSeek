@@ -58,3 +58,7 @@ export const markSessionRead = (applicationId: number) =>
 /** POST /chat/sessions/direct 创建直接会话（人才库联系求职者） */
 export const createDirectSession = (targetUserId: number) =>
   request.post<any, number>('/chat/sessions/direct', null, { params: { targetUserId } })
+
+/** POST /chat/sessions/:applicationId/init 初始化（创建）投递记录的聊天会话 */
+export const initChatSession = (applicationId: number) =>
+  request.post<any, void>(`/chat/sessions/${applicationId}/init`)

@@ -145,4 +145,20 @@ public class ChatController {
         chatService.markSessionRead(applicationId, userId);
         return ApiResult.success(null);
     }
+
+    /**
+     * 初始化（创建）投递记录的聊天会话
+     * POST /api/chat/sessions/{applicationId}/init
+     * <p>HR 在首页点击「联系」时调用，确保会话已就绪</p>
+     *
+     * @param applicationId 投递记录 ID
+     * @return 操作结果
+     */
+    @PostMapping("/sessions/{applicationId}/init")
+    public ApiResult<Void> initChatSession(@PathVariable Long applicationId) {
+        Long userId = UserContext.getUserId();
+        Integer role = UserContext.getRole();
+        chatService.initChatSession(applicationId, userId, role);
+        return ApiResult.success(null);
+    }
 }

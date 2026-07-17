@@ -375,6 +375,20 @@ watch(() => route.path, checkEnterpriseCert)
   background: #e5e7eb;
 }
 
+.cert-dialog-logout {
+  margin-top: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #999;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.cert-dialog-logout:hover {
+  color: #e74c3c;
+}
+
 @media (max-width: 768px) {
   .header-inner {
     padding: 0 16px;

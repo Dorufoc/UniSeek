@@ -80,4 +80,14 @@ public interface ChatService {
      * @return 会话 ID
      */
     Long createDirectSession(Long employerId, Long seekerId);
+
+    /**
+     * 确保投递记录存在聊天会话（不存在时自动创建）
+     * <p>由 HR 在首页点击「联系」时调用，保证会话就绪后跳转</p>
+     *
+     * @param applicationId 投递记录 ID
+     * @param userId        当前用户 ID
+     * @param role          当前用户角色
+     */
+    void initChatSession(Long applicationId, Long userId, Integer role);
 }

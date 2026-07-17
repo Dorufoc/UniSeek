@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./uniseek – 1.png" alt="UniSeek Logo" width="500"/>
+  <img src="./uniseek – 1.png" alt="UniSeek Logo" width="200"/>
 </p>
 <p align="center">
   <img src="./uniseek_text_white_ZH.svg" alt="UniSeek" width="400"/>
