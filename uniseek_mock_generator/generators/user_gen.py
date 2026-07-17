@@ -7,7 +7,7 @@
 
 import random
 import datetime
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from faker import Faker
 
@@ -402,6 +402,7 @@ def generate_users(writer: SQLWriter) -> Tuple[List[int], List[int], List[int], 
     seeker_ids: List[int] = []
     hr_ids: List[int] = []
     admin_ids: List[int] = []
+    user_name_map: Dict[int, str] = {}
 
     # phone -> user_id 映射（用于实名认证阶段查找 uid）
     phone_to_uid: dict = {}
@@ -409,6 +410,7 @@ def generate_users(writer: SQLWriter) -> Tuple[List[int], List[int], List[int], 
     for user in all_users:
         uid = writer.next_id("user")
         all_user_ids.append(uid)
+        user_name_map[uid] = user["nickname"]
         phone_to_uid[user["phone"]] = uid
 
         role = user["role"]
@@ -481,4 +483,4 @@ def generate_users(writer: SQLWriter) -> Tuple[List[int], List[int], List[int], 
             format_dt(user["update_time"]),
         ])
 
-    return (all_user_ids, seeker_ids, hr_ids, admin_ids)
+    return (all_user_ids, seeker_ids, hr_ids, admin_ids, user_name_map)

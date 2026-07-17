@@ -1,7 +1,7 @@
 # ==============================================================================
 # UniSeek 兼职招聘平台 - 简历数据生成器
 # ==============================================================================
-# 生成 7,000 条简历记录，每位求职者对应一条简历。
+# 生成 7,500 条简历记录，每位求职者对应一条简历。
 # 包含性别、出生日期、学历、学校、技能、工作经历等字段。
 # 技能存储为 JSON 数组字符串，工作经历存储为 HTML 格式。
 #
@@ -35,8 +35,8 @@ from time_utils import weighted_random_time
 # 简历表列名
 RESUME_COLUMNS = [
     "id", "user_id", "gender", "birth_date", "education", "school",
-    "skills", "experience", "attachment_url", "is_published",
-    "create_time", "update_time",
+    "graduation_date", "skills", "experience", "attachment_url",
+    "is_published", "create_time", "update_time",
 ]
 
 # 中国高校/职业学校名单（50 所）
@@ -195,11 +195,11 @@ def _format_template_placeholder(match: re.Match) -> str:
 
 
 def generate_experience() -> str:
-    """生成 HTML 格式的工作经历。
+    """生成纯文本格式的工作经历。
 
     从 datapool.EXPERIENCE_TEMPLATES 中随机选取一个模板，
     使用正则替换所有 {placeholder} 为随机生成的值。
-    返回完整的 HTML 字符串。
+    返回纯文本字符串。
     """
     cat = random.choice(list(EXPERIENCE_TEMPLATES.keys()))
     template = random.choice(EXPERIENCE_TEMPLATES[cat])
@@ -226,25 +226,27 @@ def generate_resumes(
 ) -> Tuple[List[int], Dict[int, int]]:
     """生成简历数据并写入 SQL 文件。
 
-    从 7,500 个求职者 ID 中随机选取 7,000 个，
-    为每位求职者生成一条简历记录。
+    为所有 7,500 个求职者生成一条简历记录，
+    确保 resume_snapshot 均可使用真实简历数据。
 
     Args:
         writer: SQLWriter 实例，用于批量写入 SQL 文件
         seeker_ids: 求职者用户 ID 列表（共 7,500 个）
 
     Returns:
-        (resume_ids, resume_id_map) 二元组：
-        - resume_ids: 生成的简历 ID 列表（7,000 个）
+        (resume_ids, resume_id_map, resume_data_map) 三元组：
+        - resume_ids: 生成的简历 ID 列表（7,500 个）
         - resume_id_map: 用户 ID → 简历 ID 的映射字典
+        - resume_data_map: 用户 ID → 简历数据字典的映射，用于 resume_snapshot
     """
-    # 从 7,500 个求职者中随机选取 7,000 个
-    selected_users = random.sample(seeker_ids, 7000)
+    # 为所有求职者生成简历，确保 resume_snapshot 均可使用真实数据
+    selected_users = seeker_ids[:]
 
     writer.write_comment(f"简历表（{len(selected_users)} 条记录）")
     writer.begin_insert("resume", RESUME_COLUMNS)
 
     resume_ids: List[int] = []
+    resume_data_map: Dict[int, dict] = {}
 
     for user_id in selected_users:
         resume_id = writer.next_id("resume")
@@ -265,10 +267,24 @@ def generate_resumes(
         # --- 学校 ---
         school = random.choice(SCHOOLS)
 
+        # --- 毕业时间（推算）---
+        # 大专/本科通常 22 岁毕业，硕士 25 岁，博士 28 岁，浮动 ±2 年
+        edu_years = {"大专": 22, "本科": 22, "硕士": 25, "博士": 28}
+        base_age = edu_years.get(education, 22)
+        grad_year = birth_year + base_age + random.randint(-2, 2)
+        grad_month = random.randint(6, 7)
+        grad_day = random.randint(1, 15)
+        graduation_date = datetime.date(grad_year, grad_month, grad_day)
+        # 约 35% 概率设为未来毕业（在校生），毕业年份 = 今年起 + 1~4 年
+        if random.random() < 0.35:
+            today = datetime.date.today()
+            grad_year = today.year + random.randint(1, 4)
+            graduation_date = datetime.date(grad_year, grad_month, grad_day)
+
         # --- 技能（JSON 数组字符串）---
         skills = generate_skills()
 
-        # --- 工作经历（HTML 格式）---
+        # --- 工作经历（纯文本）---
         experience = generate_experience()
 
         # --- 附件 URL（20% 概率有值）---
@@ -294,19 +310,31 @@ def generate_resumes(
             resume_id,
             user_id,
             gender,
-            str(birth_date),       # MySQL DATE 格式：YYYY-MM-DD
+            str(birth_date),
             education,
             school,
-            skills,                 # JSON 数组字符串
-            experience,             # HTML 字符串
-            attachment_url,         # 可能为 NULL
+            str(graduation_date),   # graduation_date
+            skills,
+            experience,
+            attachment_url,
             is_published,
             format_dt(create_time),
             format_dt(update_time),
         ])
 
+        # 收集简历数据，供下游 generate_applications 的 resume_snapshot 使用
+        resume_data_map[user_id] = {
+            "gender": gender,
+            "birth_date": str(birth_date),
+            "education": education,
+            "school": school,
+            "graduation_date": str(graduation_date),
+            "skills": skills,
+            "experience": experience,
+        }
+
     # 构建用户 ID → 简历 ID 的映射（用于下游生成器）
     resume_id_map: Dict[int, int] = {
         selected_users[i]: resume_ids[i] for i in range(len(resume_ids))
     }
-    return resume_ids, resume_id_map
+    return resume_ids, resume_id_map, resume_data_map

@@ -72,7 +72,7 @@ def main():
         # Step 2: 生成用户数据（含实名认证）
         # =====================================================================
         print("Step 2/6: 生成用户数据...")
-        all_user_ids, seeker_ids, hr_ids, admin_ids = generate_users(writer)
+        all_user_ids, seeker_ids, hr_ids, admin_ids, user_name_map = generate_users(writer)
         print(f"  -> {len(all_user_ids)} 个用户, {len(seeker_ids)} 个求职者, "
               f"{len(hr_ids)} 个 HR, {len(admin_ids)} 个管理员")
 
@@ -88,7 +88,7 @@ def main():
         # Step 4: 生成简历数据
         # =====================================================================
         print("Step 4/6: 生成简历数据...")
-        resume_ids, resume_id_map = generate_resumes(writer, seeker_ids)
+        resume_ids, resume_id_map, resume_data_map = generate_resumes(writer, seeker_ids)
         print(f"  -> {len(resume_ids)} 份简历")
 
         # =====================================================================
@@ -107,7 +107,7 @@ def main():
         print("Step 5/6: 生成投递数据...")
         app_ids, app_info_list = generate_applications(
             writer, seeker_ids, task_ids, hr_enterprise_map, resume_id_map,
-            task_enterprise_map,
+            task_enterprise_map, resume_data_map, user_name_map,
         )
         print(f"  -> {len(app_ids)} 条投递记录")
 
@@ -122,11 +122,9 @@ def main():
         # Step 7: 生成通知、聊天会话、聊天消息、投诉
         # =====================================================================
         print("Step 5/6: 生成通知/聊天/投诉数据...")
-        # 注意: generate_notifications_chat_complaints 接受一个 user_names 参数
-        # 但该参数在函数内部未实际使用，传空字典即可
         generate_notifications_chat_complaints(
             writer, app_info_list, hr_ids, all_user_ids,
-            admin_ids, enterprise_ids, {},
+            admin_ids, enterprise_ids, user_name_map,
         )
         print(f"  -> {NOTIFICATION_COUNT} 条通知, {CHAT_SESSION_COUNT} 个会话, "
               f"{CHAT_MESSAGE_COUNT} 条消息, 0 条投诉")
