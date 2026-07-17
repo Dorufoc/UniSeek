@@ -30,6 +30,7 @@ const resumeForm = reactive({
   birthDate: '',
   education: '',
   school: '',
+  graduationDate: '',
   skills: [] as string[],
   experience: '',
   attachmentUrl: ''
@@ -56,6 +57,7 @@ const loadResume = async () => {
       resumeForm.birthDate = data.birthDate || ''
       resumeForm.education = data.education || ''
       resumeForm.school = data.school || ''
+      resumeForm.graduationDate = data.graduationDate || ''
       resumeForm.skills = skills
       resumeForm.experience = data.experience || ''
       resumeForm.attachmentUrl = data.attachmentUrl || ''
@@ -175,6 +177,7 @@ const saveResume = async () => {
       birthDate: resumeForm.birthDate || undefined,
       education: resumeForm.education || undefined,
       school: resumeForm.school || undefined,
+      graduationDate: resumeForm.graduationDate || undefined,
       skills: resumeForm.skills.length > 0 ? JSON.stringify(resumeForm.skills) : undefined,
       experience: resumeForm.experience || undefined,
       attachmentUrl: resumeForm.attachmentUrl || undefined,
@@ -409,6 +412,10 @@ const toggleSection = (key: string) => {
                   <span class="info-label">毕业院校</span>
                   <span class="info-value">{{ resumeForm.school || '未填写' }}</span>
                 </div>
+                <div class="info-row">
+                  <span class="info-label">毕业时间</span>
+                  <span class="info-value">{{ resumeForm.graduationDate || '未填写' }}</span>
+                </div>
               </div>
             </div>
 
@@ -536,6 +543,16 @@ const toggleSection = (key: string) => {
                     class="form-input"
                     placeholder="请输入毕业院校名称"
                     maxlength="50"
+                  />
+                </div>
+                <div class="form-row">
+                  <label>毕业时间</label>
+                  <el-date-picker
+                    v-model="resumeForm.graduationDate"
+                    type="date"
+                    placeholder="选择毕业时间"
+                    value-format="YYYY-MM-DD"
+                    class="date-picker"
                   />
                 </div>
               </div>

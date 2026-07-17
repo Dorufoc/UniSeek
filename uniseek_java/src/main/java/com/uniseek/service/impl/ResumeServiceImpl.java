@@ -50,6 +50,7 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setBirthDate(request.getBirthDate());
         resume.setEducation(request.getEducation());
         resume.setSchool(request.getSchool());
+        resume.setGraduationDate(request.getGraduationDate());
         resume.setSkills(request.getSkills());
         resume.setExperience(request.getExperience());
         resume.setAttachmentUrl(request.getAttachmentUrl());
@@ -105,7 +106,7 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
-    public PageResult<Resume> searchPublishedResumes(String keyword, int page, int pageSize) {
+    public PageResult<Resume> searchPublishedResumes(String keyword, int page, int pageSize, String filter) {
         String kwPattern = null;
         if (keyword != null && !keyword.trim().isEmpty()) {
             String[] tokens = keyword.trim().split("\\s+");
@@ -121,7 +122,7 @@ public class ResumeServiceImpl implements ResumeService {
             kwPattern = sb.toString();
         }
         Page<Resume> pg = new Page<>(page, pageSize);
-        IPage<Resume> result = resumeMapper.selectPublishedResumes(pg, keyword, kwPattern);
+        IPage<Resume> result = resumeMapper.selectPublishedResumes(pg, keyword, kwPattern, filter);
         return PageResult.of(result);
     }
 }

@@ -34,6 +34,9 @@ public class Resume {
     /** 毕业院校 */
     private String school;
 
+    /** 毕业时间 */
+    private LocalDate graduationDate;
+
     /** 技能特长 */
     private String skills;
 

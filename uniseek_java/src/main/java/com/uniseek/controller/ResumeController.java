@@ -90,13 +90,15 @@ public class ResumeController {
      * @param keyword  搜索关键词
      * @param page     页码（默认 1）
      * @param pageSize 每页条数（默认 20）
+     * @param filter   筛选条件：全部 / 有附件简历 / 在校生 / 有工作经验
      */
     @GetMapping("/search")
     public ApiResult<PageResult<Resume>> searchPublishedResumes(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int pageSize) {
-        PageResult<Resume> result = resumeService.searchPublishedResumes(keyword, page, pageSize);
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(defaultValue = "全部") String filter) {
+        PageResult<Resume> result = resumeService.searchPublishedResumes(keyword, page, pageSize, filter);
         return ApiResult.success(result);
     }
 

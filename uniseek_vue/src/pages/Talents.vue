@@ -49,7 +49,7 @@ const pageSize = 20
 const loadTalents = async () => {
   loading.value = true
   try {
-    const res = await searchPublishedResumes(keyword.value || undefined, page.value, pageSize)
+    const res = await searchPublishedResumes(keyword.value || undefined, page.value, pageSize, activeFilter.value)
     talents.value = res.records
     total.value = res.total
   } catch {
@@ -59,6 +59,11 @@ const loadTalents = async () => {
     loading.value = false
   }
 }
+
+watch(activeFilter, () => {
+  page.value = 1
+  loadTalents()
+})
 
 const handleSearch = () => {
   page.value = 1
@@ -116,18 +121,10 @@ const parseSkills = (skillsStr?: string): string[] => {
 }
 
 const hasAttachment = (t: ResumeData) => !!t.attachmentUrl
-const isStudent = (t: ResumeData) => t.school?.includes('大学') && (!t.experience || t.experience.length < 10)
+const isStudent = (t: ResumeData) => !!t.graduationDate && new Date(t.graduationDate) > new Date()
 const hasExperience = (t: ResumeData) => !!t.experience && t.experience.length > 10
 
-const filteredTalents = computed(() => {
-  return talents.value.filter(t => {
-    const matchFilter = activeFilter.value === '全部' ? true
-      : activeFilter.value === '有附件简历' ? hasAttachment(t)
-      : activeFilter.value === '在校生' ? isStudent(t)
-      : activeFilter.value === '有工作经验' ? hasExperience(t) : true
-    return matchFilter
-  })
-})
+const filteredTalents = computed(() => talents.value)
 
 // 简历详情弹窗
 const detailVisible = ref(false)
@@ -232,6 +229,7 @@ const genderLabel = (g?: number) => {
           <h4>教育背景</h4>
           <div class="detail-row"><span class="label">学历</span><span>{{ selectedTalent.education || '未填' }}</span></div>
           <div class="detail-row"><span class="label">毕业院校</span><span>{{ selectedTalent.school || '未填' }}</span></div>
+          <div class="detail-row"><span class="label">毕业时间</span><span>{{ selectedTalent.graduationDate || '未填' }}</span></div>
         </div>
         <div class="detail-section">
           <h4>技能标签</h4>
