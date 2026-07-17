@@ -169,7 +169,15 @@ public class ChatServiceImpl implements ChatService {
         chatMessageMapper.insert(chatMessage);
 
         // 5. 更新会话的最后消息
-        session.setLastMessage(messageType == 2 ? "[简历附件]" : request.getContent());
+        String preview;
+        if (messageType == 2) {
+            preview = "[简历附件]";
+        } else if (messageType == 1) {
+            preview = "[图片]";
+        } else {
+            preview = request.getContent();
+        }
+        session.setLastMessage(preview);
         session.setLastMessageTime(chatMessage.getSendTime());
         session.setUpdateTime(LocalDateTime.now());
         chatSessionMapper.updateById(session);

@@ -9,6 +9,8 @@ export interface ChatSessionVO {
   counterpartId: number
   counterpartName: string
   counterpartAvatar: string
+  counterpartCompany?: string
+  enterpriseId?: number
   lastMessage: string
   lastMessageTime: string
   unreadCount: number

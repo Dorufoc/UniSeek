@@ -80,6 +80,19 @@ public class EnterpriseController {
     }
 
     /**
+     * 根据 ID 获取企业详情
+     * GET /api/enterprise/{id}
+     */
+    @GetMapping("/{id}")
+    public ApiResult<Enterprise> getEnterpriseById(@PathVariable Long id) {
+        Enterprise enterprise = enterpriseService.getById(id);
+        if (enterprise == null) {
+            return ApiResult.error(ApiResult.NOT_FOUND, "企业不存在");
+        }
+        return ApiResult.success(enterprise);
+    }
+
+    /**
      * 更新企业资质信息（重新提交审核）
      * PUT /api/enterprise（需要鉴权）
      *

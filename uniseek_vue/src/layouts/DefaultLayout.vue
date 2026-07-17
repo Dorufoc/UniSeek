@@ -72,6 +72,7 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
 <style scoped>
 .default-layout {
   min-height: 100vh;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   padding-top: 60px;

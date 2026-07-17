@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
-import { getEnterpriseList, type EnterpriseListParams } from '@/api/enterprise'
+import { getEnterpriseList, getEnterpriseById, type EnterpriseListParams } from '@/api/enterprise'
 import { getEnterprisePublishedTasks } from '@/api/task'
 import { getRegionTree } from '@/api/region'
 import { getCategories } from '@/api/category'
@@ -112,6 +112,16 @@ const loadEnterprises = async () => {
     total.value = 0
   } finally {
     loading.value = false
+  }
+}
+
+// ── 根据 ID 直接加载企业详情 ──
+const loadEnterpriseById = async (id: number) => {
+  try {
+    const enterprise = await getEnterpriseById(id)
+    viewCompany(enterprise)
+  } catch {
+    // 企业不存在或加载失败，保持列表页
   }
 }
 
@@ -232,7 +242,12 @@ onMounted(() => {
     const id = route.query.id
     if (id) {
       const target = enterprises.value.find(e => String(e.id) === id)
-      if (target) viewCompany(target)
+      if (target) {
+        viewCompany(target)
+      } else {
+        // 不在当前列表页中，直接按 ID 加载
+        loadEnterpriseById(Number(id))
+      }
     }
   })
 })
@@ -253,6 +268,8 @@ watch(() => route.query.id, (id) => {
     const target = enterprises.value.find(e => String(e.id) === id)
     if (target) {
       viewCompany(target)
+    } else {
+      loadEnterpriseById(Number(id))
     }
   }
 })
