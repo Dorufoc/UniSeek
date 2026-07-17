@@ -1,5 +1,5 @@
 import { router } from '@kit.ArkUI';
-import { ResumeService } from '../services/ResumeService';
+import { ResumeService, ResumeRequest } from '../services/ResumeService';
 
 const EDUCATION_LEVELS: string[] = ['初中及以下', '中专/中技', '高中', '大专', '本科', '硕士', '博士']
 const FULLTIME_OPTIONS: string[] = ['全日制', '非全日制']
@@ -131,10 +131,15 @@ struct ResumePage {
   @State skills: string = ''
   @State experience: string = ''
   @State attachmentName: string = ''
+  @State saving: boolean = false
+  @State showError: boolean = false
+  @State errorMsg: string = ''
+  @State showSuccess: boolean = false
 
   aboutToAppear(): void {
     ResumeService.getMyResume().then((saved) => {
       if (saved) {
+        this.name = saved.realName || ''
         this.school = saved.school || ''
         this.education = saved.education || ''
         this.skills = saved.skills || ''
@@ -311,6 +316,42 @@ struct ResumePage {
           .borderRadius(8)
           .padding({ left: 14, right: 14 })
           .alignItems(VerticalAlign.Center)
+
+          if (this.showSuccess) {
+            Text('保存成功')
+              .fontSize(15)
+              .fontColor('#FFFFFF')
+              .width('100%')
+              .height(44)
+              .backgroundColor('#34C759')
+              .borderRadius(8)
+              .textAlign(TextAlign.Center)
+              .margin({ top: 12 })
+          }
+
+          if (this.showError) {
+            Text(this.errorMsg)
+              .fontSize(14)
+              .fontColor('#FFFFFF')
+              .width('100%')
+              .padding({ top: 10, bottom: 10 })
+              .backgroundColor('#FF3B30')
+              .borderRadius(8)
+              .textAlign(TextAlign.Center)
+              .margin({ top: 8 })
+          }
+
+          Button('保存简历')
+            .width('100%')
+            .height(48)
+            .backgroundColor(this.saving ? '#B0B0B0' : '#007AFF')
+            .borderRadius(24)
+            .fontSize(17)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FFFFFF')
+            .enabled(!this.saving)
+            .margin({ top: 12 })
+            .onClick(() => { this.handleSave() })
         }
         .padding({ left: 16, right: 16, top: 8, bottom: 24 })
       }
@@ -353,4 +394,27 @@ struct ResumePage {
     dialog.open()
   }
 
+  handleSave(): void {
+    this.saving = true
+    this.showError = false
+    const data: ResumeRequest = {
+      school: this.school || undefined,
+      education: this.education || undefined,
+      skills: this.skills || undefined,
+      experience: this.experience || undefined
+    }
+    ResumeService.saveResume(data)
+      .then(() => {
+        this.saving = false
+        this.showSuccess = true
+        setTimeout(() => {
+          router.back()
+        }, 1500)
+      })
+      .catch((e: Error) => {
+        this.saving = false
+        this.showError = true
+        this.errorMsg = e.message || '保存失败，请重试'
+      })
+  }
 }

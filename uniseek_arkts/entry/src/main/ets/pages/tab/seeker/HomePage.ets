@@ -743,16 +743,21 @@ export struct HomePage {
   }
 
   async loadRemainingPages(): Promise<void> {
-    for (let page = 2; page <= this.totalPages; page++) {
-      if (page <= this.currentPage) continue
+    let page = 2
+    while (true) {
       try {
         const result = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [['page', String(page)], ['pageSize', '100']])
+        if (result.records.length === 0) {
+          break
+        }
         const newJobs = result.records.map((task: TaskVO) => mapTaskToJobData(task))
         this.allJobs = this.allJobs.concat(newJobs)
         this.currentPage = page
+        page++
         this.applyFilters()
       } catch (e) {
         console.error('加载剩余职位失败', e)
+        break
       }
     }
   }
