@@ -276,7 +276,7 @@ onMounted(() => {
               <h4 class="fav-title">{{ task.title }}</h4>
               <p class="fav-company">{{ task.enterpriseName }}</p>
               <div class="fav-tags">
-                <span class="fav-tag salary">¥{{ task.salaryMin }}-{{ task.salaryMax }}/{{ task.salaryUnit === 1 ? '日' : task.salaryUnit === 2 ? '时' : '月' }}</span>
+                <span class="fav-tag salary">{{ task.salaryMin === 0 && task.salaryMax === 0 ? '面议' : '¥' + task.salaryMin + '-' + task.salaryMax + '/' + (task.salaryUnit === 1 ? '日' : task.salaryUnit === 2 ? '时' : '月') }}</span>
                 <span class="fav-tag type">{{ task.jobType === 1 ? '全职' : task.jobType === 2 ? '兼职' : '实习' }}</span>
                 <span class="fav-tag" v-if="task.address">{{ task.address }}</span>
               </div>

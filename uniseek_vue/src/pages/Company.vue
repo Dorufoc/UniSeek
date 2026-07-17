@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
-import { getEnterpriseList, type EnterpriseListParams } from '@/api/enterprise'
+import { getEnterpriseList, getEnterpriseById, type EnterpriseListParams } from '@/api/enterprise'
 import { getEnterprisePublishedTasks } from '@/api/task'
 import { getRegionTree } from '@/api/region'
 import { getCategories } from '@/api/category'
@@ -115,6 +115,16 @@ const loadEnterprises = async () => {
   }
 }
 
+// ── 根据 ID 直接加载企业详情 ──
+const loadEnterpriseById = async (id: number) => {
+  try {
+    const enterprise = await getEnterpriseById(id)
+    viewCompany(enterprise)
+  } catch {
+    // 企业不存在或加载失败，保持列表页
+  }
+}
+
 // ── 筛选条件变更 → 重置到第1页并重新加载 ──
 const resetAndReload = () => {
   page.value = 1
@@ -214,6 +224,11 @@ const salaryUnitLabel = (unit?: number) => {
   if (unit === 1) return '/时'
   return '/月'
 }
+
+const jobSalaryText = (min: number, max: number, unit: number): string => {
+  if (min === 0 && max === 0) return '面议'
+  return `¥${min}-${max}${salaryUnitLabel(unit)}`
+}
 const jobTypeLabel = (type?: number) => {
   if (type === 1) return '全职'
   if (type === 2) return '兼职'
@@ -232,7 +247,12 @@ onMounted(() => {
     const id = route.query.id
     if (id) {
       const target = enterprises.value.find(e => String(e.id) === id)
-      if (target) viewCompany(target)
+      if (target) {
+        viewCompany(target)
+      } else {
+        // 不在当前列表页中，直接按 ID 加载
+        loadEnterpriseById(Number(id))
+      }
     }
   })
 })
@@ -253,6 +273,8 @@ watch(() => route.query.id, (id) => {
     const target = enterprises.value.find(e => String(e.id) === id)
     if (target) {
       viewCompany(target)
+    } else {
+      loadEnterpriseById(Number(id))
     }
   }
 })
@@ -409,7 +431,7 @@ watch(() => route.query.id, (id) => {
           >
             <div class="job-top">
               <h4 class="job-title">{{ job.title }}</h4>
-              <span class="job-salary">&yen;{{ job.salaryMin }}-{{ job.salaryMax }}{{ salaryUnitLabel(job.salaryUnit) }}</span>
+              <span class="job-salary">{{ jobSalaryText(job.salaryMin, job.salaryMax, job.salaryUnit) }}</span>
             </div>
             <div class="job-meta">
               <span class="job-type">{{ jobTypeLabel(job.jobType) }}</span>

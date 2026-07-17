@@ -298,7 +298,9 @@ def _generate_description(company_name: str, short_industry: str) -> str:
 # 主生成函数
 # =============================================================================
 
-def generate_enterprises(writer: SQLWriter, hr_ids: List[int]) -> Tuple[List[int], Dict[int, int]]:
+def generate_enterprises(
+    writer: SQLWriter, hr_ids: List[int],
+) -> Tuple[List[int], Dict[int, int], Dict[int, str], Dict[int, int]]:
     """生成企业数据并写入 SQL 文件。
 
     每个 HR 用户对应一条企业记录（一对一关系），
@@ -311,13 +313,17 @@ def generate_enterprises(writer: SQLWriter, hr_ids: List[int]) -> Tuple[List[int
         hr_ids: HR 用户 ID 列表（长度 400）
 
     Returns:
-        (enterprise_ids, hr_enterprise_map) 二元组：
+        (enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map) 四元组：
         - enterprise_ids: 企业 ID 列表，顺序与 hr_ids 一一对应
         - hr_enterprise_map: HR 用户 ID → 企业 ID 的映射字典
+        - enterprise_industry_map: 企业 ID → 行业名称的映射字典
+        - enterprise_audit_map: 企业 ID → 审核状态（0/1/2）的映射字典
     """
     total = len(hr_ids)
     used_credit_codes: set = set()
     enterprise_ids: List[int] = []
+    enterprise_industry_map: Dict[int, str] = {}
+    enterprise_audit_map: Dict[int, int] = {}
 
     writer.write_comment(f"企业表（{total} 条记录）")
     writer.begin_insert("enterprise", ENTERPRISE_COLUMNS)
@@ -366,8 +372,11 @@ def generate_enterprises(writer: SQLWriter, hr_ids: List[int]) -> Tuple[List[int
             _format_dt(update_time),
         ])
 
+        enterprise_industry_map[eid] = db_industry
+        enterprise_audit_map[eid] = audit_status
+
     # 构建 HR 用户 ID → 企业 ID 的映射（用于下游生成器）
     hr_enterprise_map: Dict[int, int] = {
         hr_id: eid for hr_id, eid in zip(hr_ids, enterprise_ids)
     }
-    return enterprise_ids, hr_enterprise_map
+    return enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map

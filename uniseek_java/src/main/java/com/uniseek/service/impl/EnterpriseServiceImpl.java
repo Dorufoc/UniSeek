@@ -198,4 +198,9 @@ public class EnterpriseServiceImpl implements EnterpriseService {
         if (limit > 50) limit = 50;
         return enterpriseMapper.selectHotEnterprises(limit);
     }
+
+    @Override
+    public Enterprise getById(Long id) {
+        return enterpriseMapper.selectById(id);
+    }
 }

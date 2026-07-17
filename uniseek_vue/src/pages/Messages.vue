@@ -14,8 +14,9 @@ import {
 } from '@/api/chat'
 import { getResume } from '@/api/resume'
 import PdfPreview from '@/components/PdfPreview.vue'
-import { View, Download } from '@element-plus/icons-vue'
+import { View, Download, ChatDotRound, Plus, Picture, Document, Close } from '@element-plus/icons-vue'
 import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
+import { uploadImage } from '@/api/upload'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,6 +37,13 @@ const messageListRef = ref<HTMLElement | null>(null)
 const fileDialogVisible = ref(false)
 const fileDialogUrl = ref('')
 const pdfPreviewVisible = ref(false)
+const imagePreviewVisible = ref(false)
+const imagePreviewUrl = ref('')
+const showActionMenu = ref(false)
+
+const toggleActionMenu = () => {
+  showActionMenu.value = !showActionMenu.value
+}
 
 const currentUserId = computed(() => userStore.userInfo?.id)
 const isHr = computed(() => userStore.userInfo?.role === 1)
@@ -195,6 +203,38 @@ const handleSendResume = async () => {
   }
 }
 
+const handleSendImage = async () => {
+  if (isBlocked.value) {
+    ElMessage.warning(blockedTip)
+    return
+  }
+  if (!selectedAppId.value) return
+  // 创建隐藏的文件输入框
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    try {
+      const { url } = await uploadImage(file)
+      if (!url) {
+        ElMessage.error('图片上传失败')
+        return
+      }
+      const msg = await sendMessage(selectedAppId.value, { messageType: 1, content: url })
+      messages.value.push(msg)
+      updateSessionInSidebar(msg)
+      await refreshCurrentSession()
+      scrollToBottom()
+      await loadSessions()
+    } catch {
+      ElMessage.error('图片上传失败')
+    }
+  }
+  input.click()
+}
+
 const getAttachmentName = (url: string) => {
   const name = url.substring(url.lastIndexOf('/') + 1) || '简历附件'
   return name.length > 30 ? name.substring(0, 27) + '...' : name
@@ -220,6 +260,25 @@ const downloadFile = () => {
   fileDialogVisible.value = false
 }
 
+const previewImage = (url: string) => {
+  imagePreviewUrl.value = url
+  imagePreviewVisible.value = true
+}
+
+const previewFileFromMsg = (url: string) => {
+  fileDialogUrl.value = url
+  pdfPreviewVisible.value = true
+}
+
+const downloadFileFromMsg = (url: string) => {
+  const a = document.createElement('a')
+  a.href = url
+  a.download = getAttachmentName(url)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 const refreshCurrentSession = async () => {
   if (!selectedAppId.value) return
   try {
@@ -238,7 +297,7 @@ const updateSessionInSidebar = (msg: ChatMessageVO) => {
   if (!selectedAppId.value) return
   const appId = selectedAppId.value
   const idx = sessions.value.findIndex(s => s.applicationId === appId)
-  const preview = msg.messageType === 2 ? '[简历附件]' : msg.content
+  const preview = msg.messageType === 2 ? '[简历附件]' : msg.messageType === 1 ? '[图片]' : msg.content
   if (idx !== -1) {
     const item = sessions.value[idx]
     item.lastMessage = preview
@@ -294,6 +353,25 @@ const handleLoadMore = async () => {
   await loadMessages(selectedAppId.value, lastId)
 }
 
+const goToCompany = (enterpriseId?: number) => {
+  if (enterpriseId) {
+    router.push(`/company?id=${enterpriseId}`)
+  }
+}
+
+const goToJobDetail = (taskId?: number) => {
+  if (taskId) {
+    router.push(`/jobs/${taskId}`)
+  }
+}
+
+const ensureSessionInList = async (appId: number) => {
+  const exists = sessions.value.some(s => s.applicationId === appId)
+  if (!exists) {
+    await loadSessions()
+  }
+}
+
 onMounted(async () => {
   await loadSessions()
   const chatParam = route.query.chat
@@ -309,6 +387,7 @@ watch(() => route.query.chat, async (newVal) => {
   if (newVal) {
     const appId = Number(newVal)
     if (!isNaN(appId)) {
+      await ensureSessionInList(appId)
       await selectSession(appId)
     }
   }
@@ -322,16 +401,27 @@ watch(() => route.query.chat, async (newVal) => {
       <div class="session-list">
         <div v-if="sessionsLoading" class="loading-state">加载中...</div>
         <div v-else-if="sessions.length === 0" class="empty-state">暂无会话</div>
-        <div
-          v-for="sessionItem in sessions"
-          :key="sessionItem.applicationId"
-          :class="['session-item', { active: selectedAppId === sessionItem.applicationId }]"
-          @click="selectSession(sessionItem.applicationId)"
-        >
-          <div class="session-avatar">{{ (sessionItem.counterpartName || '对')[0] }}</div>
+          <div
+            v-for="sessionItem in sessions"
+            :key="sessionItem.applicationId"
+            :class="['session-item', { active: selectedAppId === sessionItem.applicationId }]"
+            @click="selectSession(sessionItem.applicationId)"
+          >
+            <div class="session-avatar">
+              <img v-if="sessionItem.counterpartAvatar" :src="sessionItem.counterpartAvatar" class="avatar-img" />
+              <span v-else>{{ (sessionItem.counterpartName || '对')[0] }}</span>
+            </div>
           <div class="session-info">
             <div class="session-header">
-              <span class="counterpart-name">{{ sessionItem.counterpartName || '对方' }}</span>
+              <div class="session-name-wrap">
+                <span class="counterpart-name">{{ sessionItem.counterpartName || '对方' }}</span>
+                <span v-if="sessionItem.counterpartCompany" class="company-tag session-company-tag">
+                  <span class="at-symbol">@</span>
+                  <a class="company-link" @click.stop="goToCompany(sessionItem.enterpriseId)">
+                    {{ sessionItem.counterpartCompany }}
+                  </a>
+                </span>
+              </div>
               <span class="session-time">{{ formatSessionTime(sessionItem.lastMessageTime) }}</span>
             </div>
             <div class="session-body">
@@ -349,8 +439,20 @@ watch(() => route.query.chat, async (newVal) => {
       <template v-if="selectedAppId && selectedSession">
         <div class="chat-header">
           <div class="chat-title">
-            <h3>{{ session?.counterpartName || selectedSession.counterpartName || '对方' }}</h3>
-            <span class="subtitle">{{ session?.taskTitle || selectedSession.taskTitle || '' }}</span>
+            <h3>
+              <span class="counterpart-name">{{ session?.counterpartName || selectedSession.counterpartName || '对方' }}</span>
+              <span v-if="session?.counterpartCompany || selectedSession?.counterpartCompany" class="company-tag">
+                <span class="at-symbol">@</span>
+                <a class="company-link" @click="goToCompany(session?.enterpriseId || selectedSession?.enterpriseId)">
+                  {{ session?.counterpartCompany || selectedSession?.counterpartCompany }}
+                </a>
+              </span>
+            </h3>
+            <span class="subtitle">
+              <a v-if="session?.taskTitle || selectedSession?.taskTitle" class="task-link" @click="goToJobDetail(session?.taskId || selectedSession?.taskId)">
+                {{ session?.taskTitle || selectedSession?.taskTitle }}
+              </a>
+            </span>
           </div>
         </div>
 
@@ -362,18 +464,41 @@ watch(() => route.query.chat, async (newVal) => {
               :key="msg.id"
               :class="['message-item', msg.senderId === currentUserId ? 'self' : 'other']"
             >
-              <div class="avatar">{{ (msg.senderName || '用')[0] }}</div>
+              <div class="avatar">
+                <img v-if="msg.senderAvatar" :src="msg.senderAvatar" class="avatar-img" />
+                <span v-else>{{ (msg.senderName || '用')[0] }}</span>
+              </div>
               <div class="message-content">
-                <div class="sender-name">{{ msg.senderName }}</div>
+                <div class="sender-name">
+                  <span>{{ msg.senderName }}</span>
+                  <span v-if="msg.senderId !== currentUserId && (session?.counterpartCompany || selectedSession?.counterpartCompany)" class="company-tag">
+                    <span class="at-symbol">@</span>
+                    <a class="company-link" @click="goToCompany(session?.enterpriseId || selectedSession?.enterpriseId)">
+                      {{ session?.counterpartCompany || selectedSession?.counterpartCompany }}
+                    </a>
+                  </span>
+                </div>
                 <div v-if="msg.messageType === 2" class="bubble resume-bubble">
                   <div class="resume-card">
-                    <span class="resume-icon">📄</span>
+                    <el-icon :size="28" class="resume-icon"><Document /></el-icon>
                     <div class="resume-info">
                       <span class="resume-name">{{ getAttachmentName(msg.content) }}</span>
                       <span class="resume-label">简历附件</span>
                     </div>
-                    <el-button class="resume-preview-btn" size="small" @click="openFileAction(msg.content)">操作</el-button>
                   </div>
+                  <div class="resume-actions">
+                    <div class="resume-action-btn" @click="previewFileFromMsg(msg.content)" title="预览">
+                      <el-icon :size="20"><View /></el-icon>
+                      <span class="action-label">预览</span>
+                    </div>
+                    <div class="resume-action-btn" @click="downloadFileFromMsg(msg.content)" title="下载">
+                      <el-icon :size="20"><Download /></el-icon>
+                      <span class="action-label">下载</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="msg.messageType === 1" class="bubble image-bubble">
+                  <img class="chat-image" :src="msg.content" alt="图片消息" @click="previewImage(msg.content)" />
                 </div>
                 <div v-else class="bubble">{{ msg.content }}</div>
                 <div class="message-time">{{ formatTime(msg.sendTime) }}</div>
@@ -390,27 +515,43 @@ watch(() => route.query.chat, async (newVal) => {
           <div v-if="isBlocked" class="block-tip">
             <span>{{ blockedTip }}</span>
           </div>
-          <div class="input-row">
+          <div class="input-bar">
+            <div class="action-wrap">
+              <el-button
+                v-if="!isHr"
+                class="bar-btn bar-plus-btn"
+                :class="{ active: showActionMenu }"
+                :disabled="isBlocked"
+                @click="toggleActionMenu"
+                title="更多"
+              >
+                <el-icon :size="20"><Plus /></el-icon>
+              </el-button>
+              <Transition name="action-fade">
+                <div v-if="showActionMenu" class="action-menu-backdrop" @click="showActionMenu = false"></div>
+              </Transition>
+              <Transition name="action-fade">
+                <div v-if="showActionMenu" class="action-menu">
+                  <div class="action-menu-item" @click="showActionMenu = false; handleSendImage()">
+                    <div class="action-icon"><el-icon :size="22"><Picture /></el-icon></div>
+                    <span class="action-label">上传图片</span>
+                  </div>
+                  <div class="action-menu-item" @click="showActionMenu = false; handleSendResume()">
+                    <div class="action-icon"><el-icon :size="22"><Document /></el-icon></div>
+                    <span class="action-label">发送简历</span>
+                  </div>
+                </div>
+              </Transition>
+            </div>
             <el-input
               v-model="inputText"
-              type="textarea"
-              :rows="2"
               :disabled="isBlocked || sending"
               placeholder="请输入消息..."
               maxlength="2000"
-              show-word-limit
               @keydown.enter.prevent="handleSend"
             />
             <el-button
-              v-if="!isHr"
-              type="warning"
-              :disabled="isBlocked || sendingResume"
-              :loading="sendingResume"
-              @click="handleSendResume"
-            >
-              发送简历
-            </el-button>
-            <el-button
+              class="bar-btn bar-send-btn"
               type="primary"
               :disabled="isBlocked || sending || !inputText.trim()"
               :loading="sending"
@@ -424,7 +565,7 @@ watch(() => route.query.chat, async (newVal) => {
 
       <template v-else>
         <div class="no-chat-selected">
-          <div class="no-chat-icon">💬</div>
+          <div class="no-chat-icon"><el-icon :size="56"><ChatDotRound /></el-icon></div>
           <p>选择一个会话开始聊天</p>
         </div>
       </template>
@@ -441,6 +582,16 @@ watch(() => route.query.chat, async (newVal) => {
       </div>
     </el-dialog>
 
+    <!-- 图片预览轻量弹窗 -->
+    <Transition name="lightbox-fade">
+      <div v-if="imagePreviewVisible" class="lightbox-overlay" @click.self="imagePreviewVisible = false">
+        <img :src="imagePreviewUrl" class="lightbox-image" alt="图片预览" />
+        <button class="lightbox-close" @click="imagePreviewVisible = false">
+          <el-icon :size="24"><Close /></el-icon>
+        </button>
+      </div>
+    </Transition>
+
     <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
   </div>
 </template>
@@ -449,6 +600,8 @@ watch(() => route.query.chat, async (newVal) => {
 .im-page {
   display: flex;
   height: calc(100vh - 60px);
+  max-width: 1200px;
+  margin: 0 auto;
   background: #f5f7fa;
   overflow: hidden;
 }
@@ -519,6 +672,12 @@ watch(() => route.query.chat, async (newVal) => {
   justify-content: center;
   font-size: 17px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.session-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .session-info {
@@ -531,20 +690,62 @@ watch(() => route.query.chat, async (newVal) => {
 
 .session-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 4px;
 }
-
-.counterpart-name {
+.session-name-wrap {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+.session-name-wrap .counterpart-name {
   font-size: 15px;
   font-weight: 600;
   color: #1a1a2e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+.session-name-wrap .session-company-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.session-name-wrap .session-company-tag .at-symbol {
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+.session-name-wrap .session-company-tag .company-link {
+  font-size: 12px;
+  font-weight: 400;
+  color: #1762FB;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-name-wrap .session-company-tag .company-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
 }
 
 .session-time {
   font-size: 12px;
   color: #999;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .session-body {
@@ -602,11 +803,57 @@ watch(() => route.query.chat, async (newVal) => {
   font-size: 16px;
   font-weight: 600;
   color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.counterpart-name {
+  white-space: nowrap;
+}
+
+.company-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.at-symbol {
+  color: #999;
+  font-weight: 400;
+}
+
+.company-link {
+  color: #1762FB;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.company-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
 }
 
 .subtitle {
   font-size: 12px;
   color: #999;
+}
+
+.task-link {
+  color: #1762FB;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.task-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
 }
 
 .message-list {
@@ -657,6 +904,12 @@ watch(() => route.query.chat, async (newVal) => {
   justify-content: center;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .message-content {
@@ -672,6 +925,10 @@ watch(() => route.query.chat, async (newVal) => {
 .sender-name {
   font-size: 12px;
   color: #999;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
 }
 
 .bubble {
@@ -706,9 +963,11 @@ watch(() => route.query.chat, async (newVal) => {
 }
 
 .no-chat-icon {
-  font-size: 56px;
   margin-bottom: 16px;
   opacity: 0.6;
+}
+.no-chat-icon .el-icon {
+  display: block;
 }
 
 .no-chat-selected p {
@@ -718,8 +977,8 @@ watch(() => route.query.chat, async (newVal) => {
 
 .input-area {
   background: #fff;
-  border-top: 1px solid #f0f0f5;
-  padding: 12px 24px 16px;
+  padding: 6px 16px 12px;
+  border-top: 1px solid #e8e8e8;
 }
 
 .block-tip {
@@ -727,7 +986,7 @@ watch(() => route.query.chat, async (newVal) => {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   background: #fff7e6;
   border: 1px solid #ffd591;
   border-radius: 8px;
@@ -735,28 +994,155 @@ watch(() => route.query.chat, async (newVal) => {
   font-size: 13px;
 }
 
-.input-row {
+.input-bar {
   display: flex;
-  gap: 12px;
   align-items: flex-end;
+  gap: 8px;
 }
 
-.input-row .el-input {
+/* ── 加号按钮 ── */
+.bar-plus-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  flex-shrink: 0;
+  border: 1px solid #e8e8e8;
+  background: #f7f8fa;
+  color: #666;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+.bar-plus-btn:hover {
+  background: #eff0f2;
+  border-color: #1762FB;
+  color: #1762FB;
+}
+.bar-plus-btn.active {
+  background: #1762FB;
+  border-color: #1762FB;
+  color: #fff;
+}
+
+/* ── 操作菜单 ── */
+.action-wrap {
+  position: relative;
+}
+.action-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+.action-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+}
+.action-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.action-menu-item:hover {
+  background: #f0f4ff;
+}
+.action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f0f4ff;
+  color: #1762FB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-menu-item:hover .action-icon {
+  background: #dde6ff;
+}
+.action-label {
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* ── 菜单动画 ── */
+.action-fade-enter-active,
+.action-fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.action-fade-enter-from,
+.action-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* ── 输入框 ── */
+.input-bar .el-input {
   flex: 1;
 }
-
-.input-row .el-button {
-  height: 52px;
-  padding: 0 24px;
+.input-bar .el-input :deep(.el-input__wrapper) {
+  box-shadow: none !important;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #f7f8fa;
+  min-height: 40px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-bar .el-input :deep(.el-input__wrapper:hover) {
+  border-color: #1762FB;
+}
+.input-bar .el-input :deep(.el-input__wrapper.is-focus) {
+  border-color: #1762FB;
+  box-shadow: 0 0 0 2px rgba(23, 98, 251, 0.1) !important;
+}
+.input-bar .el-input :deep(.el-input__inner) {
+  font-size: 14px;
+  height: 38px;
+  line-height: 38px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.input-bar .el-input :deep(.el-input__count) {
+  display: none;
 }
 
-.input-row .el-button + .el-button {
-  margin-left: 8px;
+/* ── 发送按钮 ── */
+.bar-send-btn {
+  height: 40px;
+  min-width: 68px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
+  border: none;
+}
+.bar-send-btn.is-disabled {
+  background: #e8e8e8 !important;
+  color: #bbb !important;
 }
 
 .resume-bubble {
-  padding: 8px !important;
+  padding: 0 !important;
   background: #f5f5ff !important;
+  position: relative;
+  overflow: hidden;
 }
 .self .resume-bubble {
   background: #d0f0c0 !important;
@@ -765,9 +1151,14 @@ watch(() => route.query.chat, async (newVal) => {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 8px 14px;
 }
 .resume-icon {
-  font-size: 28px;
+  flex-shrink: 0;
+  color: #1762FB;
+}
+.self .resume-icon {
+  color: #389e0d;
 }
 .resume-info {
   flex: 1;
@@ -787,10 +1178,82 @@ watch(() => route.query.chat, async (newVal) => {
   font-size: 11px;
   color: #999;
 }
-.resume-preview-btn {
-  font-size: 13px;
+
+/* ── 简历操作按钮：浮层模式，hover 时从右侧滑入 ── */
+.resume-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  pointer-events: none;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.resume-bubble:hover .resume-actions {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* 渐变遮罩 — 跟随气泡背景色，hover 时从右侧滑入覆盖整个气泡 */
+.resume-actions::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -500px;
+  width: calc(100% + 500px);
+  z-index: -1;
+  pointer-events: none;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.resume-bubble:hover .resume-actions::before {
+  transform: translateX(0);
+}
+.resume-bubble:not(.self) .resume-actions::before {
+  background: rgba(245, 245, 255, 0.5);
+}
+.self .resume-actions::before {
+  background: rgba(208, 240, 192, 0.5);
+}
+
+.resume-action-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 48px;
+  padding: 4px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: #666;
+  background: #fff;
+}
+.resume-action-btn:hover {
+  background: #e8ecf7;
+  color: #1762FB;
+}
+.self .resume-action-btn {
+  background: #fff;
+}
+.self .resume-action-btn:hover {
+  background: #c8e8b0;
+  color: #389e0d;
+}
+.resume-action-btn .action-label {
+  font-size: 11px;
+  font-weight: 500;
   white-space: nowrap;
 }
+
+/* ── 文件选择弹窗按钮 ── */
 .file-action-buttons {
   display: flex;
   gap: 16px;
@@ -799,6 +1262,76 @@ watch(() => route.query.chat, async (newVal) => {
 }
 .file-action-btn {
   flex: 1;
+}
+
+/* ── 图片消息气泡 ── */
+.image-bubble {
+  padding: 4px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  max-width: 280px;
+}
+.chat-image {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.chat-image:hover {
+  opacity: 0.9;
+}
+
+/* ── 图片预览轻量弹窗 ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.lightbox-image {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: 6px;
+  cursor: default;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+.lightbox-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 2001;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ── 预览弹窗过渡动画 ── */
+.lightbox-fade-enter-active,
+.lightbox-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.lightbox-fade-enter-from,
+.lightbox-fade-leave-to {
+  opacity: 0;
 }
 
 /* ---- Scrollbar ---- */

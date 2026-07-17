@@ -34,6 +34,12 @@ public class ChatSessionVO {
     /** 对方头像 URL */
     private String counterpartAvatar;
 
+    /** 对方企业名称（求职者视角时 HR 所属的公司名） */
+    private String counterpartCompany;
+
+    /** 对方企业 ID */
+    private Long enterpriseId;
+
     /** 最后一条消息内容 */
     private String lastMessage;
 

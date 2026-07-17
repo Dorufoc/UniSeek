@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
+import { getMyEnterprise } from '@/api/enterprise'
+import { WarningFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
@@ -13,6 +16,64 @@ const isRecruiter = computed(() => userStore.userInfo?.role === 1)
 
 // 判断当前用户是否为管理员（role === 9 或 99）
 const isAdmin = computed(() => userStore.userInfo?.role >= 9)
+
+// 企业资质认证强制弹窗 — 招聘者（HR）未完成认证时，所有页面强制提示
+const certDialogVisible = ref(false)
+const certStatusText = ref('')
+const certChecking = ref(false)
+
+/**
+ * 检查当前招聘者的企业资质认证状态。
+ * 若未完成认证（未提交 / 审核中 / 已驳回）→ 弹窗拦截；已认证 → 放行。
+ * 每次路由变化时重新检查（已登录状态下 /enterprise-cert 页面放行）。
+ */
+const checkEnterpriseCert = async () => {
+  // 仅招聘者（role=1）需要企业认证；管理员和求职者跳过
+  if (!isRecruiter.value) {
+    certDialogVisible.value = false
+    return
+  }
+  // 已在认证页面时不弹窗，让用户正常操作表单
+  if (route.path === '/enterprise-cert') {
+    certDialogVisible.value = false
+    return
+  }
+
+  certChecking.value = true
+  try {
+    const info = await getMyEnterprise()
+    if (info && info.auditStatus === 1) {
+      // 已认证通过 → 关闭弹窗
+      certDialogVisible.value = false
+      return
+    }
+    // 未认证 / 审核中 / 已驳回
+    if (!info) {
+      certStatusText.value = '您尚未提交企业资质认证，完成认证后方可使用招聘功能。'
+    } else if (info.auditStatus === 0) {
+      certStatusText.value = '您的企业资质认证正在审核中，请耐心等待。审核通过后方可使用招聘功能。'
+    } else if (info.auditStatus === 2) {
+      certStatusText.value = '您的企业资质认证已被驳回，请修改后重新提交。'
+    }
+    certDialogVisible.value = true
+  } catch {
+    // 未找到企业信息或接口异常 → 视为未认证
+    certStatusText.value = '您尚未提交企业资质认证，完成认证后方可使用招聘功能。'
+    certDialogVisible.value = true
+  } finally {
+    certChecking.value = false
+  }
+}
+
+/** 跳转到企业资质认证页面 */
+const goToEnterpriseCert = () => {
+  router.push('/enterprise-cert')
+}
+
+// 布局挂载时首次检查
+onMounted(checkEnterpriseCert)
+// 路由变化时重新检查—确保每次页面切换都认证
+watch(() => route.path, checkEnterpriseCert)
 </script>
 
 <template>
@@ -65,6 +126,27 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
       <router-view />
     </main>
 
+    <!-- 企业资质认证强制弹窗 — 招聘者未完成认证时拦截所有页面操作 -->
+    <el-dialog
+      v-model="certDialogVisible"
+      :show-close="false"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      width="400px"
+      top="28vh"
+      append-to-body
+    >
+      <div class="cert-dialog-body">
+        <el-icon :size="52" color="#e6a23c">
+          <WarningFilled />
+        </el-icon>
+        <h3 class="cert-dialog-title">企业资质认证</h3>
+        <p class="cert-dialog-desc">{{ certStatusText }}</p>
+        <button class="cert-dialog-btn" @click="goToEnterpriseCert">
+          前往认证
+        </button>
+      </div>
+    </el-dialog>
 
   </div>
 </template>
@@ -72,6 +154,7 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
 <style scoped>
 .default-layout {
   min-height: 100vh;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   padding-top: 60px;
@@ -237,7 +320,41 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
   background: #f5f7fa;
 }
 
-
+/* 企业资质认证强制弹窗样式 */
+.cert-dialog-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 8px 8px;
+  text-align: center;
+}
+.cert-dialog-title {
+  margin: 16px 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+.cert-dialog-desc {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+.cert-dialog-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: #1762FB;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.cert-dialog-btn:hover {
+  opacity: 0.92;
+}
 
 @media (max-width: 768px) {
   .header-inner {

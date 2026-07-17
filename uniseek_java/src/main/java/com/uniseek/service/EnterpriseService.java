@@ -67,4 +67,12 @@ public interface EnterpriseService {
      * @return 热门企业列表
      */
     List<HotEnterpriseVO> getHotEnterprises(int limit);
+
+    /**
+     * 根据 ID 获取企业信息
+     *
+     * @param id 企业 ID
+     * @return 企业信息，不存在时返回 null
+     */
+    Enterprise getById(Long id);
 }

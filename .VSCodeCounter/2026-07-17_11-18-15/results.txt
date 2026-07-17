@@ -1,0 +1,142 @@
+Date : 2026-07-17 11:18:15
+Directory : d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts
+Total : 79 files,  7453 codes, 43 comments, 712 blanks, all 8208 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| ArkTS      |         42 |      7,083 |         43 |        701 |      7,827 |
+| JSON5      |         11 |        256 |          0 |          6 |        262 |
+| JSON       |          9 |         89 |          0 |          3 |         92 |
+| XML        |         15 |         15 |          0 |          0 |         15 |
+| TypeScript |          2 |         10 |          0 |          2 |         12 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++-------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                                | files      | code       | comment    | blank      | total      |
++-------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                                   |         79 |      7,453 |         43 |        712 |      8,208 |
+| . (Files)                                                                                                                           |          5 |        117 |          0 |          2 |        119 |
+| AppScope                                                                                                                            |          3 |         26 |          0 |          2 |         28 |
+| AppScope (Files)                                                                                                                    |          1 |         11 |          0 |          1 |         12 |
+| AppScope\resources                                                                                                                  |          2 |         15 |          0 |          1 |         16 |
+| AppScope\resources\base                                                                                                             |          2 |         15 |          0 |          1 |         16 |
+| AppScope\resources\base\element                                                                                                     |          1 |          8 |          0 |          1 |          9 |
+| AppScope\resources\base\media                                                                                                       |          1 |          7 |          0 |          0 |          7 |
+| entry                                                                                                                               |         70 |      7,287 |         43 |        707 |      8,037 |
+| entry (Files)                                                                                                                       |          3 |         47 |          0 |          3 |         50 |
+| entry\src                                                                                                                           |         67 |      7,240 |         43 |        704 |      7,987 |
+| entry\src\main                                                                                                                      |         61 |      7,179 |         17 |        699 |      7,895 |
+| entry\src\main (Files)                                                                                                              |          1 |         55 |          0 |          0 |         55 |
+| entry\src\main\ets                                                                                                                  |         38 |      7,035 |         17 |        697 |      7,749 |
+| entry\src\main\ets\entryability                                                                                                     |          1 |         36 |          4 |          8 |         48 |
+| entry\src\main\ets\entrybackupability                                                                                               |          1 |         13 |          0 |          3 |         16 |
+| entry\src\main\ets\pages                                                                                                            |         26 |      6,013 |          9 |        557 |      6,579 |
+| entry\src\main\ets\pages (Files)                                                                                                    |         20 |      3,836 |          9 |        365 |      4,210 |
+| entry\src\main\ets\pages\tab                                                                                                        |          6 |      2,177 |          0 |        192 |      2,369 |
+| entry\src\main\ets\pages\tab\recruiter                                                                                              |          3 |        988 |          0 |         88 |      1,076 |
+| entry\src\main\ets\pages\tab\seeker                                                                                                 |          3 |      1,189 |          0 |        104 |      1,293 |
+| entry\src\main\ets\services                                                                                                         |         10 |        973 |          4 |        129 |      1,106 |
+| entry\src\main\resources                                                                                                            |         22 |         89 |          0 |          2 |         91 |
+| entry\src\main\resources\base                                                                                                       |         21 |         81 |          0 |          2 |         83 |
+| entry\src\main\resources\base\element                                                                                               |          3 |         32 |          0 |          1 |         33 |
+| entry\src\main\resources\base\media                                                                                                 |         16 |         22 |          0 |          0 |         22 |
+| entry\src\main\resources\base\profile                                                                                               |          2 |         27 |          0 |          1 |         28 |
+| entry\src\main\resources\dark                                                                                                       |          1 |          8 |          0 |          0 |          8 |
+| entry\src\main\resources\dark\element                                                                                               |          1 |          8 |          0 |          0 |          8 |
+| entry\src\mock                                                                                                                      |          1 |          2 |          0 |          0 |          2 |
+| entry\src\ohosTest                                                                                                                  |          3 |         36 |         13 |          3 |         52 |
+| entry\src\ohosTest (Files)                                                                                                          |          1 |         11 |          0 |          1 |         12 |
+| entry\src\ohosTest\ets                                                                                                              |          2 |         25 |         13 |          2 |         40 |
+| entry\src\ohosTest\ets\test                                                                                                         |          2 |         25 |         13 |          2 |         40 |
+| entry\src\test                                                                                                                      |          2 |         23 |         13 |          2 |         38 |
+| hvigor                                                                                                                              |          1 |         23 |          0 |          1 |         24 |
++-------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                                                                                            | language   | code       | comment    | blank      | total      |
++-------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\AppScope\app.json5                                             | JSON5      |         11 |          0 |          1 |         12 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\AppScope\resources\base\element\string.json                    | JSON       |          8 |          0 |          1 |          9 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\AppScope\resources\base\media\layered_image.json               | JSON       |          7 |          0 |          0 |          7 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\build-profile.json5                                            | JSON5      |         42 |          0 |          0 |         42 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\code-linter.json5                                              | JSON5      |         32 |          0 |          0 |         32 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\build-profile.json5                                      | JSON5      |         33 |          0 |          0 |         33 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\hvigorfile.ts                                            | TypeScript |          5 |          0 |          1 |          6 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\oh-package.json5                                         | JSON5      |          9 |          0 |          2 |         11 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\entryability\EntryAbility.ets               | ArkTS      |         36 |          4 |          8 |         48 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\entrybackupability\EntryBackupAbility.ets   | ArkTS      |         13 |          0 |          3 |         16 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\ChatDetailPage.ets                    | ArkTS      |        142 |          0 |         13 |        155 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\FavoritesPage.ets                     | ArkTS      |        125 |          0 |          8 |        133 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\JobDetailPage.ets                     | ArkTS      |        237 |          0 |         18 |        255 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\LoginPage.ets                         | ArkTS      |        136 |          0 |         16 |        152 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\MainPage.ets                          | ArkTS      |         56 |          0 |          9 |         65 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\ProfileDetailPage.ets                 | ArkTS      |        351 |          0 |         28 |        379 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RealNameAuthPage.ets                  | ArkTS      |        139 |          0 |         15 |        154 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterApplicationsPage.ets         | ArkTS      |        202 |          0 |         19 |        221 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterEnterprisePage.ets           | ArkTS      |        179 |          1 |         18 |        198 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterHomePage.ets                 | ArkTS      |         56 |          0 |          9 |         65 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterJobFormPage.ets              | ArkTS      |        196 |          0 |         21 |        217 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterPublishJobPage.ets           | ArkTS      |        201 |          0 |         17 |        218 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterRequestsPage.ets             | ArkTS      |        465 |          0 |         41 |        506 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RecruiterSearchPage.ets               | ArkTS      |        228 |          0 |         25 |        253 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\RegisterPage.ets                      | ArkTS      |        190 |          0 |         19 |        209 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\ResumeDetailPage.ets                  | ArkTS      |        181 |          0 |         17 |        198 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\ResumePage.ets                        | ArkTS      |        318 |          8 |         31 |        357 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\SearchPage.ets                        | ArkTS      |        228 |          0 |         25 |        253 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\SettingsPage.ets                      | ArkTS      |         49 |          0 |          5 |         54 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\SubmittedPage.ets                     | ArkTS      |        157 |          0 |         11 |        168 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\tab\recruiter\RecruiterChatTab.ets    | ArkTS      |        113 |          0 |         11 |        124 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\tab\recruiter\RecruiterHomeTab.ets    | ArkTS      |        714 |          0 |         64 |        778 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\tab\recruiter\RecruiterProfileTab.ets | ArkTS      |        161 |          0 |         13 |        174 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\tab\seeker\ChatPage.ets               | ArkTS      |        113 |          0 |         11 |        124 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\tab\seeker\HomePage.ets               | ArkTS      |        956 |          0 |         81 |      1,037 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\pages\tab\seeker\ProfilePage.ets            | ArkTS      |        120 |          0 |         12 |        132 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\ApiClient.ets                      | ArkTS      |        118 |          0 |         20 |        138 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\AuthService.ets                    | ArkTS      |        109 |          2 |         20 |        131 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\ChatService.ets                    | ArkTS      |         46 |          0 |         11 |         57 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\ChatTypes.ets                      | ArkTS      |         82 |          0 |          5 |         87 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\DataService.ets                    | ArkTS      |        260 |          2 |         24 |        286 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\RecordService.ets                  | ArkTS      |         42 |          0 |         10 |         52 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\RecruiterService.ets               | ArkTS      |        109 |          0 |         14 |        123 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\RecruiterTypes.ets                 | ArkTS      |        133 |          0 |         13 |        146 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\ResumeService.ets                  | ArkTS      |         62 |          0 |         10 |         72 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\ets\services\UserSession.ets                    | ArkTS      |         12 |          0 |          2 |         14 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\module.json5                                    | JSON5      |         55 |          0 |          0 |         55 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\element\color.json               | JSON       |          8 |          0 |          0 |          8 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\element\float.json               | JSON       |          8 |          0 |          1 |          9 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\element\string.json              | JSON       |         16 |          0 |          0 |         16 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\chat.svg                   | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\firm.svg                   | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\home.svg                   | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\layered_image.json         | JSON       |          7 |          0 |          0 |          7 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\left_arrow.svg             | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\mine.svg                   | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\pending_requests.svg       | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\post_job.svg               | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\resume.svg                 | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\resume1.svg                | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\resume2.svg                | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\right_arrow.svg            | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\setting.svg                | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\star.svg                   | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\uniseek_text_black.svg     | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\media\uniseek_text_white.svg     | XML        |          1 |          0 |          0 |          1 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\profile\backup_config.json       | JSON       |          3 |          0 |          0 |          3 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\base\profile\main_pages.json          | JSON       |         24 |          0 |          1 |         25 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\main\resources\dark\element\color.json               | JSON       |          8 |          0 |          0 |          8 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\mock\mock-config.json5                               | JSON5      |          2 |          0 |          0 |          2 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\ohosTest\ets\test\Ability.test.ets                   | ArkTS      |         21 |         13 |          1 |         35 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\ohosTest\ets\test\List.test.ets                      | ArkTS      |          4 |          0 |          1 |          5 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\ohosTest\module.json5                                | JSON5      |         11 |          0 |          1 |         12 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\test\List.test.ets                                   | ArkTS      |          4 |          0 |          1 |          5 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\entry\src\test\LocalUnit.test.ets                              | ArkTS      |         19 |         13 |          1 |         33 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\hvigor\hvigor-config.json5                                     | JSON5      |         23 |          0 |          1 |         24 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\hvigorfile.ts                                                  | TypeScript |          5 |          0 |          1 |          6 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\oh-package-lock.json5                                          | JSON5      |         28 |          0 |          0 |         28 |
+| d:\Temps\yaoshi\Desktop\code\istone\AAAAAAAAAA\UniSeek\uniseek_arkts\oh-package.json5                                               | JSON5      |         10 |          0 |          1 |         11 |
+| Total                                                                                                                               |            |      7,453 |         43 |        712 |      8,208 |
++-------------------------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+

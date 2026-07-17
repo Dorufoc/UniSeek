@@ -74,3 +74,7 @@ export interface HotEnterprise {
 /** GET /api/enterprise/hot 获取热门企业列表 */
 export const getHotEnterprises = (limit = 12) =>
   request.get<any, HotEnterprise[]>('/enterprise/hot', { params: { limit } })
+
+/** GET /api/enterprise/{id} 根据ID获取企业详情 */
+export const getEnterpriseById = (id: number) =>
+  request.get<any, EnterpriseInfo>(`/enterprise/${id}`)

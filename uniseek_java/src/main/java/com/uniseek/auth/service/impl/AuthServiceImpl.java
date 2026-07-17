@@ -249,10 +249,32 @@ public class AuthServiceImpl implements AuthService {
             result.put("isAuth", false);
             result.put("realName", null);
             result.put("idCard", null);
+            result.put("birthDate", null);
+            result.put("gender", -1);
         } else {
             result.put("isAuth", true);
             result.put("realName", auth.getRealName());
             result.put("idCard", RealNameAuthVO.idCardDesensitization(auth.getIdCard()));
+
+            // 从身份证号提取出生日期（yyyyMMdd → yyyy-MM-dd）
+            String birthByIdCard = IdcardUtil.getBirthByIdCard(auth.getIdCard());
+            if (birthByIdCard != null && birthByIdCard.length() == 8) {
+                birthByIdCard = birthByIdCard.substring(0, 4) + "-"
+                        + birthByIdCard.substring(4, 6) + "-"
+                        + birthByIdCard.substring(6, 8);
+            }
+            result.put("birthDate", birthByIdCard);
+
+            // Hutool getGenderByIdCard 返回: 1=男, 0=女, -1=未知
+            // 前端: 0=男, 1=女, -1=未设置
+            int genderFromCard = IdcardUtil.getGenderByIdCard(auth.getIdCard());
+            if (genderFromCard == 1) {
+                result.put("gender", 0); // 男
+            } else if (genderFromCard == 0) {
+                result.put("gender", 1); // 女
+            } else {
+                result.put("gender", -1);
+            }
         }
         return result;
     }

@@ -25,6 +25,8 @@
         <result column="counterpart_id" property="counterpartId"/>
         <result column="counterpart_name" property="counterpartName"/>
         <result column="counterpart_avatar" property="counterpartAvatar"/>
+        <result column="counterpart_company" property="counterpartCompany"/>
+        <result column="enterprise_id" property="enterpriseId"/>
         <result column="last_message" property="lastMessage"/>
         <result column="last_message_time" property="lastMessageTime"/>
         <result column="unread_count" property="unreadCount"/>
@@ -51,6 +53,8 @@
             u.id AS counterpart_id,
             u.nickname AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
+            NULL AS counterpart_company,
+            t.enterprise_id AS enterprise_id,
             cs.last_message,
             cs.last_message_time,
             COALESCE(uc.unread_count, 0) AS unread_count
@@ -75,12 +79,15 @@
             u.id AS counterpart_id,
             u.nickname AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
+            e.company_name AS counterpart_company,
+            t.enterprise_id AS enterprise_id,
             cs.last_message,
             cs.last_message_time,
             COALESCE(uc.unread_count, 0) AS unread_count
         FROM chat_session cs
         JOIN task_application ta ON cs.task_application_id = ta.id
         JOIN task t ON ta.task_id = t.id
+        JOIN enterprise e ON t.enterprise_id = e.id
         JOIN user u ON cs.employer_id = u.id
         <include refid="unreadSubquery"/>
         WHERE cs.seeker_id = #{userId}
@@ -95,33 +102,29 @@
             t.title AS task_title,
             t.status AS task_status,
             ta.status AS application_status,
+            u.id AS counterpart_id,
+            u.nickname AS counterpart_name,
+            u.avatar_url AS counterpart_avatar,
         <choose>
             <when test="role == 1">
-            u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
-            u.avatar_url AS counterpart_avatar,
+            NULL AS counterpart_company,
             </when>
             <otherwise>
-            u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
-            u.avatar_url AS counterpart_avatar,
+            e.company_name AS counterpart_company,
             </otherwise>
         </choose>
+            t.enterprise_id AS enterprise_id,
             cs.last_message,
             cs.last_message_time,
             COALESCE(uc.unread_count, 0) AS unread_count
         FROM chat_session cs
         JOIN task_application ta ON cs.task_application_id = ta.id
         JOIN task t ON ta.task_id = t.id
-        <choose>
-            <when test="role == 1">
-            JOIN enterprise e ON t.enterprise_id = e.id
-            JOIN user u ON cs.seeker_id = u.id
-            </when>
-            <otherwise>
-            JOIN user u ON cs.employer_id = u.id
-            </otherwise>
-        </choose>
+        JOIN enterprise e ON t.enterprise_id = e.id
+        JOIN user u ON <choose>
+            <when test="role == 1">cs.seeker_id</when>
+            <otherwise>cs.employer_id</otherwise>
+        </choose> = u.id
         <include refid="unreadSubquery"/>
         WHERE cs.task_application_id = #{applicationId}
         <choose>

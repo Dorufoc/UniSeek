@@ -72,6 +72,11 @@ const salaryUnitLabel = (unit: number) => {
   return '月'
 }
 
+const salaryRangeText = (min: number, max: number, unit: number): string => {
+  if (min === 0 && max === 0) return '面议'
+  return `${formatSalary(min)}-${formatSalary(max)}/${salaryUnitLabel(unit)}`
+}
+
 const jobTypeLabel = (type: number) => {
   const map: Record<number, string> = { 1: '全职', 2: '兼职', 3: '实习' }
   return map[type] || ''
@@ -108,6 +113,9 @@ const salaryMinInput = ref<number | undefined>(undefined)
 const salaryMaxInput = ref<number | undefined>(undefined)
 
 const settlementType = ref<number | undefined>(undefined)
+
+// 是否包含「面议」（salary_min=0, salary_max=0）的职位，默认勾选
+const includeNegotiable = ref(true)
 
 const unitLabel = computed(() => {
   if (settlementType.value === undefined || settlementType.value === 2) return '元/月'
@@ -238,6 +246,7 @@ const loadTasks = async () => {
       salaryMin: filter.salaryMin,
       salaryMax: filter.salaryMax,
       salaryUnit: filter.salaryUnit,
+      includeNegotiable: includeNegotiable.value,
       tags: tags.value.length > 0 ? tags.value.join(',') : undefined,
       sortBy: filter.sortBy,
       sortOrder: filter.sortOrder,
@@ -271,6 +280,7 @@ const resetFilters = () => {
   settlementType.value = undefined
   salaryMinInput.value = undefined
   salaryMaxInput.value = undefined
+  includeNegotiable.value = true
   regionCascaderValue.value = []
   categoryCascaderValue.value = undefined
   keyword.value = ''
@@ -517,6 +527,10 @@ onMounted(async () => {
             </div>
           </div>
           <button class="salary-confirm-btn" :disabled="isSalaryEmpty" @click="onSalaryChange">确定</button>
+          <label class="include-negotiable">
+            <input type="checkbox" v-model="includeNegotiable" @change="onSalaryChange" />
+            <span>包含面议</span>
+          </label>
           <p v-if="settlementType === undefined" class="salary-hint">* 日结/时薪岗位将按 22天/8小时 统一折算为预估月薪进行匹配</p>
         </div>
 
@@ -597,7 +611,7 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="job-salary-info">
-                  <span class="job-salary">{{ formatSalary(task.salaryMin) }}-{{ formatSalary(task.salaryMax) }}<small>/{{ salaryUnitLabel(task.salaryUnit) }}</small></span>
+                  <span class="job-salary">{{ salaryRangeText(task.salaryMin, task.salaryMax, task.salaryUnit) }}</span>
                   <span class="job-applicants" v-if="task.applicationCount > 0">{{ task.applicationCount }}人已投递</span>
                 </div>
               </div>
@@ -946,6 +960,23 @@ onMounted(async () => {
 .salary-confirm-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+.include-negotiable {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+}
+.include-negotiable input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #1762FB;
 }
 
 .salary-hint {

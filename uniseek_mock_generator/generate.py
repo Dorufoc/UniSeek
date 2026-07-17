@@ -80,7 +80,8 @@ def main():
         # Step 3: 生成企业数据
         # =====================================================================
         print("Step 3/6: 生成企业数据...")
-        enterprise_ids, hr_enterprise_map = generate_enterprises(writer, hr_ids)
+        enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map = \
+            generate_enterprises(writer, hr_ids)
         print(f"  -> {len(enterprise_ids)} 个企业")
 
         # =====================================================================
@@ -91,10 +92,13 @@ def main():
         print(f"  -> {len(resume_ids)} 份简历")
 
         # =====================================================================
-        # Step 5: 生成岗位数据
+        # Step 5: 生成岗位数据（仅已认证企业）
         # =====================================================================
         print("Step 5/6: 生成岗位数据...")
-        task_ids = generate_tasks(writer, enterprise_ids, hr_enterprise_map)
+        task_ids, task_enterprise_map = generate_tasks(
+            writer, enterprise_ids, hr_enterprise_map,
+            enterprise_industry_map, enterprise_audit_map,
+        )
         print(f"  -> {len(task_ids)} 个岗位")
 
         # =====================================================================
@@ -103,6 +107,7 @@ def main():
         print("Step 5/6: 生成投递数据...")
         app_ids, app_info_list = generate_applications(
             writer, seeker_ids, task_ids, hr_enterprise_map, resume_id_map,
+            task_enterprise_map,
         )
         print(f"  -> {len(app_ids)} 条投递记录")
 
