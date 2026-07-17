@@ -126,12 +126,12 @@ watch(() => route.path, checkEnterpriseCert)
       <router-view />
     </main>
 
-    <!-- 企业资质认证强制弹窗 — 招聘者未完成认证时拦截所有页面操作 -->
+    <!-- 企业资质认证弹窗 — 招聘者未完成认证时提示 -->
     <el-dialog
       v-model="certDialogVisible"
-      :show-close="false"
+      :show-close="true"
       :close-on-click-modal="false"
-      :close-on-press-escape="false"
+      :close-on-press-escape="true"
       width="400px"
       top="28vh"
       append-to-body
@@ -142,9 +142,14 @@ watch(() => route.path, checkEnterpriseCert)
         </el-icon>
         <h3 class="cert-dialog-title">企业资质认证</h3>
         <p class="cert-dialog-desc">{{ certStatusText }}</p>
-        <button class="cert-dialog-btn" @click="goToEnterpriseCert">
-          前往认证
-        </button>
+        <div class="cert-dialog-actions">
+          <button class="cert-dialog-btn cert-dialog-btn-primary" @click="goToEnterpriseCert">
+            前往认证
+          </button>
+          <button class="cert-dialog-btn cert-dialog-btn-default" @click="certDialogVisible = false">
+            稍后再说
+          </button>
+        </div>
       </div>
     </el-dialog>
 
@@ -320,7 +325,7 @@ watch(() => route.path, checkEnterpriseCert)
   background: #f5f7fa;
 }
 
-/* 企业资质认证强制弹窗样式 */
+/* 企业资质认证弹窗样式 */
 .cert-dialog-body {
   display: flex;
   flex-direction: column;
@@ -340,20 +345,34 @@ watch(() => route.path, checkEnterpriseCert)
   color: #555;
   line-height: 1.6;
 }
-.cert-dialog-btn {
+.cert-dialog-actions {
+  display: flex;
+  gap: 12px;
   width: 100%;
+}
+.cert-dialog-btn {
   height: 44px;
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
-  background: #1762FB;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: opacity 0.2s;
+  flex: 1;
 }
-.cert-dialog-btn:hover {
+.cert-dialog-btn-primary {
+  color: #fff;
+  background: #1762FB;
+}
+.cert-dialog-btn-primary:hover {
   opacity: 0.92;
+}
+.cert-dialog-btn-default {
+  color: #555;
+  background: #f0f2f5;
+}
+.cert-dialog-btn-default:hover {
+  background: #e5e7eb;
 }
 
 @media (max-width: 768px) {
