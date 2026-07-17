@@ -143,8 +143,8 @@ const goBack = () => {
   padding: 8px 16px;
   font-size: 14px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  background: rgba(23, 98, 251, 0.06);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s;
@@ -152,7 +152,7 @@ const goBack = () => {
 }
 
 .back-btn:hover {
-  background: rgba(0, 122, 255, 0.12);
+  background: rgba(23, 98, 251, 0.12);
 }
 
 .page-title {

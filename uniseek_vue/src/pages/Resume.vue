@@ -858,7 +858,7 @@ const toggleSection = (key: string) => {
 }
 
 .nav-item.active {
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
   font-weight: 500;
 }
@@ -1023,7 +1023,7 @@ const toggleSection = (key: string) => {
   padding: 4px 12px;
   font-size: 13px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   border-radius: 4px;
 }
 
@@ -1156,7 +1156,7 @@ const toggleSection = (key: string) => {
 
 .form-input:focus {
   border-color: #1762FB;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(23, 98, 251, 0.1);
 }
 
 .readonly-text {
@@ -1178,8 +1178,8 @@ const toggleSection = (key: string) => {
   padding: 2px 10px;
   font-size: 12px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.08);
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  background: rgba(23, 98, 251, 0.08);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -1198,15 +1198,15 @@ const toggleSection = (key: string) => {
   padding: 4px 14px;
   font-size: 13px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  background: rgba(23, 98, 251, 0.06);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-change-phone:hover {
-  background: rgba(0, 122, 255, 0.12);
+  background: rgba(23, 98, 251, 0.12);
   border-color: #1762FB;
 }
 
@@ -1251,7 +1251,7 @@ const toggleSection = (key: string) => {
 
 .gender-btn.selected {
   border-color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   color: #1762FB;
 }
 
@@ -1277,7 +1277,7 @@ const toggleSection = (key: string) => {
 
 .option-tag.selected {
   border-color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   color: #1762FB;
 }
 
@@ -1299,14 +1299,14 @@ const toggleSection = (key: string) => {
   padding: 10px 16px;
   font-size: 13px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  background: rgba(23, 98, 251, 0.06);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 8px;
   cursor: pointer;
 }
 
 .btn-add-skill:hover {
-  background: rgba(0, 122, 255, 0.12);
+  background: rgba(23, 98, 251, 0.12);
 }
 
 .skill-tags-edit {
@@ -1332,7 +1332,7 @@ const toggleSection = (key: string) => {
 
 .form-textarea:focus {
   border-color: #1762FB;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(23, 98, 251, 0.1);
 }
 
 .form-hint {

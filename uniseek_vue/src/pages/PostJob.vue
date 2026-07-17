@@ -435,7 +435,7 @@ const handleSubmit = async () => {
 }
 .tag-btn.active {
   border-color: #1762FB;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
   font-weight: 500;
 }
@@ -452,9 +452,9 @@ const handleSubmit = async () => {
   padding: 4px 10px 4px 14px;
   font-size: 13px;
   border-radius: 16px;
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(23, 98, 251, 0.1);
   color: #1762FB;
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  border: 1px solid rgba(23, 98, 251, 0.2);
 }
 .tag-remove-icon {
   font-size: 14px;

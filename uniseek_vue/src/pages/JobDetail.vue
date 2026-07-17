@@ -512,7 +512,7 @@ onMounted(async () => {
 .tag-item {
   padding: 5px 14px;
   font-size: 13px;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   color: #1762FB;
   border-radius: 20px;
   cursor: pointer;
@@ -520,7 +520,7 @@ onMounted(async () => {
 }
 
 .tag-item:hover {
-  background: rgba(0, 122, 255, 0.14);
+  background: rgba(23, 98, 251, 0.14);
 }
 
 .info-grid {
@@ -694,7 +694,7 @@ onMounted(async () => {
 }
 
 .apply-btn.contact-btn:hover:not(:disabled) {
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
 }
 
 .apply-btn.fav-btn {

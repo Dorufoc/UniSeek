@@ -1178,7 +1178,7 @@ watch(() => route.query.chat, async (newVal) => {
   color: #999;
 }
 
-/* ── 简历操作按钮：浮层模式，hover 时从右侧滑入 ── */
+/* ── 简历操作按钮：浮层模式，hover 时淡入显示 ── */
 .resume-actions {
   position: absolute;
   top: 0;
@@ -1189,29 +1189,29 @@ watch(() => route.query.chat, async (newVal) => {
   gap: 4px;
   padding: 0 10px;
   pointer-events: none;
-  transform: translateX(100%);
-  transition: transform 0.25s ease;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 .resume-bubble:hover .resume-actions {
-  transform: translateX(0);
+  opacity: 1;
   pointer-events: auto;
 }
 
-/* 渐变遮罩 — 跟随气泡背景色，hover 时从右侧滑入覆盖整个气泡 */
+/* 渐变遮罩 — 跟随气泡背景色，hover 时淡入显示 */
 .resume-actions::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -500px;
-  width: calc(100% + 500px);
+  left: 0;
+  right: 0;
   z-index: -1;
   pointer-events: none;
-  transform: translateX(100%);
-  transition: transform 0.25s ease;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 .resume-bubble:hover .resume-actions::before {
-  transform: translateX(0);
+  opacity: 1;
 }
 .resume-bubble:not(.self) .resume-actions::before {
   background: rgba(245, 245, 255, 0.5);

@@ -547,7 +547,7 @@ const availableActions = (app: TaskApplication) => {
   line-height: 56px;
   text-align: center;
   border-radius: 50%;
-  background: #409eff;
+  background: #1762FB;
   color: #fff;
   font-size: 20px;
   flex-shrink: 0;
@@ -616,7 +616,7 @@ const availableActions = (app: TaskApplication) => {
   line-height: 44px;
   text-align: center;
   border-radius: 50%;
-  background: #409eff;
+  background: #1762FB;
   color: #fff;
   font-size: 18px;
   flex-shrink: 0;
@@ -685,7 +685,7 @@ const availableActions = (app: TaskApplication) => {
   line-height: 64px;
   text-align: center;
   border-radius: 50%;
-  background: #409eff;
+  background: #1762FB;
   color: #fff;
   font-size: 26px;
   flex-shrink: 0;
@@ -719,7 +719,7 @@ const availableActions = (app: TaskApplication) => {
   color: #333;
   margin: 0 0 8px;
   padding-left: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid #1762FB;
 }
 
 .talent-section-content {

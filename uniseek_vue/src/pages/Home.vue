@@ -709,7 +709,7 @@ onUnmounted(() => {
 .job-section-type {
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
   font-size: 11px;
 }
@@ -824,7 +824,7 @@ onUnmounted(() => {
   padding: 2px 8px;
   font-size: 11px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   border-radius: 4px;
   line-height: 1.5;
 }
@@ -855,7 +855,7 @@ onUnmounted(() => {
   border-radius: 6px;
   text-decoration: none;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   transition: all 0.2s;
   white-space: nowrap;
   border: none;
@@ -865,7 +865,7 @@ onUnmounted(() => {
 }
 
 .action-btn:hover {
-  background: rgba(0, 122, 255, 0.12);
+  background: rgba(23, 98, 251, 0.12);
 }
 
 .action-btn-disabled {
@@ -930,7 +930,7 @@ onUnmounted(() => {
 }
 
 .view-all-btn:hover {
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
 }
 
 /* ── 求职者 Hero ── */
@@ -1028,9 +1028,9 @@ onUnmounted(() => {
 }
 
 .search-type-item.active {
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 600;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
 }
 
 .search-input {
@@ -1143,7 +1143,6 @@ onUnmounted(() => {
 .category-card:hover {
   background: var(--card-color) !important;
   box-shadow: 0 8px 28px var(--card-color);
-  transform: translateY(-4px);
 }
 
 .category-card:hover .cat-name {
@@ -1202,8 +1201,7 @@ onUnmounted(() => {
 }
 
 .job-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(23, 98, 251, 0.1);
 }
 
 .job-card-top {
@@ -1247,7 +1245,7 @@ onUnmounted(() => {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
 }
 
@@ -1336,8 +1334,7 @@ onUnmounted(() => {
 }
 
 .company-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(23, 98, 251, 0.1);
 }
 
 .company-card-top {
@@ -1351,7 +1348,7 @@ onUnmounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #007AFF, #00a8ff);
+  background: linear-gradient(135deg, #1762FB, #00a8ff);
   color: #fff;
   font-size: 20px;
   font-weight: 700;
@@ -1402,7 +1399,7 @@ onUnmounted(() => {
 }
 
 .company-card-jobs {
-  color: #007AFF;
+  color: #1762FB;
   font-weight: 500;
 }
 

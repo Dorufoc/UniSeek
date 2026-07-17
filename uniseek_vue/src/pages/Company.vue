@@ -625,7 +625,7 @@ watch(() => route.query.id, (id) => {
 
 .sort-tab.active {
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   font-weight: 600;
 }
 
@@ -654,7 +654,6 @@ watch(() => route.query.id, (id) => {
 
 .company-card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
 }
 
 .company-logo {
@@ -695,7 +694,7 @@ watch(() => route.query.id, (id) => {
   padding: 2px 10px;
   font-size: 12px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   border-radius: 4px;
 }
 

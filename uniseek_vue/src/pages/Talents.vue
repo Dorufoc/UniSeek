@@ -333,7 +333,7 @@ const genderLabel = (g?: number) => {
 }
 
 .filter-tab.active {
-  background: #409eff;
+  background: #1762FB;
   color: #fff;
 }
 
@@ -358,7 +358,7 @@ const genderLabel = (g?: number) => {
 }
 
 .talent-card:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .talent-main {
@@ -372,7 +372,7 @@ const genderLabel = (g?: number) => {
   line-height: 56px;
   text-align: center;
   border-radius: 50%;
-  background: #409eff;
+  background: #1762FB;
   color: #fff;
   font-size: 20px;
   flex-shrink: 0;

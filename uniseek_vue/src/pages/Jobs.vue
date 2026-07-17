@@ -709,9 +709,9 @@ onMounted(async () => {
   gap: 6px;
   padding: 4px 12px;
   font-size: 13px;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 16px;
 }
 .chip-close {
@@ -782,9 +782,9 @@ onMounted(async () => {
   gap: 4px;
   padding: 4px 10px;
   font-size: 13px;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 16px;
 }
 
@@ -844,7 +844,7 @@ onMounted(async () => {
 .tag-suggestion-item:hover {
   border-color: #1762FB;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.04);
+  background: rgba(23, 98, 251, 0.04);
 }
 
 .jobs-body {
@@ -909,7 +909,7 @@ onMounted(async () => {
 
 .filter-option.active {
   border-color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   color: #1762FB;
   font-weight: 600;
 }
@@ -1047,7 +1047,7 @@ onMounted(async () => {
 
 .sort-tab.active {
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
   font-weight: 600;
 }
 
@@ -1073,8 +1073,7 @@ onMounted(async () => {
 }
 
 .job-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.12);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(23, 98, 251, 0.12);
 }
 
 .job-card-body {
@@ -1117,7 +1116,7 @@ onMounted(async () => {
 }
 
 .type-fulltime {
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
 }
 

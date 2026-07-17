@@ -62,7 +62,7 @@ const handleLogout = () => {
         router
         background-color="#1F2634"
         text-color="#bfcbd9"
-        active-text-color="#409eff"
+        active-text-color="#1762FB"
         class="admin-menu"
       >
         <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">

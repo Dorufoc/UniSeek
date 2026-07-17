@@ -641,7 +641,7 @@ const handleMenuClick = (item: string) => {
 
 .role-badge.seeker {
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(23, 98, 251, 0.1);
 }
 
 .role-badge.recruiter {
@@ -672,13 +672,13 @@ const handleMenuClick = (item: string) => {
 }
 
 .link-btn {
-  color: #007AFF;
+  color: #1762FB;
   cursor: pointer;
   text-decoration: underline;
 }
 
 .link-btn:hover {
-  color: #0056b3;
+  color: #0052e6;
 }
 
 .edit-profile-btn {
@@ -688,15 +688,15 @@ const handleMenuClick = (item: string) => {
   padding: 8px 24px;
   font-size: 14px;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.06);
-  border: 1px solid rgba(0, 122, 255, 0.2);
+  background: rgba(23, 98, 251, 0.06);
+  border: 1px solid rgba(23, 98, 251, 0.2);
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .edit-profile-btn:hover {
-  background: rgba(0, 122, 255, 0.12);
+  background: rgba(23, 98, 251, 0.12);
 }
 
 /* 统计卡片 */
@@ -718,7 +718,7 @@ const handleMenuClick = (item: string) => {
 }
 
 .stat-item:hover {
-  background: rgba(0, 122, 255, 0.06);
+  background: rgba(23, 98, 251, 0.06);
 }
 
 .stat-num {
@@ -780,8 +780,8 @@ const handleMenuClick = (item: string) => {
 
 .menu-item:hover {
   border-color: #1762FB;
-  background: rgba(0, 122, 255, 0.03);
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.03);
+  box-shadow: 0 2px 8px rgba(23, 98, 251, 0.08);
 }
 
 .menu-icon {
@@ -795,7 +795,7 @@ const handleMenuClick = (item: string) => {
 }
 
 .menu-icon.seeker-bg {
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
 }
 

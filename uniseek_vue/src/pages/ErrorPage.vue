@@ -531,16 +531,10 @@ onUnmounted(() => {
 .action-btn:hover {
   border-color: rgba(23, 98, 251, 0.5);
   background: rgba(23, 98, 251, 0.08);
-  transform: translateY(-1px);
 }
 
 .action-btn:hover::before {
   opacity: 1;
-}
-
-.action-btn:hover .el-icon,
-.action-btn:hover span {
-  transform: translateX(2px);
 }
 
 .action-btn .el-icon,

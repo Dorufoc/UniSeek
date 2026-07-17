@@ -449,7 +449,7 @@ const switchTab = (tab: 'login' | 'register') => {
 
 .role-btn.active {
   border-color: #1762FB;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(23, 98, 251, 0.08);
   color: #1762FB;
   font-weight: 500;
 }
@@ -566,7 +566,7 @@ const switchTab = (tab: 'login' | 'register') => {
 .social-btn:hover {
   border-color: #1762FB;
   color: #1762FB;
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(23, 98, 251, 0.1);
 }
 
 @media (max-width: 768px) {
