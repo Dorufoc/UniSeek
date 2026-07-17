@@ -1,6 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { ChatService } from '../services/ChatService';
 import { ChatMessageVO } from '../services/ChatTypes';
+import { UserSession } from '../services/UserSession';
 
 @Entry
 @Component
@@ -17,9 +18,21 @@ struct ChatDetailPage {
     this.counterpartAvatar = params['counterpartAvatar'] as string
     this.applicationId = params['applicationId'] as number
 
+    this.loadMessages()
+  }
+
+  onPageShow(): void {
+    this.loadMessages()
+  }
+
+  loadMessages(): void {
+    if (this.applicationId <= 0) {
+      return
+    }
     ChatService.getMessages(this.applicationId).then((msgs) => {
       this.messages = msgs
     })
+    ChatService.markSessionRead(this.applicationId)
   }
 
   build() {
@@ -45,7 +58,7 @@ struct ChatDetailPage {
       Scroll() {
         Column() {
           ForEach(this.messages, (msg: ChatMessageVO) => {
-            if (msg.senderId === 0) {
+            if (msg.senderId === UserSession.userId) {
               this.myMessageItem(msg)
             } else {
               this.otherMessageItem(msg)

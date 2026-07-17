@@ -2,6 +2,7 @@ import { router } from '@kit.ArkUI';
 import { ChatService } from '../services/ChatService';
 import { JobData } from '../services/ChatTypes';
 import { RecordService } from '../services/RecordService';
+import { FavoriteService } from '../services/FavoriteService';
 import { SALARY_UNIT_LABELS } from '../services/RecruiterTypes';
 
 @Entry
@@ -21,13 +22,20 @@ struct JobDetailPage {
   @State applied: boolean = false
   @State favorited: boolean = false
   @State hideActions: boolean = false
+  @State showError: boolean = false
+  @State errorMsg: string = ''
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
     if (params['jobData']) {
       this.job = JSON.parse(params['jobData']) as JobData
       RecordService.addViewedJob(this.job)
-      this.favorited = RecordService.isFavorited(this.job.id)
+      this.applied = this.job.hasApplied
+      FavoriteService.checkFavorited(Number(this.job.id)).then((fav: boolean) => {
+        this.favorited = fav
+      }).catch(() => {
+        this.favorited = false
+      })
     }
     if (params['hideActions']) {
       this.hideActions = params['hideActions'] === 'true'
@@ -53,6 +61,17 @@ struct JobDetailPage {
       .width('100%')
       .padding({ left: 16, right: 16, top: 12, bottom: 12 })
       .alignItems(VerticalAlign.Center)
+
+      if (this.showError) {
+        Text(this.errorMsg)
+          .fontSize(14)
+          .fontColor('#FF4444')
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+          .backgroundColor('#FFF0F0')
+          .borderRadius(8)
+          .margin({ left: 16, right: 16 })
+      }
 
       Scroll() {
         Column() {
@@ -166,7 +185,7 @@ struct JobDetailPage {
             .width('100%')
             .margin({ bottom: 10 })
 
-          RichText('<p>' + (this.job.description || '') + '</p>')
+          RichText('<p>' + (this.job.description || '').replace(/\n/g, '<br/>') + '</p>')
             .width('100%')
         }
         .padding({ left: 16, right: 16, bottom: 24 })
@@ -198,11 +217,16 @@ struct JobDetailPage {
           .borderRadius(24)
           .margin({ right: 10 })
           .onClick(() => {
-            this.favorited = !this.favorited
-            if (this.favorited) {
-              RecordService.addFavoriteJob(this.job)
+            const newFav = !this.favorited
+            this.favorited = newFav
+            if (newFav) {
+              FavoriteService.addFavorite(Number(this.job.id)).catch(() => {
+                this.favorited = false
+              })
             } else {
-              RecordService.removeFavoriteJob(this.job.id)
+              FavoriteService.removeFavorite(Number(this.job.id)).catch(() => {
+                this.favorited = true
+              })
             }
           })
 
@@ -215,30 +239,36 @@ struct JobDetailPage {
             .fontWeight(FontWeight.Bold)
             .borderRadius(24)
             .onClick(() => {
+              this.showError = false
               if (this.applied) {
-                router.pushUrl({
-                  url: 'pages/ChatDetailPage',
-                  params: {
-                    applicationId: 0,
-                    counterpartName: this.job.hrName || '招聘方',
-                    counterpartAvatar: this.job.hrAvatar || ''
-                  }
-                })
-                return
-              }
-              RecordService.addChattedJob(this.job)
-              ChatService.createApplication(Number(this.job.id)).then((app) => {
-                if (app) {
-                  this.applied = true
+                if (this.job.applicationId > 0) {
                   router.pushUrl({
                     url: 'pages/ChatDetailPage',
                     params: {
-                      applicationId: app.id,
+                      applicationId: this.job.applicationId,
                       counterpartName: this.job.hrName || '招聘方',
                       counterpartAvatar: this.job.hrAvatar || ''
                     }
                   })
+                } else {
+                  this.errorMsg = '未找到会话信息，请从消息列表进入'
+                  this.showError = true
                 }
+                return
+              }
+              ChatService.createApplication(Number(this.job.id)).then((app) => {
+                this.applied = true
+                router.pushUrl({
+                  url: 'pages/ChatDetailPage',
+                  params: {
+                    applicationId: app.id,
+                    counterpartName: this.job.hrName || '招聘方',
+                    counterpartAvatar: this.job.hrAvatar || ''
+                  }
+                })
+              }).catch((e: Error) => {
+                this.errorMsg = e.message || '投递失败，请稍后重试'
+                this.showError = true
               })
             })
         }

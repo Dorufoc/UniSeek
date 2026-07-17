@@ -6,7 +6,7 @@ import { ChatSessionVO } from '../../../services/ChatTypes';
 export struct ChatPage {
   @State sessions: ChatSessionVO[] = []
 
-  aboutToAppear(): void {
+  onPageShow(): void {
     ChatService.getSessions().then((list: ChatSessionVO[]) => {
       this.sessions = list
     })

@@ -46,11 +46,7 @@ export class ChatService {
     await ApiClient.put<ApiEmpty>('/api/chat/sessions/' + applicationId + '/read')
   }
 
-  static async createApplication(taskId: number): Promise<ApplicationResponse | null> {
-    try {
-      return await ApiClient.post<ApplicationResponse>('/api/applications', { taskId } as CreateApplicationRequest)
-    } catch {
-      return null
-    }
+  static async createApplication(taskId: number): Promise<ApplicationResponse> {
+    return ApiClient.post<ApplicationResponse>('/api/applications', { taskId } as CreateApplicationRequest)
   }
 }

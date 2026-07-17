@@ -8,7 +8,7 @@ const KEY_TOKEN = 'jwt_token';
 export interface ApiEmpty {}
 
 export class ApiClient {
-  static BASE_URL: string = 'http://192.168.246.201:8080'
+  static BASE_URL: string = 'http://192.168.246.118:8080'
 
   static saveToken(token: string): void {
     const pref = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })

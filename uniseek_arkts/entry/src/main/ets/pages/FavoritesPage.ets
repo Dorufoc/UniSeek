@@ -1,86 +1,24 @@
 import { router } from '@kit.ArkUI';
 import { JobData } from '../services/ChatTypes';
-import { RecordService } from '../services/RecordService';
-
-@Component
-struct JobCard {
-  job: JobData = {
-    id: '', title: '', company: '', salary: '',
-    salaryMid: 0, popularity: 0, region: '',
-    type: '', category: '', description: '',
-    enterpriseId: 0, categoryId: 0, regionId: 0,
-    salaryMin: 0, salaryMax: 0, salaryUnit: 0,
-    jobType: 0, status: 0, hasApplied: false,
-    applicationId: 0,
-    tag: [], remainingQuota: 0,
-    hrName: '', hrAvatar: ''
-  }
-
-  build() {
-    Row() {
-      Column() {
-        Text(this.job.title)
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
-        Text(this.job.company)
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ top: 6 })
-        Row() {
-          Text(this.job.region)
-            .fontSize(12)
-            .fontColor('#999999')
-            .backgroundColor('#F5F5F5')
-            .borderRadius(4)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          Text(this.job.type)
-            .fontSize(12)
-            .fontColor('#999999')
-            .backgroundColor('#F5F5F5')
-            .borderRadius(4)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .margin({ left: 8 })
-        }
-        .margin({ top: 8 })
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Column() {
-        Text(this.job.salary)
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FF6B35')
-        Text(this.job.popularity + '人投递')
-          .fontSize(12)
-          .fontColor('#BBBBBB')
-          .margin({ top: 4 })
-      }
-      .alignItems(HorizontalAlign.End)
-    }
-    .width('100%')
-    .padding(16)
-    .backgroundColor('#FFFFFF')
-    .borderRadius(12)
-    .margin({ left: 16, right: 16, top: 8, bottom: 8 })
-    .shadow({ radius: 4, color: '#0D000000', offsetX: 0, offsetY: 2 })
-    .onClick(() => {
-      router.pushUrl({
-        url: 'pages/JobDetailPage',
-        params: { jobData: JSON.stringify(this.job) }
-      })
-    })
-  }
-}
+import { FavoriteService } from '../services/FavoriteService';
+import { JobCard } from './tab/seeker/HomePage';
 
 @Entry
 @Component
 struct FavoritesPage {
   @State jobs: JobData[] = []
 
-  aboutToAppear(): void {
-    this.jobs = RecordService.getFavoriteJobs()
+  onPageShow(): void {
+    this.loadFavorites()
+  }
+
+  async loadFavorites(): Promise<void> {
+    try {
+      this.jobs = await FavoriteService.getFavorites()
+    } catch (e) {
+      console.error('加载收藏失败', e)
+      this.jobs = []
+    }
   }
 
   build() {
@@ -116,7 +54,10 @@ struct FavoritesPage {
         List() {
           ForEach(this.jobs, (job: JobData) => {
             ListItem() {
-              JobCard({ job: job })
+              Column() {
+                JobCard({ job: job })
+              }
+              .margin({ top: 8 })
             }
           }, (job: JobData) => job.id)
         }
