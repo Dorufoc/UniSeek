@@ -17,3 +17,4 @@ node_modules/
 
 # Vite dependency cache
 uniseek_vue/node_modules/.vite/
+uniseek_java/upload/images/*

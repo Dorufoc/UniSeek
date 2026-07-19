@@ -467,6 +467,7 @@ const availableActions = (app: TaskApplication) => {
                 v-for="tag in currentResume.skills.split(/[,，、\s]+/).filter(Boolean)"
                 :key="tag"
                 size="small"
+                type="info"
                 class="talent-tag"
               >
                 {{ tag }}
