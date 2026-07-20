@@ -19,6 +19,7 @@ const userStore = useUserStore()
 
 const isRecruiter = computed(() => userStore.userInfo?.role === 1)
 const isSuperAdmin = computed(() => userStore.userInfo?.role === 99)
+const isAdmin = computed(() => (userStore.userInfo?.role ?? -1) >= 9)
 const userPhone = computed(() => {
   const phone = userStore.userInfo?.phone || ''
   return phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '未绑定'
@@ -244,7 +245,7 @@ const handleMenuClick = (item: string) => {
       router.push('/account-security')
       break
     case 'superAdmin':
-      router.push('/admin/super')
+      router.push('/admin/dashboard')
       break
     case 'realNameAuth':
       openAuthDialog()
@@ -334,8 +335,8 @@ const handleMenuClick = (item: string) => {
 
       <!-- 右侧：功能菜单 -->
       <div class="profile-main">
-        <!-- 超级管理员功能 -->
-        <template v-if="isSuperAdmin">
+        <!-- 管理员功能 -->
+        <template v-if="isAdmin">
           <div class="menu-section">
             <h3 class="section-title">系统管理</h3>
             <div class="menu-grid">

@@ -161,13 +161,13 @@ const statusLabel = (status: number) => {
 }
 
 const statusType = (status: number) => {
-  if (status === 0) return ''
+  if (status === 0) return 'info'
   if (status === 1) return 'warning'
   if (status === 2) return 'info'
   if (status === 3) return 'success'
   if (status === 4) return 'danger'
-  if (status === 5) return ''
-  return ''
+  if (status === 5) return 'success'
+  return 'info'
 }
 
 // 解析简历快照

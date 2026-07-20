@@ -193,7 +193,7 @@ const genderLabel = (g?: number) => {
             </div>
             <div class="talent-school">{{ talent.school || '未填' }}</div>
             <div class="talent-tags">
-              <el-tag v-for="tag in parsedSkills.get(talent.id!)" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
+              <el-tag v-for="tag in parsedSkills.get(talent.id!)" :key="tag" size="small" type="info" class="talent-tag">{{ tag }}</el-tag>
             </div>
             <div class="talent-summary">{{ talent.experience ? talent.experience.substring(0, 100) + '...' : '暂无工作经历' }}</div>
           </div>
@@ -241,7 +241,7 @@ const genderLabel = (g?: number) => {
         <div class="detail-section">
           <h4>技能标签</h4>
           <div class="detail-tags">
-            <el-tag v-for="tag in parseSkills(selectedTalent.skills)" :key="tag" size="small" class="talent-tag">{{ tag }}</el-tag>
+            <el-tag v-for="tag in parseSkills(selectedTalent.skills)" :key="tag" size="small" type="info" class="talent-tag">{{ tag }}</el-tag>
             <span v-if="!selectedTalent.skills" class="empty-text">无</span>
           </div>
         </div>
@@ -424,6 +424,8 @@ const genderLabel = (g?: number) => {
   cursor: pointer;
   transition: transform 0.15s;
   position: relative;
+  min-height: 140px;
+  background: #fff;
 }
 
 .talent-card:hover {
@@ -476,6 +478,7 @@ const genderLabel = (g?: number) => {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 8px;
+  min-height: 24px;
 }
 
 .talent-tag {
