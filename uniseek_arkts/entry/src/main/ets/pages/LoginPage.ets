@@ -1,7 +1,8 @@
-import { router } from '@kit.ArkUI';
+import { router, promptAction, CustomContentDialog, SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { UserSession } from '../services/UserSession';
 import { ApiClient } from '../services/ApiClient';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 
 @Entry
 @Component
@@ -9,189 +10,207 @@ struct LoginPage {
   @State phone: string = ''
   @State password: string = ''
   @State role: number = 0
-  @State showError: boolean = false
-  @State errorMsg: string = ''
-  @State showServerDialog: boolean = false
+  @State selectedRoleIndexes: number[] = [0]
   @State serverAddrInput: string = ''
+  @State pageLoaded: boolean = false
+  @State logoOpacity: number = 0
+  @State contentOpacity: number = 0
+
+  // 原生弹窗控制器
+  private serverDialogController: CustomDialogController | null = null;
 
   // 调试用：记录标题点击时间戳，5 秒内连点 10 次弹出后端地址
   private clickTimestamps: number[] = []
 
+  // 胶囊单选分段按钮——求职者/招聘者切换
+  @State roleOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
+    buttons: [{ text: '求职者' }, { text: '招聘者' }],
+    multiply: false,
+    selectedBackgroundColor: AppColors.PRIMARY,
+    backgroundColor: AppColors.INPUT_BG,
+    selectedFontColor: '#FFFFFF',
+    fontColor: AppColors.TEXT_SECONDARY,
+    fontSize: AppFontSize.SM,
+    selectedFontSize: AppFontSize.SM
+  })
+
+  // 自定义弹窗内容区——TextInput 由系统原生弹窗的 contentBuilder 承载
+  @Builder
+  buildServerDialogContent(): void {
+    TextInput({ placeholder: '请输入后端服务器地址', text: this.serverAddrInput })
+      .onChange((value: string) => {
+        this.serverAddrInput = value
+      })
+  }
+
+  aboutToAppear(): void {
+    // 页面入场动画：延迟一帧启动淡入 + 上移
+    setTimeout(() => {
+      this.pageLoaded = true
+    }, 50)
+    // 入场动画——Logo 先行，内容延迟跟随
+    animateTo({ duration: 400 }, () => { this.logoOpacity = 1 })
+    setTimeout(() => {
+      animateTo({ duration: 400 }, () => { this.contentOpacity = 1 })
+    }, 200)
+  }
+
   build() {
     Stack() {
-      Column() {
+      Column(){
+        Image($r('app.media.uniseek_text'))
+          .width('90%')
+          .opacity(this.logoOpacity)
+          .onClick(() => {
+            this.handleTitleClick()
+          })
+          .margin({bottom:10})
         Column() {
-          Text('UniSeek')
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .width('100%')
-            .textAlign(TextAlign.Start)
-            .onClick(() => {
-              this.handleTitleClick()
-            })
+          // 表单区域
 
-          Text('为你寻找最适合你的')
-            .fontSize(16)
-            .fontColor('#888888')
-            .width('100%')
-            .textAlign(TextAlign.Start)
-            .margin({ top: 8 })
-        }
-        .width('100%')
-        .margin({ top: 60, bottom: 40 })
-
-        Column() {
-          if (this.showError) {
-            Text(this.errorMsg)
-              .fontSize(14)
-              .fontColor('#FF4444')
-              .width('100%')
-              .margin({ bottom: 8 })
-          }
-
-          TextInput({ placeholder: '手机号', text: this.phone })
-            .onChange((value: string) => {
-              this.phone = value
-            })
-            .height(48)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 16 })
-
-          TextInput({ placeholder: '密码', text: this.password })
-            .onChange((value: string) => {
-              this.password = value
-            })
-            .type(InputType.Password)
-            .height(48)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 16 })
-            .margin({ top: 16 })
-
-          Text('选择身份')
-            .fontSize(15)
-            .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
-            .width('100%')
-            .margin({ top: 20, bottom: 10 })
-
-          Row() {
-            Text('求职者')
-              .fontSize(14)
-              .fontColor(this.role === 0 ? '#FFFFFF' : '#666666')
-              .backgroundColor(this.role === 0 ? '#007AFF' : '#F5F5F5')
-              .borderRadius(16)
-              .padding({ left: 28, right: 28, top: 8, bottom: 8 })
-              .onClick(() => { this.role = 0 })
-
-            Text('招聘者')
-              .fontSize(14)
-              .fontColor(this.role === 1 ? '#FFFFFF' : '#666666')
-              .backgroundColor(this.role === 1 ? '#007AFF' : '#F5F5F5')
-              .borderRadius(16)
-              .padding({ left: 28, right: 28, top: 8, bottom: 8 })
-              .margin({ left: 12 })
-              .onClick(() => { this.role = 1 })
-          }
-          .width('100%')
-
-          Button('登录')
-            .width('100%')
-            .height(48)
-            .backgroundColor('#007AFF')
-            .borderRadius(8)
-            .fontColor('#FFFFFF')
-            .fontSize(16)
-            .margin({ top: 24 })
-            .onClick(() => {
-              this.handleLogin()
-            })
-        }
-        .width('100%')
-
-        Row() {
-          Text('没有账号？')
-            .fontSize(14)
-            .fontColor('#888888')
-
-          Text('立即注册')
-            .fontSize(14)
-            .fontColor('#007AFF')
-            .onClick(() => {
-              router.pushUrl({ url: 'pages/RegisterPage' })
-            })
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 24 })
-      }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 32, right: 32 })
-      .backgroundColor('#FFFFFF')
-
-      // 调试弹窗：遮罩 + 居中卡片（点击遮罩可关闭）
-      if (this.showServerDialog) {
-        Stack() {
-          Column()
-            .width('100%')
-            .height('100%')
-            .backgroundColor('#000000')
-            .opacity(0.4)
-            .onClick(() => {
-              this.showServerDialog = false
-            })
-
-          Column() {
-            Text('后端服务器地址')
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .margin({ bottom: 16 })
-
-            TextInput({ placeholder: '请输入后端服务器地址', text: this.serverAddrInput })
-              .onChange((value: string) => {
-                this.serverAddrInput = value
+            // 胶囊单选分段按钮——求职者/招聘者切换
+            Column() {
+              SegmentButton({
+                options: this.roleOptions,
+                selectedIndexes: $selectedRoleIndexes,
+                onItemClicked: (index: number): void => {
+                  this.role = index
+                }
               })
-              .width('100%')
-              .height(48)
-              .backgroundColor('#F5F5F5')
-              .borderRadius(8)
-              .padding({ left: 12, right: 12 })
-
-            Row() {
-              Button('取消')
-                .layoutWeight(1)
-                .height(40)
-                .backgroundColor('#F5F5F5')
-                .fontColor('#333333')
-                .onClick(() => {
-                  this.showServerDialog = false
-                })
-
-              Button('保存')
-                .layoutWeight(1)
-                .height(40)
-                .margin({ left: 12 })
-                .backgroundColor('#007AFF')
-                .fontColor('#FFFFFF')
-                .onClick(() => {
-                  ApiClient.BASE_URL = this.serverAddrInput.trim()
-                  this.showServerDialog = false
-                })
             }
             .width('100%')
-            .margin({ top: 20 })
+            .margin({ top: 40 })
+            // 手机号输入框
+            Row() {
+              SymbolGlyph($r('sys.symbol.phone'))
+                .fontSize(18)
+                .fontColor([AppColors.TEXT_MUTED])
+                .margin({ right: AppSpacing.SM })
+              TextInput({ placeholder: '手机号', text: this.phone })
+                .onChange((value: string) => {
+                  this.phone = value
+                })
+                .type(InputType.PhoneNumber)
+                .maxLength(11)
+                .layoutWeight(1)
+                .backgroundColor(Color.Transparent)
+                .fontSize(AppFontSize.MD)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .placeholderColor(AppColors.TEXT_MUTED)
+            }
+            .height(50)
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(20)
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+            .margin({ top: AppSpacing.MD })
+
+            // 密码输入框
+            Row() {
+              SymbolGlyph($r('sys.symbol.lock'))
+                .fontSize(18)
+                .fontColor([AppColors.TEXT_MUTED])
+                .margin({ right: AppSpacing.SM })
+              TextInput({ placeholder: '密码', text: this.password })
+                .onChange((value: string) => {
+                  this.password = value
+                })
+                .type(InputType.Password)
+                .maxLength(20)
+                .layoutWeight(1)
+                .backgroundColor(Color.Transparent)
+                .fontSize(AppFontSize.MD)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .placeholderColor(AppColors.TEXT_MUTED)
+            }
+            .height(50)
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(20)
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+            .margin({ top: AppSpacing.MD })
+
+
+
+
+          Column() {
+            // 登录按钮——使用 HMOS Capsule 风格
+            Button('登录', { type: ButtonType.Capsule })
+              .width('100%')
+              .height(50)
+              .backgroundColor(AppColors.PRIMARY)
+              .fontColor('#FFFFFF')
+              .fontSize(AppFontSize.MD)
+              .fontWeight(FontWeight.Medium)
+              .margin({ top: AppSpacing.XL })
+              .onClick(() => {
+                this.handleLogin()
+              })
+              .stateStyles({
+                pressed: {
+                  .scale({ x: 0.97, y: 0.97 })
+                  .opacity(0.9)
+                  .backgroundColor(AppColors.PRIMARY_HOVER)
+                },
+                normal: {
+                  .scale({ x: 1, y: 1 })
+                  .opacity(1)
+                  .backgroundColor(AppColors.PRIMARY)
+                }
+              })
+              .animation({
+                duration: 200
+              })
           }
-          .width('80%')
-          .padding(24)
-          .backgroundColor('#FFFFFF')
-          .borderRadius(12)
+
+          .width('100%')
+
+          // 注册引导
+          Row() {
+            Text('没有账号？')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.TEXT_MUTED)
+
+            Text('立即注册')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
+              .onClick(() => {
+                router.replaceUrl({ url: 'pages/RegisterPage' })
+              })
+          }
+          .width('90%')
+          .padding({
+            bottom: 40
+          })
+          .justifyContent(FlexAlign.Center)
+          .margin({ top: AppSpacing.XL })
         }
-        .width('100%')
-        .height('100%')
-        .zIndex(1000)
+        .justifyContent(FlexAlign.Center)
+        .borderRadius(AppRadius.XL)
+        .width('95%')
+        .margin({bottom:128})
+        .padding({ left: AppSpacing.XL, right: AppSpacing.XL })
+        .backgroundColor(AppColors.BG_CARD)
+        .opacity(this.contentOpacity)
+        .animation({ duration: 400 })
+
       }
+      // .backgroundImage($r('app.media.background_v2'))
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [
+          [AppColors.PRIMARY, 0.0],
+          ['#5A8CFF', 0.15],
+          ['#A8C4FF', 0.3],
+          ['#E4EEFF', 0.5],
+          ['#FFFFFF', 0.7],
+          ['#FFFFFF', 1.0]
+        ]
+      })
+      .justifyContent(FlexAlign.Center)
+      .width('100%')
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+      .height('100%')
+      // ---------- 主登录区域 ----------
+
     }
     .width('100%')
     .height('100%')
@@ -206,23 +225,44 @@ struct LoginPage {
     if (this.clickTimestamps.length >= 10) {
       this.clickTimestamps = []
       this.serverAddrInput = ApiClient.BASE_URL
-      this.showServerDialog = true
+      this.serverDialogController = new CustomDialogController({
+        builder: CustomContentDialog({
+          primaryTitle: '后端服务器地址',
+          contentBuilder: () => {
+            this.buildServerDialogContent()
+          },
+          buttons: [
+            {
+              value: '取消',
+              action: (): void => {
+                this.serverDialogController?.close()
+              }
+            },
+            {
+              value: '保存',
+              action: (): void => {
+                ApiClient.BASE_URL = this.serverAddrInput.trim()
+                this.serverDialogController?.close()
+              }
+            }
+          ]
+        }),
+        autoCancel: true,
+        alignment: DialogAlignment.Center
+      })
+      this.serverDialogController.open()
     }
   }
 
   async handleLogin() {
     if (!this.phone.trim()) {
-      this.showError = true
-      this.errorMsg = '请输入手机号'
+      promptAction.showToast({ message: '请输入手机号', duration: 2000 })
       return
     }
     if (!this.password.trim()) {
-      this.showError = true
-      this.errorMsg = '请输入密码'
+      promptAction.showToast({ message: '请输入密码', duration: 2000 })
       return
     }
-
-    this.showError = false
 
     try {
       await AuthService.login(this.phone.trim(), this.password.trim())
@@ -232,8 +272,7 @@ struct LoginPage {
         router.replaceUrl({ url: 'pages/RecruiterHomePage' })
       }
     } catch (e) {
-      this.showError = true
-      this.errorMsg = (e as Error).message || '登录失败'
+      promptAction.showToast({ message: (e as Error).message || '登录失败', duration: 2000 })
     }
   }
 }

@@ -1,5 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -13,41 +15,45 @@ struct SettingsPage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(20)
-          .height(20)
-          .fillColor('#333333')
-          .onClick(() => {
-            router.back()
-          })
-        Text('设置')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ left: 12 })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16 })
-      .alignItems(VerticalAlign.Center)
+      NavBar({
+        title: '设置',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Blank().layoutWeight(1)
 
-      Button('退出登录')
+      Button({ type: ButtonType.Capsule }) {
+        Text('退出登录')
+          .fontSize(AppFontSize.MD)
+          .fontColor('#FFFFFF')
+      }
         .width('90%')
         .height(48)
-        .backgroundColor('#FF4444')
-        .borderRadius(8)
-        .fontColor('#FFFFFF')
-        .fontSize(16)
-        .margin({ bottom: 40 })
+        .backgroundColor(AppColors.DANGER)
+        .margin({ bottom: AppSpacing.XXL })
         .onClick(() => {
           this.handleLogout()
+        })
+        .stateStyles({
+          pressed: {
+            .scale({ x: 0.97, y: 0.97 })
+            .opacity(0.9)
+            .backgroundColor(AppColors.DANGER)
+          },
+          normal: {
+            .scale({ x: 1, y: 1 })
+            .opacity(1)
+            .backgroundColor(AppColors.DANGER)
+          }
+        })
+        .animation({
+          duration: 200
         })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
-    .padding({ top: 12 })
+    .backgroundColor(AppColors.BG_PAGE)
+    .padding({ top: AppSpacing.SM })
   }
 }

@@ -1,6 +1,8 @@
 import { HomePage } from './tab/seeker/HomePage'
 import { ChatPage } from './tab/seeker/ChatPage'
 import { ProfilePage } from './tab/seeker/ProfilePage'
+import { AppColors } from '../common/AppStyles';
+import { router } from '@kit.ArkUI';
 
 @Entry
 @Component
@@ -8,26 +10,25 @@ struct MainPage {
   @State currentIndex: number = 0
 
   @Builder tabHome() {
-    this.tabItem('首页', $r('app.media.home'), 0)
+    this.tabItem('首页', $r('sys.symbol.house'), 0)
   }
 
   @Builder tabChat() {
-    this.tabItem('聊天', $r('app.media.chat'), 1)
+    this.tabItem('聊天', $r('sys.symbol.message'), 1)
   }
 
   @Builder tabProfile() {
-    this.tabItem('我的', $r('app.media.mine'), 2)
+    this.tabItem('我的', $r('sys.symbol.person'), 2)
   }
 
   @Builder tabItem(label: string, icon: Resource, index: number) {
     Column() {
-      Image(icon)
-        .width(24)
-        .height(24)
-        .fillColor(this.currentIndex === index ? '#007AFF' : '#999999')
+      SymbolGlyph(icon)
+        .fontSize(24)
+        .fontColor([this.currentIndex === index ? AppColors.PRIMARY : AppColors.TEXT_MUTED])
       Text(label)
         .fontSize(10)
-        .fontColor(this.currentIndex === index ? '#007AFF' : '#999999')
+        .fontColor(this.currentIndex === index ? AppColors.PRIMARY : AppColors.TEXT_MUTED)
         .margin({ top: 4 })
     }
     .width('100%')

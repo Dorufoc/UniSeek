@@ -1,6 +1,8 @@
 import { router } from '@kit.ArkUI';
 import { RecruiterService } from '../services/RecruiterService';
 import { AUDIT_STATUS_LABELS, RecruiterEnterpriseRequest } from '../services/RecruiterTypes';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -33,55 +35,64 @@ struct RecruiterEnterprisePage {
 
   build() {
     Column() {
-      this.topBar()
+      NavBar({
+        title: '企业资质',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Scroll() {
         Column() {
           if (this.auditStatus >= 0) {
             Row() {
               Text('审核状态：')
-                .fontSize(14)
-                .fontColor('#666666')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_SECONDARY)
               Text(AUDIT_STATUS_LABELS[this.auditStatus])
-                .fontSize(14)
-                .fontColor(this.auditStatus === 1 ? '#34C759' : this.auditStatus === 2 ? '#FF4444' : '#FF6B35')
+                .fontSize(AppFontSize.SM)
+                .fontColor(this.auditStatus === 1 ? AppColors.SUCCESS : this.auditStatus === 2 ? AppColors.DANGER : AppColors.WARNING)
                 .fontWeight(FontWeight.Medium)
             }
             .width('100%')
-            .padding(14)
+            .padding(AppSpacing.SM)
             .backgroundColor(this.auditStatus === 1 ? '#E8F8ED' : this.auditStatus === 2 ? '#FFEBEE' : '#FFF3E0')
-            .borderRadius(12)
-            .margin({ top: 12 })
+            .borderRadius(AppRadius.LG)
+            .margin({ top: AppSpacing.SM })
           }
 
           Text('修改企业信息后需重新提交审核')
-            .fontSize(13)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED)
             .width('100%')
-            .margin({ top: 16, bottom: 8 })
+            .margin({ top: AppSpacing.MD, bottom: AppSpacing.SM })
             .visibility(this.auditStatus === -1 ? Visibility.Hidden : Visibility.Visible)
 
           this.inputField('企业名称', this.companyName, (v: string) => { this.companyName = v })
           this.inputField('统一社会信用代码', this.creditCode, (v: string) => { this.creditCode = v })
 
           Text('营业执照图片')
-            .fontSize(13)
-            .fontColor('#666666')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_SECONDARY)
             .width('100%')
-            .margin({ top: 8 })
+            .margin({ top: AppSpacing.SM })
           Row() {
             Text('点击上传营业执照')
-              .fontSize(14)
-              .fontColor('#007AFF')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
           }
           .width('100%')
           .height(44)
-          .backgroundColor('#F5F5F5')
-          .borderRadius(8)
-          .padding({ left: 12 })
-          .margin({ top: 6 })
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.SM)
+          .padding({ left: AppSpacing.SM })
+          .margin({ top: AppSpacing.XS })
           .onClick(() => {
             // TODO: 文件选择器上传营业执照
+          })
+          .stateStyles({
+            pressed: {
+              .backgroundColor(AppColors.SELECTED_BG)
+            }
           })
 
           this.inputField('所属行业', this.industry, (v: string) => { this.industry = v })
@@ -89,33 +100,49 @@ struct RecruiterEnterprisePage {
 
           Column() {
             Text('公司简介')
-              .fontSize(13)
-              .fontColor('#666666')
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_SECONDARY)
               .width('100%')
             TextArea({ placeholder: '请输入公司简介', text: this.description })
               .height(100)
-              .backgroundColor('#F5F5F5')
-              .borderRadius(8)
-              .padding({ left: 12 })
-              .margin({ top: 6 })
+              .backgroundColor(AppColors.INPUT_BG)
+              .borderRadius(AppRadius.SM)
+              .padding({ left: AppSpacing.SM })
+              .margin({ top: AppSpacing.XS })
               .onChange((v: string) => { this.description = v })
           }
           .width('100%')
-          .margin({ top: 8 })
+          .margin({ top: AppSpacing.SM })
 
-          Button(this.submitButtonText())
+          Button({ type: ButtonType.Capsule }) {
+            Text(this.submitButtonText())
+              .fontSize(AppFontSize.MD)
+              .fontColor('#FFFFFF')
+          }
             .width('100%')
             .height(48)
-            .backgroundColor('#007AFF')
-            .borderRadius(8)
-            .fontColor('#FFFFFF')
-            .fontSize(16)
-            .margin({ top: 32, bottom: 40 })
+            .backgroundColor(AppColors.PRIMARY)
+            .margin({ top: AppSpacing.XL, bottom: AppSpacing.XXL })
             .onClick(() => {
               this.handleSubmit()
             })
+            .stateStyles({
+              pressed: {
+                .scale({ x: 0.97, y: 0.97 })
+                .opacity(0.9)
+                .backgroundColor(AppColors.PRIMARY_HOVER)
+              },
+              normal: {
+                .scale({ x: 1, y: 1 })
+                .opacity(1)
+                .backgroundColor(AppColors.PRIMARY)
+              }
+            })
+            .animation({
+              duration: 200
+            })
         }
-        .padding(16)
+        .padding(AppSpacing.MD)
         .width('100%')
       }
       .layoutWeight(1)
@@ -123,48 +150,26 @@ struct RecruiterEnterprisePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
-  }
-
-  @Builder
-  topBar(): void {
-    Row() {
-      Image($r('app.media.left_arrow'))
-        .width(24).height(24)
-        .fillColor('#333333')
-        .onClick(() => { router.back() })
-      Text('我的公司')
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-      Text('')
-        .width(24)
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder
   inputField(label: string, value: string, onChange: (v: string) => void): void {
     Column() {
       Text(label)
-        .fontSize(13)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       TextInput({ placeholder: '请输入' + label, text: value })
         .height(44)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-        .padding({ left: 12 })
-        .margin({ top: 6 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .padding({ left: AppSpacing.SM })
+        .margin({ top: AppSpacing.XS })
         .onChange(onChange)
     }
     .width('100%')
-    .margin({ top: 8 })
+    .margin({ top: AppSpacing.SM })
   }
 
   submitButtonText(): string {

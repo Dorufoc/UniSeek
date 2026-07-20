@@ -1,5 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 const PREF_NAME = 'search_history_db';
 const PREF_KEY = 'searchHistory';
@@ -110,101 +112,120 @@ struct SearchPage {
       Text(text)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .fontSize(14)
-        .fontColor('#333333')
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.TEXT_PRIMARY)
       if (this.isDeleting) {
         Text('✕')
-          .fontSize(11)
-          .fontColor('#FF4444')
-          .margin({ left: 6 })
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.DANGER)
+          .margin({ left: AppSpacing.XS })
           .onClick(() => {
             this.removeFromHistory(index)
           })
       }
     }
     .height(36)
-    .padding({ left: 20, right: 20 })
+    .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
     .backgroundColor(Color.Transparent)
-    .borderRadius(16)
+    .borderRadius(AppRadius.XL)
     .onClick(() => {
       if (!this.isDeleting) {
         this.triggerSearch(text)
+      }
+    })
+    .stateStyles({
+      pressed: {
+        .backgroundColor(AppColors.SELECTED_BG)
       }
     })
   }
 
   build() {
     Column() {
-      Row() {
-        Text('←')
-          .fontSize(20)
-          .fontColor('#333333')
-          .onClick(() => {
-            router.back()
-          })
+      NavBar({
+        title: '搜索',
+        showBack: false
+      })
 
+      Row() {
         TextInput({ placeholder: '搜索职位、公司...', text: this.searchText })
           .onChange((value: string) => {
             this.searchText = value
           })
           .height(40)
-          .backgroundColor('#F5F5F5')
-          .borderRadius(20)
-          .padding({ left: 16 })
-          .margin({ left: 12 })
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.FULL)
+          .padding({ left: AppSpacing.MD })
+          .margin({ left: AppSpacing.SM })
           .layoutWeight(1)
 
-        Button('搜索')
+        Button({ type: ButtonType.Capsule }) {
+          Text('搜索')
+            .fontSize(AppFontSize.SM)
+            .fontColor('#FFFFFF')
+        }
           .height(40)
-          .backgroundColor('#007AFF')
-          .borderRadius(20)
-          .fontColor('#FFFFFF')
-          .fontSize(14)
-          .margin({ left: 8 })
+          .backgroundColor(AppColors.PRIMARY)
+          .margin({ left: AppSpacing.SM })
           .onClick(() => {
             this.handleSearch()
           })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.97, y: 0.97 })
+              .opacity(0.9)
+              .backgroundColor(AppColors.PRIMARY_HOVER)
+            },
+            normal: {
+              .scale({ x: 1, y: 1 })
+              .opacity(1)
+              .backgroundColor(AppColors.PRIMARY)
+            }
+          })
+          .animation({
+            duration: 200
+          })
       }
       .width('100%')
-      .padding({ left: 16, right: 16 })
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       .alignItems(VerticalAlign.Center)
 
       Row() {
         Text('搜索历史')
-          .fontSize(16)
+          .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
+          .fontColor(AppColors.TEXT_PRIMARY)
 
         Blank()
 
         if (this.isDeleting) {
           Row() {
             Text('全部删除')
-              .fontSize(14)
-              .fontColor('#FF4444')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.DANGER)
               .onClick(() => {
                 this.clearAllHistory()
               })
-            Blank().width(16)
+            Blank().width(AppSpacing.MD)
             Text('完成')
-              .fontSize(14)
-              .fontColor('#007AFF')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
               .onClick(() => {
                 this.isDeleting = false
               })
           }
         } else if (this.searchHistory.length > 0) {
           Text('编辑')
-            .fontSize(14)
-            .fontColor('#007AFF')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.PRIMARY)
             .onClick(() => {
               this.isDeleting = true
             })
         }
       }
       .width('100%')
-      .padding({ left: 16, right: 16 })
-      .margin({ top: 20 })
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .margin({ top: AppSpacing.LG })
 
       if (this.searchHistory.length > 0) {
         Column({ space: 8 }) {
@@ -235,23 +256,22 @@ struct SearchPage {
 
           if (this.searchHistory.length > DEFAULT_SHOW) {
             Text(this.showAll ? '收起' : '展开更多')
-              .fontSize(14)
-              .fontColor('#007AFF')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
               .width('100%')
               .textAlign(TextAlign.Center)
-              .margin({ top: 8 })
+              .margin({ top: AppSpacing.SM })
               .onClick(() => {
                 this.showAll = !this.showAll
               })
           }
         }
         .width('100%')
-        .margin({ top: 8 })
+        .margin({ top: AppSpacing.SM })
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
-    .padding({ top: 12 })
+    .backgroundColor(AppColors.BG_PAGE)
   }
 }

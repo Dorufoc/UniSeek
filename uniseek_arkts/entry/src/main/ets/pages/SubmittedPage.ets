@@ -2,6 +2,8 @@ import { router } from '@kit.ArkUI';
 import { JobData } from '../services/ChatTypes';
 import { RecordService } from '../services/RecordService';
 import { JobCard } from './tab/seeker/HomePage';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -27,23 +29,11 @@ struct SubmittedPage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(20)
-          .height(20)
-          .fillColor('#333333')
-          .onClick(() => {
-            router.back()
-          })
-        Text('已投简历')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ left: 12 })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .alignItems(VerticalAlign.Center)
+      NavBar({
+        title: '已投递',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Row() {
         this.tabItem('看过', 0)
@@ -51,14 +41,14 @@ struct SubmittedPage {
         this.tabItem('面试', 2)
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-      .backgroundColor('#FFFFFF')
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
+      .backgroundColor(AppColors.BG_CARD)
 
       if (this.currentJobs().length === 0) {
         Column() {
           Text('暂无记录')
-            .fontSize(16)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
@@ -70,30 +60,33 @@ struct SubmittedPage {
               Column() {
                 JobCard({ job: job })
               }
-              .margin({ top: 8 })
+              .margin({ top: AppSpacing.SM })
             }
           }, (job: JobData) => job.id)
         }
         .layoutWeight(1)
         .width('100%')
-        .backgroundColor('#F8F8F8')
+        .backgroundColor(AppColors.BG_PAGE)
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder tabItem(label: string, index: number) {
     Text(label)
-      .fontSize(14)
-      .fontColor(this.activeTab === index ? '#FFFFFF' : '#666666')
-      .backgroundColor(this.activeTab === index ? '#007AFF' : '#F5F5F5')
-      .borderRadius(16)
-      .padding({ left: 24, right: 24, top: 8, bottom: 8 })
-      .margin({ right: 10 })
+      .fontSize(AppFontSize.SM)
+      .fontColor(this.activeTab === index ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
+      .backgroundColor(this.activeTab === index ? AppColors.PRIMARY : AppColors.INPUT_BG)
+      .borderRadius(AppRadius.XL)
+      .padding({ left: AppSpacing.LG, right: AppSpacing.LG, top: AppSpacing.SM, bottom: AppSpacing.SM })
+      .margin({ right: AppSpacing.SM })
       .onClick(() => {
         this.activeTab = index
+      })
+      .animation({
+        duration: 200
       })
   }
 }

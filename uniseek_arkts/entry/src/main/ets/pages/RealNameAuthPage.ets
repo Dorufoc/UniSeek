@@ -1,5 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -24,100 +26,104 @@ struct RealNameAuthPage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(24)
-          .height(24)
-          .fillColor('#333333')
-          .onClick(() => { router.back() })
-        Text('实名认证')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-          .margin({ right: 24 })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .alignItems(VerticalAlign.Center)
+      NavBar({
+        title: '实名认证',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Scroll() {
         Column() {
           if (this.showError) {
             Text(this.errorMsg)
-              .fontSize(14)
-              .fontColor('#FF4444')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.DANGER)
               .width('100%')
-              .margin({ bottom: 12 })
+              .margin({ bottom: AppSpacing.SM })
           }
 
           if (this.existing) {
             Text('您已通过实名认证')
-              .fontSize(16)
-              .fontColor('#34C759')
+              .fontSize(AppFontSize.MD)
+              .fontColor(AppColors.SUCCESS)
               .fontWeight(FontWeight.Medium)
               .width('100%')
-              .margin({ bottom: 20 })
+              .margin({ bottom: AppSpacing.LG })
           }
 
           Text('真实姓名')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           TextInput({ placeholder: '请输入真实姓名', text: this.realName })
             .onChange((value: string) => { this.realName = value })
             .height(44)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 14 })
-            .margin({ bottom: 20 })
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM })
+            .margin({ bottom: AppSpacing.LG })
             .enabled(!this.existing)
 
           Text('身份证号')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           TextInput({ placeholder: '请输入身份证号', text: this.idCard })
             .onChange((value: string) => {
               this.idCard = value
             })
             .height(44)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 14 })
-            .margin({ bottom: 32 })
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM })
+            .margin({ bottom: AppSpacing.XL })
             .enabled(!this.existing)
 
           if (!this.existing) {
-            Button('提交认证')
+            Button({ type: ButtonType.Capsule }) {
+              Text('提交认证')
+                .fontSize(AppFontSize.MD)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#FFFFFF')
+            }
               .width('100%')
               .height(48)
-              .backgroundColor('#007AFF')
-              .fontColor('#FFFFFF')
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .borderRadius(8)
+              .backgroundColor(AppColors.PRIMARY)
               .onClick(() => {
                 this.handleSubmit()
+              })
+              .stateStyles({
+                pressed: {
+                  .scale({ x: 0.97, y: 0.97 })
+                  .opacity(0.9)
+                  .backgroundColor(AppColors.PRIMARY_HOVER)
+                },
+                normal: {
+                  .scale({ x: 1, y: 1 })
+                  .opacity(1)
+                  .backgroundColor(AppColors.PRIMARY)
+                }
+              })
+              .animation({
+                duration: 200
               })
           }
         }
         .width('100%')
-        .padding({ left: 16, right: 16, top: 16 })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
       }
       .layoutWeight(1)
       .width('100%')
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   async handleSubmit(): Promise<void> {

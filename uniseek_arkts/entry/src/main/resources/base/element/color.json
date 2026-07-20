@@ -3,6 +3,66 @@
     {
       "name": "start_window_background",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "primary",
+      "value": "#1762FB"
+    },
+    {
+      "name": "primary_hover",
+      "value": "#0052e6"
+    },
+    {
+      "name": "primary_bg",
+      "value": "#E8F0FE"
+    },
+    {
+      "name": "primary_border",
+      "value": "#D0E3FC"
+    },
+    {
+      "name": "success",
+      "value": "#10b981"
+    },
+    {
+      "name": "warning",
+      "value": "#f59e0b"
+    },
+    {
+      "name": "danger",
+      "value": "#ef4444"
+    },
+    {
+      "name": "info",
+      "value": "#6366f1"
+    },
+    {
+      "name": "text_primary",
+      "value": "#1a1a2e"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#64748b"
+    },
+    {
+      "name": "text_muted",
+      "value": "#94a3b8"
+    },
+    {
+      "name": "bg_page",
+      "value": "#f8fafc"
+    },
+    {
+      "name": "bg_card",
+      "value": "#ffffff"
+    },
+    {
+      "name": "border",
+      "value": "#e2e8f0"
+    },
+    {
+      "name": "input_bg",
+      "value": "#f5f7fa"
     }
   ]
 }

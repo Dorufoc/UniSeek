@@ -4,6 +4,8 @@ import {
   RecruiterApplicationVO,
   APPLICATION_STATUS_LABELS
 } from '../services/RecruiterTypes';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -55,15 +57,19 @@ struct RecruiterApplicationsPage {
 
   build() {
     Column() {
-      this.topBar()
+      NavBar({
+        title: this.jobTitle || '投递管理',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       this.filterTabs()
 
       if (this.noJobContext) {
         Column() {
           Text('请从职位列表中选择一个职位查看投递')
-            .fontSize(14)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .width('100%')
         .layoutWeight(1)
@@ -72,8 +78,8 @@ struct RecruiterApplicationsPage {
       } else if (this.isLoading) {
         Column() {
           Text('加载中...')
-            .fontSize(14)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .width('100%')
         .height('100%')
@@ -82,8 +88,8 @@ struct RecruiterApplicationsPage {
       } else if (this.filteredList.length === 0) {
         Column() {
           Text('暂无投递记录')
-            .fontSize(14)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .width('100%')
         .layoutWeight(1)
@@ -94,9 +100,13 @@ struct RecruiterApplicationsPage {
           Column() {
             ForEach(this.filteredList, (app: RecruiterApplicationVO) => {
               ApplicationCard({ app: app })
+              .transition(TransitionEffect.asymmetric(
+                TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
+                TransitionEffect.opacity(1)
+              ))
             })
           }
-          .padding(16)
+          .padding(AppSpacing.MD)
           .width('100%')
         }
         .layoutWeight(1)
@@ -105,31 +115,7 @@ struct RecruiterApplicationsPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
-  }
-
-  @Builder
-  topBar(): void {
-    Row() {
-      Image($r('app.media.left_arrow'))
-        .width(24).height(24)
-        .fillColor('#333333')
-        .onClick(() => { router.back() })
-      Text(this.jobTitle)
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-      Text('')
-        .width(24)
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder
@@ -142,26 +128,29 @@ struct RecruiterApplicationsPage {
         this.filterTab('已录用', 3)
         this.filterTab('已淘汰', 4)
       }
-      .padding({ left: 16, right: 16 })
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     }
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
-    .backgroundColor('#FFFFFF')
-    .padding({ top: 8, bottom: 8 })
+    .backgroundColor(AppColors.BG_CARD)
+    .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
   }
 
   @Builder
   filterTab(label: string, status: number): void {
     Text(label)
-      .fontSize(14)
-      .fontColor(this.filterStatus === status ? '#FFFFFF' : '#666666')
-      .backgroundColor(this.filterStatus === status ? '#007AFF' : '#F5F5F5')
-      .borderRadius(16)
-      .padding({ left: 20, right: 20, top: 6, bottom: 6 })
-      .margin({ right: 8 })
+      .fontSize(AppFontSize.SM)
+      .fontColor(this.filterStatus === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
+      .backgroundColor(this.filterStatus === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
+      .borderRadius(AppRadius.XL)
+      .padding({ left: AppSpacing.LG, right: AppSpacing.LG, top: AppSpacing.XS, bottom: AppSpacing.XS })
+      .margin({ right: AppSpacing.SM })
       .onClick(() => {
         this.filterStatus = status
+      })
+      .animation({
+        duration: 200
       })
   }
 
@@ -180,41 +169,46 @@ struct ApplicationCard {
       Row() {
         Column()
           .width(40).height(40)
-          .backgroundColor('#E0E0E0')
+          .backgroundColor(AppColors.INPUT_BG)
           .borderRadius(20)
 
         Column() {
           Text(this.app.applicantName)
-            .fontSize(15)
+            .fontSize(AppFontSize.MD)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
 
           Text(APPLICATION_STATUS_LABELS[this.app.status])
-            .fontSize(12)
-            .fontColor('#007AFF')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
             .margin({ top: 2 })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-        .margin({ left: 12 })
+        .margin({ left: AppSpacing.SM })
 
-        Image($r('app.media.right_arrow'))
-          .width(16).height(16)
-          .fillColor('#CCCCCC')
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(AppFontSize.MD)
+          .fontColor([AppColors.TEXT_MUTED])
       }
       .width('100%')
 
       Text(this.app.createTime)
-        .fontSize(12)
-        .fontColor('#999999')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_MUTED)
         .width('100%')
-        .margin({ top: 6 })
+        .margin({ top: AppSpacing.XS })
         .textAlign(TextAlign.End)
     }
     .width('100%')
-    .padding(14)
-    .backgroundColor('#FFFFFF')
-    .borderRadius(12)
-    .margin({ top: 8 })
+    .padding(AppSpacing.SM)
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius(AppRadius.LG)
+    .margin({ top: AppSpacing.SM })
+    .stateStyles({
+      pressed: {
+        .backgroundColor(AppColors.SELECTED_BG)
+      }
+    })
   }
 }

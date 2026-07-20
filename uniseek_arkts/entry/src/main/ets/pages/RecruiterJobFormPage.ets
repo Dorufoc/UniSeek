@@ -1,6 +1,8 @@
 import { router } from '@kit.ArkUI';
 import { RecruiterService } from '../services/RecruiterService';
 import { RecruiterJobRequest } from '../services/RecruiterTypes';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 interface PickerOption {
   value: number
@@ -47,7 +49,11 @@ struct RecruiterJobFormPage {
 
   build() {
     Column() {
-      this.topBar()
+      NavBar({
+        title: '发布职位',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Scroll() {
         Column() {
@@ -58,13 +64,13 @@ struct RecruiterJobFormPage {
           Row() {
             this.inputFieldHalf('最低薪资（元）', this.salaryMin, (v: string) => { this.salaryMin = v })
             Text('—')
-              .fontSize(16)
-              .fontColor('#999999')
-              .margin({ left: 8, right: 8 })
+              .fontSize(AppFontSize.MD)
+              .fontColor(AppColors.TEXT_MUTED)
+              .margin({ left: AppSpacing.SM, right: AppSpacing.SM })
             this.inputFieldHalf('最高薪资（元）', this.salaryMax, (v: string) => { this.salaryMax = v })
           }
           .width('100%')
-          .margin({ top: 8 })
+          .margin({ top: AppSpacing.SM })
 
           this.pickerRow('薪资单位', this.salaryUnit, SALARY_UNIT_OPTIONS, (v: number) => { this.salaryUnit = v })
           this.pickerRow('工作类型', this.jobType, JOB_TYPE_OPTIONS, (v: number) => { this.jobType = v })
@@ -73,19 +79,35 @@ struct RecruiterJobFormPage {
           this.inputField('工作地址', this.address, (v: string) => { this.address = v })
           this.inputField('截止日期', this.deadline, (v: string) => { this.deadline = v })
 
-          Button('发布职位')
+          Button({ type: ButtonType.Capsule }) {
+            Text('发布职位')
+              .fontSize(AppFontSize.MD)
+              .fontColor('#FFFFFF')
+          }
             .width('100%')
             .height(48)
-            .backgroundColor('#007AFF')
-            .borderRadius(8)
-            .fontColor('#FFFFFF')
-            .fontSize(16)
-            .margin({ top: 32, bottom: 40 })
+            .backgroundColor(AppColors.PRIMARY)
+            .margin({ top: AppSpacing.XL, bottom: AppSpacing.XXL })
             .onClick(() => {
               this.handlePublish()
             })
+            .stateStyles({
+              pressed: {
+                .scale({ x: 0.97, y: 0.97 })
+                .opacity(0.9)
+                .backgroundColor(AppColors.PRIMARY_HOVER)
+              },
+              normal: {
+                .scale({ x: 1, y: 1 })
+                .opacity(1)
+                .backgroundColor(AppColors.PRIMARY)
+              }
+            })
+            .animation({
+              duration: 200
+            })
         }
-        .padding(16)
+        .padding(AppSpacing.MD)
         .width('100%')
       }
       .layoutWeight(1)
@@ -93,73 +115,51 @@ struct RecruiterJobFormPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
-  }
-
-  @Builder
-  topBar(): void {
-    Row() {
-      Image($r('app.media.left_arrow'))
-        .width(24).height(24)
-        .fillColor('#333333')
-        .onClick(() => { router.back() })
-      Text('发布职位')
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-      Text('')
-        .width(24)
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder
   sectionTitle(text: string): void {
     Text(text)
-      .fontSize(15)
+      .fontSize(AppFontSize.MD)
       .fontWeight(FontWeight.Medium)
-      .fontColor('#333333')
+      .fontColor(AppColors.TEXT_PRIMARY)
       .width('100%')
-      .margin({ top: 16, bottom: 8 })
+      .margin({ top: AppSpacing.MD, bottom: AppSpacing.SM })
   }
 
   @Builder
   inputField(label: string, value: string, onChange: (v: string) => void): void {
     Column() {
       Text(label)
-        .fontSize(13)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       TextInput({ placeholder: '请输入' + label, text: value })
         .height(44)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-        .padding({ left: 12 })
-        .margin({ top: 6 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .padding({ left: AppSpacing.SM })
+        .margin({ top: AppSpacing.XS })
         .onChange(onChange)
     }
     .width('100%')
-    .margin({ top: 8 })
+    .margin({ top: AppSpacing.SM })
   }
 
   @Builder
   inputFieldHalf(label: string, value: string, onChange: (v: string) => void): void {
     Column() {
       Text(label)
-        .fontSize(12)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       TextInput({ placeholder: '', text: value })
         .height(44)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-        .padding({ left: 12 })
-        .margin({ top: 6 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .padding({ left: AppSpacing.SM })
+        .margin({ top: AppSpacing.XS })
         .onChange(onChange)
     }
     .layoutWeight(1)
@@ -169,26 +169,29 @@ struct RecruiterJobFormPage {
   pickerRow(label: string, selected: number, options: PickerOption[], onSelect: (v: number) => void): void {
     Column() {
       Text(label)
-        .fontSize(13)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       Row() {
         ForEach(options, (opt: PickerOption) => {
           Text(opt.label)
-            .fontSize(13)
-            .fontColor(selected === opt.value ? '#FFFFFF' : '#666666')
-            .backgroundColor(selected === opt.value ? '#007AFF' : '#F5F5F5')
-            .borderRadius(16)
-            .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-            .margin({ right: 8 })
+            .fontSize(AppFontSize.XS)
+            .fontColor(selected === opt.value ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
+            .backgroundColor(selected === opt.value ? AppColors.PRIMARY : AppColors.INPUT_BG)
+            .borderRadius(AppRadius.XL)
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS, bottom: AppSpacing.XS })
+            .margin({ right: AppSpacing.SM })
             .onClick(() => { onSelect(opt.value) })
+            .animation({
+              duration: 150
+            })
         })
       }
       .width('100%')
-      .margin({ top: 6 })
+      .margin({ top: AppSpacing.XS })
     }
     .width('100%')
-    .margin({ top: 8 })
+    .margin({ top: AppSpacing.SM })
   }
 
   handlePublish(): void {

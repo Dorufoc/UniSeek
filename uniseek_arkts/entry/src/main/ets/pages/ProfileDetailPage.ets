@@ -1,6 +1,8 @@
 import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 const PREF_NAME = 'user_profile_db';
 const KEY_USERNAME = 'username';
@@ -152,23 +154,11 @@ struct ProfileDetailPage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(20)
-          .height(20)
-          .onClick(() => {
-            router.back()
-          })
-        Text('个人信息')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ left: 12 })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16 })
-      .alignItems(VerticalAlign.Center)
-      .margin({ top: 12, bottom: 20 })
+      NavBar({
+        title: '个人资料',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Column() {
         Image(this.avatarSource())
@@ -176,16 +166,16 @@ struct ProfileDetailPage {
           .height(72)
           .borderRadius(36)
         Text('点击更换头像')
-          .fontSize(13)
-          .fontColor('#999999')
-          .margin({ top: 8 })
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_MUTED)
+          .margin({ top: AppSpacing.SM })
       }
       .width('100%')
       .alignItems(HorizontalAlign.Center)
       .onClick(() => {
         this.selectAvatar()
       })
-      .margin({ bottom: 24 })
+      .margin({ bottom: AppSpacing.LG })
 
       this.infoRow('用户名', this.username, 'username')
 
@@ -200,8 +190,8 @@ struct ProfileDetailPage {
       if (this.editingField === 'password') {
         Row() {
           Text('密码')
-            .fontSize(16)
-            .fontColor('#666666')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_SECONDARY)
             .width(70)
           TextInput({ text: this.editValue })
             .type(InputType.Password)
@@ -209,35 +199,35 @@ struct ProfileDetailPage {
               this.editValue = val
             })
             .height(36)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(6)
-            .padding({ left: 8 })
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM })
             .layoutWeight(1)
           Text('保存')
-            .fontSize(14)
-            .fontColor('#007AFF')
-            .margin({ left: 8 })
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.PRIMARY)
+            .margin({ left: AppSpacing.SM })
             .onClick(() => {
               this.savePassword()
             })
           Text('取消')
-            .fontSize(14)
-            .fontColor('#999999')
-            .margin({ left: 8 })
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
+            .margin({ left: AppSpacing.SM })
             .onClick(() => {
               this.cancelEdit()
             })
         }
         .width('100%')
         .height(56)
-        .padding({ left: 16, right: 16 })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .alignItems(VerticalAlign.Center)
       } else if (this.showPasswordVerify) {
         Column() {
           Row() {
             Text('密码')
-              .fontSize(16)
-              .fontColor('#666666')
+              .fontSize(AppFontSize.MD)
+              .fontColor(AppColors.TEXT_SECONDARY)
               .width(70)
             TextInput({ placeholder: '请输入原密码', text: this.oldPasswordInput })
               .type(InputType.Password)
@@ -246,34 +236,34 @@ struct ProfileDetailPage {
                 this.verifyError = ''
               })
               .height(36)
-              .backgroundColor('#F5F5F5')
-              .borderRadius(6)
-              .padding({ left: 8 })
+              .backgroundColor(AppColors.INPUT_BG)
+              .borderRadius(AppRadius.SM)
+              .padding({ left: AppSpacing.SM })
               .layoutWeight(1)
             Text('验证')
-              .fontSize(14)
-              .fontColor('#007AFF')
-              .margin({ left: 8 })
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
+              .margin({ left: AppSpacing.SM })
               .onClick(() => {
                 this.verifyOldPassword()
               })
             Text('取消')
-              .fontSize(14)
-              .fontColor('#999999')
-              .margin({ left: 8 })
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.TEXT_MUTED)
+              .margin({ left: AppSpacing.SM })
               .onClick(() => {
                 this.cancelEdit()
               })
           }
           .width('100%')
           .height(56)
-          .padding({ left: 16, right: 16 })
+          .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
           .alignItems(VerticalAlign.Center)
 
           if (this.verifyError) {
             Text(this.verifyError)
-              .fontSize(12)
-              .fontColor('#FF4444')
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.DANGER)
               .width('100%')
               .padding({ left: 100 })
           }
@@ -281,29 +271,29 @@ struct ProfileDetailPage {
       } else {
         Row() {
           Text('密码')
-            .fontSize(16)
-            .fontColor('#666666')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_SECONDARY)
             .width(70)
           Text('********')
-            .fontSize(16)
-            .fontColor('#333333')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_PRIMARY)
             .layoutWeight(1)
           Text(this.password ? '修改' : '设置')
-            .fontSize(14)
-            .fontColor('#007AFF')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.PRIMARY)
             .onClick(() => {
               this.startEdit('password')
             })
         }
         .width('100%')
         .height(56)
-        .padding({ left: 16, right: 16 })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .alignItems(VerticalAlign.Center)
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder infoRow(label: string, value: string, field: string) {
@@ -317,59 +307,59 @@ struct ProfileDetailPage {
   @Builder editRow(label: string, field: string) {
     Row() {
       Text(label)
-        .fontSize(16)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.MD)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width(70)
       TextInput({ text: this.editValue })
         .onChange((val: string) => {
           this.editValue = val
         })
         .height(36)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(6)
-        .padding({ left: 8 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .padding({ left: AppSpacing.SM })
         .layoutWeight(1)
       Text('保存')
-        .fontSize(14)
-        .fontColor('#007AFF')
-        .margin({ left: 8 })
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.PRIMARY)
+        .margin({ left: AppSpacing.SM })
         .onClick(() => {
           this.saveEdit()
         })
       Text('取消')
-        .fontSize(14)
-        .fontColor('#999999')
-        .margin({ left: 8 })
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.TEXT_MUTED)
+        .margin({ left: AppSpacing.SM })
         .onClick(() => {
           this.cancelEdit()
         })
     }
     .width('100%')
     .height(56)
-    .padding({ left: 16, right: 16 })
+    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     .alignItems(VerticalAlign.Center)
   }
 
   @Builder displayRow(label: string, value: string, field: string) {
     Row() {
       Text(label)
-        .fontSize(16)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.MD)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width(70)
       Text(value)
-        .fontSize(16)
-        .fontColor('#333333')
+        .fontSize(AppFontSize.MD)
+        .fontColor(AppColors.TEXT_PRIMARY)
         .layoutWeight(1)
       Text('编辑')
-        .fontSize(14)
-        .fontColor('#007AFF')
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.PRIMARY)
         .onClick(() => {
           this.startEdit(field)
         })
     }
     .width('100%')
     .height(56)
-    .padding({ left: 16, right: 16 })
+    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     .alignItems(VerticalAlign.Center)
     .onClick(() => {
       this.startEdit(field)

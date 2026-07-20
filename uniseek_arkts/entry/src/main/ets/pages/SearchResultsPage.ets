@@ -3,6 +3,8 @@ import { ApiClient } from '../services/ApiClient';
 import { JobData, TaskVO, mapTaskToJobData } from '../services/ChatTypes';
 import { PageResult } from '../services/ResumeService';
 import { JobCard } from './tab/seeker/HomePage';
+import { AppColors, AppSpacing, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -39,39 +41,27 @@ struct SearchResultsPage {
 
   build() {
     Column() {
-      Row() {
-        Text('←')
-          .fontSize(20)
-          .fontColor('#333333')
-          .onClick(() => {
-            router.back()
-          })
-
-        Text('搜索：' + this.keyword)
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ left: 12 })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .alignItems(VerticalAlign.Center)
+      NavBar({
+        title: '搜索结果',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       if (this.isLoading) {
         LoadingProgress()
           .width(32)
           .height(32)
           .margin({ top: 100 })
-          .color('#007AFF')
+          .color(AppColors.PRIMARY)
       } else if (this.results.length === 0) {
         Column() {
           Text('未找到相关职位')
-            .fontSize(16)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_MUTED)
           Text('试试其他关键词')
-            .fontSize(14)
-            .fontColor('#BBBBBB')
-            .margin({ top: 8 })
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.SM })
         }
         .width('100%')
         .margin({ top: 80 })
@@ -80,12 +70,12 @@ struct SearchResultsPage {
         Column() {
           Row() {
             Text('共 ' + this.totalCount + ' 条结果')
-              .fontSize(13)
-              .fontColor('#999999')
-              .margin({ bottom: 8 })
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_MUTED)
+              .margin({ bottom: AppSpacing.SM })
           }
           .width('100%')
-          .padding({ left: 16 })
+          .padding({ left: AppSpacing.MD })
 
           List() {
             ForEach(this.results, (job: JobData) => {
@@ -102,6 +92,6 @@ struct SearchResultsPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 }

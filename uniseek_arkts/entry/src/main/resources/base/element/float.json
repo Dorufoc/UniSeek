@@ -2,7 +2,67 @@
   "float": [
     {
       "name": "page_text_font_size",
-      "value": "50fp"
+      "value": "16fp"
+    },
+    {
+      "name": "font_size_xs",
+      "value": "12fp"
+    },
+    {
+      "name": "font_size_sm",
+      "value": "14fp"
+    },
+    {
+      "name": "font_size_md",
+      "value": "16fp"
+    },
+    {
+      "name": "font_size_lg",
+      "value": "18fp"
+    },
+    {
+      "name": "font_size_xl",
+      "value": "20fp"
+    },
+    {
+      "name": "font_size_xxl",
+      "value": "24fp"
+    },
+    {
+      "name": "font_size_xxxl",
+      "value": "32fp"
+    },
+    {
+      "name": "space_xs",
+      "value": "4vp"
+    },
+    {
+      "name": "space_sm",
+      "value": "8vp"
+    },
+    {
+      "name": "space_md",
+      "value": "16vp"
+    },
+    {
+      "name": "space_lg",
+      "value": "24vp"
+    },
+    {
+      "name": "space_xl",
+      "value": "32vp"
+    },
+    {
+      "name": "radius_sm",
+      "value": "6vp"
+    },
+    {
+      "name": "radius_md",
+      "value": "8vp"
+    },
+    {
+      "name": "radius_lg",
+      "value": "12vp"
     }
   ]
 }

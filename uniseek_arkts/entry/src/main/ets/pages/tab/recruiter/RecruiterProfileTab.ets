@@ -3,6 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { AuthService } from '../../../services/AuthService';
 import { RecruiterService } from '../../../services/RecruiterService';
 import { AUDIT_STATUS_LABELS } from '../../../services/RecruiterTypes';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
 
 const PREF_NAME = 'user_profile_db';
 const KEY_USERNAME = 'username';
@@ -40,32 +41,32 @@ export struct RecruiterProfileTab {
 
   build() {
     Column() {
+      // HMOS 渐变头像卡片头
       Column() {
         Row() {
           Image($r('app.media.theme'))
-            .width(68)
-            .height(68)
-            .borderRadius(34)
+            .width(72)
+            .height(72)
+            .borderRadius(36)
 
           Column() {
             Text(this.username)
-              .fontSize(24)
+              .fontSize(AppFontSize.XXL)
               .fontWeight(FontWeight.Bold)
               .fontColor('#FFFFFF')
 
             Row() {
               Text(this.isVerified ? '已实名' : '去实名')
-                .fontSize(13)
+                .fontSize(AppFontSize.SM)
                 .fontColor(this.isVerified ? '#8CE0FF' : '#FFFFFF')
               if (!this.isVerified) {
-                Image($r('app.media.right_arrow'))
-                  .width(14)
-                  .height(14)
-                  .fillColor('#FFFFFF')
-                  .margin({ left: 2 })
+                SymbolGlyph($r('sys.symbol.chevron_right'))
+                  .fontSize(14)
+                  .fontColor(['#FFFFFF'])
+                  .margin({ left: AppSpacing.XS })
               }
             }
-            .margin({ top: 6 })
+            .margin({ top: AppSpacing.SM })
             .onClick(() => {
               if (!this.isVerified) {
                 router.pushUrl({ url: 'pages/RealNameAuthPage' })
@@ -74,100 +75,112 @@ export struct RecruiterProfileTab {
 
             Row() {
               Text('企业资质：')
-                .fontSize(13)
+                .fontSize(AppFontSize.SM)
                 .fontColor('#CCCCCC')
               Text(this.enterpriseAuditStatus >= 0 ? AUDIT_STATUS_LABELS[this.enterpriseAuditStatus] : '未审核')
-                .fontSize(13)
+                .fontSize(AppFontSize.SM)
                 .fontColor(this.enterpriseAuditStatus === 1 ? '#8CE0FF' : '#FFFFFF')
               if (this.enterpriseAuditStatus !== 1) {
-                Image($r('app.media.right_arrow'))
-                  .width(14)
-                  .height(14)
-                  .fillColor('#FFFFFF')
-                  .margin({ left: 2 })
+                SymbolGlyph($r('sys.symbol.chevron_right'))
+                  .fontSize(14)
+                  .fontColor(['#FFFFFF'])
+                  .margin({ left: AppSpacing.XS })
               }
             }
-            .margin({ top: 4 })
+            .margin({ top: AppSpacing.XS })
             .onClick(() => {
               router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
             })
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
-          .margin({ left: 16 })
+          .margin({ left: AppSpacing.MD })
 
-          Image($r('app.media.right_arrow'))
-            .width(16)
-            .height(16)
+          SymbolGlyph($r('sys.symbol.chevron_right'))
+            .fontSize(AppFontSize.MD)
+            .fontColor(['#FFFFFF'])
             .onClick(() => {
               router.pushUrl({ url: 'pages/ProfileDetailPage' })
             })
         }
         .width('100%')
-        .height(116)
-        .padding({ left: 25, right: 25 })
+        .height(128)
+        .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
         .alignItems(VerticalAlign.Center)
       }
       .width('100%')
 
+      // HMOS 菜单卡片
       Column() {
-        Divider()
-          .width('100%')
-          .color('#F0F0F0')
-          .height(6)
-
         Column() {
-          this.menuItemCheck('我的公司', $r('app.media.firm'), () => {
+          this.menuItemCheck('我的公司', $r('sys.symbol.building'), () => {
             if (!this.isVerified) {
               this.getUIContext().showAlertDialog({ message: '请先完成实名认证', confirm: { value: '确定', action: () => {} } })
               return
             }
             router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
           })
-          Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItemCheck('发布职位', $r('app.media.post_job'), () => {
+          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          this.menuItemCheck('发布职位', $r('sys.symbol.briefcase'), () => {
             if (this.enterpriseAuditStatus !== 1) {
               this.getUIContext().showAlertDialog({ message: '企业资质审核未通过，暂无法发布职位', confirm: { value: '确定', action: () => {} } })
               return
             }
             router.pushUrl({ url: 'pages/RecruiterPublishJobPage' })
           })
-          Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItemCheck('请求处理', $r('app.media.pending_requests'), () => {
+          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          this.menuItemCheck('请求处理', $r('sys.symbol.inbox'), () => {
             router.pushUrl({ url: 'pages/RecruiterRequestsPage' })
           })
-          Divider().width('100%').color('#F0F0F0').height(0.5)
-          this.menuItemCheck('设置', $r('app.media.setting'), () => {
+          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          this.menuItemCheck('设置', $r('sys.symbol.gearshape'), () => {
             router.pushUrl({ url: 'pages/SettingsPage' })
           })
         }
         .width('100%')
-        .backgroundColor('#FFFFFF')
-        .borderRadius(12)
+        .backgroundColor(AppColors.BG_CARD)
+        .borderRadius(AppRadius.LG)
       }
-      .width('80%')
-      .alignSelf(ItemAlign.Center)
+      .width('100%')
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     }
     .width('100%')
     .height('100%')
     .linearGradient({
       direction: GradientDirection.Bottom,
-      colors: [['#ff4eb2e9', 0], ['#ff18e2fd', 0.08], ['#ffa1e7e4', 0.16], ['#FFFFFF', 0.24], ['#FFFFFF', 1]]
+      colors: [
+        [AppColors.HMOS_BRAND, 0],
+        ['#5A8CFF', 0.12],
+        ['#A8C4FF', 0.25],
+        ['#E4EEFF', 0.38],
+        ['#FFFFFF', 0.5],
+        ['#FFFFFF', 1]
+      ]
     })
   }
 
   @Builder menuItemCheck(text: string, icon: Resource, onClick: () => void) {
     Row() {
-      Image(icon)
-        .width(22)
-        .height(22)
-        .margin({ right: 12 })
+      SymbolGlyph(icon)
+        .fontSize(22)
+        .fontColor([AppColors.TEXT_PRIMARY])
+        .margin({ right: AppSpacing.MD })
       Text(text)
+        .fontSize(AppFontSize.MD)
+        .fontColor(AppColors.TEXT_PRIMARY)
+        .layoutWeight(1)
+      SymbolGlyph($r('sys.symbol.chevron_right'))
         .fontSize(16)
-        .fontColor('#333333')
+        .fontColor([AppColors.TEXT_MUTED])
     }
     .width('100%')
     .height(56)
+    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     .onClick(onClick)
+    .stateStyles({
+      pressed: {
+        .backgroundColor(AppColors.SELECTED_BG)
+      }
+    })
   }
 }

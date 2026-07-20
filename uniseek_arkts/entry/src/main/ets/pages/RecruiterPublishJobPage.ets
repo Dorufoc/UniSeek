@@ -7,6 +7,8 @@ import {
   SALARY_UNIT_LABELS,
   AUDIT_STATUS_LABELS
 } from '../services/RecruiterTypes';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -38,13 +40,17 @@ struct RecruiterPublishJobPage {
 
   build() {
     Column() {
-      this.topBar()
+      NavBar({
+        title: '发布职位',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       if (this.isLoading) {
         Column() {
           Text('加载中...')
-            .fontSize(14)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
@@ -55,25 +61,26 @@ struct RecruiterPublishJobPage {
             if (this.auditStatus >= 0 && this.auditStatus !== 1) {
               Row() {
                 Text('企业资质' + AUDIT_STATUS_LABELS[this.auditStatus] + '，暂无法发布新职位')
-                  .fontSize(13)
-                  .fontColor('#FF6B35')
+                  .fontSize(AppFontSize.XS)
+                  .fontColor(AppColors.WARNING)
                   .layoutWeight(1)
               }
               .width('100%')
-              .padding(12)
+              .padding(AppSpacing.SM)
               .backgroundColor('#FFF3E0')
-              .borderRadius(8)
-              .margin({ top: 12 })
+              .borderRadius(AppRadius.SM)
+              .margin({ top: AppSpacing.SM })
             }
 
-            Button('发布新职位')
+            Button({ type: ButtonType.Capsule }) {
+              Text('发布新职位')
+                .fontSize(AppFontSize.MD)
+                .fontColor('#FFFFFF')
+            }
               .width('100%')
               .height(48)
-              .backgroundColor(this.auditStatus === 1 ? '#007AFF' : '#CCCCCC')
-              .borderRadius(8)
-              .fontColor('#FFFFFF')
-              .fontSize(16)
-              .margin({ top: 12 })
+              .backgroundColor(this.auditStatus === 1 ? AppColors.PRIMARY : AppColors.TEXT_MUTED)
+              .margin({ top: AppSpacing.SM })
               .enabled(this.auditStatus === 1)
               .onClick(() => {
                 if (this.auditStatus !== 1) {
@@ -82,13 +89,28 @@ struct RecruiterPublishJobPage {
                 }
                 router.pushUrl({ url: 'pages/RecruiterJobFormPage' })
               })
+              .stateStyles({
+                pressed: {
+                  .scale({ x: 0.97, y: 0.97 })
+                  .opacity(0.9)
+                  .backgroundColor(AppColors.PRIMARY_HOVER)
+                },
+                normal: {
+                  .scale({ x: 1, y: 1 })
+                  .opacity(1)
+                  .backgroundColor(AppColors.PRIMARY)
+                }
+              })
+              .animation({
+                duration: 200
+              })
 
             if (this.jobList.length === 0) {
               Column() {
                 Text('暂无已发布职位')
-                  .fontSize(14)
-                  .fontColor('#999999')
-                  .margin({ top: 40 })
+                  .fontSize(AppFontSize.SM)
+                  .fontColor(AppColors.TEXT_MUTED)
+                  .margin({ top: AppSpacing.XXL })
               }
               .width('100%')
               .alignItems(HorizontalAlign.Center)
@@ -101,7 +123,7 @@ struct RecruiterPublishJobPage {
               })
             }
           }
-          .padding(16)
+          .padding(AppSpacing.MD)
           .width('100%')
         }
         .layoutWeight(1)
@@ -110,29 +132,7 @@ struct RecruiterPublishJobPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
-  }
-
-  @Builder
-  topBar(): void {
-    Row() {
-      Image($r('app.media.left_arrow'))
-        .width(24).height(24)
-        .fillColor('#333333')
-        .onClick(() => { router.back() })
-      Text('发布职位')
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-      Text('')
-        .width(24)
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.INPUT_BG)
   }
 
   deleteJob(jobId: number): void {
@@ -158,52 +158,57 @@ struct JobManageCard {
       Row() {
         Column() {
           Text(this.job.title)
-            .fontSize(15)
+            .fontSize(AppFontSize.MD)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
 
           Text(this.job.salaryMin.toString() + '-' + this.job.salaryMax.toString() + '元/'
             + SALARY_UNIT_LABELS[this.job.salaryUnit] + ' · '
             + JOB_TYPE_LABELS[this.job.jobType])
-            .fontSize(13)
-            .fontColor('#FF6B35')
-            .margin({ top: 4 })
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.WARNING)
+            .margin({ top: AppSpacing.XS })
 
           Row() {
             Text(JOB_STATUS_LABELS[this.job.status])
-              .fontSize(12)
-              .fontColor(this.job.status === 1 ? '#34C759' : '#999999')
-              .backgroundColor(this.job.status === 1 ? '#E8F8ED' : '#F5F5F5')
-              .borderRadius(8)
-              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+              .fontSize(AppFontSize.XS)
+              .fontColor(this.job.status === 1 ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
+              .backgroundColor(this.job.status === 1 ? '#E8F8ED' : AppColors.INPUT_BG)
+              .borderRadius(AppRadius.SM)
+              .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 2, bottom: 2 })
 
             Text(this.job.applicationCount.toString() + '人投递')
-              .fontSize(12)
-              .fontColor('#999999')
-              .margin({ left: 8 })
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_MUTED)
+              .margin({ left: AppSpacing.SM })
           }
-          .margin({ top: 6 })
+          .margin({ top: AppSpacing.XS })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
         Text('删除')
-          .fontSize(13)
-          .fontColor('#FF4444')
-          .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.DANGER)
+          .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS })
           .onClick(() => {
             this.onDelete?.()
+          })
+          .stateStyles({
+            pressed: {
+              .opacity(0.6)
+            }
           })
       }
       .width('100%')
     }
     .width('100%')
-    .padding(14)
-    .backgroundColor('#FFFFFF')
-    .borderRadius(12)
-    .margin({ top: 8 })
+    .padding(AppSpacing.SM)
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius(AppRadius.LG)
+    .margin({ top: AppSpacing.SM })
     .onClick(() => {
       router.pushUrl({
         url: 'pages/JobDetailPage',
@@ -212,6 +217,11 @@ struct JobManageCard {
           hideActions: 'true'
         }
       })
+    })
+    .stateStyles({
+      pressed: {
+        .backgroundColor(AppColors.SELECTED_BG)
+      }
     })
   }
 }

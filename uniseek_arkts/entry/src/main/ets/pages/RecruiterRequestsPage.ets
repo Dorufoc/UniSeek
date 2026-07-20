@@ -4,6 +4,8 @@ import {
   RecruiterRequestVO,
   APPLICATION_STATUS_LABELS
 } from '../services/RecruiterTypes';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @CustomDialog
 struct InterviewDialog {
@@ -19,62 +21,75 @@ struct InterviewDialog {
     Column() {
       Row() {
         Text('安排面试')
-          .fontSize(18)
+          .fontSize(AppFontSize.LG)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
+          .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Text('取消')
-          .fontSize(15)
-          .fontColor('#999999')
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_MUTED)
           .onClick(() => { this.onCancel?.() })
       }
       .width('100%')
-      .padding({ bottom: 16 })
+      .padding({ bottom: AppSpacing.MD })
 
       Text('为 ' + (this.requestName || '') + ' 安排面试')
-        .fontSize(14)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
-        .margin({ bottom: 16 })
+        .margin({ bottom: AppSpacing.MD })
 
       TextInput({ placeholder: '面试时间（如 2026-07-20 10:00）', text: this.timeText })
         .onChange((value: string) => { this.timeText = value })
         .width('100%')
         .height(44)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-        .margin({ bottom: 12 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .margin({ bottom: AppSpacing.SM })
 
       TextInput({ placeholder: '面试地点', text: this.locationText })
         .onChange((value: string) => { this.locationText = value })
         .width('100%')
         .height(44)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-        .margin({ bottom: 20 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .margin({ bottom: AppSpacing.LG })
 
       Row() {
         Row().layoutWeight(1)
-        Text('确定')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor('#007AFF')
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
-          .onClick(() => {
-            this.onConfirm?.(this.timeText, this.locationText)
-          })
+          Text('确定')
+            .fontSize(AppFontSize.MD)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FFFFFF')
+            .backgroundColor(AppColors.PRIMARY)
+            .borderRadius(AppRadius.FULL)
+            .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
+            .onClick(() => {
+              this.onConfirm?.(this.timeText, this.locationText)
+            })
+            .stateStyles({
+              pressed: {
+                .scale({ x: 0.97, y: 0.97 })
+                .opacity(0.9)
+              },
+              normal: {
+                .scale({ x: 1, y: 1 })
+                .opacity(1)
+              }
+            })
+            .animation({
+              duration: 200
+            })
+        }
+        .width('100%')
+        .padding({ top: AppSpacing.MD })
       }
+      .padding(AppSpacing.LG)
       .width('100%')
-      .padding({ top: 16 })
+      .backgroundColor(AppColors.BG_CARD)
+      .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
     }
-    .padding(20)
-    .width('100%')
-    .backgroundColor('#FFFFFF')
-    .borderRadius({ topLeft: 16, topRight: 16 })
   }
-}
 
 @CustomDialog
 struct RejectDialog {
@@ -89,60 +104,86 @@ struct RejectDialog {
     Column() {
       Row() {
         Text('淘汰候选人')
-          .fontSize(18)
+          .fontSize(AppFontSize.LG)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
+          .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Text('取消')
-          .fontSize(15)
-          .fontColor('#999999')
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_MUTED)
           .onClick(() => { this.onCancel?.() })
       }
       .width('100%')
-      .padding({ bottom: 16 })
+      .padding({ bottom: AppSpacing.MD })
 
       Text('确认淘汰 ' + (this.requestName || '') + '？')
-        .fontSize(14)
-        .fontColor('#666666')
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
-        .margin({ bottom: 16 })
+        .margin({ bottom: AppSpacing.MD })
 
       TextInput({ placeholder: '淘汰原因（可选）', text: this.reasonText })
         .onChange((value: string) => { this.reasonText = value })
         .width('100%')
         .height(44)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-        .margin({ bottom: 20 })
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .margin({ bottom: AppSpacing.LG })
 
       Row() {
         Text('取消')
-          .fontSize(16)
-          .fontColor('#666666')
-          .backgroundColor('#F5F5F5')
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_SECONDARY)
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.FULL)
+          .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
           .onClick(() => { this.onCancel?.() })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.97, y: 0.97 })
+              .opacity(0.9)
+            },
+            normal: {
+              .scale({ x: 1, y: 1 })
+              .opacity(1)
+            }
+          })
+          .animation({
+            duration: 200
+          })
         Blank().width(16)
         Text('确认淘汰')
-          .fontSize(16)
+          .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Bold)
           .fontColor('#FFFFFF')
-          .backgroundColor('#FF4444')
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
+          .backgroundColor(AppColors.DANGER)
+          .borderRadius(AppRadius.FULL)
+          .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
           .onClick(() => {
             this.onConfirm?.(this.reasonText)
           })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.97, y: 0.97 })
+              .opacity(0.9)
+            },
+            normal: {
+              .scale({ x: 1, y: 1 })
+              .opacity(1)
+            }
+          })
+          .animation({
+            duration: 200
+          })
       }
       .width('100%')
-      .padding({ top: 16 })
+      .padding({ top: AppSpacing.MD })
       .justifyContent(FlexAlign.Center)
     }
-    .padding(20)
+    .padding(AppSpacing.LG)
     .width('100%')
-    .backgroundColor('#FFFFFF')
-    .borderRadius({ topLeft: 16, topRight: 16 })
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
   }
 }
 
@@ -161,14 +202,14 @@ struct RequestCard {
 
   statusColor(): string {
     const map: Record<number, string> = {
-      0: '#FF9500',
-      1: '#007AFF',
-      2: '#8E8E93',
-      3: '#34C759',
-      4: '#FF4444',
-      5: '#8E8E93'
+      0: AppColors.WARNING,
+      1: AppColors.PRIMARY,
+      2: AppColors.TEXT_MUTED,
+      3: AppColors.SUCCESS,
+      4: AppColors.DANGER,
+      5: AppColors.TEXT_MUTED
     }
-    return map[this.request.status] || '#8E8E93'
+    return map[this.request.status] || AppColors.TEXT_MUTED
   }
 
   build() {
@@ -176,84 +217,84 @@ struct RequestCard {
       Row() {
         Column()
           .width(44).height(44)
-          .backgroundColor('#E0E0E0')
+          .backgroundColor(AppColors.INPUT_BG)
           .borderRadius(22)
 
         Column() {
           Row() {
             Text(this.request.applicantName)
-              .fontSize(16)
+              .fontSize(AppFontSize.MD)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#1A1A1A')
+              .fontColor(AppColors.TEXT_PRIMARY)
 
             Text(this.request.applicantAge + '岁')
-              .fontSize(14)
-              .fontColor('#666666')
-              .margin({ left: 8 })
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.TEXT_SECONDARY)
+              .margin({ left: AppSpacing.SM })
           }
           .alignItems(VerticalAlign.Center)
 
           Text(this.request.applicantSchool + ' · ' + this.request.applicantMajor)
-            .fontSize(13)
-            .fontColor('#666666')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_SECONDARY)
             .margin({ top: 2 })
 
           Row() {
             Text(this.request.applicantEducation)
-              .fontSize(11)
-              .fontColor('#999999')
-              .backgroundColor('#F5F5F5')
-              .borderRadius(4)
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_MUTED)
+              .backgroundColor(AppColors.INPUT_BG)
+              .borderRadius(AppRadius.SM)
+              .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: 2, bottom: 2 })
             Text(this.request.applicantExperience)
-              .fontSize(11)
-              .fontColor('#999999')
-              .backgroundColor('#F5F5F5')
-              .borderRadius(4)
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .margin({ left: 6 })
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_MUTED)
+              .backgroundColor(AppColors.INPUT_BG)
+              .borderRadius(AppRadius.SM)
+              .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: 2, bottom: 2 })
+              .margin({ left: AppSpacing.XS })
           }
-          .margin({ top: 4 })
+          .margin({ top: AppSpacing.XS })
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
-        .margin({ left: 12 })
+        .margin({ left: AppSpacing.SM })
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
 
       Text(this.request.applicantSkills)
-        .fontSize(12)
-        .fontColor('#999999')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_MUTED)
         .lineHeight(18)
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
-        .margin({ top: 8 })
+        .margin({ top: AppSpacing.SM })
 
       Row() {
         Text('期望薪资 ' + this.request.applicantSalary)
-          .fontSize(12)
-          .fontColor('#FF6B35')
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.WARNING)
           .fontWeight(FontWeight.Medium)
 
         Blank()
 
         Text(APPLICATION_STATUS_LABELS[this.request.status])
-          .fontSize(12)
+          .fontSize(AppFontSize.XS)
           .fontColor(this.statusColor())
       }
       .width('100%')
-      .margin({ top: 4 })
+      .margin({ top: AppSpacing.XS })
 
       Row() {
         Text('投递职位：' + this.request.jobTitle)
-          .fontSize(12)
-          .fontColor('#999999')
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_MUTED)
         Blank()
         Text(this.request.createTime)
-          .fontSize(11)
-          .fontColor('#BBBBBB')
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_MUTED)
       }
       .width('100%')
       .margin({ top: 2 })
@@ -261,64 +302,89 @@ struct RequestCard {
       if (this.request.status === 1 && this.request.interviewTime) {
         Row() {
           Text('面试安排：' + this.request.interviewTime + ' ' + this.request.interviewLocation)
-            .fontSize(12)
-            .fontColor('#007AFF')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .width('100%')
-        .margin({ top: 4 })
+        .margin({ top: AppSpacing.XS })
       }
 
       if (this.request.status === 4 && this.request.rejectReason) {
         Row() {
           Text('淘汰原因：' + this.request.rejectReason)
-            .fontSize(12)
-            .fontColor('#FF4444')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.DANGER)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .width('100%')
-        .margin({ top: 4 })
+        .margin({ top: AppSpacing.XS })
       }
 
       if (this.request.status === 0) {
         Row() {
-          Button('面试')
+          Button({ type: ButtonType.Capsule }) {
+            Text('面试')
+              .fontSize(AppFontSize.XS)
+              .fontColor('#FFFFFF')
+          }
             .height(32)
-            .backgroundColor('#007AFF')
-            .borderRadius(16)
-            .fontColor('#FFFFFF')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .onClick(() => {
-              this.onInterview?.(this.request)
+            .backgroundColor(AppColors.PRIMARY)
+            .stateStyles({
+              pressed: {
+                .scale({ x: 0.97, y: 0.97 })
+                .opacity(0.9)
+                .backgroundColor(AppColors.PRIMARY_HOVER)
+              },
+              normal: {
+                .scale({ x: 1, y: 1 })
+                .opacity(1)
+                .backgroundColor(AppColors.PRIMARY)
+              }
+            })
+            .animation({
+              duration: 200
             })
 
-          Blank().width(12)
+          Blank().width(AppSpacing.SM)
 
-          Button('不合适')
+          Button({ type: ButtonType.Capsule }) {
+            Text('不合适')
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.DANGER)
+          }
             .height(32)
-            .backgroundColor('#FFFFFF')
-            .borderRadius(16)
-            .fontColor('#FF4444')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .border({ width: 1, color: '#FF4444' })
+            .backgroundColor(AppColors.BG_CARD)
+            .border({ width: 1, color: AppColors.DANGER })
             .onClick(() => {
               this.onReject?.(this.request)
             })
+            .stateStyles({
+              pressed: {
+                .scale({ x: 0.97, y: 0.97 })
+                .opacity(0.9)
+              },
+              normal: {
+                .scale({ x: 1, y: 1 })
+                .opacity(1)
+              }
+            })
+            .animation({
+              duration: 200
+            })
         }
         .width('100%')
-        .margin({ top: 10 })
+        .margin({ top: AppSpacing.SM })
         .justifyContent(FlexAlign.End)
       }
     }
     .width('100%')
-    .padding(14)
-    .backgroundColor('#FFFFFF')
-    .borderRadius(12)
-    .margin({ top: 10 })
+    .padding(AppSpacing.SM)
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius(AppRadius.LG)
+    .margin({ top: AppSpacing.SM })
   }
 }
 
@@ -413,24 +479,11 @@ struct RecruiterRequestsPage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(24).height(24)
-          .fillColor('#333333')
-          .onClick(() => { router.back() })
-        Text('请求处理')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-        Text('')
-          .width(24)
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .alignItems(VerticalAlign.Center)
-      .backgroundColor('#FFFFFF')
+      NavBar({
+        title: '请求处理',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Scroll() {
         Row() {
@@ -440,19 +493,19 @@ struct RecruiterRequestsPage {
           this.filterTab('已录用', 3)
           this.filterTab('已淘汰', 4)
         }
-        .padding({ left: 16, right: 16 })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
       .width('100%')
-      .backgroundColor('#FFFFFF')
-      .padding({ top: 8, bottom: 8 })
+      .backgroundColor(AppColors.BG_CARD)
+      .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
 
       if (this.isLoading) {
         Column() {
           Text('加载中...')
-            .fontSize(14)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
@@ -460,8 +513,8 @@ struct RecruiterRequestsPage {
       } else if (this.filteredList.length === 0) {
         Column() {
           Text('暂无请求')
-            .fontSize(14)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
@@ -475,9 +528,13 @@ struct RecruiterRequestsPage {
                 onInterview: (r: RecruiterRequestVO) => { this.handleInterview(r) },
                 onReject: (r: RecruiterRequestVO) => { this.handleReject(r) }
               })
+              .transition(TransitionEffect.asymmetric(
+                TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
+                TransitionEffect.opacity(1)
+              ))
             })
           }
-          .padding(16)
+          .padding(AppSpacing.MD)
           .width('100%')
         }
         .layoutWeight(1)
@@ -486,20 +543,23 @@ struct RecruiterRequestsPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder
   filterTab(label: string, status: number): void {
     Text(label)
-      .fontSize(14)
-      .fontColor(this.filterStatus === status ? '#FFFFFF' : '#666666')
-      .backgroundColor(this.filterStatus === status ? '#007AFF' : '#F5F5F5')
-      .borderRadius(16)
-      .padding({ left: 20, right: 20, top: 6, bottom: 6 })
-      .margin({ right: 8 })
+      .fontSize(AppFontSize.SM)
+      .fontColor(this.filterStatus === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
+      .backgroundColor(this.filterStatus === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
+      .borderRadius(AppRadius.XL)
+      .padding({ left: AppSpacing.LG, right: AppSpacing.LG, top: AppSpacing.XS, bottom: AppSpacing.XS })
+      .margin({ right: AppSpacing.SM })
       .onClick(() => {
         this.filterStatus = status
+      })
+      .animation({
+        duration: 200
       })
   }
 }

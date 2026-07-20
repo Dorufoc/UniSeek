@@ -214,6 +214,150 @@ export class DataService {
     return null
   }
 
+  // ==================== 名称到ID的查找方法 ====================
+
+  /**
+   * 根据完整名称查找地区ID。
+   * 支持格式： "北京"（单级）、"广东-广州"（两级）、"北京-朝阳区"（直辖市两级）
+   */
+  static getRegionIdByName(fullName: string): number | null {
+    if (!DataService.regionTree) {
+      return null
+    }
+    const names = fullName.split('-')
+    // 先尝试精确路径查找
+    let result = DataService.findRegionIdByPath(DataService.regionTree, names, 0)
+    // 如果没找到且是单级名称，则递归搜索整棵树（处理城市不带省份前缀的情况）
+    if (result === null && names.length === 1) {
+      result = DataService.deepFindRegionId(DataService.regionTree, names[0])
+    }
+    return result
+  }
+
+  /**
+   * 根据完整名称查找分类ID。
+   * 支持格式： "设计创作"（单级）、"设计创作-UI设计"（两级）
+   */
+  static getCategoryIdByName(fullName: string): number | null {
+    if (!DataService.categoryTree) {
+      return null
+    }
+    const names = fullName.split('-')
+    let result = DataService.findCategoryIdByPath(DataService.categoryTree, names, 0)
+    if (result === null && names.length === 1) {
+      result = DataService.deepFindCategoryId(DataService.categoryTree, names[0])
+    }
+    return result
+  }
+
+  // 按路径逐级查找地区（从根开始匹配）
+  private static findRegionIdByPath(nodes: RegionNode[], names: string[], depth: number): number | null {
+    for (const n of nodes) {
+      if (n.name === names[depth]) {
+        if (depth === names.length - 1) {
+          return n.id
+        }
+        if (n.children) {
+          const found = DataService.findRegionIdByPath(n.children, names, depth + 1)
+          if (found !== null) {
+            return found
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // 按路径逐级查找分类（从根开始匹配）
+  private static findCategoryIdByPath(nodes: CategoryNode[], names: string[], depth: number): number | null {
+    for (const n of nodes) {
+      if (n.name === names[depth]) {
+        if (depth === names.length - 1) {
+          return n.id
+        }
+        if (n.children) {
+          const found = DataService.findCategoryIdByPath(n.children, names, depth + 1)
+          if (found !== null) {
+            return found
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // 递归深搜地区ID（单级名称，可能在树的任意层级）
+  private static deepFindRegionId(nodes: RegionNode[], name: string): number | null {
+    for (const n of nodes) {
+      if (n.name === name) {
+        return n.id
+      }
+      if (n.children) {
+        const found = DataService.deepFindRegionId(n.children, name)
+        if (found !== null) {
+          return found
+        }
+      }
+    }
+    return null
+  }
+
+  // 递归深搜分类ID（单级名称，可能在树的任意层级）
+  private static deepFindCategoryId(nodes: CategoryNode[], name: string): number | null {
+    for (const n of nodes) {
+      if (n.name === name) {
+        return n.id
+      }
+      if (n.children) {
+        const found = DataService.deepFindCategoryId(n.children, name)
+        if (found !== null) {
+          return found
+        }
+      }
+    }
+    return null
+  }
+
+  // ==================== ID/名称到完整路径的查找方法 ====================
+
+  /**
+   * 根据区县名称反查完整省市区县路径。
+   * 例如 "西湖区" → "浙江省杭州市西湖区"。
+   * 如果未查到则返回 null，调用方应降级显示原始名称。
+   */
+  static getRegionFullPath(regionName: string): string | null {
+    if (!DataService.provincesCache) {
+      DataService.getProvinces()
+      if (!DataService.provincesCache) return null
+    }
+
+    for (const province of DataService.provincesCache) {
+      if (province.isMunicipality) {
+        // 直辖市：省=市，跳过市层级直接查区
+        const city = province.cities[0]
+        if (city.name === regionName) return province.name
+        for (const district of city.districts) {
+          if (district.name === regionName) {
+            return province.name + city.name + district.name
+          }
+        }
+      } else {
+        // 非直辖市：省→市→区三级
+        for (const city of province.cities) {
+          if (city.name === regionName) return province.name + city.name
+          for (const district of city.districts) {
+            if (district.name === regionName) {
+              return province.name + city.name + district.name
+            }
+          }
+        }
+      }
+      if (province.name === regionName) return province.name
+    }
+
+    return null
+  }
+
   private static getFallbackRegions(): RegionNode[] {
     return [
       { id: 110000, name: '北京市', level: 1, children: [

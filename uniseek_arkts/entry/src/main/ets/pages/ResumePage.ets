@@ -1,5 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { ResumeService, ResumeRequest } from '../services/ResumeService';
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 const EDUCATION_LEVELS: string[] = ['初中及以下', '中专/中技', '高中', '大专', '本科', '硕士', '博士']
 const FULLTIME_OPTIONS: string[] = ['全日制', '非全日制']
@@ -28,30 +30,30 @@ struct EducationPickerDialog {
     Column() {
       Row() {
         Text('选择学历')
-          .fontSize(18)
+          .fontSize(AppFontSize.LG)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
+          .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Text('取消')
-          .fontSize(15)
-          .fontColor('#999999')
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_MUTED)
           .onClick(() => {
             this.onCancel?.()
           })
       }
       .width('100%')
-      .padding({ bottom: 16 })
+      .padding({ bottom: AppSpacing.MD })
 
       Row() {
         Scroll() {
           Column() {
             ForEach(EDUCATION_LEVELS, (level: string) => {
               Text(level)
-                .fontSize(15)
-                .fontColor(this.selectedEducation === level ? '#FFFFFF' : '#333333')
-                .backgroundColor(this.selectedEducation === level ? '#007AFF' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
+                .fontSize(AppFontSize.MD)
+                .fontColor(this.selectedEducation === level ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
+                .backgroundColor(this.selectedEducation === level ? AppColors.PRIMARY : 'transparent')
+                .borderRadius(AppRadius.SM)
+                .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.SM, right: AppSpacing.SM })
                 .textAlign(TextAlign.Start)
                 .width('100%')
                 .onClick(() => {
@@ -59,6 +61,9 @@ struct EducationPickerDialog {
                   if (!this.needFullTime()) {
                     this.selectedIsFullTime = false
                   }
+                })
+                .animation({
+                  duration: 150
                 })
             })
           }
@@ -73,17 +78,20 @@ struct EducationPickerDialog {
             Column() {
               ForEach(FULLTIME_OPTIONS, (option: string) => {
                 Text(option)
-                  .fontSize(15)
+                  .fontSize(AppFontSize.MD)
                   .fontColor((option === '全日制' && this.selectedIsFullTime) ||
-                    (option === '非全日制' && !this.selectedIsFullTime) ? '#FFFFFF' : '#333333')
+                    (option === '非全日制' && !this.selectedIsFullTime) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                   .backgroundColor((option === '全日制' && this.selectedIsFullTime) ||
-                    (option === '非全日制' && !this.selectedIsFullTime) ? '#007AFF' : 'transparent')
-                  .borderRadius(8)
-                  .padding({ top: 10, bottom: 10, left: 12, right: 12 })
+                    (option === '非全日制' && !this.selectedIsFullTime) ? AppColors.PRIMARY : 'transparent')
+                  .borderRadius(AppRadius.SM)
+                  .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.SM, right: AppSpacing.SM })
                   .textAlign(TextAlign.Start)
                   .width('100%')
                   .onClick(() => {
                     this.selectedIsFullTime = (option === '全日制')
+                  })
+                  .animation({
+                    duration: 150
                   })
               })
             }
@@ -97,27 +105,40 @@ struct EducationPickerDialog {
       .layoutWeight(1)
       .width('100%')
 
-      Row() {
-        Row().layoutWeight(1)
-        Text('确定')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor('#007AFF')
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
+        Row() {
+          Row().layoutWeight(1)
+          Text('确定')
+            .fontSize(AppFontSize.MD)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FFFFFF')
+            .backgroundColor(AppColors.PRIMARY)
+            .borderRadius(AppRadius.FULL)
+            .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
           .onClick(() => {
             this.onConfirm?.(this.selectedEducation, this.selectedIsFullTime)
           })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.97, y: 0.97 })
+              .opacity(0.9)
+            },
+            normal: {
+              .scale({ x: 1, y: 1 })
+              .opacity(1)
+            }
+          })
+          .animation({
+            duration: 200
+          })
       }
       .width('100%')
-      .padding({ top: 16 })
+      .padding({ top: AppSpacing.MD })
     }
-    .padding(20)
+    .padding(AppSpacing.LG)
     .width('100%')
     .height('55%')
-    .backgroundColor('#FFFFFF')
-    .borderRadius({ topLeft: 16, topRight: 16 })
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
   }
 }
 
@@ -161,206 +182,218 @@ struct ResumePage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(24)
-          .height(24)
-          .fillColor('#333333')
-          .onClick(() => {
-            router.back()
-          })
-
-        Text('个人简历')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-
-        Row().width(24).height(24)
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .alignItems(VerticalAlign.Center)
+      NavBar({
+        title: '个人简历',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       Scroll() {
         Column() {
           Text('姓名')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           Row() {
             Text(this.name || '（暂未获取）')
-              .fontSize(15)
-              .fontColor('#999999')
+              .fontSize(AppFontSize.MD)
+              .fontColor(AppColors.TEXT_MUTED)
           }
           .width('100%')
           .height(44)
-          .backgroundColor('#F5F5F5')
-          .borderRadius(8)
-          .padding({ left: 14 })
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.SM)
+          .padding({ left: AppSpacing.SM })
           .alignItems(VerticalAlign.Center)
-          .margin({ bottom: 16 })
+          .margin({ bottom: AppSpacing.MD })
 
           Text('学校')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           TextInput({ placeholder: '请输入毕业院校', text: this.school })
             .onChange((value: string) => { this.school = value })
             .height(44)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 14 })
-            .margin({ bottom: 16 })
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM })
+            .margin({ bottom: AppSpacing.MD })
 
           Text('学历')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           Row() {
             Text(this.educationLabel())
-              .fontSize(15)
-              .fontColor(this.education ? '#333333' : '#999999')
+              .fontSize(AppFontSize.MD)
+              .fontColor(this.education ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
               .layoutWeight(1)
-            Image($r('app.media.right_arrow'))
-              .width(16)
-              .height(16)
-              .fillColor('#CCCCCC')
+            SymbolGlyph($r('sys.symbol.chevron_right'))
+              .fontSize(AppFontSize.MD)
+              .fontColor([AppColors.TEXT_MUTED])
           }
           .width('100%')
           .height(44)
-          .backgroundColor('#F5F5F5')
-          .borderRadius(8)
-          .padding({ left: 14, right: 14 })
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.SM)
+          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
           .alignItems(VerticalAlign.Center)
-          .margin({ bottom: 16 })
+          .margin({ bottom: AppSpacing.MD })
           .onClick(() => {
             this.showEducationPicker()
           })
 
           Text('技能')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           TextArea({ placeholder: '请输入技能特长', text: this.skills })
             .onChange((value: string) => { this.skills = value })
             .height(80)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 14, right: 14 })
-            .margin({ bottom: 16 })
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+            .margin({ bottom: AppSpacing.MD })
 
           Text('经历')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           TextArea({ placeholder: '请输入工作经历', text: this.experience })
             .onChange((value: string) => { this.experience = value })
             .height(100)
-            .backgroundColor('#F5F5F5')
-            .borderRadius(8)
-            .padding({ left: 14, right: 14 })
-            .margin({ bottom: 16 })
+            .backgroundColor(AppColors.INPUT_BG)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+            .margin({ bottom: AppSpacing.MD })
 
           Text('简历（PDF）')
-            .fontSize(15)
+            .fontSize(AppFontSize.SM)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#333333')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .width('100%')
-            .margin({ bottom: 8 })
+            .margin({ bottom: AppSpacing.SM })
 
           Row() {
             Button('选择文件')
-              .fontSize(14)
-              .fontColor('#007AFF')
-              .backgroundColor('#EBF5FF')
-              .borderRadius(8)
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
+              .backgroundColor(AppColors.SELECTED_BG)
+              .borderRadius(AppRadius.SM)
               .height(36)
               .onClick(() => {
                 this.selectFile()
               })
+              .stateStyles({
+                pressed: {
+                  .scale({ x: 0.97, y: 0.97 })
+                  .opacity(0.9)
+                },
+                normal: {
+                  .scale({ x: 1, y: 1 })
+                  .opacity(1)
+                }
+              })
+              .animation({
+                duration: 200
+              })
             if (this.attachmentName) {
               Text(this.attachmentName)
-                .fontSize(14)
-                .fontColor('#333333')
-                .margin({ left: 12 })
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .margin({ left: AppSpacing.SM })
                 .layoutWeight(1)
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
             } else {
               Text('未选择文件')
-                .fontSize(14)
-                .fontColor('#BBBBBB')
-                .margin({ left: 12 })
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_MUTED)
+                .margin({ left: AppSpacing.SM })
             }
           }
           .width('100%')
           .height(44)
-          .backgroundColor('#F5F5F5')
-          .borderRadius(8)
-          .padding({ left: 14, right: 14 })
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.SM)
+          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
           .alignItems(VerticalAlign.Center)
 
           if (this.showSuccess) {
             Text('保存成功')
-              .fontSize(15)
+              .fontSize(AppFontSize.MD)
               .fontColor('#FFFFFF')
               .width('100%')
               .height(44)
-              .backgroundColor('#34C759')
-              .borderRadius(8)
+              .backgroundColor(AppColors.SUCCESS)
+              .borderRadius(AppRadius.SM)
               .textAlign(TextAlign.Center)
-              .margin({ top: 12 })
+              .margin({ top: AppSpacing.SM })
           }
 
           if (this.showError) {
             Text(this.errorMsg)
-              .fontSize(14)
+              .fontSize(AppFontSize.SM)
               .fontColor('#FFFFFF')
               .width('100%')
-              .padding({ top: 10, bottom: 10 })
-              .backgroundColor('#FF3B30')
-              .borderRadius(8)
+              .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
+              .backgroundColor(AppColors.DANGER)
+              .borderRadius(AppRadius.SM)
               .textAlign(TextAlign.Center)
-              .margin({ top: 8 })
+              .margin({ top: AppSpacing.SM })
           }
 
-          Button('保存简历')
+          Button({ type: ButtonType.Capsule }) {
+            Text('保存简历')
+              .fontSize(AppFontSize.LG)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#FFFFFF')
+          }
             .width('100%')
             .height(48)
-            .backgroundColor(this.saving ? '#B0B0B0' : '#007AFF')
-            .borderRadius(24)
-            .fontSize(17)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#FFFFFF')
+            .backgroundColor(this.saving ? AppColors.TEXT_MUTED : AppColors.PRIMARY)
             .enabled(!this.saving)
-            .margin({ top: 12 })
+            .margin({ top: AppSpacing.SM })
             .onClick(() => { this.handleSave() })
+            .stateStyles({
+              pressed: {
+                .scale({ x: 0.97, y: 0.97 })
+                .opacity(0.9)
+                .backgroundColor(AppColors.PRIMARY_HOVER)
+              },
+              normal: {
+                .scale({ x: 1, y: 1 })
+                .opacity(1)
+                .backgroundColor(AppColors.PRIMARY)
+              }
+            })
+            .animation({
+              duration: 200
+            })
         }
-        .padding({ left: 16, right: 16, top: 8, bottom: 24 })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.LG })
       }
       .layoutWeight(1)
       .width('100%')
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   selectFile(): void {

@@ -2,6 +2,7 @@ import { router } from '@kit.ArkUI';
 import { DataService, Province, City, District, Field, Occupation } from '../../../services/DataService';
 import { ResumeCardData } from '../../../services/RecruiterTypes';
 import { ResumeService, ResumeData } from '../../../services/ResumeService';
+import { AppColors, AppSpacing, AppRadius, AppFontSize, AppShadow, AppAnimation } from '../../../common/AppStyles';
 
 @CustomDialog
 struct RegionPickerDialog {
@@ -178,7 +179,7 @@ struct RegionPickerDialog {
           .layoutWeight(1)
         Text('取消')
           .fontSize(15)
-          .fontColor('#999999')
+          .fontColor(AppColors.TEXT_MUTED)
           .onClick(() => { this.onCancel?.() })
       }
       .width('100%')
@@ -190,7 +191,7 @@ struct RegionPickerDialog {
             ForEach(this.provinces, (province: Province) => {
               Text(province.name)
                 .fontSize(15)
-                .fontColor(this.isSelected(this.selectedProvinces, province.name) ? '#FFFFFF' : '#333333')
+                .fontColor(this.isSelected(this.selectedProvinces, province.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.isSelected(this.selectedProvinces, province.name) ? '#2F8BE6' : 'transparent')
                 .borderRadius(8)
                 .padding({ top: 10, bottom: 10, left: 12, right: 12 })
@@ -212,7 +213,7 @@ struct RegionPickerDialog {
                 .fontSize(15)
                 .fontColor(this.selectedCities.length > 0 && this.cityOptions().every(
                   (c: City) => this.isSelected(this.selectedCities, c.name)
-                ) ? '#FFFFFF' : '#333333')
+                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.selectedCities.length > 0 && this.cityOptions().every(
                   (c: City) => this.isSelected(this.selectedCities, c.name)
                 ) ? '#2F8BE6' : 'transparent')
@@ -226,7 +227,7 @@ struct RegionPickerDialog {
               ForEach(this.cityOptions(), (city: City) => {
                 Text(city.name)
                   .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedCities, city.name) ? '#FFFFFF' : '#333333')
+                  .fontColor(this.isSelected(this.selectedCities, city.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                   .backgroundColor(this.isSelected(this.selectedCities, city.name) ? '#2F8BE6' : 'transparent')
                   .borderRadius(8)
                   .padding({ top: 10, bottom: 10, left: 12, right: 12 })
@@ -249,7 +250,7 @@ struct RegionPickerDialog {
                 .fontSize(15)
                 .fontColor(this.selectedDistricts.length > 0 && this.municipalityDistricts().every(
                   (d: District) => this.isSelected(this.selectedDistricts, d.name)
-                ) ? '#FFFFFF' : '#333333')
+                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.selectedDistricts.length > 0 && this.municipalityDistricts().every(
                   (d: District) => this.isSelected(this.selectedDistricts, d.name)
                 ) ? '#2F8BE6' : 'transparent')
@@ -263,7 +264,7 @@ struct RegionPickerDialog {
               ForEach(this.municipalityDistricts(), (district: District) => {
                 Text(district.name)
                   .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedDistricts, district.name) ? '#FFFFFF' : '#333333')
+                  .fontColor(this.isSelected(this.selectedDistricts, district.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                   .backgroundColor(this.isSelected(this.selectedDistricts, district.name) ? '#2F8BE6' : 'transparent')
                   .borderRadius(8)
                   .padding({ top: 10, bottom: 10, left: 12, right: 12 })
@@ -286,7 +287,7 @@ struct RegionPickerDialog {
                 .fontSize(15)
                 .fontColor(this.selectedDistricts.length > 0 && this.districtOptions().every(
                   (d: District) => this.isSelected(this.selectedDistricts, d.name)
-                ) ? '#FFFFFF' : '#333333')
+                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.selectedDistricts.length > 0 && this.districtOptions().every(
                   (d: District) => this.isSelected(this.selectedDistricts, d.name)
                 ) ? '#2F8BE6' : 'transparent')
@@ -300,7 +301,7 @@ struct RegionPickerDialog {
               ForEach(this.districtOptions(), (district: District) => {
                 Text(district.name)
                   .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedDistricts, district.name) ? '#FFFFFF' : '#333333')
+                  .fontColor(this.isSelected(this.selectedDistricts, district.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                   .backgroundColor(this.isSelected(this.selectedDistricts, district.name) ? '#2F8BE6' : 'transparent')
                   .borderRadius(8)
                   .padding({ top: 10, bottom: 10, left: 12, right: 12 })
@@ -325,11 +326,24 @@ struct RegionPickerDialog {
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
           .fontColor('#FFFFFF')
-          .backgroundColor('#007AFF')
+          .backgroundColor(AppColors.PRIMARY)
           .borderRadius(20)
           .padding({ left: 28, right: 28, top: 10, bottom: 10 })
           .onClick(() => {
             this.onSelect?.(this.generateResults())
+          })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.97, y: 0.97 })
+              .opacity(0.9)
+            },
+            normal: {
+              .scale({ x: 1, y: 1 })
+              .opacity(1)
+            }
+          })
+          .animation({
+            duration: 200
           })
       }
       .width('100%')
@@ -338,7 +352,7 @@ struct RegionPickerDialog {
     .padding(20)
     .width('100%')
     .height('60%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_CARD)
     .borderRadius({ topLeft: 16, topRight: 16 })
   }
 }
@@ -435,7 +449,7 @@ struct TypePickerDialog {
           .layoutWeight(1)
         Text('取消')
           .fontSize(15)
-          .fontColor('#999999')
+          .fontColor(AppColors.TEXT_MUTED)
           .onClick(() => { this.onCancel?.() })
       }
       .width('100%')
@@ -447,7 +461,7 @@ struct TypePickerDialog {
             ForEach(this.fields, (field: Field) => {
               Text(field.name)
                 .fontSize(15)
-                .fontColor(this.isSelected(this.selectedFields, field.name) ? '#FFFFFF' : '#333333')
+                .fontColor(this.isSelected(this.selectedFields, field.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.isSelected(this.selectedFields, field.name) ? '#2F8BE6' : 'transparent')
                 .borderRadius(8)
                 .padding({ top: 10, bottom: 10, left: 12, right: 12 })
@@ -469,7 +483,7 @@ struct TypePickerDialog {
                 .fontSize(15)
                 .fontColor(this.selectedOccupations.length > 0 && this.occupationOptions().every(
                   (o: Occupation) => this.isSelected(this.selectedOccupations, o.name)
-                ) ? '#FFFFFF' : '#333333')
+                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.selectedOccupations.length > 0 && this.occupationOptions().every(
                   (o: Occupation) => this.isSelected(this.selectedOccupations, o.name)
                 ) ? '#2F8BE6' : 'transparent')
@@ -483,7 +497,7 @@ struct TypePickerDialog {
               ForEach(this.occupationOptions(), (occupation: Occupation) => {
                 Text(occupation.name)
                   .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedOccupations, occupation.name) ? '#FFFFFF' : '#333333')
+                  .fontColor(this.isSelected(this.selectedOccupations, occupation.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                   .backgroundColor(this.isSelected(this.selectedOccupations, occupation.name) ? '#2F8BE6' : 'transparent')
                   .borderRadius(8)
                   .padding({ top: 10, bottom: 10, left: 12, right: 12 })
@@ -508,7 +522,7 @@ struct TypePickerDialog {
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
           .fontColor('#FFFFFF')
-          .backgroundColor('#007AFF')
+          .backgroundColor(AppColors.PRIMARY)
           .borderRadius(20)
           .padding({ left: 28, right: 28, top: 10, bottom: 10 })
           .onClick(() => {
@@ -521,7 +535,7 @@ struct TypePickerDialog {
     .padding(20)
     .width('100%')
     .height('55%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_CARD)
     .borderRadius({ topLeft: 16, topRight: 16 })
   }
 }
@@ -545,32 +559,32 @@ struct ResumeCard {
 
           Text(this.resume.age + '岁')
             .fontSize(14)
-            .fontColor('#666666')
+            .fontColor(AppColors.TEXT_SECONDARY)
             .margin({ left: 8 })
         }
         .alignItems(VerticalAlign.Center)
 
         Text(this.resume.school + ' · ' + this.resume.major)
           .fontSize(14)
-          .fontColor('#666666')
+          .fontColor(AppColors.TEXT_SECONDARY)
           .margin({ top: 4 })
 
         Text(this.resume.education + ' · ' + this.resume.experience)
           .fontSize(13)
-          .fontColor('#999999')
+          .fontColor(AppColors.TEXT_MUTED)
           .margin({ top: 4 })
 
         Row() {
           Text(this.resume.region)
             .fontSize(12)
-            .fontColor('#999999')
-            .backgroundColor('#F5F5F5')
+            .fontColor(AppColors.TEXT_MUTED)
+            .backgroundColor(AppColors.INPUT_BG)
             .borderRadius(4)
             .padding({ left: 8, right: 8, top: 3, bottom: 3 })
           Text(this.resume.type)
             .fontSize(12)
-            .fontColor('#999999')
-            .backgroundColor('#F5F5F5')
+            .fontColor(AppColors.TEXT_MUTED)
+            .backgroundColor(AppColors.INPUT_BG)
             .borderRadius(4)
             .padding({ left: 8, right: 8, top: 3, bottom: 3 })
             .margin({ left: 8 })
@@ -588,14 +602,14 @@ struct ResumeCard {
         Text(this.resume.expectedSalary)
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#FF6B35')
+          .fontColor(AppColors.WARNING)
           .margin({ top: 4 })
       }
       .alignItems(HorizontalAlign.End)
     }
     .width('100%')
     .padding(16)
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_CARD)
     .borderRadius(12)
     .shadow({ radius: 4, color: '#0D000000', offsetX: 0, offsetY: 2 })
     .onClick(() => {
@@ -603,6 +617,11 @@ struct ResumeCard {
         url: 'pages/ResumeDetailPage',
         params: { resumeData: JSON.stringify(this.resume) }
       })
+    })
+    .stateStyles({
+      pressed: {
+        .backgroundColor(AppColors.SELECTED_BG)
+      }
     })
   }
 }
@@ -704,25 +723,29 @@ export struct RecruiterHomeTab {
         Text('如果你想要，就自己来找')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
+          .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
 
         Row() {
-          Image($r('app.media.search'))
-            .width(18)
-            .height(18)
-            .fillColor('#999999')
+          SymbolGlyph($r('sys.symbol.magnifyingglass'))
+            .fontSize(18)
+            .fontColor([AppColors.TEXT_MUTED])
           Text('搜索')
             .fontSize(14)
-            .fontColor('#999999')
+            .fontColor(AppColors.TEXT_MUTED)
             .margin({ left: 6 })
         }
         .height(36)
-        .backgroundColor('#F5F5F5')
+        .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(18)
         .padding({ left: 12, right: 16 })
         .alignItems(VerticalAlign.Center)
         .onClick(() => { router.pushUrl({ url: 'pages/RecruiterSearchPage' }) })
+        .stateStyles({
+          pressed: {
+            .backgroundColor(AppColors.SELECTED_BG)
+          }
+        })
       }
       .width('100%')
       .padding({ left: 16, right: 16 })
@@ -732,29 +755,39 @@ export struct RecruiterHomeTab {
         Row() {
           Text(this.selectedRegion.length > 0 ? this.compactLabel(this.selectedRegion) : '区域')
             .fontSize(13)
-            .fontColor(this.selectedRegion.length > 0 ? '#007AFF' : '#666666')
+            .fontColor(this.selectedRegion.length > 0 ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
         }
         .height(32)
-        .backgroundColor(this.selectedRegion.length > 0 ? '#EBF5FF' : '#F5F5F5')
+        .backgroundColor(this.selectedRegion.length > 0 ? AppColors.SELECTED_BG : AppColors.INPUT_BG)
         .borderRadius(16)
         .padding({ left: 14, right: 14 })
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .margin({ right: 6 })
         .onClick(() => { this.showRegionDialog() })
+        .stateStyles({
+          pressed: {
+            .backgroundColor(AppColors.SELECTED_BG)
+          }
+        })
 
         Row() {
           Text(this.selectedType.length > 0 ? this.compactLabel(this.selectedType) : '类型')
             .fontSize(13)
-            .fontColor(this.selectedType.length > 0 ? '#007AFF' : '#666666')
+            .fontColor(this.selectedType.length > 0 ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
         }
         .height(32)
-        .backgroundColor(this.selectedType.length > 0 ? '#EBF5FF' : '#F5F5F5')
+        .backgroundColor(this.selectedType.length > 0 ? AppColors.SELECTED_BG : AppColors.INPUT_BG)
         .borderRadius(16)
         .padding({ left: 14, right: 14 })
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .onClick(() => { this.showTypeDialog() })
+        .stateStyles({
+          pressed: {
+            .backgroundColor(AppColors.SELECTED_BG)
+          }
+        })
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
@@ -764,6 +797,10 @@ export struct RecruiterHomeTab {
           ListItem() {
             ResumeCard({ resume: resume })
           }
+          .transition(TransitionEffect.asymmetric(
+            TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
+            TransitionEffect.opacity(1)
+          ))
         }, (resume: ResumeCardData) => resume.id)
       }
       .layoutWeight(1)

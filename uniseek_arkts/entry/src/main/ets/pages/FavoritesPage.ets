@@ -2,6 +2,8 @@ import { router } from '@kit.ArkUI';
 import { JobData } from '../services/ChatTypes';
 import { FavoriteService } from '../services/FavoriteService';
 import { JobCard } from './tab/seeker/HomePage';
+import { AppColors, AppSpacing, AppFontSize } from '../common/AppStyles';
+import { NavBar } from '../common/NavBar';
 
 @Entry
 @Component
@@ -23,29 +25,17 @@ struct FavoritesPage {
 
   build() {
     Column() {
-      Row() {
-        Image($r('app.media.left_arrow'))
-          .width(20)
-          .height(20)
-          .fillColor('#333333')
-          .onClick(() => {
-            router.back()
-          })
-        Text('收藏')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ left: 12 })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-      .alignItems(VerticalAlign.Center)
+      NavBar({
+        title: '我的收藏',
+        showBack: true,
+        onBack: () => router.back()
+      })
 
       if (this.jobs.length === 0) {
         Column() {
           Text('暂无收藏')
-            .fontSize(16)
-            .fontColor('#999999')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_MUTED)
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
@@ -57,17 +47,17 @@ struct FavoritesPage {
               Column() {
                 JobCard({ job: job })
               }
-              .margin({ top: 8 })
+              .margin({ top: AppSpacing.SM })
             }
           }, (job: JobData) => job.id)
         }
         .layoutWeight(1)
         .width('100%')
-        .backgroundColor('#F8F8F8')
+        .backgroundColor(AppColors.BG_PAGE)
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 }

@@ -11,7 +11,7 @@ import javax.validation.constraints.Size;
 @Data
 public class SendMessageRequest {
 
-    /** 消息类型：0 文本 / 1 图片（默认文本） */
+    /** 消息类型：0 文本 / 1 图片 / 2 简历附件（默认文本） */
     private Integer messageType = 0;
 
     /** 消息内容 */

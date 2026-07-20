@@ -1,6 +1,7 @@
 import { http } from '@kit.NetworkKit';
 import { preferences } from '@kit.ArkData';
 import { BusinessError } from '@kit.BasicServicesKit';
+import { TaskSearchParams, TaskVO, PageResult } from './ChatTypes';
 
 const PREF_NAME = 'uniseek_token_db';
 const KEY_TOKEN = 'jwt_token';
@@ -49,6 +50,54 @@ export class ApiClient {
 
   static async delete<T>(path: string): Promise<T> {
     return request<T>('DELETE', path)
+  }
+
+  static async searchTasks(params: TaskSearchParams): Promise<PageResult<TaskVO>> {
+    const queryParams: Array<[string, string]> = []
+    if (params.keyword !== undefined && params.keyword !== null) {
+      queryParams.push(['keyword', params.keyword])
+    }
+    if (params.categoryId !== undefined && params.categoryId !== null) {
+      queryParams.push(['categoryId', String(params.categoryId)])
+    }
+    if (params.regionId !== undefined && params.regionId !== null) {
+      queryParams.push(['regionId', String(params.regionId)])
+    }
+    if (params.regionIds !== undefined && params.regionIds !== null) {
+      queryParams.push(['regionIds', params.regionIds])
+    }
+    if (params.categoryIds !== undefined && params.categoryIds !== null) {
+      queryParams.push(['categoryIds', params.categoryIds])
+    }
+    if (params.jobType !== undefined && params.jobType !== null) {
+      queryParams.push(['jobType', String(params.jobType)])
+    }
+    if (params.salaryMin !== undefined && params.salaryMin !== null) {
+      queryParams.push(['salaryMin', String(params.salaryMin)])
+    }
+    if (params.salaryMax !== undefined && params.salaryMax !== null) {
+      queryParams.push(['salaryMax', String(params.salaryMax)])
+    }
+    if (params.salaryUnit !== undefined && params.salaryUnit !== null) {
+      queryParams.push(['salaryUnit', String(params.salaryUnit)])
+    }
+    if (params.includeNegotiable !== undefined && params.includeNegotiable !== null) {
+      queryParams.push(['includeNegotiable', String(params.includeNegotiable)])
+    }
+    if (params.sortBy !== undefined && params.sortBy !== null) {
+      queryParams.push(['sortBy', params.sortBy])
+    }
+    if (params.page !== undefined && params.page !== null) {
+      queryParams.push(['page', String(params.page)])
+    }
+    if (params.pageSize !== undefined && params.pageSize !== null) {
+      queryParams.push(['pageSize', String(params.pageSize)])
+    }
+    return ApiClient.get<PageResult<TaskVO>>('/api/tasks', queryParams)
+  }
+
+  static async getTaskById(taskId: number): Promise<TaskVO> {
+    return ApiClient.get<TaskVO>('/api/tasks/' + taskId)
   }
 }
 

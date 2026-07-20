@@ -23,7 +23,7 @@ public class ChatMessage {
     /** 发送者用户 ID */
     private Long senderId;
 
-    /** 消息类型：0 文本 / 1 图片 */
+    /** 消息类型：0 文本 / 1 图片 / 2 简历附件 */
     private Integer messageType;
 
     /** 消息内容 */
