@@ -164,6 +164,8 @@
             </if>
             <!-- 只查询招聘中的职位（1），已满员/已下架的职位不展示 -->
             AND task.status = 1
+            <!-- 过滤已过截止时间的职位 -->
+            AND (task.deadline IS NULL OR task.deadline &gt; NOW())
         </where>
     </sql>
 
