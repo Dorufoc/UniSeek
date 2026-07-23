@@ -12,30 +12,20 @@ struct FilterChip {
   icon?: Resource;
   label: string = '';
   isActive: boolean = false;
-  hasClear: boolean = false;
   chipOnClick?: () => void;
-  onClear?: () => void;
 
   build() {
-    Row() {
-      if (this.icon !== undefined) {
-        SymbolGlyph(this.icon!)
+    Button({ type: ButtonType.Capsule }) {
+      Row() {
+        if (this.icon !== undefined) {
+          SymbolGlyph(this.icon!)
+            .fontSize(AppFontSize.XS)
+            .fontColor([this.isActive ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY]);
+        }
+        Text(this.label)
           .fontSize(AppFontSize.XS)
-          .fontColor([this.isActive ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY]);
-      }
-      Text(this.label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(this.isActive ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
-        .margin({ left: AppSpacing.XS });
-      if (this.hasClear) {
-        Blank();
-        Text('✕')
-          .fontSize(10)
-          .fontColor(AppColors.TEXT_MUTED)
-          .margin({ left: AppSpacing.XS })
-          .onClick(() => {
-            this.onClear?.();
-          });
+          .fontColor(this.isActive ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
+          .margin({ left: AppSpacing.XS });
       }
     }
     .height(32)
@@ -45,10 +35,7 @@ struct FilterChip {
     .onClick(() => {
       this.chipOnClick?.();
     })
-    .animation({
-      duration: 200,
-      curve: 'cubic-bezier(0.2, 0, 0, 1.0)'
-    });
+    .animation({ duration: 180 });
   }
 }
 
@@ -74,36 +61,24 @@ export struct FilterBar {
         icon: $r('sys.symbol.creditcard'),
         label: this.salaryLabel(),
         isActive: this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0 || this.includeNegotiable,
-        hasClear: this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0,
         chipOnClick: () => {
           this.onShowSheet?.();
-        },
-        onClear: () => {
-          this.onClearSalary?.();
         }
       });
       FilterChip({
         icon: $r('sys.symbol.map'),
         label: this.selectedRegion.length > 0 ? this.compactLabel(this.selectedRegion) : '区域',
         isActive: this.selectedRegion.length > 0,
-        hasClear: this.selectedRegion.length > 0,
         chipOnClick: () => {
           this.onShowSheet?.();
-        },
-        onClear: () => {
-          this.onClearRegion?.();
         }
       });
       FilterChip({
         icon: $r('sys.symbol.line_3_horizontal'),
         label: this.selectedType.length > 0 ? this.compactLabel(this.selectedType) : '类型',
         isActive: this.selectedType.length > 0,
-        hasClear: this.selectedType.length > 0,
         chipOnClick: () => {
           this.onShowSheet?.();
-        },
-        onClear: () => {
-          this.onClearType?.();
         }
       });
     }
@@ -111,8 +86,7 @@ export struct FilterBar {
     .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.XS })
     .justifyContent(FlexAlign.Start)
     .alignItems(VerticalAlign.Center)
-    .backgroundColor('#D9FFFFFF')
-    .backgroundBlurStyle(BlurStyle.Thin);
+    .backgroundColor(AppColors.BG_PAGE);
   }
 
   // 生成薪资芯片标签文字

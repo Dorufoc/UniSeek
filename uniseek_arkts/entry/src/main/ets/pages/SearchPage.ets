@@ -115,9 +115,14 @@ struct SearchPage {
         .fontSize(AppFontSize.SM)
         .fontColor(AppColors.TEXT_PRIMARY)
       if (this.isDeleting) {
-        Text('✕')
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.DANGER)
+        Button({ type: ButtonType.Circle }) {
+          SymbolGlyph($r('sys.symbol.xmark'))
+            .fontSize(14)
+            .fontColor([AppColors.DANGER])
+        }
+          .width(28)
+          .height(28)
+          .backgroundColor(AppColors.ERROR_BG)
           .margin({ left: AppSpacing.XS })
           .onClick(() => {
             this.removeFromHistory(index)
@@ -190,6 +195,25 @@ struct SearchPage {
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       .alignItems(VerticalAlign.Center)
 
+      Button() {
+        Row({ space: AppSpacing.XS }) {
+          SymbolGlyph($r('sys.symbol.building'))
+            .fontSize(16)
+            .fontColor([AppColors.PRIMARY])
+          Text('找企业')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.PRIMARY)
+        }
+      }
+      .height(36)
+      .margin({ left: AppSpacing.MD, top: AppSpacing.MD })
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .backgroundColor(AppColors.SELECTED_BG)
+      .borderRadius(AppRadius.FULL)
+      .onClick(() => {
+        router.pushUrl({ url: 'pages/CompanyPage', params: { keyword: this.searchText.trim() } })
+      })
+
       Row() {
         Text('搜索历史')
           .fontSize(AppFontSize.MD)
@@ -199,25 +223,33 @@ struct SearchPage {
         Blank()
 
         if (this.isDeleting) {
-          Row() {
-            Text('全部删除')
+          Row({ space: AppSpacing.XS }) {
+            Button('全部删除', { type: ButtonType.Capsule })
+              .height(32)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.DANGER)
+              .backgroundColor(AppColors.ERROR_BG)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
               .onClick(() => {
                 this.clearAllHistory()
               })
-            Blank().width(AppSpacing.MD)
-            Text('完成')
+            Button('完成', { type: ButtonType.Capsule })
+              .height(32)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.PRIMARY)
+              .backgroundColor(AppColors.SELECTED_BG)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
               .onClick(() => {
                 this.isDeleting = false
               })
           }
         } else if (this.searchHistory.length > 0) {
-          Text('编辑')
+          Button('编辑', { type: ButtonType.Capsule })
+            .height(32)
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.SELECTED_BG)
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
             .onClick(() => {
               this.isDeleting = true
             })
@@ -255,11 +287,19 @@ struct SearchPage {
           })
 
           if (this.searchHistory.length > DEFAULT_SHOW) {
-            Text(this.showAll ? '收起' : '展开更多')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.PRIMARY)
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: AppSpacing.XS }) {
+                Text(this.showAll ? '收起' : '展开更多')
+                  .fontSize(AppFontSize.SM)
+                  .fontColor(AppColors.PRIMARY)
+                SymbolGlyph(this.showAll ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
+                  .fontSize(14)
+                  .fontColor([AppColors.PRIMARY])
+              }
+            }
               .width('100%')
-              .textAlign(TextAlign.Center)
+              .height(36)
+              .backgroundColor(Color.Transparent)
               .margin({ top: AppSpacing.SM })
               .onClick(() => {
                 this.showAll = !this.showAll

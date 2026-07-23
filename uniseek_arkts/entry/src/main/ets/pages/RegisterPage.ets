@@ -1,6 +1,7 @@
 import { router, promptAction, SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { InputValidator } from '../common/FormValidators'
 
 @Entry
 @Component
@@ -13,6 +14,7 @@ struct RegisterPage {
   @State role: number = 0
   @State pageLoaded: boolean = false
   @State selectedRoleIndexes: number[] = [0]
+  @State agreed: boolean = false
 
   // 胶囊单选分段按钮——求职者/招聘者切换
   @State roleOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
@@ -27,9 +29,9 @@ struct RegisterPage {
   })
 
   aboutToAppear(): void {
-    // 入场动画——整体内容淡入
+    // 由组件转场承载首屏进入动效，避免使用已弃用的显式动画接口。
     setTimeout(() => {
-      animateTo({ duration: 400 }, () => { this.pageLoaded = true })
+      this.pageLoaded = true
     }, 50)
   }
 
@@ -70,6 +72,7 @@ struct RegisterPage {
             .placeholderColor(AppColors.TEXT_MUTED)
         }
         .height(50)
+        .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(20)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
@@ -91,6 +94,7 @@ struct RegisterPage {
             .placeholderColor(AppColors.TEXT_MUTED)
         }
         .height(50)
+        .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(20)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
@@ -113,6 +117,7 @@ struct RegisterPage {
             .placeholderColor(AppColors.TEXT_MUTED)
         }
         .height(50)
+        .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(20)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
@@ -136,6 +141,7 @@ struct RegisterPage {
             .placeholderColor(AppColors.TEXT_MUTED)
         }
         .height(50)
+        .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(20)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
@@ -159,6 +165,7 @@ struct RegisterPage {
             .placeholderColor(AppColors.TEXT_MUTED)
         }
         .height(50)
+        .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(20)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
@@ -180,6 +187,36 @@ struct RegisterPage {
           }
         })
         .width('100%')
+
+        Row() {
+          Checkbox({ name: 'registerAgreement' })
+            .select(this.agreed)
+            .selectedColor(AppColors.PRIMARY)
+            .shape(CheckBoxShape.ROUNDED_SQUARE)
+            .onChange((value: boolean): void => { this.agreed = value })
+          Text('我已阅读并同意')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .margin({ left: AppSpacing.XS })
+          Button('用户协议', { type: ButtonType.Normal })
+            .height(28)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
+            .backgroundColor(Color.Transparent)
+            .onClick((): void => { router.pushUrl({ url: 'pages/UserAgreementPage' }) })
+          Text('和')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_SECONDARY)
+          Button('隐私政策', { type: ButtonType.Normal })
+            .height(28)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
+            .backgroundColor(Color.Transparent)
+            .onClick((): void => { router.pushUrl({ url: 'pages/PrivacyPolicyPage' }) })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+        .margin({ top: AppSpacing.MD })
 
         Button('注册', { type: ButtonType.Capsule })
           .width('100%')
@@ -215,9 +252,12 @@ struct RegisterPage {
           .fontSize(AppFontSize.SM)
           .fontColor(AppColors.TEXT_MUTED)
 
-        Text('立即登录')
+        Button('立即登录', { type: ButtonType.Normal })
+          .height(32)
           .fontSize(AppFontSize.SM)
           .fontColor(AppColors.PRIMARY)
+          .backgroundColor(Color.Transparent)
+          .padding({ left: AppSpacing.XS, right: AppSpacing.XS })
           .onClick(() => {
             router.replaceUrl({ url: 'pages/LoginPage' })
           })
@@ -230,25 +270,25 @@ struct RegisterPage {
     .height('100%')
     .padding({ left: 32, right: 32 })
     .opacity(this.pageLoaded ? 1 : 0)
-    .animation({ duration: 400 })
+    .transition({ opacity: 0, translate: { y: 12 } })
     .backgroundColor('#FFFFFF')
   }
 
   async handleRegister() {
-    if (!this.phone.trim()) {
-      promptAction.showToast({ message: '请输入手机号', duration: 2000 })
+    if (!InputValidator.isPhone(this.phone.trim())) {
+      promptAction.showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
       return
     }
-    if (!this.email.trim()) {
-      promptAction.showToast({ message: '请输入邮箱', duration: 2000 })
+    if (!InputValidator.isEmail(this.email.trim())) {
+      promptAction.showToast({ message: '请输入正确的邮箱地址', duration: 2000 })
       return
     }
-    if (!this.nickname.trim()) {
-      promptAction.showToast({ message: '请输入昵称', duration: 2000 })
+    if (!InputValidator.isNickname(this.nickname.trim())) {
+      promptAction.showToast({ message: '昵称长度应为 2 到 20 个字符', duration: 2000 })
       return
     }
-    if (!this.password.trim()) {
-      promptAction.showToast({ message: '请输入密码', duration: 2000 })
+    if (!InputValidator.isStrongPassword(this.password)) {
+      promptAction.showToast({ message: '密码需为 8 到 20 位，且同时包含字母和数字', duration: 2000 })
       return
     }
     if (!this.confirmPassword.trim()) {
@@ -257,6 +297,10 @@ struct RegisterPage {
     }
     if (this.password !== this.confirmPassword) {
       promptAction.showToast({ message: '两次密码输入不一致', duration: 2000 })
+      return
+    }
+    if (!this.agreed) {
+      promptAction.showToast({ message: '请先阅读并同意用户协议和隐私政策', duration: 2000 })
       return
     }
 
@@ -269,7 +313,8 @@ struct RegisterPage {
         this.nickname.trim(),
         this.role
       )
-      router.pushUrl({ url: 'pages/LoginPage' })
+      const loginResult = await AuthService.login(this.phone.trim(), this.password)
+      router.replaceUrl({ url: loginResult.userInfo.role === 0 ? 'pages/MainPage' : 'pages/RecruiterHomePage' })
     } catch (e) {
       promptAction.showToast({ message: (e as Error).message || '注册失败', duration: 2000 })
     }

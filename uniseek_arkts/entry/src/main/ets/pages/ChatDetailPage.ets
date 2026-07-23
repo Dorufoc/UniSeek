@@ -2,12 +2,13 @@
 // 与 Vue 端 Messages.vue 右侧聊天面板样式 100% 对齐
 // 设计系统参考：AppStyles.ets
 
-import { router, promptAction, curves } from '@kit.ArkUI';
+import { router, promptAction } from '@kit.ArkUI';
 import { ChatService } from '../services/ChatService';
-import { ChatMessageVO } from '../services/ChatTypes';
+import { ChatMessageVO, ChatSessionVO } from '../services/ChatTypes';
 import { ChatWebSocketService, WsNewMessageData } from '../services/ChatWebSocketService';
 import { UserSession } from '../services/UserSession';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { ChatMessagePolicy } from '../common/BusinessPolicies';
 import { picker } from '@kit.CoreFileKit';
 
 @Entry
@@ -18,10 +19,14 @@ struct ChatDetailPage {
   @State counterpartName: string = ''
   @State counterpartAvatar: string = ''
   @State applicationId: number = 0
+  @State taskTitle: string = ''
   @State isSending: boolean = false
+  @State isLoadingMessages: boolean = true
+  @State messageError: string = ''
 
   // ==================== 阶段 2：富媒体与交互状态 ====================
 
+  @State canSend: boolean = true
   @State showActionMenu: boolean = false   // 操作菜单可见性
   @State showLightbox: boolean = false      // 图片 Lightbox 可见性
   @State lightboxImageUrl: string = ''      // 当前预览图片 URL
@@ -29,6 +34,7 @@ struct ChatDetailPage {
   @State isLoadingMore: boolean = false     // 是否正在加载更多
   @State isSendingImage: boolean = false    // 是否正在发送图片
   @State isSendingResume: boolean = false   // 是否正在发送简历
+  @State isHandlingAttachment: boolean = false // 是否正在处理附件
 
   // ==================== 生命周期 ====================
 
@@ -37,12 +43,15 @@ struct ChatDetailPage {
     this.counterpartName = params['counterpartName'] as string
     this.counterpartAvatar = params['counterpartAvatar'] as string
     this.applicationId = params['applicationId'] as number
+    this.loadSessionInfo()
     this.loadMessages()
 
     // 连接 WebSocket 并注册新消息回调
     ChatWebSocketService.getInstance().connect()
-    ChatWebSocketService.getInstance().setOnNewMessageCallback((data: WsNewMessageData) => {
-      if (data.applicationId === this.applicationId) {
+    ChatWebSocketService.getInstance().setOnDetailMessageCallback((data: WsNewMessageData) => {
+      const existingIds: number[] = this.messages.map((message: ChatMessageVO): number => message.id)
+      if (data.applicationId === this.applicationId &&
+        ChatMessagePolicy.shouldAppend(data.messageId, data.senderId, UserSession.userId, existingIds)) {
         const newMsg: ChatMessageVO = {
           id: data.messageId,
           senderId: data.senderId,
@@ -53,26 +62,47 @@ struct ChatDetailPage {
           senderName: data.senderName,
           senderAvatar: data.senderAvatar
         }
-        this.messages.push(newMsg)
+        this.messages = this.messages.concat([newMsg])
       }
     })
   }
 
   aboutToDisappear(): void {
-    ChatWebSocketService.getInstance().disconnect()
+    ChatWebSocketService.getInstance().removeOnDetailMessageCallback()
   }
 
   onPageShow(): void {
     this.loadMessages()
+    this.loadSessionInfo()
   }
 
   // ==================== 数据加载 ====================
+
+  loadSessionInfo(): void {
+    if (this.applicationId <= 0) {
+      return
+    }
+    ChatService.getSessionDetail(this.applicationId).then((session: ChatSessionVO) => {
+      this.counterpartName = session.counterpartName || this.counterpartName
+      this.counterpartAvatar = session.counterpartAvatar || this.counterpartAvatar
+      this.taskTitle = session.taskTitle || ''
+      this.canSend = session.canSend !== false
+    }).catch(() => {
+      this.canSend = true
+    })
+  }
+
+  canSendMessage(): boolean {
+    return UserSession.role !== 0 || this.canSend
+  }
 
   loadMessages(): void {
     if (this.applicationId <= 0) {
       return
     }
     this.hasMoreMessages = true
+    this.isLoadingMessages = this.messages.length === 0
+    this.messageError = ''
     this.showActionMenu = false
     this.showLightbox = false
     ChatService.getMessages(this.applicationId).then((msgs: ChatMessageVO[]) => {
@@ -81,6 +111,12 @@ struct ChatDetailPage {
         this.hasMoreMessages = false
       }
       this.messages = msgs.reverse()
+      this.isLoadingMessages = false
+    }).catch(() => {
+      this.isLoadingMessages = false
+      if (this.messages.length === 0) {
+        this.messageError = '消息加载失败，请检查网络后重试'
+      }
     })
     ChatService.markSessionRead(this.applicationId)
   }
@@ -106,6 +142,32 @@ struct ChatDetailPage {
       return name.substring(0, 27) + '...'
     }
     return name
+  }
+  previewAttachment(url: string): void {
+    if (!url || this.isHandlingAttachment) {
+      return
+    }
+    this.isHandlingAttachment = true
+    ChatService.previewAttachment(url).then(() => {
+      this.isHandlingAttachment = false
+    }).catch(() => {
+      this.isHandlingAttachment = false
+      promptAction.showToast({ message: '附件预览失败，请重试' })
+    })
+  }
+
+  downloadAttachment(url: string): void {
+    if (!url || this.isHandlingAttachment) {
+      return
+    }
+    this.isHandlingAttachment = true
+    ChatService.downloadAttachment(url).then(() => {
+      this.isHandlingAttachment = false
+      promptAction.showToast({ message: '附件已下载到应用文件' })
+    }).catch(() => {
+      this.isHandlingAttachment = false
+      promptAction.showToast({ message: '附件下载失败，请重试' })
+    })
   }
 
   // ==================== 历史消息加载 ====================
@@ -139,15 +201,19 @@ struct ChatDetailPage {
     if (!text || this.isSending) {
       return
     }
+    if (!this.canSendMessage()) {
+      promptAction.showToast({ message: 'HR 未回复前，您只能发送一条消息' })
+      return
+    }
     this.isSending = true
     this.inputText = ''
     ChatService.sendMessage(this.applicationId, text).then((msg: ChatMessageVO | null) => {
       if (msg) {
         this.messages.push(msg)
+        this.loadSessionInfo()
       }
       this.isSending = false
     }).catch(() => {
-      // 发送失败，恢复状态
       this.isSending = false
     })
   }
@@ -157,9 +223,12 @@ struct ChatDetailPage {
     if (this.isSendingImage) {
       return
     }
+    if (!this.canSendMessage()) {
+      promptAction.showToast({ message: 'HR 未回复前，您只能发送一条消息' })
+      return
+    }
     this.showActionMenu = false
     this.isSendingImage = true
-    // 使用 PhotoViewPicker 选择图片
     const photoPicker = new picker.PhotoViewPicker()
     photoPicker.select({ maxSelectNumber: 1 }).then((result: picker.PhotoSelectResult) => {
       if (!result.photoUris || result.photoUris.length === 0) {
@@ -167,17 +236,16 @@ struct ChatDetailPage {
         return
       }
       const imageUri = result.photoUris[0]
-      // 上传图片
       ChatService.uploadImage(imageUri).then((url: string) => {
         if (!url) {
           promptAction.showToast({ message: '图片上传失败' })
           this.isSendingImage = false
           return
         }
-        // 发送图片消息（messageType=1）
         ChatService.sendMessageWithType(this.applicationId, 1, url).then((msg: ChatMessageVO) => {
           this.messages.push(msg)
           this.isSendingImage = false
+          this.loadSessionInfo()
         }).catch(() => {
           promptAction.showToast({ message: '图片发送失败' })
           this.isSendingImage = false
@@ -187,7 +255,6 @@ struct ChatDetailPage {
         this.isSendingImage = false
       })
     }).catch(() => {
-      // 用户取消选择
       this.isSendingImage = false
     })
   }
@@ -197,27 +264,28 @@ struct ChatDetailPage {
     if (this.isSendingResume) {
       return
     }
+    if (!this.canSendMessage()) {
+      promptAction.showToast({ message: 'HR 未回复前，您只能发送一条消息' })
+      return
+    }
     this.showActionMenu = false
     this.isSendingResume = true
-    // 使用 DocumentViewPicker 选择文件
     const docPicker = new picker.DocumentViewPicker()
     docPicker.select({ maxSelectNumber: 1 }).then((uris: string[]) => {
       if (!uris || uris.length === 0) {
         this.isSendingResume = false
         return
       }
-      const fileUri = uris[0]
-      // 上传文件
-      ChatService.uploadFile(fileUri).then((url: string) => {
+      ChatService.uploadFile(uris[0]).then((url: string) => {
         if (!url) {
           promptAction.showToast({ message: '文件上传失败' })
           this.isSendingResume = false
           return
         }
-        // 发送简历消息（messageType=2）
         ChatService.sendMessageWithType(this.applicationId, 2, url).then((msg: ChatMessageVO) => {
           this.messages.push(msg)
           this.isSendingResume = false
+          this.loadSessionInfo()
         }).catch(() => {
           promptAction.showToast({ message: '简历发送失败' })
           this.isSendingResume = false
@@ -227,7 +295,6 @@ struct ChatDetailPage {
         this.isSendingResume = false
       })
     }).catch(() => {
-      // 用户取消选择
       this.isSendingResume = false
     })
   }
@@ -244,6 +311,27 @@ struct ChatDetailPage {
         // 消息列表
         Scroll() {
           Column({ space: 20 }) {
+            if (this.isLoadingMessages && this.messages.length === 0) {
+              Column({ space: AppSpacing.SM }) {
+                LoadingProgress().width(28).height(28).color(AppColors.PRIMARY)
+                Text('正在加载消息').fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_MUTED)
+              }
+              .width('100%')
+              .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
+            } else if (this.messageError && this.messages.length === 0) {
+              Column({ space: AppSpacing.SM }) {
+                Text(this.messageError).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
+                Button('重新加载', { type: ButtonType.Capsule })
+                  .height(40)
+                  .fontSize(AppFontSize.SM)
+                  .fontColor('#FFFFFF')
+                  .backgroundColor(AppColors.PRIMARY)
+                  .onClick(() => { this.loadMessages() })
+              }
+              .width('100%')
+              .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
+            }
+
             // 加载更多按钮（位于列表顶部）
             if (this.hasMoreMessages && this.messages.length > 0) {
               this.loadMoreButton()
@@ -268,10 +356,7 @@ struct ChatDetailPage {
       }
       .width('100%')
       .height('100%')
-      .linearGradient({
-        angle: 180,
-        colors: [['#fafbfc', 0], ['#f5f7fa', 1]]
-      })
+      .backgroundColor(AppColors.BG_PAGE)
 
       // ========== 操作菜单遮罩层 ==========
       if (this.showActionMenu) {
@@ -293,11 +378,16 @@ struct ChatDetailPage {
     Column() {
       Row() {
         // 返回按钮
-        Text('<')
-          .fontSize(22)
-          .fontColor('#1a1a2e')
-          .fontWeight(FontWeight.Medium)
-          .onClick(() => {
+        Button({ type: ButtonType.Circle }) {
+          SymbolGlyph($r('sys.symbol.chevron_backward'))
+            .fontSize(20)
+            .fontColor([AppColors.TEXT_PRIMARY])
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(Color.Transparent)
+        .margin({ right: AppSpacing.SM })
+        .onClick(() => {
             router.back()
           })
 
@@ -306,35 +396,24 @@ struct ChatDetailPage {
           // 对方名称
           Text(this.counterpartName || '聊天')
             .fontSize(17)
-            .fontColor('#1a1a2e')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .fontWeight(FontWeight.Bold)
             .letterSpacing(-0.41)
-          // 副标题（占位，后续从 session 加载职位名）
-          Text('')
+          Text(this.taskTitle || '职位沟通')
             .fontSize(13)
-            .fontColor('#8b95a7')
+            .fontColor(AppColors.TEXT_MUTED)
             .margin({ top: 2 })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Center)
       }
       .width('100%')
-      .padding({ top: 20, bottom: 20, left: 28, right: 28 })
-
-      // 底部装饰线
-      Row()
-        .width('100%')
-        .height(1)
-        .linearGradient({
-          direction: GradientDirection.Right,
-          colors: [['rgba(0,0,0,0)', 0], ['rgba(23,98,251,0.1)', 0.5], ['rgba(0,0,0,0)', 1]]
-        })
+      .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.MD, right: AppSpacing.MD })
     }
     .width('100%')
-    .linearGradient({
-      angle: 180,
-      colors: [['#ffffff', 0], ['#fafbfc', 1]]
-    })
+    .backgroundColor(AppColors.BG_CARD)
+    .borderWidth({ bottom: 1 })
+    .borderColor({ bottom: AppColors.BORDER })
   }
 
   // ==================== 头像组件 ====================
@@ -345,16 +424,7 @@ struct ChatDetailPage {
       Circle()
         .width(size ?? 40)
         .height(size ?? 40)
-        .linearGradient({
-          angle: 135,
-          colors: [['#1762FB', 0], ['#5856d6', 1]]
-        })
-        .shadow({ radius: 8, color: 'rgba(23,98,251,0.2)', offsetX: 0, offsetY: 2 })
-        .stateStyles({
-          pressed: {
-            .shadow({ radius: 12, color: 'rgba(23,98,251,0.3)', offsetX: 0, offsetY: 0 })
-          }
-        })
+        .fill(AppColors.PRIMARY)
 
       // 名字首字符
       Text((name || '?').charAt(0))
@@ -374,14 +444,14 @@ struct ChatDetailPage {
     Row() {
       Blank()
         .layoutWeight(1)
-      
+
       Row({ space: 12 }) {
         // 消息内容
         Column() {
           // 发送者名称
           Text(msg.senderName || '我')
             .fontSize(12.5)
-            .fontColor('#8b95a7')
+            .fontColor(AppColors.TEXT_MUTED)
             .fontWeight(500)
             .margin({ bottom: 6 })
 
@@ -398,23 +468,12 @@ struct ChatDetailPage {
               .borderRadius({ topLeft: 18, topRight: 6, bottomLeft: 18, bottomRight: 18 })
               .maxLines(100)
               .lineHeight(23)
-              .linearGradient({
-                angle: 135,
-                colors: [['#1762FB', 0], ['#2d7bff', 1]]
-              })
-              .shadow({ radius: 16, color: 'rgba(23,98,251,0.25)', offsetX: 0, offsetY: 4 })
-              .stateStyles({
-                pressed: {
-                  .translate({ y: -1 })
-                  .shadow({ radius: 20, color: 'rgba(23,98,251,0.3)', offsetX: 0, offsetY: 6 })
-                }
-              })
-              .animation({ duration: 200 })
+              .backgroundColor(AppColors.PRIMARY)
           }
 
           Text(this.formatTime(msg.sendTime))
             .fontSize(11)
-            .fontColor('#a0aab8')
+            .fontColor(AppColors.TEXT_MUTED)
             .opacity(0.8)
             .padding({ left: 4, right: 4 })
             .margin({ top: 6 })
@@ -429,7 +488,7 @@ struct ChatDetailPage {
     .width('100%')
     .alignItems(VerticalAlign.Top)
     .transition({ opacity: 0, translate: { y: 12 } })
-    .animation({ duration: 300, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
   }
 
   // ==================== 对方消息气泡 ====================
@@ -444,7 +503,7 @@ struct ChatDetailPage {
         Column() {
           Text(msg.senderName || this.counterpartName)
             .fontSize(12.5)
-            .fontColor('#8b95a7')
+            .fontColor(AppColors.TEXT_MUTED)
             .fontWeight(500)
             .margin({ bottom: 6 })
 
@@ -455,25 +514,19 @@ struct ChatDetailPage {
           } else {
             Text(msg.content)
               .fontSize(14.5)
-              .fontColor('#1a1a2e')
+              .fontColor(AppColors.TEXT_PRIMARY)
               .padding({ left: 16, right: 16, top: 12, bottom: 12 })
               .borderRadius({ topLeft: 6, topRight: 18, bottomLeft: 18, bottomRight: 18 })
               .maxLines(100)
               .lineHeight(23)
-              .backgroundColor('#ffffff')
-              .shadow({ radius: 12, color: 'rgba(0,0,0,0.06)', offsetX: 0, offsetY: 2 })
-              .stateStyles({
-                pressed: {
-                  .translate({ y: -1 })
-                  .shadow({ radius: 16, color: 'rgba(0,0,0,0.08)', offsetX: 0, offsetY: 4 })
-                }
-              })
-              .animation({ duration: 200 })
+              .backgroundColor(AppColors.BG_CARD)
+              .borderWidth(1)
+              .borderColor(AppColors.BORDER)
           }
 
           Text(this.formatTime(msg.sendTime))
             .fontSize(11)
-            .fontColor('#a0aab8')
+            .fontColor(AppColors.TEXT_MUTED)
             .opacity(0.8)
             .padding({ left: 4, right: 4 })
             .margin({ top: 6 })
@@ -481,14 +534,14 @@ struct ChatDetailPage {
         .alignItems(HorizontalAlign.Start)
         .constraintSize({ maxWidth: '70%' })
       }
-      
+
       Blank()
         .layoutWeight(1)
     }
     .width('100%')
     .alignItems(VerticalAlign.Top)
     .transition({ opacity: 0, translate: { y: 12 } })
-    .animation({ duration: 300, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
   }
 
   // ==================== 图片消息（messageType=1） ====================
@@ -500,7 +553,7 @@ struct ChatDetailPage {
       .width('100%')
       .borderRadius(14)
       .objectFit(ImageFit.Cover)
-      .backgroundColor('#f0f2f5')
+      .backgroundColor(AppColors.INPUT_BG)
       .onClick(() => {
         // 打开 Lightbox 预览
         this.lightboxImageUrl = msg.content
@@ -516,18 +569,18 @@ struct ChatDetailPage {
       // 顶部信息区：图标 + 文件名 + 标签
       Row() {
         // 文件图标
-        Text('📄')
-          .fontSize(28)
+        SymbolGlyph($r('sys.symbol.doc'))
+          .fontSize(24)
+          .fontColor([AppColors.PRIMARY])
           .width(40)
           .height(40)
-          .textAlign(TextAlign.Center)
 
         // 文件名 + 标签
         Column() {
           // 文件名
           Text(this.getAttachmentName(msg.content))
             .fontSize(13.5)
-            .fontColor('#1a1a2e')
+            .fontColor(AppColors.TEXT_PRIMARY)
             .fontWeight(FontWeight.Bold)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -535,7 +588,7 @@ struct ChatDetailPage {
           // 标签
           Text('简历附件')
             .fontSize(12)
-            .fontColor('#6b7585')
+            .fontColor(AppColors.TEXT_SECONDARY)
             .margin({ top: 2 })
         }
         .layoutWeight(1)
@@ -549,35 +602,35 @@ struct ChatDetailPage {
       Row() {
         // 预览按钮
         Button() {
-          Text('预览')
+          Text(this.isHandlingAttachment ? '处理中...' : '预览')
             .fontSize(13)
-            .fontColor('#1762FB')
+            .fontColor(AppColors.PRIMARY)
             .fontWeight(FontWeight.Medium)
         }
         .height(36)
         .padding({ left: 16, right: 16 })
         .borderRadius(8)
-        .backgroundColor('rgba(23,98,251,0.08)')
+        .backgroundColor(AppColors.SELECTED_BG)
+        .enabled(!this.isHandlingAttachment)
         .onClick(() => {
-          // 预览 PDF（可通过路由或打开链接）
-          promptAction.showToast({ message: '预览功能开发中' })
+          this.previewAttachment(msg.content)
         })
 
         // 下载按钮
         Button() {
-          Text('下载')
+          Text(this.isHandlingAttachment ? '处理中...' : '下载')
             .fontSize(13)
-            .fontColor('#1762FB')
+            .fontColor(AppColors.PRIMARY)
             .fontWeight(FontWeight.Medium)
         }
         .height(36)
         .padding({ left: 16, right: 16 })
         .borderRadius(8)
-        .backgroundColor('rgba(23,98,251,0.08)')
+        .backgroundColor(AppColors.SELECTED_BG)
         .margin({ left: 8 })
+        .enabled(!this.isHandlingAttachment)
         .onClick(() => {
-          // 下载文件
-          promptAction.showToast({ message: '下载功能开发中' })
+          this.downloadAttachment(msg.content)
         })
       }
       .width('100%')
@@ -587,12 +640,9 @@ struct ChatDetailPage {
     .width('100%')
     .padding(14)
     .borderRadius({ topLeft: 6, topRight: 18, bottomLeft: 18, bottomRight: 18 })
-    .linearGradient({
-      angle: 135,
-      colors: [['#f5f5ff', 0], ['#eef2ff', 1]]
-    })
+    .backgroundColor(AppColors.BG_CARD)
     .borderWidth(1)
-    .borderColor('rgba(23,98,251,0.1)')
+    .borderColor(AppColors.BORDER)
   }
 
   // ==================== 加载更多按钮 ====================
@@ -600,13 +650,11 @@ struct ChatDetailPage {
   @Builder loadMoreButton() {
     Button() {
       if (this.isLoadingMore) {
-        Text('加载中...')
-          .fontSize(13)
-          .fontColor('#a0aab8')
+        LoadingProgress().width(20).height(20).color(AppColors.PRIMARY)
       } else {
         Text('加载更多')
           .fontSize(13)
-          .fontColor('#1762FB')
+          .fontColor(AppColors.PRIMARY)
           .fontWeight(FontWeight.Medium)
       }
     }
@@ -649,7 +697,7 @@ struct ChatDetailPage {
             .margin({ right: 12 })
           Text('发送图片')
             .fontSize(15)
-            .fontColor('#1a1a2e')
+            .fontColor(AppColors.TEXT_PRIMARY)
         }
         .width('100%')
         .height(48)
@@ -661,7 +709,7 @@ struct ChatDetailPage {
         })
         .stateStyles({
           pressed: {
-            .backgroundColor('#f5f7fa')
+            .backgroundColor(AppColors.INPUT_BG)
           }
         })
 
@@ -672,7 +720,7 @@ struct ChatDetailPage {
             .margin({ right: 12 })
           Text('发送简历')
             .fontSize(15)
-            .fontColor('#1a1a2e')
+            .fontColor(AppColors.TEXT_PRIMARY)
         }
         .width('100%')
         .height(48)
@@ -684,19 +732,19 @@ struct ChatDetailPage {
         })
         .stateStyles({
           pressed: {
-            .backgroundColor('#f5f7fa')
+            .backgroundColor(AppColors.INPUT_BG)
           }
         })
       }
       .width(180)
       .padding(8)
-      .backgroundColor('#ffffff')
+      .backgroundColor(AppColors.BG_CARD)
       .borderRadius(12)
       .shadow({ radius: 16, color: 'rgba(0,0,0,0.12)', offsetX: 0, offsetY: 4 })
       .margin({ left: 28, bottom: 100 })
       // 菜单弹出动画：从下方 8px + scale(0.96) 淡入，250ms，与 Vue 端 menuSlideUp 一致
       .transition({ opacity: 0, translate: { y: 8 }, scale: { x: 0.96, y: 0.96 } })
-      .animation({ duration: 250, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
     }
     .width('100%')
     .height('100%')
@@ -716,7 +764,7 @@ struct ChatDetailPage {
           this.lightboxImageUrl = ''
         })
         .transition({ opacity: 0 })
-        .animation({ duration: 300, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
 
       // 图片 zoom in 动画，与 Vue 端 lightboxZoomIn 一致
       Image(this.lightboxImageUrl)
@@ -725,13 +773,17 @@ struct ChatDetailPage {
         .borderRadius(8)
         .hitTestBehavior(HitTestMode.Block)
         .transition({ opacity: 0, scale: { x: 0.9, y: 0.9 } })
-        .animation({ duration: 300, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
 
       // 关闭按钮淡入
-      Text('✕')
-        .fontSize(24)
-        .fontColor('#ffffff')
-        .position({ x: '95%', y: 40 })
+      Button({ type: ButtonType.Circle }) {
+        SymbolGlyph($r('sys.symbol.xmark')).fontSize(22).fontColor(['#FFFFFF'])
+      }
+        .width(44)
+        .height(44)
+        .backgroundColor(AppColors.OVERLAY)
+        .position({ x: '86%', y: 32 })
+        .accessibilityText('关闭图片预览')
         .onClick(() => {
           this.showLightbox = false
           this.lightboxImageUrl = ''
@@ -749,30 +801,29 @@ struct ChatDetailPage {
       Row({ space: 12 }) {
         // 加号按钮
         Button() {
-          Text('+')
+          SymbolGlyph($r('sys.symbol.plus'))
             .fontSize(22)
-            .fontColor('#6b7585')
-            .fontWeight(FontWeight.Medium)
+            .fontColor([AppColors.TEXT_SECONDARY])
         }
         .width(48)
         .height(48)
         .padding(0)
         .borderRadius(14)
-        .border({ width: 1.5, color: '#e8ecf1' })
-        .backgroundColor('#fafbfc')
+        .border({ width: 1.5, color: AppColors.BORDER })
+        .backgroundColor(AppColors.BG_PAGE)
         .stateStyles({
           pressed: {
-            .backgroundColor('#1762FB')
-            .rotate({ angle: 45 })
+            .backgroundColor(AppColors.INPUT_FOCUS_BG)
           }
         })
-        .animation({ duration: 200, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
+        .enabled(this.canSendMessage())
         .onClick(() => {
           this.showActionMenu = !this.showActionMenu
         })
 
         // 输入框
-        TextInput({ placeholder: '请输入消息...', text: this.inputText })
+        TextInput({ placeholder: this.canSendMessage() ? '请输入消息...' : 'HR 未回复前，您只能发送一条消息', text: this.inputText })
           .onChange((value: string) => {
             this.inputText = value
           })
@@ -781,14 +832,15 @@ struct ChatDetailPage {
           .borderRadius(14)
           .padding({ left: 16, right: 16 })
           .fontSize(14.5)
-          .fontColor('#1a1a2e')
-          .placeholderColor('#a0aab8')
-          .backgroundColor('#fafbfc')
-          .border({ width: 1.5, color: '#e8ecf1' })
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .placeholderColor(AppColors.TEXT_MUTED)
+          .backgroundColor(AppColors.BG_PAGE)
+          .border({ width: 1.5, color: AppColors.BORDER })
+          .enabled(this.canSendMessage())
           .stateStyles({
             focused: {
-              .borderColor('#1762FB')
-              .backgroundColor('#ffffff')
+              .borderColor(AppColors.PRIMARY)
+              .backgroundColor(AppColors.BG_CARD)
               .shadow({ radius: 4, color: 'rgba(23,98,251,0.08)', offsetX: 0, offsetY: 0 })
             }
           })
@@ -804,30 +856,20 @@ struct ChatDetailPage {
         .constraintSize({ minWidth: 80 })
         .padding({ left: 24, right: 24 })
         .borderRadius(14)
-        .linearGradient({
-          angle: 135,
-          colors: [['#1762FB', 0], ['#2d7bff', 1]]
-        })
-        .shadow({ radius: 12, color: 'rgba(23,98,251,0.25)', offsetX: 0, offsetY: 4 })
-        .enabled(!this.isSending && this.inputText.trim().length > 0)
+        .backgroundColor(AppColors.PRIMARY)
+        .enabled(this.canSendMessage() && !this.isSending && this.inputText.trim().length > 0)
         .onClick(() => {
           this.handleSend()
         })
-        .stateStyles({
-          pressed: {
-            // pressed 态上移 2px + 阴影增强，与 Vue 端 bar-send-btn:hover 一致
-            .translate({ y: -2 })
-            .shadow({ radius: 20, color: 'rgba(23,98,251,0.35)', offsetX: 0, offsetY: 8 })
-          }
-        })
-        .animation({ duration: 200, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+
+
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding({ left: 28, right: 28, top: 16, bottom: 20 })
-    .backgroundColor('#ffffff')
+    .backgroundColor(AppColors.BG_CARD)
     .borderWidth({ top: 1 })
     .borderColor({ top: 'rgba(0,0,0,0.04)' })
   }

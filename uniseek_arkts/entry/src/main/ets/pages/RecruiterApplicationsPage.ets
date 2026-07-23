@@ -2,10 +2,22 @@ import { router } from '@kit.ArkUI';
 import { RecruiterService } from '../services/RecruiterService';
 import {
   RecruiterApplicationVO,
-  APPLICATION_STATUS_LABELS
+  APPLICATION_STATUS_LABELS,
+  ResumeCardData
 } from '../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+
+interface ApplicationResumeSnapshot {
+  realName: string
+  birthDate: string
+  education: string
+  school: string
+  graduationDate: string
+  skills: string
+  experience: string
+  attachmentUrl: string
+}
 
 @Entry
 @Component
@@ -14,6 +26,7 @@ struct RecruiterApplicationsPage {
   @State applicationList: RecruiterApplicationVO[] = []
   @State filterStatus: number = -1
   @State isLoading: boolean = true
+  @State errorText: string = ''
   private jobId: number = 0
 
   @State noJobContext: boolean = false
@@ -36,19 +49,73 @@ struct RecruiterApplicationsPage {
 
   loadApplications(): void {
     this.isLoading = true
-    RecruiterService.getJobApplications(this.jobId).then((list: RecruiterApplicationVO[]) => {
-      this.applicationList = list
+    this.errorText = ''
+    RecruiterService.getJobApplications(this.jobId).then((list: RecruiterApplicationVO[]): void => {
+      this.applicationList = list || []
+      this.isLoading = false
+    }).catch((): void => {
+      this.applicationList = []
+      this.errorText = '投递记录加载失败，请检查网络后重试'
       this.isLoading = false
     })
   }
 
+  private openResume(application: RecruiterApplicationVO): void {
+    const snapshot: ApplicationResumeSnapshot = this.parseResumeSnapshot(application.resumeSnapshot)
+    const resume: ResumeCardData = {
+      id: String(application.applicantId),
+      name: application.applicantName || snapshot.realName,
+      age: this.getAge(snapshot.birthDate),
+      avatar: application.applicantAvatar,
+      education: snapshot.education,
+      school: snapshot.school,
+      major: '',
+      experience: snapshot.experience,
+      skills: snapshot.skills,
+      region: '',
+      type: '',
+      category: '',
+      expectedSalary: '',
+      description: snapshot.experience,
+      attachmentUrl: application.attachmentUrl || snapshot.attachmentUrl,
+      graduationDate: snapshot.graduationDate
+    }
+    router.pushUrl({ url: 'pages/ResumeDetailPage', params: { resumeData: JSON.stringify(resume) } })
+  }
+
+  private parseResumeSnapshot(value?: string): ApplicationResumeSnapshot {
+    const empty: ApplicationResumeSnapshot = {
+      realName: '', birthDate: '', education: '', school: '', graduationDate: '', skills: '', experience: '', attachmentUrl: ''
+    }
+    if (!value) {
+      return empty
+    }
+    try {
+      const parsed = JSON.parse(value) as ApplicationResumeSnapshot
+      return parsed
+    } catch {
+      return empty
+    }
+  }
+
+  private getAge(birthDate: string): number {
+    if (birthDate.length < 4) {
+      return 0
+    }
+    const year: number = Number(birthDate.substring(0, 4))
+    const currentYear: number = new Date().getFullYear()
+    return year >= 1900 && year <= currentYear ? currentYear - year : 0
+  }
+
   get filteredList(): RecruiterApplicationVO[] {
-    if (this.filterStatus === -1) {
-      return this.applicationList
+    const applicationList: RecruiterApplicationVO[] = this.applicationList
+    const filterStatus: number = this.filterStatus
+    if (filterStatus === -1) {
+      return applicationList
     }
     const result: RecruiterApplicationVO[] = []
-    for (const app of this.applicationList) {
-      if (app.status === this.filterStatus) {
+    for (const app of applicationList) {
+      if (app.status === filterStatus) {
         result.push(app)
       }
     }
@@ -77,12 +144,24 @@ struct RecruiterApplicationsPage {
         .alignItems(HorizontalAlign.Center)
       } else if (this.isLoading) {
         Column() {
-          Text('加载中...')
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.TEXT_MUTED)
+          LoadingProgress().width(32).height(32).color(AppColors.PRIMARY)
         }
         .width('100%')
-        .height('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.errorText) {
+        Column({ space: AppSpacing.SM }) {
+          Text(this.errorText).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
+          Button('重新加载', { type: ButtonType.Capsule })
+            .height(40)
+            .fontSize(AppFontSize.SM)
+            .fontColor('#FFFFFF')
+            .backgroundColor(AppColors.PRIMARY)
+            .onClick((): void => { this.loadApplications() })
+        }
+        .width('100%')
+        .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else if (this.filteredList.length === 0) {
@@ -99,12 +178,12 @@ struct RecruiterApplicationsPage {
         Scroll() {
           Column() {
             ForEach(this.filteredList, (app: RecruiterApplicationVO) => {
-              ApplicationCard({ app: app })
+              ApplicationCard({ app: app, onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) } })
               .transition(TransitionEffect.asymmetric(
                 TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
                 TransitionEffect.opacity(1)
               ))
-            })
+            }, (app: RecruiterApplicationVO): string => app.id.toString())
           }
           .padding(AppSpacing.MD)
           .width('100%')
@@ -139,11 +218,11 @@ struct RecruiterApplicationsPage {
 
   @Builder
   filterTab(label: string, status: number): void {
-    Text(label)
+    Button(label, { type: ButtonType.Capsule })
+      .height(32)
       .fontSize(AppFontSize.SM)
       .fontColor(this.filterStatus === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
       .backgroundColor(this.filterStatus === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
-      .borderRadius(AppRadius.XL)
       .padding({ left: AppSpacing.LG, right: AppSpacing.LG, top: AppSpacing.XS, bottom: AppSpacing.XS })
       .margin({ right: AppSpacing.SM })
       .onClick(() => {
@@ -163,6 +242,7 @@ struct ApplicationCard {
     applicantAvatar: '', status: 0, interviewTime: '',
     interviewLocation: '', rejectReason: '', createTime: ''
   }
+  onViewResume?: (app: RecruiterApplicationVO) => void
 
   build() {
     Column() {
@@ -210,5 +290,6 @@ struct ApplicationCard {
         .backgroundColor(AppColors.SELECTED_BG)
       }
     })
+    .onClick((): void => { this.onViewResume?.(this.app) })
   }
 }

@@ -15,6 +15,8 @@ import { NavBar } from '../common/NavBar';
 struct RecruiterPublishJobPage {
   @State jobList: RecruiterJobVO[] = []
   @State isLoading: boolean = true
+  @State errorText: string = ''
+  @State auditErrorText: string = ''
   @State auditStatus: number = -1
 
   aboutToAppear(): void {
@@ -22,19 +24,32 @@ struct RecruiterPublishJobPage {
     this.loadAuditStatus()
   }
 
+  onPageShow(): void {
+    this.loadJobs()
+    this.loadAuditStatus()
+  }
+
   loadAuditStatus(): void {
+    this.auditErrorText = ''
     RecruiterService.getEnterpriseInfo().then((info) => {
       if (info) {
         this.auditStatus = info.auditStatus
       }
+    }).catch(() => {
+      this.auditErrorText = '企业资质状态加载失败'
     })
   }
 
   loadJobs(): void {
     this.isLoading = true
+    this.errorText = ''
     RecruiterService.getMyJobs().then((list: RecruiterJobVO[]) => {
       this.jobList = list
       this.isLoading = false
+    }).catch(() => {
+      this.jobList = []
+      this.isLoading = false
+      this.errorText = '职位列表加载失败，请检查网络后重试'
     })
   }
 
@@ -48,26 +63,78 @@ struct RecruiterPublishJobPage {
 
       if (this.isLoading) {
         Column() {
-          Text('加载中...')
+          LoadingProgress()
+            .width(28)
+            .height(28)
+            .color(AppColors.PRIMARY)
+          Text('正在加载职位')
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.SM })
         }
         .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.errorText) {
+        Column({ space: AppSpacing.MD }) {
+          SymbolGlyph($r('sys.symbol.exclamationmark_circle'))
+            .fontSize(32)
+            .fontColor([AppColors.DANGER])
+          Text(this.errorText)
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .textAlign(TextAlign.Center)
+          Button('重新加载', { type: ButtonType.Capsule })
+            .height(40)
+            .fontSize(AppFontSize.SM)
+            .fontColor('#FFFFFF')
+            .backgroundColor(AppColors.PRIMARY)
+            .onClick(() => { this.loadJobs() })
+        }
+        .layoutWeight(1)
+        .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else {
         Scroll() {
           Column() {
-            if (this.auditStatus >= 0 && this.auditStatus !== 1) {
-              Row() {
-                Text('企业资质' + AUDIT_STATUS_LABELS[this.auditStatus] + '，暂无法发布新职位')
+            if (this.auditErrorText) {
+              Row({ space: AppSpacing.SM }) {
+                Text(this.auditErrorText)
                   .fontSize(AppFontSize.XS)
-                  .fontColor(AppColors.WARNING)
+                  .fontColor(AppColors.DANGER)
                   .layoutWeight(1)
+                Button('重试', { type: ButtonType.Capsule })
+                  .height(32)
+                  .fontSize(AppFontSize.XS)
+                  .fontColor(AppColors.PRIMARY)
+                  .backgroundColor(AppColors.SELECTED_BG)
+                  .onClick(() => { this.loadAuditStatus() })
               }
               .width('100%')
               .padding(AppSpacing.SM)
-              .backgroundColor('#FFF3E0')
+              .backgroundColor(AppColors.ERROR_BG)
+              .borderRadius(AppRadius.SM)
+              .margin({ top: AppSpacing.SM })
+            } else if (this.auditStatus !== 1) {
+              Row() {
+                Text(this.auditStatus === -1 ? '请先完成企业资质认证，再发布职位' :
+                  '企业资质' + AUDIT_STATUS_LABELS[this.auditStatus] + '，暂无法发布新职位')
+                  .fontSize(AppFontSize.XS)
+                  .fontColor(AppColors.WARNING)
+                  .layoutWeight(1)
+                if (this.auditStatus === -1) {
+                  Button('去认证', { type: ButtonType.Capsule })
+                    .height(32)
+                    .fontSize(AppFontSize.XS)
+                    .fontColor(AppColors.PRIMARY)
+                    .backgroundColor(AppColors.SELECTED_BG)
+                    .onClick(() => { router.pushUrl({ url: 'pages/RecruiterEnterprisePage' }) })
+                }
+              }
+              .width('100%')
+              .padding(AppSpacing.SM)
+              .backgroundColor(AppColors.WARNING_BG)
               .borderRadius(AppRadius.SM)
               .margin({ top: AppSpacing.SM })
             }
@@ -93,12 +160,10 @@ struct RecruiterPublishJobPage {
                 pressed: {
                   .scale({ x: 0.97, y: 0.97 })
                   .opacity(0.9)
-                  .backgroundColor(AppColors.PRIMARY_HOVER)
                 },
                 normal: {
                   .scale({ x: 1, y: 1 })
                   .opacity(1)
-                  .backgroundColor(AppColors.PRIMARY)
                 }
               })
               .animation({
@@ -118,9 +183,12 @@ struct RecruiterPublishJobPage {
               ForEach(this.jobList, (job: RecruiterJobVO) => {
                 JobManageCard({
                   job: job,
-                  onDelete: () => { this.deleteJob(job.id) }
+                  onDelete: () => { this.confirmStatusChange(job) },
+                  onApplications: () => { this.openApplications(job) },
+                  onEdit: () => { this.openEdit(job) },
+                  onResubmit: () => { this.confirmResubmit(job) }
                 })
-              })
+              }, (job: RecruiterJobVO) => job.id.toString())
             }
           }
           .padding(AppSpacing.MD)
@@ -132,14 +200,75 @@ struct RecruiterPublishJobPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.INPUT_BG)
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
+  confirmStatusChange(job: RecruiterJobVO): void {
+    const targetStatus = job.status === 1 ? 4 : 1
+    const action = targetStatus === 1 ? '上架' : '下架'
+    this.getUIContext().showAlertDialog({
+      message: '确定要' + action + '“' + job.title + '”吗？',
+      confirm: {
+        value: '确定',
+        action: (): void => {
+          RecruiterService.updateJobStatus(job.id, targetStatus).then((success: boolean) => {
+            if (success) {
+              this.loadJobs()
+            } else {
+              this.getUIContext().getPromptAction().showToast({ message: action + '失败，请稍后重试' })
+            }
+          }).catch(() => {
+            this.getUIContext().getPromptAction().showToast({ message: action + '失败，请稍后重试' })
+          })
+        }
+      },
+      cancel: (): void => {}
+    })
+  }
+
+  confirmResubmit(job: RecruiterJobVO): void {
+    this.getUIContext().showAlertDialog({
+      message: '确定重新提交“' + job.title + '”审核吗？',
+      confirm: {
+        value: '重新提交',
+        action: (): void => {
+          RecruiterService.resubmitJob(job.id).then((success: boolean) => {
+            if (success) {
+              this.loadJobs()
+            } else {
+              this.getUIContext().getPromptAction().showToast({ message: '重新提交失败，请稍后重试' })
+            }
+          }).catch(() => {
+            this.getUIContext().getPromptAction().showToast({ message: '重新提交失败，请稍后重试' })
+          })
+        }
+      },
+      cancel: (): void => {}
+    })
+  }
   deleteJob(jobId: number): void {
     RecruiterService.deleteJob(jobId).then((success: boolean) => {
       if (success) {
         this.loadJobs()
+      } else {
+        this.getUIContext().getPromptAction().showToast({ message: '删除失败，请稍后重试' })
       }
+    }).catch(() => {
+      this.getUIContext().getPromptAction().showToast({ message: '删除失败，请稍后重试' })
+    })
+  }
+
+  openEdit(job: RecruiterJobVO): void {
+    router.pushUrl({
+      url: 'pages/RecruiterJobFormPage',
+      params: { jobId: String(job.id) }
+    })
+  }
+
+  openApplications(job: RecruiterJobVO): void {
+    router.pushUrl({
+      url: 'pages/RecruiterApplicationsPage',
+      params: { jobId: String(job.id), jobTitle: job.title }
     })
   }
 }
@@ -149,9 +278,12 @@ struct JobManageCard {
   job: RecruiterJobVO = {
     id: 0, title: '', salaryMin: 0, salaryMax: 0, salaryUnit: 0,
     jobType: 1, address: '', status: 0, applicationCount: 0,
-    remainingQuota: 0, totalQuota: 0, deadline: '', createTime: ''
+    remainingQuota: 0, totalQuota: 0, deadline: '', createTime: '', rejectReason: ''
   }
   onDelete?: () => void
+  onApplications?: () => void
+  onEdit?: () => void
+  onResubmit?: () => void
 
   build() {
     Column() {
@@ -175,7 +307,7 @@ struct JobManageCard {
             Text(JOB_STATUS_LABELS[this.job.status])
               .fontSize(AppFontSize.XS)
               .fontColor(this.job.status === 1 ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
-              .backgroundColor(this.job.status === 1 ? '#E8F8ED' : AppColors.INPUT_BG)
+              .backgroundColor(this.job.status === 1 ? AppColors.SUCCESS_BG : AppColors.INPUT_BG)
               .borderRadius(AppRadius.SM)
               .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 2, bottom: 2 })
 
@@ -188,21 +320,58 @@ struct JobManageCard {
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-
-        Text('删除')
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.DANGER)
-          .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS })
-          .onClick(() => {
-            this.onDelete?.()
-          })
-          .stateStyles({
-            pressed: {
-              .opacity(0.6)
-            }
-          })
       }
       .width('100%')
+
+      Row({ space: AppSpacing.XS }) {
+        Button(this.job.applicationCount + '份投递', { type: ButtonType.Capsule })
+          .height(32)
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.PRIMARY)
+          .backgroundColor(AppColors.SELECTED_BG)
+          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+          .onClick(() => {
+            this.onApplications?.()
+          })
+
+        if (this.job.status === 0 && this.job.rejectReason) {
+          Button('编辑', { type: ButtonType.Capsule })
+            .height(32)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.SELECTED_BG)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+            .onClick(() => { this.onEdit?.() })
+          Button('重新提交', { type: ButtonType.Capsule })
+            .height(32)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.SUCCESS)
+            .backgroundColor(AppColors.SUCCESS_BG)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+            .onClick(() => { this.onResubmit?.() })
+        } else if (this.job.status === 0) {
+          Text('审核中')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.WARNING)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 8, bottom: 8 })
+        } else if (this.job.status === 1 || this.job.status === 4) {
+          Button(this.job.status === 1 ? '下架' : '上架', { type: ButtonType.Capsule })
+            .height(32)
+            .fontSize(AppFontSize.XS)
+            .fontColor(this.job.status === 1 ? AppColors.DANGER : AppColors.SUCCESS)
+            .backgroundColor(this.job.status === 1 ? AppColors.ERROR_BG : AppColors.SUCCESS_BG)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+            .onClick(() => { this.onDelete?.() })
+            .stateStyles({
+              pressed: {
+                .opacity(0.6)
+              }
+            })
+        }
+      }
+      .width('100%')
+      .margin({ top: AppSpacing.SM })
+      .justifyContent(FlexAlign.End)
     }
     .width('100%')
     .padding(AppSpacing.SM)

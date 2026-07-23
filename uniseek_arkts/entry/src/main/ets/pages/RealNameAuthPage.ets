@@ -2,6 +2,7 @@ import { router } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+import { InputValidator } from '../common/FormValidators'
 
 @Entry
 @Component
@@ -12,15 +13,22 @@ struct RealNameAuthPage {
   @State errorMsg: string = ''
   @State submitted: boolean = false
   @State existing: boolean = false
+  @State authStatus: number = 0
+  @State statusText: string = ''
 
   aboutToAppear(): void {
     AuthService.getRealNameStatus().then((info) => {
+      this.authStatus = info.status
       if (info.status === 1) {
         this.existing = true
         this.submitted = true
         this.realName = info.realName
+        this.statusText = '认证已通过'
+      } else if (info.status === 2) {
+        this.statusText = '认证审核中，请耐心等待'
       }
     }).catch(() => {
+      this.statusText = '认证状态暂时无法获取'
     })
   }
 
@@ -49,6 +57,14 @@ struct RealNameAuthPage {
               .fontWeight(FontWeight.Medium)
               .width('100%')
               .margin({ bottom: AppSpacing.LG })
+          }
+
+          if (!this.existing && this.statusText) {
+            Text(this.statusText)
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.TEXT_SECONDARY)
+              .width('100%')
+              .margin({ bottom: AppSpacing.MD })
           }
 
           Text('真实姓名')
@@ -135,15 +151,15 @@ struct RealNameAuthPage {
       return
     }
 
-    const id = this.idCard.trim()
+    const id = this.idCard.trim().toUpperCase()
     if (!id) {
       this.showError = true
       this.errorMsg = '请输入身份证号'
       return
     }
-    if (id.length !== 15 && id.length !== 18) {
+    if (!InputValidator.isValidIdCard(id)) {
       this.showError = true
-      this.errorMsg = '身份证号格式不正确（15或18位）'
+      this.errorMsg = '请输入正确的 18 位身份证号'
       return
     }
 

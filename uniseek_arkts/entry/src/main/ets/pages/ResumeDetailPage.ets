@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI';
+import { router, promptAction } from '@kit.ArkUI';
 import { ResumeCardData } from '../services/RecruiterTypes';
 import { ChatService } from '../services/ChatService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
@@ -10,9 +10,10 @@ struct ResumeDetailPage {
   @State resume: ResumeCardData = {
     id: '', name: '', age: 0, avatar: '', education: '', school: '',
     major: '', experience: '', skills: '', region: '',
-    type: '', category: '', expectedSalary: '', description: ''
+    type: '', category: '', expectedSalary: '', description: '', attachmentUrl: ''
   }
   @State contacted: boolean = false
+  @State isContacting: boolean = false
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>
@@ -21,6 +22,40 @@ struct ResumeDetailPage {
     }
   }
 
+  educationText(): string {
+    const parts: string[] = []
+    if (this.resume.school) {
+      parts.push(this.resume.school)
+    }
+    if (this.resume.major) {
+      parts.push(this.resume.major)
+    }
+    return parts.length > 0 ? parts.join(' · ') : '暂无教育经历'
+  }
+
+  openDirectChat(): void {
+    const targetUserId = Number(this.resume.id)
+    if (!targetUserId) {
+      promptAction.showToast({ message: '求职者信息不完整，暂无法发起沟通' })
+      return
+    }
+    this.isContacting = true
+    ChatService.createDirectSession(targetUserId).then((applicationId: number) => {
+      this.contacted = true
+      router.pushUrl({
+        url: 'pages/ChatDetailPage',
+        params: {
+          applicationId: applicationId,
+          counterpartName: this.resume.name,
+          counterpartAvatar: this.resume.avatar
+        }
+      })
+      this.isContacting = false
+    }).catch(() => {
+      this.isContacting = false
+      promptAction.showToast({ message: '暂时无法建立沟通，请稍后重试' })
+    })
+  }
   build() {
     Column() {
       NavBar({
@@ -45,7 +80,7 @@ struct ResumeDetailPage {
           .width('100%')
           .alignItems(VerticalAlign.Center)
 
-          Text(this.resume.school + ' · ' + this.resume.major)
+          Text(this.educationText())
             .fontSize(AppFontSize.MD)
             .fontColor(AppColors.TEXT_SECONDARY)
             .margin({ top: AppSpacing.SM })
@@ -132,6 +167,29 @@ struct ResumeDetailPage {
             .lineHeight(AppSpacing.LG)
             .margin({ top: AppSpacing.SM })
             .width('100%')
+
+          if (this.resume.attachmentUrl) {
+            Row({ space: AppSpacing.SM }) {
+              Text('附件简历')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_SECONDARY)
+                .layoutWeight(1)
+              Button('预览', { type: ButtonType.Capsule })
+                .height(32)
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.PRIMARY)
+                .backgroundColor(AppColors.SELECTED_BG)
+                .onClick((): void => { void ChatService.previewAttachment(this.resume.attachmentUrl || '') })
+              Button('下载', { type: ButtonType.Capsule })
+                .height(32)
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.PRIMARY)
+                .backgroundColor(AppColors.SELECTED_BG)
+                .onClick((): void => { void ChatService.downloadAttachment(this.resume.attachmentUrl || '') })
+            }
+            .width('100%')
+            .margin({ top: AppSpacing.MD })
+          }
         }
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD, bottom: AppSpacing.LG })
         .width('100%')
@@ -141,7 +199,7 @@ struct ResumeDetailPage {
 
       Row() {
         Button({ type: ButtonType.Capsule }) {
-          Text(this.contacted ? '继续沟通' : '立即沟通')
+          Text(this.isContacting ? '正在连接...' : (this.contacted ? '继续沟通' : '立即沟通'))
             .fontSize(AppFontSize.MD)
             .fontWeight(FontWeight.Bold)
             .fontColor('#FFFFFF')
@@ -149,31 +207,10 @@ struct ResumeDetailPage {
           .width('90%')
           .height(48)
           .backgroundColor(AppColors.PRIMARY)
+          .enabled(!this.isContacting)
           .onClick(() => {
-            if (this.contacted) {
-              router.pushUrl({
-                url: 'pages/ChatDetailPage',
-                params: {
-                  applicationId: 0,
-                  counterpartName: this.resume.name,
-                  counterpartAvatar: this.resume.avatar
-                }
-              })
-              return
-            }
-            ChatService.createApplication(Number(this.resume.id)).then((app) => {
-              if (app) {
-                this.contacted = true
-                router.pushUrl({
-                  url: 'pages/ChatDetailPage',
-                  params: {
-                    applicationId: app.id,
-                    counterpartName: this.resume.name,
-                    counterpartAvatar: this.resume.avatar
-                  }
-                })
-              }
-            })
+            this.openDirectChat()
+
           })
           .stateStyles({
             pressed: {

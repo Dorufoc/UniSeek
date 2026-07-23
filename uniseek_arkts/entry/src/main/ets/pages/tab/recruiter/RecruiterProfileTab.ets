@@ -1,50 +1,82 @@
 import { router } from '@kit.ArkUI';
-import { preferences } from '@kit.ArkData';
 import { AuthService } from '../../../services/AuthService';
+import { UserService } from '../../../services/UserService';
+import { ApiClient } from '../../../services/ApiClient';
 import { RecruiterService } from '../../../services/RecruiterService';
 import { AUDIT_STATUS_LABELS } from '../../../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
 
-const PREF_NAME = 'user_profile_db';
-const KEY_USERNAME = 'username';
-
 @Component
 export struct RecruiterProfileTab {
   @State username: string = ''
+  @State avatarUri: string = ''
   @State isVerified: boolean = false
   @State enterpriseAuditStatus: number = -1
+  @State receivedResumes: number = 0
+  @State hired: number = 0
+  @State loadErrorText: string = ''
 
   aboutToAppear(): void {
-    this.loadUsername()
+    this.reloadProfile()
+  }
+
+  reloadProfile(): void {
+    this.loadErrorText = ''
+    this.loadUser()
+    this.loadStats()
     AuthService.getRealNameStatus().then((info) => {
       this.isVerified = info.status === 1
-    }).catch(() => {})
+    }).catch(() => {
+      this.loadErrorText = '部分个人信息加载失败'
+    })
     RecruiterService.getEnterpriseInfo().then((info) => {
       if (info) {
         this.enterpriseAuditStatus = info.auditStatus
       }
+    }).catch(() => {
+      this.loadErrorText = '企业资质状态加载失败'
     })
   }
 
-  loadUsername(): void {
-    let pref = preferences.getPreferencesSync(getContext(), { name: PREF_NAME })
-    let saved = pref.getSync(KEY_USERNAME, '') as string
-    if (saved) {
-      this.username = saved
-    } else {
-      let num = Math.floor(10000 + Math.random() * 90000)
-      this.username = '企业' + num
-      pref.putSync(KEY_USERNAME, this.username)
-      pref.flushSync()
+  async loadUser(): Promise<void> {
+    try {
+      const user = await AuthService.getCurrentUser()
+      this.username = user.nickname || '未设置昵称'
+      this.avatarUri = user.avatarUrl || ''
+    } catch {
+      this.username = '未设置昵称'
+      this.avatarUri = ''
+      this.loadErrorText = '部分个人信息加载失败'
+    }
+  }
+
+  avatarSource(): Resource | string {
+    if (!this.avatarUri) {
+      return $r('app.media.theme')
+    }
+    if (this.avatarUri.startsWith('http')) {
+      return this.avatarUri
+    }
+    return ApiClient.BASE_URL + (this.avatarUri.startsWith('/') ? this.avatarUri : '/' + this.avatarUri)
+  }
+
+  async loadStats(): Promise<void> {
+    try {
+      const stats = await UserService.getStats()
+      this.receivedResumes = stats.receivedResumes || 0
+      this.hired = stats.hired || 0
+    } catch {
+      this.receivedResumes = 0
+      this.hired = 0
+      this.loadErrorText = '招聘统计加载失败'
     }
   }
 
   build() {
     Column() {
-      // HMOS 渐变头像卡片头
       Column() {
         Row() {
-          Image($r('app.media.theme'))
+          Image(this.avatarSource())
             .width(72)
             .height(72)
             .borderRadius(36)
@@ -53,16 +85,16 @@ export struct RecruiterProfileTab {
             Text(this.username)
               .fontSize(AppFontSize.XXL)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#FFFFFF')
+              .fontColor(AppColors.TEXT_PRIMARY)
 
             Row() {
               Text(this.isVerified ? '已实名' : '去实名')
                 .fontSize(AppFontSize.SM)
-                .fontColor(this.isVerified ? '#8CE0FF' : '#FFFFFF')
+                .fontColor(this.isVerified ? AppColors.SUCCESS : AppColors.PRIMARY)
               if (!this.isVerified) {
                 SymbolGlyph($r('sys.symbol.chevron_right'))
                   .fontSize(14)
-                  .fontColor(['#FFFFFF'])
+                  .fontColor([AppColors.PRIMARY])
                   .margin({ left: AppSpacing.XS })
               }
             }
@@ -76,14 +108,14 @@ export struct RecruiterProfileTab {
             Row() {
               Text('企业资质：')
                 .fontSize(AppFontSize.SM)
-                .fontColor('#CCCCCC')
+                .fontColor(AppColors.TEXT_SECONDARY)
               Text(this.enterpriseAuditStatus >= 0 ? AUDIT_STATUS_LABELS[this.enterpriseAuditStatus] : '未审核')
                 .fontSize(AppFontSize.SM)
-                .fontColor(this.enterpriseAuditStatus === 1 ? '#8CE0FF' : '#FFFFFF')
+                .fontColor(this.enterpriseAuditStatus === 1 ? AppColors.SUCCESS : AppColors.PRIMARY)
               if (this.enterpriseAuditStatus !== 1) {
                 SymbolGlyph($r('sys.symbol.chevron_right'))
                   .fontSize(14)
-                  .fontColor(['#FFFFFF'])
+                  .fontColor([AppColors.PRIMARY])
                   .margin({ left: AppSpacing.XS })
               }
             }
@@ -98,7 +130,7 @@ export struct RecruiterProfileTab {
 
           SymbolGlyph($r('sys.symbol.chevron_right'))
             .fontSize(AppFontSize.MD)
-            .fontColor(['#FFFFFF'])
+            .fontColor([AppColors.TEXT_MUTED])
             .onClick(() => {
               router.pushUrl({ url: 'pages/ProfileDetailPage' })
             })
@@ -109,8 +141,26 @@ export struct RecruiterProfileTab {
         .alignItems(VerticalAlign.Center)
       }
       .width('100%')
+      .backgroundColor(AppColors.BG_CARD)
+      if (this.loadErrorText) {
+        Row({ space: AppSpacing.SM }) {
+          Text(this.loadErrorText)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.DANGER)
+            .layoutWeight(1)
+          Button('重试', { type: ButtonType.Capsule })
+            .height(32)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.SELECTED_BG)
+            .onClick(() => { this.reloadProfile() })
+        }
+        .width('100%')
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
+        .backgroundColor(AppColors.ERROR_BG)
+      }
+      this.statsCard()
 
-      // HMOS 菜单卡片
       Column() {
         Column() {
           this.menuItemCheck('我的公司', $r('sys.symbol.building'), () => {
@@ -136,27 +186,49 @@ export struct RecruiterProfileTab {
           this.menuItemCheck('设置', $r('sys.symbol.gearshape'), () => {
             router.pushUrl({ url: 'pages/SettingsPage' })
           })
+          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          this.menuItemCheck('账号管理', $r('sys.symbol.lock'), () => {
+            router.pushUrl({ url: 'pages/ProfileDetailPage' })
+          })
         }
         .width('100%')
         .backgroundColor(AppColors.BG_CARD)
-        .borderRadius(AppRadius.LG)
       }
       .width('100%')
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .margin({ top: AppSpacing.MD })
     }
     .width('100%')
     .height('100%')
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      colors: [
-        [AppColors.HMOS_BRAND, 0],
-        ['#5A8CFF', 0.12],
-        ['#A8C4FF', 0.25],
-        ['#E4EEFF', 0.38],
-        ['#FFFFFF', 0.5],
-        ['#FFFFFF', 1]
-      ]
-    })
+    .backgroundColor(AppColors.BG_PAGE)
+  }
+
+  @Builder
+  statsCard() {
+    Row() {
+      this.statItem(this.receivedResumes, '收到简历')
+      this.statItem(this.hired, '已录用')
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.SpaceAround)
+    .padding({ top: AppSpacing.MD, bottom: AppSpacing.MD })
+    .backgroundColor(AppColors.BG_CARD)
+    .margin({ top: AppSpacing.SM })
+  }
+
+  @Builder
+  statItem(value: number, label: string) {
+    Column() {
+      Text(value.toString())
+        .fontSize(AppFontSize.XL)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.PRIMARY)
+      Text(label)
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_MUTED)
+        .margin({ top: AppSpacing.XS })
+    }
+    .alignItems(HorizontalAlign.Center)
+    .layoutWeight(1)
   }
 
   @Builder menuItemCheck(text: string, icon: Resource, onClick: () => void) {

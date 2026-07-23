@@ -2,6 +2,8 @@ import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+import { ResumeData, ResumeService } from '../services/ResumeService';
+
 
 const PREF_NAME = 'recruiter_search_history_db';
 const PREF_KEY = 'searchHistory';
@@ -22,6 +24,10 @@ struct RecruiterSearchPage {
   @State searchHistory: string[] = []
   @State showAll: boolean = false
   @State isDeleting: boolean = false
+  @State results: ResumeData[] = []
+  @State loading: boolean = false
+  @State searched: boolean = false
+  @State errorText: string = ''
 
   aboutToAppear(): void {
     this.loadHistory()
@@ -72,16 +78,30 @@ struct RecruiterSearchPage {
 
   triggerSearch(text: string): void {
     this.searchText = text
-    console.log('搜索人才:', text)
+    this.searchResumes(text)
+  }
+
+  async searchResumes(keyword: string): Promise<void> {
+    this.loading = true
+    this.searched = true
+    this.errorText = ''
+    try {
+      const result = await ResumeService.searchPublishedResumes(keyword || undefined, 1, 50)
+      this.results = result.records
+    } catch {
+      this.results = []
+      this.errorText = '搜索失败，请检查网络后重试'
+    } finally {
+      this.loading = false
+    }
   }
 
   handleSearch(): void {
-    let text = this.searchText.trim()
-    if (!text) {
-      return
+    const text: string = this.searchText.trim()
+    if (text) {
+      this.addToHistory(text)
     }
-    this.addToHistory(text)
-    console.log('搜索人才:', text)
+    this.searchResumes(text)
   }
 
   getDisplayList(): string[] {
@@ -110,9 +130,14 @@ struct RecruiterSearchPage {
         .fontSize(AppFontSize.SM)
         .fontColor(AppColors.TEXT_PRIMARY)
       if (this.isDeleting) {
-        Text('✕')
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.DANGER)
+        Button({ type: ButtonType.Circle }) {
+          SymbolGlyph($r('sys.symbol.xmark'))
+            .fontSize(14)
+            .fontColor([AppColors.DANGER])
+        }
+          .width(28)
+          .height(28)
+          .backgroundColor(AppColors.ERROR_BG)
           .margin({ left: AppSpacing.XS })
           .onClick(() => {
             this.removeFromHistory(index)
@@ -195,25 +220,33 @@ struct RecruiterSearchPage {
         Blank()
 
         if (this.isDeleting) {
-          Row() {
-            Text('全部删除')
+          Row({ space: AppSpacing.XS }) {
+            Button('全部删除', { type: ButtonType.Capsule })
+              .height(32)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.DANGER)
+              .backgroundColor(AppColors.ERROR_BG)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
               .onClick(() => {
                 this.clearAllHistory()
               })
-            Blank().width(AppSpacing.MD)
-            Text('完成')
+            Button('完成', { type: ButtonType.Capsule })
+              .height(32)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.PRIMARY)
+              .backgroundColor(AppColors.SELECTED_BG)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
               .onClick(() => {
                 this.isDeleting = false
               })
           }
         } else if (this.searchHistory.length > 0) {
-          Text('编辑')
+          Button('编辑', { type: ButtonType.Capsule })
+            .height(32)
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.SELECTED_BG)
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
             .onClick(() => {
               this.isDeleting = true
             })
@@ -251,11 +284,19 @@ struct RecruiterSearchPage {
           })
 
           if (this.searchHistory.length > DEFAULT_SHOW) {
-            Text(this.showAll ? '收起' : '展开更多')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.PRIMARY)
+            Button({ type: ButtonType.Normal }) {
+              Row({ space: AppSpacing.XS }) {
+                Text(this.showAll ? '收起' : '展开更多')
+                  .fontSize(AppFontSize.SM)
+                  .fontColor(AppColors.PRIMARY)
+                SymbolGlyph(this.showAll ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
+                  .fontSize(14)
+                  .fontColor([AppColors.PRIMARY])
+              }
+            }
               .width('100%')
-              .textAlign(TextAlign.Center)
+              .height(36)
+              .backgroundColor(Color.Transparent)
               .margin({ top: AppSpacing.SM })
               .onClick(() => {
                 this.showAll = !this.showAll
@@ -264,6 +305,144 @@ struct RecruiterSearchPage {
         }
         .width('100%')
         .margin({ top: AppSpacing.SM })
+      }
+      if (this.searched) {
+        Column() {
+          Row() {
+            Text(this.loading ? '正在搜索' : '搜索结果')
+              .fontSize(AppFontSize.MD)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.TEXT_PRIMARY)
+            Blank()
+            if (!this.loading && !this.errorText) {
+              Text(String(this.results.length) + ' 位人才')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_MUTED)
+            }
+          }
+          .width('100%')
+          .margin({ bottom: AppSpacing.SM })
+
+          if (this.loading) {
+            Column() {
+              LoadingProgress()
+                .width(28)
+                .height(28)
+                .color(AppColors.PRIMARY)
+              Text('正在匹配人才')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_MUTED)
+                .margin({ top: AppSpacing.SM })
+            }
+            .width('100%')
+            .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
+          } else if (this.errorText) {
+            Text(this.errorText)
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.DANGER)
+              .width('100%')
+              .padding(AppSpacing.MD)
+              .backgroundColor(AppColors.ERROR_BG)
+              .borderRadius(AppRadius.SM)
+          } else if (this.results.length === 0) {
+            Column() {
+              SymbolGlyph($r('sys.symbol.person'))
+                .fontSize(32)
+                .fontColor([AppColors.TEXT_MUTED])
+              Text('暂无匹配的人才')
+                .fontSize(AppFontSize.MD)
+                .fontColor(AppColors.TEXT_SECONDARY)
+                .margin({ top: AppSpacing.SM })
+            }
+            .width('100%')
+            .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
+          } else {
+            List({ space: AppSpacing.SM }) {
+              ForEach(this.results, (resume: ResumeData) => {
+                ListItem() {
+                  Row() {
+                    Column() {
+                      Text((resume.realName || '求').substring(0, 1))
+                        .fontSize(AppFontSize.LG)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor('#FFFFFF')
+                    }
+                    .width(44)
+                    .height(44)
+                    .justifyContent(FlexAlign.Center)
+                    .backgroundColor(AppColors.PRIMARY)
+                    .borderRadius(22)
+
+                    Column() {
+                      Row() {
+                        Text(resume.realName || '未实名')
+                          .fontSize(AppFontSize.MD)
+                          .fontWeight(FontWeight.Medium)
+                          .fontColor(AppColors.TEXT_PRIMARY)
+                        Text(resume.education || '学历未填')
+                          .fontSize(AppFontSize.XS)
+                          .fontColor(AppColors.TEXT_MUTED)
+                          .margin({ left: AppSpacing.SM })
+                      }
+                      .width('100%')
+                      Text((resume.school || '院校未填') + ' · ' + (resume.skills || '暂无技能标签'))
+                        .fontSize(AppFontSize.SM)
+                        .fontColor(AppColors.TEXT_SECONDARY)
+                        .maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis })
+                        .width('100%')
+                        .margin({ top: AppSpacing.XS })
+                    }
+                    .layoutWeight(1)
+                    .margin({ left: AppSpacing.MD })
+
+                    SymbolGlyph($r('sys.symbol.chevron_right'))
+                      .fontSize(16)
+                      .fontColor([AppColors.TEXT_MUTED])
+                  }
+                  .width('100%')
+                  .padding(AppSpacing.MD)
+                  .backgroundColor(AppColors.BG_CARD)
+                  .borderRadius(AppRadius.MD)
+                  .onClick(() => {
+                    router.pushUrl({
+                      url: 'pages/ResumeDetailPage',
+                      params: {
+                        resumeData: JSON.stringify({
+                          id: String(resume.userId),
+                          name: resume.realName || '未实名',
+                          age: 0,
+                          avatar: '',
+                          education: resume.education || '',
+                          school: resume.school || '',
+                          major: '',
+                          experience: resume.experience || '',
+                          skills: resume.skills || '',
+                          region: '',
+                          type: '',
+                          category: '',
+                          expectedSalary: '面议',
+                          description: resume.experience || '',
+                          attachmentUrl: resume.attachmentUrl || ''
+                        })
+                      }
+                    })
+                  })
+                  .stateStyles({
+                    pressed: {
+                      .backgroundColor(AppColors.SELECTED_BG)
+                    }
+                  })
+                }
+              }, (resume: ResumeData) => String(resume.userId))
+            }
+            .layoutWeight(1)
+            .width('100%')
+          }
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.LG })
       }
     }
     .width('100%')

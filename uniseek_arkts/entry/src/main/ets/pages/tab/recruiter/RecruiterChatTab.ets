@@ -1,7 +1,7 @@
 // 聊天会话列表页 - 招聘方端
 // 对齐 Vue Messages.vue 左侧会话列表面板样式
 
-import { router, curves } from '@kit.ArkUI';
+import { router } from '@kit.ArkUI';
 import { ChatService } from '../../../services/ChatService';
 import { ChatSessionVO } from '../../../services/ChatTypes';
 import { ChatWebSocketService } from '../../../services/ChatWebSocketService';
@@ -11,33 +11,36 @@ import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/A
 export struct RecruiterChatTab {
   @State sessions: ChatSessionVO[] = []
   @State selectedSessionId: number = -1
-  // 空状态图标浮动动画偏移量
-  @State iconFloatY: number = 0
-  // 未读红点呼吸动画缩放
-  @State pulseScale: number = 1
-
-  private floatInterval: number = -1
-  private pulseInterval: number = -1
-
+  @State isLoading: boolean = true
+  @State errorText: string = ''
   aboutToAppear(): void {
-    this.startAnimations()
     // 注册新消息回调，收到推送时刷新会话列表
-    ChatWebSocketService.getInstance().setOnNewMessageCallback(() => {
-      ChatService.getSessions().then((list: ChatSessionVO[]) => {
-        this.sessions = list
-      })
+    ChatWebSocketService.getInstance().connect()
+    ChatWebSocketService.getInstance().setOnSessionMessageCallback(() => {
+      this.loadSessions()
     })
+    this.loadSessions()
   }
 
   aboutToDisappear(): void {
-    this.stopAnimations()
-    ChatWebSocketService.getInstance().removeOnNewMessageCallback()
+    ChatWebSocketService.getInstance().removeOnSessionMessageCallback()
   }
 
   onPageShow(): void {
     this.selectedSessionId = -1
-    ChatService.getSessions().then((list: ChatSessionVO[]) => {
-      this.sessions = list
+    this.loadSessions()
+  }
+
+  private loadSessions(): void {
+    this.isLoading = true
+    this.errorText = ''
+    ChatService.getSessions().then((list: ChatSessionVO[]): void => {
+      this.sessions = list || []
+      this.isLoading = false
+    }).catch((): void => {
+      this.sessions = []
+      this.errorText = '会话列表加载失败，请检查网络后重试'
+      this.isLoading = false
     })
   }
 
@@ -67,45 +70,6 @@ export struct RecruiterChatTab {
     return count.toString()
   }
 
-  // 启动动画
-  startAnimations(): void {
-    // 空状态图标浮动动画（3s 周期，上下浮动 8px）
-    this.floatInterval = setInterval(() => {
-      animateTo({ duration: 1500, curve: curves.cubicBezier(0.4, 0, 0.2, 1) }, () => {
-        this.iconFloatY = -8
-      })
-      setTimeout(() => {
-        animateTo({ duration: 1500, curve: curves.cubicBezier(0.4, 0, 0.2, 1) }, () => {
-          this.iconFloatY = 0
-        })
-      }, 1500)
-    }, 3000)
-
-    // 未读红点呼吸动画（2s 周期，scale 1 ↔ 1.05）
-    this.pulseInterval = setInterval(() => {
-      animateTo({ duration: 1000, curve: curves.cubicBezier(0.4, 0, 0.2, 1) }, () => {
-        this.pulseScale = 1.05
-      })
-      setTimeout(() => {
-        animateTo({ duration: 1000, curve: curves.cubicBezier(0.4, 0, 0.2, 1) }, () => {
-          this.pulseScale = 1
-        })
-      }, 1000)
-    }, 2000)
-  }
-
-  // 停止动画
-  stopAnimations(): void {
-    if (this.floatInterval > -1) {
-      clearInterval(this.floatInterval)
-      this.floatInterval = -1
-    }
-    if (this.pulseInterval > -1) {
-      clearInterval(this.pulseInterval)
-      this.pulseInterval = -1
-    }
-  }
-
   build() {
     Column() {
       Text('消息')
@@ -115,7 +79,17 @@ export struct RecruiterChatTab {
         .width('100%')
         .padding({ left: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.XS })
 
-      if (this.sessions.length === 0) {
+      if (this.isLoading) {
+        Column() {
+          LoadingProgress().width(32).height(32).color(AppColors.PRIMARY)
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.errorText) {
+        this.errorState()
+      } else if (this.sessions.length === 0) {
         this.emptyState()
       } else {
         List() {
@@ -123,8 +97,7 @@ export struct RecruiterChatTab {
             ListItem() {
               this.sessionItem(session)
             }
-            .transition({ opacity: 0, translate: { y: 20 } })
-            .transition({ opacity: 1 })
+            .transition({ opacity: 0, translate: { y: 12 } })
           }, (session: ChatSessionVO) => session.applicationId.toString())
         }
         .layoutWeight(1)
@@ -136,23 +109,38 @@ export struct RecruiterChatTab {
     .backgroundColor(AppColors.BG_CARD)
   }
 
-  // 空状态：带浮动图标动画
+  // 空状态保持安静，避免无业务意义的循环动效分散注意力
   @Builder emptyState() {
     Column() {
       SymbolGlyph($r('sys.symbol.message'))
         .fontSize(48)
-        .fontColor(['#d0d5dd'])
-        .translate({ y: this.iconFloatY })
-        .animation({ duration: 1500, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+        .fontColor([AppColors.TEXT_MUTED])
+
 
       Text('暂无会话')
         .fontSize(14)
-        .fontColor('#8b95a7')
+        .fontColor(AppColors.TEXT_MUTED)
         .margin({ top: AppSpacing.MD })
     }
     .width('100%')
     .padding(80)
     .layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder errorState() {
+    Column({ space: AppSpacing.SM }) {
+      Text(this.errorText).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
+      Button('重新加载', { type: ButtonType.Capsule })
+        .height(40)
+        .fontSize(AppFontSize.SM)
+        .fontColor('#FFFFFF')
+        .backgroundColor(AppColors.PRIMARY)
+        .onClick((): void => { this.loadSessions() })
+    }
+    .layoutWeight(1)
+    .width('100%')
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
@@ -164,10 +152,10 @@ export struct RecruiterChatTab {
       Row()
         .width('100%')
         .height('100%')
-        .backgroundColor('#EBF5FF')
+        .backgroundColor(AppColors.SELECTED_BG)
         .borderRadius(AppRadius.XL)
         .opacity(session.applicationId === this.selectedSessionId ? 1 : 0)
-        .animation({ duration: 200, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+        .animation({ duration: 180 })
 
       // 主内容区域
       Row() {
@@ -185,7 +173,7 @@ export struct RecruiterChatTab {
               Text(session.counterpartName)
                 .fontSize(15)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#1a1a2e')
+                .fontColor(AppColors.TEXT_PRIMARY)
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
 
@@ -194,7 +182,7 @@ export struct RecruiterChatTab {
                 Text('@' + session.counterpartCompany)
                   .fontSize(12)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor('#1762FB')
+                  .fontColor(AppColors.PRIMARY)
                   .margin({ left: 4 })
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -207,7 +195,7 @@ export struct RecruiterChatTab {
             // 格式化后的时间
             Text(this.formatSessionTime(session.lastMessageTime))
               .fontSize(AppFontSize.XS)
-              .fontColor('#a0aab8')
+              .fontColor(AppColors.TEXT_MUTED)
               .fontWeight(FontWeight.Medium)
               .flexShrink(0)
           }
@@ -218,7 +206,7 @@ export struct RecruiterChatTab {
           Row() {
             Text(session.lastMessage)
               .fontSize(13.5)
-              .fontColor('#6b7585')
+              .fontColor(AppColors.TEXT_SECONDARY)
               .lineHeight(20)
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -234,20 +222,8 @@ export struct RecruiterChatTab {
                 .padding({ left: 6, right: 6 })
                 .height(20)
                 .borderRadius(10)
-                .linearGradient({
-                  direction: GradientDirection.Bottom,
-                  colors: [['#ff4757', 0.0], ['#ff6b81', 1.0]]
-                })
-                .shadow({
-                  radius: 6,
-                  color: 'rgba(255, 71, 87, 0.3)',
-                  offsetX: 0,
-                  offsetY: 2
-                })
-                .scale({ x: this.pulseScale, y: this.pulseScale })
+                .backgroundColor(AppColors.DANGER)
                 .margin({ left: AppSpacing.XS })
-            } else {
-              Row().width(20).height(20).margin({ left: AppSpacing.XS })
             }
           }
           .width('100%')
@@ -267,23 +243,20 @@ export struct RecruiterChatTab {
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
       .alignItems(VerticalAlign.Center)
 
-      // 选中态蓝色竖条（渐变 3px，绝对定位在左侧，200ms 过渡）
+      // 选中态蓝色竖条，作为列表当前项的轻量提示
       Column() {
         Column()
           .width(3)
           .height(24)
           .borderRadius({ topRight: 3, bottomRight: 3 })
-          .linearGradient({
-            direction: GradientDirection.Bottom,
-            colors: [['#1762FB', 0.0], ['#2d7bff', 1.0]]
-          })
+          .backgroundColor(AppColors.PRIMARY)
       }
       .width(3)
       .height('100%')
       .justifyContent(FlexAlign.Center)
       .position({ x: 0 })
       .opacity(session.applicationId === this.selectedSessionId ? 1 : 0)
-      .animation({ duration: 200, curve: curves.cubicBezier(0.4, 0, 0.2, 1) })
+      .animation({ duration: 180 })
     }
     .width('100%')
     .onClick(() => {

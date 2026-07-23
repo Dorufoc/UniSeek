@@ -75,6 +75,7 @@ export interface ChatSessionVO {
   enterpriseId?: number
   lastMessage: string
   lastMessageTime: string
+  canSend?: boolean
   unreadCount: number
 }
 
@@ -177,7 +178,9 @@ export interface TaskSearchParams {
   salaryMax?: number
   salaryUnit?: number
   includeNegotiable?: boolean
+  tags?: string
   sortBy?: string
+  sortOrder?: string
   page?: number
   pageSize?: number
 }

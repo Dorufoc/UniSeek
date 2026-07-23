@@ -9,6 +9,8 @@
     "pages/FavoritesPage",
     "pages/ResumePage",
     "pages/SettingsPage",
+    "pages/UserAgreementPage",
+    "pages/PrivacyPolicyPage",
     "pages/JobDetailPage",
     "pages/ChatDetailPage",
     "pages/RealNameAuthPage",
@@ -20,6 +22,7 @@
     "pages/RecruiterJobFormPage",
     "pages/ResumeDetailPage",
     "pages/RecruiterSearchPage",
-    "pages/SearchResultsPage"
+    "pages/SearchResultsPage",
+    "pages/CompanyPage"
   ]
 }

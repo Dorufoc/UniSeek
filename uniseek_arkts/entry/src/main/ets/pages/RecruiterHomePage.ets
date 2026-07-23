@@ -54,7 +54,7 @@ struct RecruiterHomePage {
       }
       .tabBar(this.tabProfile)
     }
-    .animationDuration(0)
+    .animationDuration(200)
     .scrollable(false)
     .onChange((index: number) => {
       this.currentIndex = index

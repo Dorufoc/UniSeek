@@ -6,6 +6,7 @@ import {
 } from '../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+import { ApplicationNotePolicy } from '../common/BusinessPolicies'
 
 @CustomDialog
 struct InterviewDialog {
@@ -25,9 +26,11 @@ struct InterviewDialog {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
-        Text('取消')
+        Button('取消', { type: ButtonType.Normal })
+          .height(32)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_MUTED)
+          .backgroundColor(Color.Transparent)
           .onClick(() => { this.onCancel?.() })
       }
       .width('100%')
@@ -57,13 +60,13 @@ struct InterviewDialog {
 
       Row() {
         Row().layoutWeight(1)
-          Text('确定')
+          Button('确定', { type: ButtonType.Capsule })
+            .height(40)
             .fontSize(AppFontSize.MD)
             .fontWeight(FontWeight.Bold)
             .fontColor('#FFFFFF')
             .backgroundColor(AppColors.PRIMARY)
-            .borderRadius(AppRadius.FULL)
-            .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
+            .padding({ left: 28, right: 28 })
             .onClick(() => {
               this.onConfirm?.(this.timeText, this.locationText)
             })
@@ -95,10 +98,11 @@ struct InterviewDialog {
 struct RejectDialog {
   controller?: CustomDialogController
   requestName?: string
-  onConfirm?: (reason: string) => void
+  onConfirm?: (reason: string, note: string) => void
   onCancel?: () => void
 
   @State reasonText: string = ''
+  @State noteText: string = ''
 
   build() {
     Column() {
@@ -108,9 +112,11 @@ struct RejectDialog {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
-        Text('取消')
+        Button('取消', { type: ButtonType.Normal })
+          .height(32)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_MUTED)
+          .backgroundColor(Color.Transparent)
           .onClick(() => { this.onCancel?.() })
       }
       .width('100%')
@@ -122,21 +128,30 @@ struct RejectDialog {
         .width('100%')
         .margin({ bottom: AppSpacing.MD })
 
-      TextInput({ placeholder: '淘汰原因（可选）', text: this.reasonText })
+      TextInput({ placeholder: '淘汰原因（必填）', text: this.reasonText })
         .onChange((value: string) => { this.reasonText = value })
         .width('100%')
         .height(44)
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
+        .margin({ bottom: AppSpacing.SM })
+
+      TextArea({ placeholder: '内部备注（必填，仅招聘方可见）', text: this.noteText })
+        .onChange((value: string) => { this.noteText = value })
+        .width('100%')
+        .height(88)
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .padding(AppSpacing.SM)
         .margin({ bottom: AppSpacing.LG })
 
       Row() {
-        Text('取消')
+        Button('取消', { type: ButtonType.Capsule })
+          .height(40)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_SECONDARY)
           .backgroundColor(AppColors.INPUT_BG)
-          .borderRadius(AppRadius.FULL)
-          .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
+          .padding({ left: 28, right: 28 })
           .onClick(() => { this.onCancel?.() })
           .stateStyles({
             pressed: {
@@ -152,15 +167,15 @@ struct RejectDialog {
             duration: 200
           })
         Blank().width(16)
-        Text('确认淘汰')
+        Button('确认淘汰', { type: ButtonType.Capsule })
+          .height(40)
           .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Bold)
           .fontColor('#FFFFFF')
           .backgroundColor(AppColors.DANGER)
-          .borderRadius(AppRadius.FULL)
-          .padding({ left: 28, right: 28, top: AppSpacing.SM, bottom: AppSpacing.SM })
+          .padding({ left: 28, right: 28 })
           .onClick(() => {
-            this.onConfirm?.(this.reasonText)
+            this.onConfirm?.(this.reasonText, this.noteText)
           })
           .stateStyles({
             pressed: {
@@ -187,6 +202,66 @@ struct RejectDialog {
   }
 }
 
+@CustomDialog
+struct CompleteDialog {
+  controller?: CustomDialogController
+  requestName?: string
+  onConfirm?: (note: string) => void
+  onCancel?: () => void
+
+  @State noteText: string = ''
+
+  build() {
+    Column() {
+      Row() {
+        Text('完成结算')
+          .fontSize(AppFontSize.LG)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .layoutWeight(1)
+        Button('取消', { type: ButtonType.Normal })
+          .height(32)
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_MUTED)
+          .backgroundColor(Color.Transparent)
+          .onClick((): void => { this.onCancel?.() })
+      }
+      .width('100%')
+      .padding({ bottom: AppSpacing.MD })
+
+      Text('为 ' + (this.requestName || '') + ' 记录结算说明')
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.TEXT_SECONDARY)
+        .width('100%')
+        .margin({ bottom: AppSpacing.MD })
+
+      TextArea({ placeholder: '结算备注（必填）', text: this.noteText })
+        .onChange((value: string): void => { this.noteText = value })
+        .width('100%')
+        .height(96)
+        .backgroundColor(AppColors.INPUT_BG)
+        .borderRadius(AppRadius.SM)
+        .padding(AppSpacing.SM)
+
+      Button('确认完成', { type: ButtonType.Capsule })
+        .width('100%')
+        .height(40)
+        .fontSize(AppFontSize.MD)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#FFFFFF')
+        .backgroundColor(AppColors.SUCCESS)
+        .margin({ top: AppSpacing.LG })
+        .onClick((): void => { this.onConfirm?.(this.noteText) })
+        .stateStyles({ pressed: { .opacity(0.85).scale({ x: 0.98, y: 0.98 }) } })
+        .animation({ duration: 180 })
+    }
+    .padding(AppSpacing.LG)
+    .width('100%')
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
+  }
+}
+
 @Component
 struct RequestCard {
   request: RecruiterRequestVO = {
@@ -195,10 +270,13 @@ struct RequestCard {
     applicantEducation: '', applicantExperience: '', applicantSkills: '',
     applicantRegion: '', applicantType: '', applicantSalary: '',
     jobTitle: '', status: 0, interviewTime: '',
-    interviewLocation: '', rejectReason: '', createTime: ''
+    interviewLocation: '', rejectReason: '', createTime: '', attachmentUrl: ''
   }
   onInterview?: (req: RecruiterRequestVO) => void
   onReject?: (req: RecruiterRequestVO) => void
+  onSimpleStatus?: (req: RecruiterRequestVO, status: number) => void
+  onComplete?: (req: RecruiterRequestVO) => void
+  onViewResume?: (req: RecruiterRequestVO) => void
 
   statusColor(): string {
     const map: Record<number, string> = {
@@ -227,10 +305,12 @@ struct RequestCard {
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.TEXT_PRIMARY)
 
-            Text(this.request.applicantAge + '岁')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.TEXT_SECONDARY)
-              .margin({ left: AppSpacing.SM })
+            if (this.request.applicantAge > 0) {
+              Text(this.request.applicantAge + '岁')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_SECONDARY)
+                .margin({ left: AppSpacing.SM })
+            }
           }
           .alignItems(VerticalAlign.Center)
 
@@ -262,6 +342,9 @@ struct RequestCard {
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
+      .onClick(() => {
+        this.onViewResume?.(this.request)
+      })
 
       Text(this.request.applicantSkills)
         .fontSize(AppFontSize.XS)
@@ -332,6 +415,9 @@ struct RequestCard {
           }
             .height(32)
             .backgroundColor(AppColors.PRIMARY)
+            .onClick(() => {
+              this.onInterview?.(this.request)
+            })
             .stateStyles({
               pressed: {
                 .scale({ x: 0.97, y: 0.97 })
@@ -348,6 +434,9 @@ struct RequestCard {
               duration: 200
             })
 
+          this.statusAction('待定', AppColors.WARNING, () => {
+            this.onSimpleStatus?.(this.request, 2)
+          })
           Blank().width(AppSpacing.SM)
 
           Button({ type: ButtonType.Capsule }) {
@@ -379,12 +468,70 @@ struct RequestCard {
         .margin({ top: AppSpacing.SM })
         .justifyContent(FlexAlign.End)
       }
+      if (this.request.status === 1 || this.request.status === 2) {
+        Row() {
+          if (this.request.status === 2) {
+            this.statusAction('安排面试', AppColors.PRIMARY, () => {
+              this.onInterview?.(this.request)
+            })
+          }
+          this.statusAction('录用', AppColors.SUCCESS, () => {
+            this.onSimpleStatus?.(this.request, 3)
+          })
+          if (this.request.status === 1) {
+            this.statusAction('待定', AppColors.WARNING, () => {
+              this.onSimpleStatus?.(this.request, 2)
+            })
+          }
+          this.statusAction('不合适', AppColors.DANGER, () => {
+            this.onReject?.(this.request)
+          })
+        }
+        .width('100%')
+        .margin({ top: AppSpacing.SM })
+        .justifyContent(FlexAlign.End)
+      }
+      if (this.request.status === 3) {
+        Row() {
+          this.statusAction('完成结算', AppColors.SUCCESS, () => {
+            this.onComplete?.(this.request)
+          })
+        }
+        .width('100%')
+        .margin({ top: AppSpacing.SM })
+        .justifyContent(FlexAlign.End)
+      }
     }
     .width('100%')
     .padding(AppSpacing.SM)
     .backgroundColor(AppColors.BG_CARD)
     .borderRadius(AppRadius.LG)
     .margin({ top: AppSpacing.SM })
+  }
+
+  @Builder
+  statusAction(label: string, color: string, onClick: () => void): void {
+    Button({ type: ButtonType.Capsule }) {
+      Text(label)
+        .fontSize(AppFontSize.XS)
+        .fontColor(color === AppColors.PRIMARY || color === AppColors.SUCCESS ? '#FFFFFF' : color)
+    }
+      .height(32)
+      .backgroundColor(color === AppColors.PRIMARY || color === AppColors.SUCCESS ? color : AppColors.BG_CARD)
+      .border({ width: 1, color: color })
+      .margin({ left: AppSpacing.XS })
+      .onClick(onClick)
+      .stateStyles({
+        pressed: {
+          .scale({ x: 0.97, y: 0.97 })
+          .opacity(0.9)
+        },
+        normal: {
+          .scale({ x: 1, y: 1 })
+          .opacity(1)
+        }
+      })
+      .animation({ duration: 180 })
   }
 }
 
@@ -393,6 +540,7 @@ struct RequestCard {
 struct RecruiterRequestsPage {
   @State requestList: RecruiterRequestVO[] = []
   @State isLoading: boolean = true
+  @State errorText: string = ''
   @State filterStatus: number = -1
 
   aboutToAppear(): void {
@@ -401,19 +549,25 @@ struct RecruiterRequestsPage {
 
   loadRequests(): void {
     this.isLoading = true
+    this.errorText = ''
     RecruiterService.getIncomingRequests().then((list: RecruiterRequestVO[]) => {
       this.requestList = list
       this.isLoading = false
+    }).catch(() => {
+      this.isLoading = false
+      this.errorText = '请求记录加载失败，请检查网络后重试'
     })
   }
 
   get filteredList(): RecruiterRequestVO[] {
-    if (this.filterStatus === -1) {
-      return this.requestList
+    const filterStatus = this.filterStatus
+    const requestList = this.requestList
+    if (filterStatus === -1) {
+      return requestList
     }
     const result: RecruiterRequestVO[] = []
-    for (const req of this.requestList) {
-      if (req.status === this.filterStatus) {
+    for (const req of requestList) {
+      if (req.status === filterStatus) {
         result.push(req)
       }
     }
@@ -425,6 +579,10 @@ struct RecruiterRequestsPage {
       builder: InterviewDialog({
         requestName: req.applicantName,
         onConfirm: (time: string, location: string) => {
+          if (!time.trim() || !location.trim()) {
+            this.getUIContext().getPromptAction().showToast({ message: '请填写面试时间和地点' })
+            return
+          }
           dialog.close()
           RecruiterService.processRequest(req.id, {
             status: 1,
@@ -432,11 +590,17 @@ struct RecruiterRequestsPage {
             interviewLocation: location,
             rejectReason: '',
             hrNote: ''
-          }).then(() => {
+          }).then((success: boolean) => {
+            if (!success) {
+              return
+            }
             req.status = 1
             req.interviewTime = time
             req.interviewLocation = location
             this.requestList = [...this.requestList]
+            this.getUIContext().getPromptAction().showToast({ message: '面试安排已保存' })
+          }).catch(() => {
+            this.getUIContext().getPromptAction().showToast({ message: '面试安排失败，请稍后重试' })
           })
         },
         onCancel: () => {
@@ -453,18 +617,28 @@ struct RecruiterRequestsPage {
     let dialog = new CustomDialogController({
       builder: RejectDialog({
         requestName: req.applicantName,
-        onConfirm: (reason: string) => {
+        onConfirm: (reason: string, note: string): void => {
+          if (!ApplicationNotePolicy.isValid(reason) || !ApplicationNotePolicy.isValid(note)) {
+            this.getUIContext().getPromptAction().showToast({ message: '请填写淘汰原因和内部备注' })
+            return
+          }
           dialog.close()
           RecruiterService.processRequest(req.id, {
             status: 4,
             interviewTime: '',
             interviewLocation: '',
             rejectReason: reason,
-            hrNote: ''
-          }).then(() => {
+            hrNote: note
+          }).then((success: boolean) => {
+            if (!success) {
+              return
+            }
             req.status = 4
             req.rejectReason = reason
             this.requestList = [...this.requestList]
+            this.getUIContext().getPromptAction().showToast({ message: '候选人状态已更新' })
+          }).catch(() => {
+            this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
           })
         },
         onCancel: () => {
@@ -477,6 +651,81 @@ struct RecruiterRequestsPage {
     dialog.open()
   }
 
+  confirmSimpleStatus(req: RecruiterRequestVO, status: number, label: string): void {
+    this.getUIContext().showAlertDialog({
+      message: '确定将 ' + req.applicantName + ' 标记为' + label + '吗？',
+      confirm: {
+        value: '确定',
+        action: (): void => { this.updateSimpleStatus(req, status) }
+      },
+      cancel: (): void => {}
+    })
+  }
+
+  updateSimpleStatus(req: RecruiterRequestVO, status: number): void {
+    RecruiterService.processRequest(req.id, {
+      status: status,
+      interviewTime: req.interviewTime || '',
+      interviewLocation: req.interviewLocation || '',
+      rejectReason: '',
+      hrNote: ''
+    }).then((success: boolean) => {
+      if (!success) {
+        this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
+        return
+      }
+      req.status = status
+      this.requestList = [...this.requestList]
+      this.getUIContext().getPromptAction().showToast({ message: '操作成功' })
+    }).catch(() => {
+      this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
+    })
+  }
+
+  confirmComplete(req: RecruiterRequestVO): void {
+    let dialog = new CustomDialogController({
+      builder: CompleteDialog({
+        requestName: req.applicantName,
+        onConfirm: (note: string): void => {
+          if (!ApplicationNotePolicy.isValid(note)) {
+            this.getUIContext().getPromptAction().showToast({ message: '请填写结算备注' })
+            return
+          }
+          dialog.close()
+          RecruiterService.completeApplication(req.id, note).then((success: boolean) => {
+            if (!success) {
+              this.getUIContext().getPromptAction().showToast({ message: '结算失败，请稍后重试' })
+              return
+            }
+            req.status = 5
+            this.requestList = [...this.requestList]
+            this.getUIContext().getPromptAction().showToast({ message: '结算已完成' })
+          }).catch(() => {
+            this.getUIContext().getPromptAction().showToast({ message: '结算失败，请稍后重试' })
+          })
+        },
+        onCancel: (): void => { dialog.close() }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom
+    })
+    dialog.open()
+  }
+  openResume(req: RecruiterRequestVO): void {
+    router.pushUrl({
+      url: 'pages/ResumeDetailPage',
+      params: {
+        resumeData: JSON.stringify({
+          id: String(req.applicantId), name: req.applicantName, age: req.applicantAge,
+          avatar: req.applicantAvatar, education: req.applicantEducation,
+          school: req.applicantSchool, major: req.applicantMajor,
+          experience: req.applicantExperience, skills: req.applicantSkills,
+          region: req.applicantRegion, type: req.applicantType, category: '',
+          expectedSalary: req.applicantSalary, description: '', attachmentUrl: req.attachmentUrl
+        })
+      }
+    })
+  }
   build() {
     Column() {
       NavBar({
@@ -490,6 +739,7 @@ struct RecruiterRequestsPage {
           this.filterTab('全部', -1)
           this.filterTab('待处理', 0)
           this.filterTab('待面试', 1)
+          this.filterTab('待定', 2)
           this.filterTab('已录用', 3)
           this.filterTab('已淘汰', 4)
         }
@@ -503,11 +753,39 @@ struct RecruiterRequestsPage {
 
       if (this.isLoading) {
         Column() {
-          Text('加载中...')
+          LoadingProgress()
+            .width(28)
+            .height(28)
+            .color(AppColors.PRIMARY)
+          Text('正在加载请求记录')
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.SM })
         }
         .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.errorText) {
+        Column() {
+          SymbolGlyph($r('sys.symbol.exclamationmark_circle'))
+            .fontSize(32)
+            .fontColor([AppColors.DANGER])
+          Text(this.errorText)
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .textAlign(TextAlign.Center)
+            .margin({ top: AppSpacing.SM, bottom: AppSpacing.MD })
+          Button('重新加载', { type: ButtonType.Capsule })
+            .height(40)
+            .fontSize(AppFontSize.SM)
+            .fontColor('#FFFFFF')
+            .backgroundColor(AppColors.PRIMARY)
+            .onClick(() => {
+              this.loadRequests()
+            })
+        }
+        .layoutWeight(1)
+        .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else if (this.filteredList.length === 0) {
@@ -526,13 +804,16 @@ struct RecruiterRequestsPage {
               RequestCard({
                 request: req,
                 onInterview: (r: RecruiterRequestVO) => { this.handleInterview(r) },
-                onReject: (r: RecruiterRequestVO) => { this.handleReject(r) }
+                onReject: (r: RecruiterRequestVO) => { this.handleReject(r) },
+                onSimpleStatus: (r: RecruiterRequestVO, status: number) => { this.confirmSimpleStatus(r, status, status === 3 ? '已录用' : '待定') },
+                onComplete: (r: RecruiterRequestVO) => { this.confirmComplete(r) },
+                onViewResume: (r: RecruiterRequestVO) => { this.openResume(r) }
               })
               .transition(TransitionEffect.asymmetric(
                 TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
                 TransitionEffect.opacity(1)
               ))
-            })
+            }, (req: RecruiterRequestVO) => req.id.toString())
           }
           .padding(AppSpacing.MD)
           .width('100%')
@@ -548,18 +829,26 @@ struct RecruiterRequestsPage {
 
   @Builder
   filterTab(label: string, status: number): void {
-    Text(label)
+    Button(label, { type: ButtonType.Capsule })
+      .height(34)
       .fontSize(AppFontSize.SM)
       .fontColor(this.filterStatus === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
       .backgroundColor(this.filterStatus === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
-      .borderRadius(AppRadius.XL)
-      .padding({ left: AppSpacing.LG, right: AppSpacing.LG, top: AppSpacing.XS, bottom: AppSpacing.XS })
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       .margin({ right: AppSpacing.SM })
       .onClick(() => {
         this.filterStatus = status
       })
-      .animation({
-        duration: 200
+      .stateStyles({
+        pressed: {
+          .scale({ x: 0.97, y: 0.97 })
+          .opacity(0.88)
+        },
+        normal: {
+          .scale({ x: 1, y: 1 })
+          .opacity(1)
+        }
       })
+      .animation({ duration: 180 })
   }
 }

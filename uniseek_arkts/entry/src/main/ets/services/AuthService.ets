@@ -1,5 +1,6 @@
 import { ApiClient, ApiEmpty } from './ApiClient';
 import { UserSession } from './UserSession';
+import { ChatWebSocketService } from './ChatWebSocketService';
 
 // 请求体接口
 export interface LoginRequest {
@@ -76,13 +77,33 @@ export interface UserVO {
 }
 
 export class AuthService {
+  static applyUserInfo(userId: number, role: number, nickname: string, avatarUrl: string): void {
+    const safeNickname: string = nickname || ''
+    const safeAvatarUrl: string = avatarUrl || ''
+    UserSession.restore(userId, role, safeNickname, safeAvatarUrl)
+    ApiClient.saveSession(userId, role, safeNickname, safeAvatarUrl)
+  }
+
+  static restoreCachedSession(): boolean {
+    ApiClient.restoreConfiguration()
+    if (!ApiClient.hasToken()) {
+      UserSession.clear()
+      return false
+    }
+    const session = ApiClient.getStoredSession()
+    if (!session) {
+      ApiClient.clearSession()
+      UserSession.clear()
+      return false
+    }
+    UserSession.restore(session.userId, session.role, session.nickname, session.avatarUrl)
+    return true
+  }
+
   static async login(phone: string, password: string): Promise<LoginResult> {
     const result = await ApiClient.post<LoginResult>('/api/auth/login', { phone, password } as LoginRequest)
     ApiClient.saveToken(result.token)
-    UserSession.userId = result.userInfo.id
-    UserSession.role = result.userInfo.role
-    UserSession.nickname = result.userInfo.nickname
-    UserSession.avatarUrl = result.userInfo.avatarUrl
+    AuthService.applyUserInfo(result.userInfo.id, result.userInfo.role, result.userInfo.nickname, result.userInfo.avatarUrl)
     return result
   }
 
@@ -95,16 +116,14 @@ export class AuthService {
       await ApiClient.post<ApiEmpty>('/api/auth/logout')
     } catch {
     }
-    ApiClient.clearToken()
+    ApiClient.clearSession()
     UserSession.clear()
+    ChatWebSocketService.getInstance().disconnect()
   }
 
   static async getCurrentUser(): Promise<UserVO> {
     const user = await ApiClient.get<UserVO>('/api/auth/current-user')
-    UserSession.userId = user.id
-    UserSession.role = user.role
-    UserSession.nickname = user.nickname
-    UserSession.avatarUrl = user.avatarUrl
+    AuthService.applyUserInfo(user.id, user.role, user.nickname, user.avatarUrl)
     return user
   }
 

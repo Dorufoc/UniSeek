@@ -19,6 +19,8 @@ export class AppColors {
   // 选中态/错误态背景色
   static readonly SELECTED_BG = '#EBF5FF';
   static readonly ERROR_BG = '#FFF0F0';
+  static readonly WARNING_BG = '#FFF7E6';
+  static readonly SUCCESS_BG = '#ECFDF5';
 
   // 中性色
   static readonly TEXT_PRIMARY = '#1a1a2e';
@@ -29,6 +31,7 @@ export class AppColors {
   static readonly BORDER = '#e2e8f0';
   static readonly INPUT_BG = '#f5f7fa';
   static readonly INPUT_FOCUS_BG = '#eef2f8';
+  static readonly DISABLED = '#bdc3c7';
   static readonly OVERLAY = 'rgba(0, 0, 0, 0.4)';
 
   /**
@@ -200,5 +203,3 @@ export struct PrimaryButton {
       })
   }
 }
-
-

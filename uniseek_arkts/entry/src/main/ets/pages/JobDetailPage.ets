@@ -61,8 +61,14 @@ struct JobDetailPage {
   }
 
   statusColor(status: number): string {
-    const m: Record<number, string> = { 0: '#f39c12', 1: '#27ae60', 2: '#7f8c8d', 3: '#e74c3c', 4: '#95a5a6' };
-    return m[status] || '#7f8c8d';
+    const m: Record<number, string> = {
+      0: AppColors.WARNING,
+      1: AppColors.SUCCESS,
+      2: AppColors.TEXT_MUTED,
+      3: AppColors.DANGER,
+      4: AppColors.TEXT_MUTED
+    };
+    return m[status] || AppColors.TEXT_MUTED;
   }
 
   formatDate(dateStr: string): string {
@@ -125,7 +131,7 @@ struct JobDetailPage {
         AlertDialog.show({
           title: '实名认证提示',
           message: '投递职位前需要先完成实名认证，是否前往认证？',
-          primaryButton: { value: '前往认证', action: (): void => { router.pushUrl({ url: 'pages/ProfilePage', params: { tab: 'realNameAuth' } }); } },
+          primaryButton: { value: '前往认证', action: (): void => { router.pushUrl({ url: 'pages/RealNameAuthPage' }); } },
            cancel: (): void => {}
         });
         return;
@@ -187,8 +193,8 @@ struct JobDetailPage {
 
   getMainButtonBg(): string {
     if (this.hasApplied) return AppColors.SUCCESS;
-    if (!ApiClient.hasToken() || UserSession.role !== 0) return '#bdc3c7';
-    if (this.job !== null && this.job.status !== 1) return '#bdc3c7';
+    if (!ApiClient.hasToken() || UserSession.role !== 0) return AppColors.DISABLED;
+    if (this.job !== null && this.job.status !== 1) return AppColors.DISABLED;
     return AppColors.PRIMARY;
   }
 
@@ -237,7 +243,7 @@ struct JobDetailPage {
               Row() {
                 Text(this.job.title).fontSize(AppFontSize.XXXL).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).layoutWeight(1).lineHeight(40);
                 Text(this.salaryRangeText(this.job.salaryMin, this.job.salaryMax, this.job.salaryUnit))
-                  .fontSize(AppFontSize.XXL).fontWeight(FontWeight.Bold).fontColor('#e74c3c');
+                  .fontSize(AppFontSize.XXL).fontWeight(FontWeight.Bold).fontColor(AppColors.DANGER);
               }.width('100%').alignItems(VerticalAlign.Top);
               Divider().height(1).color(AppColors.BORDER).margin({ top: AppSpacing.MD });
             }.width('100%').margin({ bottom: AppSpacing.LG });
@@ -252,8 +258,8 @@ struct JobDetailPage {
               // 技能标签
               if (this.job.tag && this.job.tag.length > 0) {
                 ForEach(this.job.tag, (tag: string): void => {
-                  Text(tag).fontSize(AppFontSize.XS).fontColor(AppColors.PRIMARY).backgroundColor('#0F1762FB')
-                    .border({ width: 1, color: 'rgba(23, 98, 251, 0.15)' }).borderRadius(AppRadius.LG)
+                  Text(tag).fontSize(AppFontSize.XS).fontColor(AppColors.PRIMARY).backgroundColor(AppColors.SELECTED_BG)
+                    .border({ width: 1, color: AppColors.BORDER }).borderRadius(AppRadius.LG)
                     .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS }).margin({ right: AppSpacing.SM, bottom: AppSpacing.XS });
                 }, (tag: string): string => tag);
               }
@@ -299,7 +305,7 @@ struct JobDetailPage {
                 Stack() {
                   Text((this.job.enterpriseName || this.job.company || '企').charAt(0)).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#FFFFFF');
                 }.width(52).height(52).borderRadius(AppRadius.MD)
-                  .linearGradient({ direction: GradientDirection.Bottom, colors: [['#1762FB', 0.0], ['#5856d6', 1.0]] }).margin({ right: AppSpacing.MD });
+                  .backgroundColor(AppColors.PRIMARY).margin({ right: AppSpacing.MD });
 
                 Column() {
                   Row() {
@@ -314,7 +320,12 @@ struct JobDetailPage {
               this.infoRow('工作类型', this.jobTypeLabel(this.job.jobType), '薪资', this.salaryRangeText(this.job.salaryMin, this.job.salaryMax, this.job.salaryUnit));
               this.infoRow('工作地点', this.job.address || '未填写', '截止时间', this.formatDate(this.job.deadline));
             }
-            .width('100%').padding(AppSpacing.LG).backgroundColor(AppColors.BG_CARD).borderRadius(AppRadius.LG).margin({ bottom: AppSpacing.LG });
+            .width('100%').padding(AppSpacing.LG).backgroundColor(AppColors.BG_CARD).borderRadius(AppRadius.LG).margin({ bottom: AppSpacing.LG })
+            .onClick((): void => {
+              if (this.job && this.job.enterpriseId > 0) {
+                router.pushUrl({ url: 'pages/CompanyPage', params: { enterpriseId: this.job.enterpriseId } });
+              }
+            });
 
             if (!this.hideActions) Column().height(88).width('100%');
           }.padding(AppSpacing.MD).width('100%');
@@ -326,10 +337,11 @@ struct JobDetailPage {
           Row() {
             // 收藏 — 图标按钮
             Button() {
-              SymbolGlyph($r('sys.symbol.star')).fontSize(20).fontColor([this.hasFavorited ? '#e67e22' : AppColors.TEXT_PRIMARY]);
+              SymbolGlyph($r('sys.symbol.star')).fontSize(20).fontColor([this.hasFavorited ? AppColors.WARNING : AppColors.TEXT_PRIMARY]);
             }
-            .width(52).height(52).backgroundColor(this.hasFavorited ? '#fef3e7' : AppColors.BG_CARD)
-            .border({ width: 1, color: this.hasFavorited ? '#e67e22' : AppColors.BORDER }).borderRadius(AppRadius.LG).margin({ right: AppSpacing.SM })
+            .width(52).height(52).backgroundColor(this.hasFavorited ? AppColors.WARNING_BG : AppColors.BG_CARD)
+            .border({ width: 1, color: this.hasFavorited ? AppColors.WARNING : AppColors.BORDER }).borderRadius(AppRadius.LG).margin({ right: AppSpacing.SM })
+            .accessibilityText(this.hasFavorited ? '取消收藏职位' : '收藏职位')
             .onClick((): void => { this.handleToggleFavorite(); });
 
             // 主按钮 — 文字按钮（立即投递 / 继续沟通 / etc）
@@ -354,6 +366,7 @@ struct JobDetailPage {
               SymbolGlyph($r('sys.symbol.message')).fontSize(20).fontColor([AppColors.PRIMARY]);
             }
             .width(52).height(52).backgroundColor(AppColors.BG_CARD).borderRadius(AppRadius.LG).border({ width: 1, color: AppColors.PRIMARY })
+            .accessibilityText('联系招聘方')
             .onClick((): void => { this.handleContactHr(); });
           }
           .width('100%').padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.LG })

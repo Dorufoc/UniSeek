@@ -3,7 +3,7 @@
 
 import { router } from '@kit.ArkUI';
 import { JobData } from '../../../services/ChatTypes';
-import { AppColors, AppSpacing } from '../../../common/AppStyles';
+import { AppColors, AppRadius, AppShadow, AppSpacing } from '../../../common/AppStyles';
 
 @Component
 export struct JobFeedCard {
@@ -82,20 +82,21 @@ export struct JobFeedCard {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor('#E6FFFFFF')
-    .borderRadius(14)
-    .backgroundBlurStyle(BlurStyle.Thin)
-    .shadow({
-      radius: 12,
-      color: '#0F1762FB',
-      offsetX: 0,
-      offsetY: 2
-    })
+    .backgroundColor(AppColors.BG_CARD)
+    .border({ width: 1, color: AppColors.BORDER })
+    .borderRadius(AppRadius.MD)
+    .shadow(AppShadow.SM)
     .onClick(() => {
       router.pushUrl({
         url: 'pages/JobDetailPage',
         params: { jobId: this.job.id }
       });
+    })
+    .stateStyles({
+      pressed: {
+        .backgroundColor(AppColors.SELECTED_BG)
+        .scale({ x: 0.99, y: 0.99 })
+      }
     })
 
   }

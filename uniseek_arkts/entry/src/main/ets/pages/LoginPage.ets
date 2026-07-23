@@ -1,38 +1,23 @@
-import { router, promptAction, CustomContentDialog, SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
+import { router, promptAction, CustomContentDialog } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { UserSession } from '../services/UserSession';
 import { ApiClient } from '../services/ApiClient';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { InputValidator } from '../common/FormValidators'
 
 @Entry
 @Component
 struct LoginPage {
   @State phone: string = ''
   @State password: string = ''
-  @State role: number = 0
-  @State selectedRoleIndexes: number[] = [0]
   @State serverAddrInput: string = ''
   @State pageLoaded: boolean = false
-  @State logoOpacity: number = 0
-  @State contentOpacity: number = 0
 
   // 原生弹窗控制器
   private serverDialogController: CustomDialogController | null = null;
 
   // 调试用：记录标题点击时间戳，5 秒内连点 10 次弹出后端地址
   private clickTimestamps: number[] = []
-
-  // 胶囊单选分段按钮——求职者/招聘者切换
-  @State roleOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
-    buttons: [{ text: '求职者' }, { text: '招聘者' }],
-    multiply: false,
-    selectedBackgroundColor: AppColors.PRIMARY,
-    backgroundColor: AppColors.INPUT_BG,
-    selectedFontColor: '#FFFFFF',
-    fontColor: AppColors.TEXT_SECONDARY,
-    fontSize: AppFontSize.SM,
-    selectedFontSize: AppFontSize.SM
-  })
 
   // 自定义弹窗内容区——TextInput 由系统原生弹窗的 contentBuilder 承载
   @Builder
@@ -44,15 +29,11 @@ struct LoginPage {
   }
 
   aboutToAppear(): void {
-    // 页面入场动画：延迟一帧启动淡入 + 上移
+    ApiClient.restoreConfiguration()
+    // 由组件转场承载首屏进入动效，避免使用已弃用的显式动画接口。
     setTimeout(() => {
       this.pageLoaded = true
     }, 50)
-    // 入场动画——Logo 先行，内容延迟跟随
-    animateTo({ duration: 400 }, () => { this.logoOpacity = 1 })
-    setTimeout(() => {
-      animateTo({ duration: 400 }, () => { this.contentOpacity = 1 })
-    }, 200)
   }
 
   build() {
@@ -60,7 +41,8 @@ struct LoginPage {
       Column(){
         Image($r('app.media.uniseek_text'))
           .width('90%')
-          .opacity(this.logoOpacity)
+          .opacity(this.pageLoaded ? 1 : 0)
+          .transition({ opacity: 0, translate: { y: -8 } })
           .onClick(() => {
             this.handleTitleClick()
           })
@@ -68,18 +50,6 @@ struct LoginPage {
         Column() {
           // 表单区域
 
-            // 胶囊单选分段按钮——求职者/招聘者切换
-            Column() {
-              SegmentButton({
-                options: this.roleOptions,
-                selectedIndexes: $selectedRoleIndexes,
-                onItemClicked: (index: number): void => {
-                  this.role = index
-                }
-              })
-            }
-            .width('100%')
-            .margin({ top: 40 })
             // 手机号输入框
             Row() {
               SymbolGlyph($r('sys.symbol.phone'))
@@ -99,10 +69,11 @@ struct LoginPage {
                 .placeholderColor(AppColors.TEXT_MUTED)
             }
             .height(50)
+        .width('100%')
             .backgroundColor(AppColors.INPUT_BG)
             .borderRadius(20)
             .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-            .margin({ top: AppSpacing.MD })
+            .margin({ top: 40 })
 
             // 密码输入框
             Row() {
@@ -123,6 +94,7 @@ struct LoginPage {
                 .placeholderColor(AppColors.TEXT_MUTED)
             }
             .height(50)
+        .width('100%')
             .backgroundColor(AppColors.INPUT_BG)
             .borderRadius(20)
             .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
@@ -169,9 +141,12 @@ struct LoginPage {
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.TEXT_MUTED)
 
-            Text('立即注册')
+            Button('立即注册', { type: ButtonType.Normal })
+              .height(32)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.PRIMARY)
+              .backgroundColor(Color.Transparent)
+              .padding({ left: AppSpacing.XS, right: AppSpacing.XS })
               .onClick(() => {
                 router.replaceUrl({ url: 'pages/RegisterPage' })
               })
@@ -189,8 +164,8 @@ struct LoginPage {
         .margin({bottom:128})
         .padding({ left: AppSpacing.XL, right: AppSpacing.XL })
         .backgroundColor(AppColors.BG_CARD)
-        .opacity(this.contentOpacity)
-        .animation({ duration: 400 })
+        .opacity(this.pageLoaded ? 1 : 0)
+        .transition({ opacity: 0, translate: { y: 12 } })
 
       }
       // .backgroundImage($r('app.media.background_v2'))
@@ -241,7 +216,9 @@ struct LoginPage {
             {
               value: '保存',
               action: (): void => {
-                ApiClient.BASE_URL = this.serverAddrInput.trim()
+                const savedUrl: string = ApiClient.setBaseUrl(this.serverAddrInput)
+                this.serverAddrInput = savedUrl
+                promptAction.showToast({ message: '后端地址已持久化保存', duration: 1800 })
                 this.serverDialogController?.close()
               }
             }
@@ -255,8 +232,8 @@ struct LoginPage {
   }
 
   async handleLogin() {
-    if (!this.phone.trim()) {
-      promptAction.showToast({ message: '请输入手机号', duration: 2000 })
+    if (!InputValidator.isPhone(this.phone.trim())) {
+      promptAction.showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
       return
     }
     if (!this.password.trim()) {

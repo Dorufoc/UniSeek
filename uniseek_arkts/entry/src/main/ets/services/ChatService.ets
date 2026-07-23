@@ -1,9 +1,11 @@
 import { ApiClient, ApiEmpty } from './ApiClient';
+import { ServerConfig } from './ServerConfig'
 import { ChatSessionVO, ChatMessageVO } from './ChatTypes';
 import { http } from '@kit.NetworkKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { BusinessError, request } from '@kit.BasicServicesKit';
+import { filePreview } from '@kit.PreviewKit';
 
 export interface SendMessageRequest {
   messageType: number
@@ -147,6 +149,40 @@ export class ChatService {
     })
   }
 
+  /** 下载并预览聊天中的简历附件。 */
+  static async previewAttachment(url: string): Promise<void> {
+    const hostContext = getContext()
+    const localPath = await ChatService.downloadAttachment(url)
+    await filePreview.openPreview(hostContext, {
+      uri: localPath,
+      mimeType: 'application/pdf',
+      title: '简历附件'
+    })
+  }
+
+  /** 将附件下载到应用私有目录并返回本地路径。 */
+  static async downloadAttachment(url: string): Promise<string> {
+    const hostContext = getContext()
+    const resolvedUrl: string = ServerConfig.toHttpUrl(ApiClient.BASE_URL, url)
+    const namePart = resolvedUrl.substring(resolvedUrl.lastIndexOf('/') + 1).split('?')[0]
+    const fileName = namePart || ('resume-' + new Date().getTime() + '.pdf')
+    const filePath = hostContext.filesDir + '/' + fileName
+    const task = await request.downloadFile(hostContext, {
+      url: resolvedUrl,
+      filePath: filePath,
+      title: fileName,
+      header: { Authorization: 'Bearer ' + ApiClient.getToken() },
+      background: false
+    })
+    return new Promise<string>((resolve, reject) => {
+      task.on('complete', () => {
+        resolve(filePath)
+      })
+      task.on('fail', (code: number) => {
+        reject(new Error('附件下载失败：' + code))
+      })
+    })
+  }
   static async createDirectSession(targetUserId: number): Promise<number> {
     return ApiClient.post<number>('/api/chat/sessions/direct?targetUserId=' + targetUserId)
   }

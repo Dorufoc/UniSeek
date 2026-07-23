@@ -6,701 +6,13 @@ import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/A
 import { FilterBar } from './FilterBar';
 import { JobFeedList } from './JobFeedList';
 import { JobFeedCard } from './JobFeedCard';
-
-interface TabDataState {
-  jobs: JobData[]
-  page: number
-  hasMore: boolean
-  loading: boolean
-}
+import { TabDataState } from './JobFeedTypes'
 
 interface FilterState {
   salaryMin: number
   salaryMax: number
   regionId: number
 }
-
-@CustomDialog
-struct RegionPickerDialog {
-  controller?: CustomDialogController
-  onSelect?: (results: string[]) => void
-  onCancel?: () => void
-
-  @State selectedProvinces: string[] = []
-  @State selectedCities: string[] = []
-  @State selectedDistricts: string[] = []
-  @State activeProvince: string = ''
-  @State activeCity: string = ''
-
-  private provinces: Province[] = DataService.getProvinces()
-
-  isSelected(list: string[], name: string): boolean {
-    return list.indexOf(name) >= 0
-  }
-
-  toggleProvince(name: string): void {
-    if (this.isSelected(this.selectedProvinces, name)) {
-      this.selectedProvinces = this.selectedProvinces.filter(n => n !== name)
-      const province = DataService.getProvinceByName(name)
-      if (province) {
-        const cityNames = province.cities.map((c: City) => c.name)
-        this.selectedCities = this.selectedCities.filter(c => cityNames.indexOf(c) < 0)
-        const districtNames: string[] = []
-        for (const city of province.cities) {
-          for (const district of city.districts) {
-            districtNames.push(district.name)
-          }
-        }
-        this.selectedDistricts = this.selectedDistricts.filter(d => districtNames.indexOf(d) < 0)
-      }
-      if (this.activeProvince === name) {
-        this.activeProvince = ''
-      }
-      this.activeCity = ''
-    } else {
-      this.selectedProvinces = [...this.selectedProvinces, name]
-      this.activeProvince = name
-      this.activeCity = ''
-    }
-  }
-
-  toggleCity(name: string): void {
-    if (this.isSelected(this.selectedCities, name)) {
-      this.selectedCities = this.selectedCities.filter(n => n !== name)
-    } else {
-      this.selectedCities = [...this.selectedCities, name]
-    }
-    this.activeCity = name
-  }
-
-  toggleDistrict(name: string): void {
-    if (this.isSelected(this.selectedDistricts, name)) {
-      this.selectedDistricts = this.selectedDistricts.filter(n => n !== name)
-    } else {
-      this.selectedDistricts = [...this.selectedDistricts, name]
-    }
-  }
-
-  toggleAllCities(): void {
-    const province = DataService.getProvinceByName(this.activeProvince)
-    if (!province || province.isMunicipality) return
-    const allNames = province.cities.map((c: City) => c.name)
-    const allSelected = allNames.every(n => this.isSelected(this.selectedCities, n))
-    if (allSelected) {
-      this.selectedCities = this.selectedCities.filter(n => allNames.indexOf(n) < 0)
-    } else {
-      const result = [...this.selectedCities]
-      for (const n of allNames) {
-        if (result.indexOf(n) < 0) result.push(n)
-      }
-      this.selectedCities = result
-    }
-  }
-
-  toggleAllDistricts(): void {
-    const province = DataService.getProvinceByName(this.activeProvince)
-    if (!province) return
-    const city = province.cities.find((c: City) => c.name === this.activeCity)
-    if (!city) return
-    const allNames = city.districts.map((d: District) => d.name)
-    const allSelected = allNames.every(n => this.isSelected(this.selectedDistricts, n))
-    if (allSelected) {
-      this.selectedDistricts = this.selectedDistricts.filter(n => allNames.indexOf(n) < 0)
-    } else {
-      const result = [...this.selectedDistricts]
-      for (const n of allNames) {
-        if (result.indexOf(n) < 0) result.push(n)
-      }
-      this.selectedDistricts = result
-    }
-  }
-
-  generateResults(): string[] {
-    const results: string[] = []
-
-    for (const pName of this.selectedProvinces) {
-      const province = DataService.getProvinceByName(pName)
-      if (!province) continue
-
-      if (province.isMunicipality) {
-        const city = province.cities[0]
-        const selDists = this.selectedDistricts.filter(
-          (d: string) => city.districts.some((dd: District) => dd.name === d)
-        )
-        if (selDists.length > 0) {
-          for (const d of selDists) results.push(pName + '-' + d)
-        } else {
-          results.push(pName)
-        }
-      } else {
-        const selCities = this.selectedCities.filter(
-          (c: string) => province.cities.some((pc: City) => pc.name === c)
-        )
-        if (selCities.length === 0) {
-          results.push(pName)
-        } else {
-          for (const cName of selCities) {
-            const city = province.cities.find((c: City) => c.name === cName)
-            if (!city) continue
-            const selDists = this.selectedDistricts.filter(
-              (d: string) => city.districts.some((dd: District) => dd.name === d)
-            )
-            if (selDists.length > 0) {
-              for (const d of selDists) results.push(pName + '-' + cName + '-' + d)
-            } else {
-              results.push(pName + '-' + cName)
-            }
-          }
-        }
-      }
-    }
-
-    return results
-  }
-
-  cityOptions(): City[] {
-    if (!this.activeProvince) return []
-    const province = DataService.getProvinceByName(this.activeProvince)
-    if (!province || province.isMunicipality) return []
-    return province.cities
-  }
-
-  districtOptions(): District[] {
-    if (!this.activeCity) return []
-    const province = DataService.getProvinceByName(this.activeProvince)
-    if (!province) return []
-    const city = province.cities.find((c: City) => c.name === this.activeCity)
-    return city?.districts || []
-  }
-
-  isMunicipalityActive(): boolean {
-    if (!this.activeProvince) return false
-    const province = DataService.getProvinceByName(this.activeProvince)
-    return province?.isMunicipality || false
-  }
-
-  municipalityDistricts(): District[] {
-    if (!this.isMunicipalityActive()) return []
-    const province = DataService.getProvinceByName(this.activeProvince)
-    return province?.cities[0]?.districts || []
-  }
-
-  build() {
-    Column() {
-      Row() {
-        Text('选择区域')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
-          .layoutWeight(1)
-        Text('取消')
-          .fontSize(15)
-          .fontColor(AppColors.TEXT_MUTED)
-          .onClick(() => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: 16 })
-
-      Row() {
-        Scroll() {
-          Column() {
-            ForEach(this.provinces, (province: Province) => {
-              Text(province.name)
-                .fontSize(15)
-                .fontColor(this.isSelected(this.selectedProvinces, province.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                .backgroundColor(this.isSelected(this.selectedProvinces, province.name) ? '#2F8BE6' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                .textAlign(TextAlign.Start)
-                .width('100%')
-                .onClick(() => { this.toggleProvince(province.name) })
-            })
-          }
-          .width('100%')
-          .padding({ left: 6, right: 6 })
-        }
-        .layoutWeight(1)
-        .width(0)
-
-        if (this.activeProvince && !this.isMunicipalityActive()) {
-          Scroll() {
-            Column() {
-              Text('全部')
-                .fontSize(15)
-                .fontColor(this.selectedCities.length > 0 && this.cityOptions().every(
-                  (c: City) => this.isSelected(this.selectedCities, c.name)
-                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                .backgroundColor(this.selectedCities.length > 0 && this.cityOptions().every(
-                  (c: City) => this.isSelected(this.selectedCities, c.name)
-                ) ? '#2F8BE6' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                .textAlign(TextAlign.Start)
-                .fontWeight(FontWeight.Bold)
-                .width('100%')
-                .onClick(() => { this.toggleAllCities() })
-
-              ForEach(this.cityOptions(), (city: City) => {
-                Text(city.name)
-                  .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedCities, city.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                  .backgroundColor(this.isSelected(this.selectedCities, city.name) ? '#2F8BE6' : 'transparent')
-                  .borderRadius(8)
-                  .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                  .textAlign(TextAlign.Start)
-                  .width('100%')
-                  .onClick(() => { this.toggleCity(city.name) })
-              })
-            }
-            .width('100%')
-            .padding({ left: 6, right: 6 })
-          }
-          .layoutWeight(1)
-          .width(0)
-        }
-
-        if (this.isMunicipalityActive()) {
-          Scroll() {
-            Column() {
-              Text('全部')
-                .fontSize(15)
-                .fontColor(this.selectedDistricts.length > 0 && this.municipalityDistricts().every(
-                  (d: District) => this.isSelected(this.selectedDistricts, d.name)
-                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                .backgroundColor(this.selectedDistricts.length > 0 && this.municipalityDistricts().every(
-                  (d: District) => this.isSelected(this.selectedDistricts, d.name)
-                ) ? '#2F8BE6' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                .textAlign(TextAlign.Start)
-                .fontWeight(FontWeight.Bold)
-                .width('100%')
-                .onClick(() => { this.toggleAllDistricts() })
-
-              ForEach(this.municipalityDistricts(), (district: District) => {
-                Text(district.name)
-                  .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedDistricts, district.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                  .backgroundColor(this.isSelected(this.selectedDistricts, district.name) ? '#2F8BE6' : 'transparent')
-                  .borderRadius(8)
-                  .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                  .textAlign(TextAlign.Start)
-                  .width('100%')
-                  .onClick(() => { this.toggleDistrict(district.name) })
-              })
-            }
-            .width('100%')
-            .padding({ left: 6, right: 6 })
-          }
-          .layoutWeight(1)
-          .width(0)
-        }
-
-        if (this.activeCity) {
-          Scroll() {
-            Column() {
-              Text('全部')
-                .fontSize(15)
-                .fontColor(this.selectedDistricts.length > 0 && this.districtOptions().every(
-                  (d: District) => this.isSelected(this.selectedDistricts, d.name)
-                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                .backgroundColor(this.selectedDistricts.length > 0 && this.districtOptions().every(
-                  (d: District) => this.isSelected(this.selectedDistricts, d.name)
-                ) ? '#2F8BE6' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                .textAlign(TextAlign.Start)
-                .fontWeight(FontWeight.Bold)
-                .width('100%')
-                .onClick(() => { this.toggleAllDistricts() })
-
-              ForEach(this.districtOptions(), (district: District) => {
-                Text(district.name)
-                  .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedDistricts, district.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                  .backgroundColor(this.isSelected(this.selectedDistricts, district.name) ? '#2F8BE6' : 'transparent')
-                  .borderRadius(8)
-                  .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                  .textAlign(TextAlign.Start)
-                  .width('100%')
-                  .onClick(() => { this.toggleDistrict(district.name) })
-              })
-            }
-            .width('100%')
-            .padding({ left: 6, right: 6 })
-          }
-          .layoutWeight(1)
-          .width(0)
-        }
-      }
-      .layoutWeight(1)
-      .width('100%')
-
-      Row() {
-        Row().layoutWeight(1)
-        Text('完成')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor(AppColors.PRIMARY)
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
-          .onClick(() => {
-            this.onSelect?.(this.generateResults())
-          })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.97, y: 0.97 })
-              .opacity(0.9)
-            },
-            normal: {
-              .scale({ x: 1, y: 1 })
-              .opacity(1)
-            }
-          })
-          .animation({
-            duration: 200
-          })
-      }
-      .width('100%')
-      .padding({ top: 16 })
-    }
-    .padding(20)
-    .width('100%')
-    .height('60%')
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-  }
-}
-
-@CustomDialog
-struct TypePickerDialog {
-  controller?: CustomDialogController
-  onSelect?: (results: string[]) => void
-  onCancel?: () => void
-
-  @State selectedFields: string[] = []
-  @State selectedOccupations: string[] = []
-  @State activeField: string = ''
-
-  private fields: Field[] = DataService.getFields()
-
-  isSelected(list: string[], name: string): boolean {
-    return list.indexOf(name) >= 0
-  }
-
-  toggleField(name: string): void {
-    if (this.isSelected(this.selectedFields, name)) {
-      this.selectedFields = this.selectedFields.filter(n => n !== name)
-      const field = DataService.getFieldByName(name)
-      if (field) {
-        const occupationNames = field.occupations.map((o: Occupation) => o.name)
-        this.selectedOccupations = this.selectedOccupations.filter(o => occupationNames.indexOf(o) < 0)
-      }
-      if (this.activeField === name) {
-        this.activeField = ''
-      }
-    } else {
-      this.selectedFields = [...this.selectedFields, name]
-      this.activeField = name
-    }
-  }
-
-  toggleOccupation(name: string): void {
-    if (this.isSelected(this.selectedOccupations, name)) {
-      this.selectedOccupations = this.selectedOccupations.filter(n => n !== name)
-    } else {
-      this.selectedOccupations = [...this.selectedOccupations, name]
-    }
-  }
-
-  toggleAllOccupations(): void {
-    const field = DataService.getFieldByName(this.activeField)
-    if (!field) return
-    const allNames = field.occupations.map((o: Occupation) => o.name)
-    const allSelected = allNames.every(n => this.isSelected(this.selectedOccupations, n))
-    if (allSelected) {
-      this.selectedOccupations = this.selectedOccupations.filter(n => allNames.indexOf(n) < 0)
-    } else {
-      const result = [...this.selectedOccupations]
-      for (const n of allNames) {
-        if (result.indexOf(n) < 0) result.push(n)
-      }
-      this.selectedOccupations = result
-    }
-  }
-
-  occupationOptions(): Occupation[] {
-    if (!this.activeField) return []
-    const field = DataService.getFieldByName(this.activeField)
-    return field?.occupations || []
-  }
-
-  generateResults(): string[] {
-    const results: string[] = []
-
-    for (const fName of this.selectedFields) {
-      const field = DataService.getFieldByName(fName)
-      if (!field) continue
-      const selOccupations = this.selectedOccupations.filter(
-        (o: string) => field.occupations.some((fo: Occupation) => fo.name === o)
-      )
-      if (selOccupations.length > 0) {
-        for (const o of selOccupations) results.push(fName + '-' + o)
-      } else {
-        results.push(fName)
-      }
-    }
-
-    return results
-  }
-
-  build() {
-    Column() {
-      Row() {
-        Text('选择类型')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
-          .layoutWeight(1)
-        Text('取消')
-          .fontSize(15)
-          .fontColor(AppColors.TEXT_MUTED)
-          .onClick(() => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: 16 })
-
-      Row() {
-        Scroll() {
-          Column() {
-            ForEach(this.fields, (field: Field) => {
-              Text(field.name)
-                .fontSize(15)
-                .fontColor(this.isSelected(this.selectedFields, field.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                .backgroundColor(this.isSelected(this.selectedFields, field.name) ? '#2F8BE6' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                .textAlign(TextAlign.Start)
-                .width('100%')
-                .onClick(() => { this.toggleField(field.name) })
-            })
-          }
-          .width('100%')
-          .padding({ left: 6, right: 6 })
-        }
-        .layoutWeight(1)
-        .width(0)
-
-        if (this.activeField) {
-          Scroll() {
-            Column() {
-              Text('全部')
-                .fontSize(15)
-                .fontColor(this.selectedOccupations.length > 0 && this.occupationOptions().every(
-                  (o: Occupation) => this.isSelected(this.selectedOccupations, o.name)
-                ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                .backgroundColor(this.selectedOccupations.length > 0 && this.occupationOptions().every(
-                  (o: Occupation) => this.isSelected(this.selectedOccupations, o.name)
-                ) ? '#2F8BE6' : 'transparent')
-                .borderRadius(8)
-                .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                .textAlign(TextAlign.Start)
-                .fontWeight(FontWeight.Bold)
-                .width('100%')
-                .onClick(() => { this.toggleAllOccupations() })
-
-              ForEach(this.occupationOptions(), (occupation: Occupation) => {
-                Text(occupation.name)
-                  .fontSize(15)
-                  .fontColor(this.isSelected(this.selectedOccupations, occupation.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
-                  .backgroundColor(this.isSelected(this.selectedOccupations, occupation.name) ? '#2F8BE6' : 'transparent')
-                  .borderRadius(8)
-                  .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                  .textAlign(TextAlign.Start)
-                  .width('100%')
-                  .onClick(() => { this.toggleOccupation(occupation.name) })
-              })
-            }
-            .width('100%')
-            .padding({ left: 6, right: 6 })
-          }
-          .layoutWeight(1)
-          .width(0)
-        }
-      }
-      .layoutWeight(1)
-      .width('100%')
-
-      Row() {
-        Row().layoutWeight(1)
-        Text('完成')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor(AppColors.PRIMARY)
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
-          .onClick(() => {
-            this.onSelect?.(this.generateResults())
-          })
-      }
-      .width('100%')
-      .padding({ top: 16 })
-    }
-    .padding(20)
-    .width('100%')
-    .height('55%')
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-  }
-}
-
-@CustomDialog
-struct SalaryDialog {
-  controller?: CustomDialogController
-  selectedUnit: number = -1
-  includeNegotiable: boolean = true
-  onConfirm?: (min: number, max: number, unit: number, includeNegotiable: boolean) => void
-  onCancel?: () => void
-
-  @State minText: string = ''
-  @State maxText: string = ''
-  @State currentUnit: number = -1
-  @State localIncludeNegotiable: boolean = true
-
-  aboutToAppear(): void {
-    this.currentUnit = this.selectedUnit
-    this.localIncludeNegotiable = this.includeNegotiable
-  }
-
-  build() {
-    Column() {
-      Row() {
-        Text('薪资筛选')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
-          .layoutWeight(1)
-        Text('取消')
-          .fontSize(15)
-          .fontColor(AppColors.TEXT_MUTED)
-          .onClick(() => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: 16 })
-
-      TextInput({ placeholder: '最低薪资(元)', text: this.minText })
-        .onChange((value: string) => { this.minText = value })
-        .width('100%')
-        .height(44)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(8)
-        .margin({ bottom: 12 })
-
-      TextInput({ placeholder: '最高薪资(元)', text: this.maxText })
-        .onChange((value: string) => { this.maxText = value })
-        .width('100%')
-        .height(44)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(8)
-        .margin({ bottom: 16 })
-
-      Text('薪资类型')
-        .fontSize(15)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .width('100%')
-        .margin({ bottom: 10 })
-
-      Row() {
-        Text('日结')
-          .fontSize(14)
-          .fontColor(this.currentUnit === 0 ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-          .backgroundColor(this.currentUnit === 0 ? AppColors.PRIMARY : AppColors.INPUT_BG)
-          .borderRadius(16)
-          .padding({ left: 20, right: 20, top: 8, bottom: 8 })
-          .onClick(() => { this.currentUnit = this.currentUnit === 0 ? -1 : 0 })
-
-        Text('时薪')
-          .fontSize(14)
-          .fontColor(this.currentUnit === 1 ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-          .backgroundColor(this.currentUnit === 1 ? AppColors.PRIMARY : AppColors.INPUT_BG)
-          .borderRadius(16)
-          .padding({ left: 20, right: 20, top: 8, bottom: 8 })
-          .onClick(() => { this.currentUnit = this.currentUnit === 1 ? -1 : 1 })
-
-        Text('月结')
-          .fontSize(14)
-          .fontColor(this.currentUnit === 2 ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-          .backgroundColor(this.currentUnit === 2 ? AppColors.PRIMARY : AppColors.INPUT_BG)
-          .borderRadius(16)
-          .padding({ left: 20, right: 20, top: 8, bottom: 8 })
-          .onClick(() => { this.currentUnit = this.currentUnit === 2 ? -1 : 2 })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceEvenly)
-      .margin({ bottom: 16 })
-
-      // 包含面议复选框
-      Row() {
-        Row()
-          .width(18)
-          .height(18)
-          .borderRadius(4)
-          .border({
-            width: this.localIncludeNegotiable ? 0 : 1,
-            color: AppColors.TEXT_MUTED
-          })
-          .backgroundColor(this.localIncludeNegotiable ? AppColors.PRIMARY : 'transparent')
-          .justifyContent(FlexAlign.Center)
-          .alignItems(VerticalAlign.Center)
-          .onClick(() => {
-            this.localIncludeNegotiable = !this.localIncludeNegotiable
-          })
-        if (this.localIncludeNegotiable) {
-          Text('✓')
-            .fontSize(12)
-            .fontColor('#FFFFFF')
-            .position({ x: 3, y: 0 })
-        }
-        Text('包含面议')
-          .fontSize(14)
-          .fontColor(AppColors.TEXT_SECONDARY)
-          .margin({ left: 8 })
-          .onClick(() => {
-            this.localIncludeNegotiable = !this.localIncludeNegotiable
-          })
-        Blank()
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-      .margin({ bottom: 16 })
-
-      Row() {
-        Row().layoutWeight(1)
-        Text('确定')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor(AppColors.PRIMARY)
-          .borderRadius(20)
-          .padding({ left: 28, right: 28, top: 10, bottom: 10 })
-          .onClick(() => {
-            const min = parseInt(this.minText) || 0
-            const max = parseInt(this.maxText) || 0
-            this.onConfirm?.(min, max, this.currentUnit, this.localIncludeNegotiable)
-          })
-      }
-      .width('100%')
-      .padding({ top: 8 })
-    }
-    .padding(20)
-    .width('100%')
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-  }
-}
-
 @Component
 export struct HomePage {
   @State activeCategory: string = '全职'
@@ -712,9 +24,9 @@ export struct HomePage {
   @State selectedRegion: string[] = []
   @State selectedType: string[] = []
   @State tabData: Record<number, TabDataState> = {
-    1: { jobs: [], page: 1, hasMore: true, loading: false },
-    2: { jobs: [], page: 1, hasMore: true, loading: false },
-    3: { jobs: [], page: 1, hasMore: true, loading: false }
+    1: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' },
+    2: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' },
+    3: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' }
   }
 
   // ==== bindSheet 筛选弹窗控制 ====
@@ -756,7 +68,8 @@ export struct HomePage {
       jobs: state.jobs,
       page: state.page,
       hasMore: state.hasMore,
-      loading: true
+      loading: true,
+      errorText: ''
     }
     this.tabData = {
       1: jobType === 1 ? loadingState : this.tabData[1],
@@ -811,7 +124,8 @@ export struct HomePage {
         jobs: append ? state.jobs.concat(newJobs) : newJobs,
         page: result.page,
         hasMore: hasMore,
-        loading: false
+        loading: false,
+        errorText: ''
       }
       this.tabData = {
         1: jobType === 1 ? successState : this.tabData[1],
@@ -824,7 +138,8 @@ export struct HomePage {
         jobs: state.jobs,
         page: state.page,
         hasMore: state.hasMore,
-        loading: false
+        loading: false,
+        errorText: '职位列表加载失败，请检查网络后重试'
       }
       this.tabData = {
         1: jobType === 1 ? errorState : this.tabData[1],
@@ -836,9 +151,9 @@ export struct HomePage {
 
   resetAllTabs(): void {
     this.tabData = {
-      1: { jobs: [], page: 1, hasMore: true, loading: false },
-      2: { jobs: [], page: 1, hasMore: true, loading: false },
-      3: { jobs: [], page: 1, hasMore: true, loading: false }
+      1: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' },
+      2: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' },
+      3: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' }
     }
     const currentType = this.activeCategory === '兼职' ? 2 : this.activeCategory === '实习' ? 3 : 1
     this.loadTabData(currentType, false)
@@ -1155,9 +470,12 @@ export struct HomePage {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
         Blank()
-        Text('重置')
+        Button('重置', { type: ButtonType.Capsule })
+          .height(32)
           .fontSize(AppFontSize.SM)
           .fontColor(AppColors.TEXT_MUTED)
+          .backgroundColor(AppColors.INPUT_BG)
+          .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
           .onClick(() => {
             this.resetSheetFilters()
           })
@@ -1198,7 +516,7 @@ export struct HomePage {
             Row() {
               Button('日结')
                 .type(ButtonType.Capsule)
-                .backgroundColor(this.filterSalaryUnit === 0 ? AppColors.PRIMARY : '#F0F0F0')
+                .backgroundColor(this.filterSalaryUnit === 0 ? AppColors.PRIMARY : AppColors.INPUT_BG)
                 .fontColor(this.filterSalaryUnit === 0 ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
                 .fontSize(AppFontSize.SM)
                 .height(36)
@@ -1207,7 +525,7 @@ export struct HomePage {
                 })
               Button('时薪')
                 .type(ButtonType.Capsule)
-                .backgroundColor(this.filterSalaryUnit === 1 ? AppColors.PRIMARY : '#F0F0F0')
+                .backgroundColor(this.filterSalaryUnit === 1 ? AppColors.PRIMARY : AppColors.INPUT_BG)
                 .fontColor(this.filterSalaryUnit === 1 ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
                 .fontSize(AppFontSize.SM)
                 .height(36)
@@ -1216,7 +534,7 @@ export struct HomePage {
                 })
               Button('月结')
                 .type(ButtonType.Capsule)
-                .backgroundColor(this.filterSalaryUnit === 2 ? AppColors.PRIMARY : '#F0F0F0')
+                .backgroundColor(this.filterSalaryUnit === 2 ? AppColors.PRIMARY : AppColors.INPUT_BG)
                 .fontColor(this.filterSalaryUnit === 2 ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
                 .fontSize(AppFontSize.SM)
                 .height(36)
@@ -1263,11 +581,12 @@ export struct HomePage {
                     Row() {
                       Text(province.name)
                         .fontSize(15)
+                        .fontColor(this.fsIsSelected(this.fsSelectedProvinces, province.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                         .textAlign(TextAlign.Start)
                     }
                     .width('100%')
                     .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                    .backgroundColor(this.fsIsSelected(this.fsSelectedProvinces, province.name) ? '#2F8BE6' : 'transparent')
+                    .backgroundColor(this.fsIsSelected(this.fsSelectedProvinces, province.name) ? AppColors.PRIMARY : 'transparent')
                     .borderRadius(8)
                     .onClick(() => {
                       this.fsToggleProvince(province.name)
@@ -1278,7 +597,7 @@ export struct HomePage {
                       }
                     })
                   }
-                })
+                }, (province: Province) => province.name)
               }
               .layoutWeight(1)
 
@@ -1293,7 +612,7 @@ export struct HomePage {
                       ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                       .backgroundColor(this.fsSelectedCities.length > 0 && this.fsCityOptions().every(
                         (c: City) => this.fsIsSelected(this.fsSelectedCities, c.name)
-                      ) ? '#2F8BE6' : 'transparent')
+                      ) ? AppColors.PRIMARY : 'transparent')
                       .borderRadius(8)
                       .padding({ top: 10, bottom: 10, left: 12, right: 12 })
                       .textAlign(TextAlign.Start)
@@ -1308,7 +627,7 @@ export struct HomePage {
                       Row() {
                         Checkbox({ name: city.name })
                           .select(this.fsIsSelected(this.fsSelectedCities, city.name))
-                          .selectedColor('#2F8BE6')
+                          .selectedColor(AppColors.PRIMARY)
                           .shape(CheckBoxShape.ROUNDED_SQUARE)
                         Text(city.name)
                           .fontSize(15)
@@ -1320,7 +639,7 @@ export struct HomePage {
                         this.fsToggleCity(city.name)
                       })
                     }
-                  })
+                  }, (city: City) => city.name)
                 }
                 .layoutWeight(1)
               }
@@ -1336,7 +655,7 @@ export struct HomePage {
                       ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                       .backgroundColor(this.fsSelectedDistricts.length > 0 && this.fsMunicipalityDistricts().every(
                         (d: District) => this.fsIsSelected(this.fsSelectedDistricts, d.name)
-                      ) ? '#2F8BE6' : 'transparent')
+                      ) ? AppColors.PRIMARY : 'transparent')
                       .borderRadius(8)
                       .padding({ top: 10, bottom: 10, left: 12, right: 12 })
                       .textAlign(TextAlign.Start)
@@ -1351,7 +670,7 @@ export struct HomePage {
                       Row() {
                         Checkbox({ name: district.name })
                           .select(this.fsIsSelected(this.fsSelectedDistricts, district.name))
-                          .selectedColor('#2F8BE6')
+                          .selectedColor(AppColors.PRIMARY)
                           .shape(CheckBoxShape.ROUNDED_SQUARE)
                         Text(district.name)
                           .fontSize(15)
@@ -1363,7 +682,7 @@ export struct HomePage {
                         this.fsToggleDistrict(district.name)
                       })
                     }
-                  })
+                  }, (district: District) => district.name)
                 }
                 .layoutWeight(1)
               }
@@ -1379,7 +698,7 @@ export struct HomePage {
                       ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                       .backgroundColor(this.fsSelectedDistricts.length > 0 && this.fsDistrictOptions().every(
                         (d: District) => this.fsIsSelected(this.fsSelectedDistricts, d.name)
-                      ) ? '#2F8BE6' : 'transparent')
+                      ) ? AppColors.PRIMARY : 'transparent')
                       .borderRadius(8)
                       .padding({ top: 10, bottom: 10, left: 12, right: 12 })
                       .textAlign(TextAlign.Start)
@@ -1394,7 +713,7 @@ export struct HomePage {
                       Row() {
                         Checkbox({ name: district.name })
                           .select(this.fsIsSelected(this.fsSelectedDistricts, district.name))
-                          .selectedColor('#2F8BE6')
+                          .selectedColor(AppColors.PRIMARY)
                           .shape(CheckBoxShape.ROUNDED_SQUARE)
                         Text(district.name)
                           .fontSize(15)
@@ -1406,7 +725,7 @@ export struct HomePage {
                         this.fsToggleDistrict(district.name)
                       })
                     }
-                  })
+                  }, (district: District) => district.name)
                 }
                 .layoutWeight(1)
               }
@@ -1432,11 +751,12 @@ export struct HomePage {
                     Row() {
                       Text(field.name)
                         .fontSize(15)
+                        .fontColor(this.fsIsSelected(this.fsSelectedFields, field.name) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                         .textAlign(TextAlign.Start)
                     }
                     .width('100%')
                     .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-                    .backgroundColor(this.fsIsSelected(this.fsSelectedFields, field.name) ? '#2F8BE6' : 'transparent')
+                    .backgroundColor(this.fsIsSelected(this.fsSelectedFields, field.name) ? AppColors.PRIMARY : 'transparent')
                     .borderRadius(8)
                     .onClick(() => {
                       this.fsToggleField(field.name)
@@ -1447,7 +767,7 @@ export struct HomePage {
                       }
                     })
                   }
-                })
+                }, (field: Field) => field.name)
               }
               .layoutWeight(1)
 
@@ -1462,7 +782,7 @@ export struct HomePage {
                       ) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                       .backgroundColor(this.fsSelectedOccupations.length > 0 && this.fsOccupationOptions().every(
                         (o: Occupation) => this.fsIsSelected(this.fsSelectedOccupations, o.name)
-                      ) ? '#2F8BE6' : 'transparent')
+                      ) ? AppColors.PRIMARY : 'transparent')
                       .borderRadius(8)
                       .padding({ top: 10, bottom: 10, left: 12, right: 12 })
                       .textAlign(TextAlign.Start)
@@ -1477,7 +797,7 @@ export struct HomePage {
                       Row() {
                         Checkbox({ name: occupation.name })
                           .select(this.fsIsSelected(this.fsSelectedOccupations, occupation.name))
-                          .selectedColor('#2F8BE6')
+                          .selectedColor(AppColors.PRIMARY)
                           .shape(CheckBoxShape.ROUNDED_SQUARE)
                         Text(occupation.name)
                           .fontSize(15)
@@ -1489,7 +809,7 @@ export struct HomePage {
                         this.fsToggleOccupation(occupation.name)
                       })
                     }
-                  })
+                  }, (occupation: Occupation) => occupation.name)
                 }
                 .layoutWeight(1)
               }
@@ -1520,7 +840,7 @@ export struct HomePage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   @Builder TabLabel(label: string, index: number) {
@@ -1556,24 +876,21 @@ export struct HomePage {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
         Blank()
-        SymbolGlyph($r('sys.symbol.magnifyingglass'))
-          .fontSize(22)
-          .fontColor([AppColors.TEXT_MUTED])
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/SearchPage' })
-          })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.9, y: 0.9 })
-            }
-          })
-          .animation({ duration: 150 })
+        Button({ type: ButtonType.Capsule }) {
+          SymbolGlyph($r('sys.symbol.magnifyingglass'))
+            .fontSize(20)
+            .fontColor([AppColors.TEXT_SECONDARY])
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(AppColors.INPUT_BG)
+        .accessibilityText('搜索职位')
+        .onClick((): void => { router.pushUrl({ url: 'pages/SearchPage' }) })
       }
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.XS })
       .alignItems(VerticalAlign.Center)
-      .backgroundColor('#D1FFFFFF')
-      .backgroundBlurStyle(BlurStyle.Regular)
+      .backgroundColor(AppColors.BG_PAGE)
 
       // === 筛选芯片栏 ===
       FilterBar({
@@ -1630,21 +947,17 @@ export struct HomePage {
         this.onTabChange(index)
       })
       .barMode(BarMode.Fixed)
-      .backgroundColor('#FFFFFF')
-      .backgroundBlurStyle(BlurStyle.Thin)
+      .backgroundColor(AppColors.BG_PAGE)
     }
     .width('100%')
     .height('100%')
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      colors: [['rgba(23,98,251,0.03)', 0.0], ['#ffffff', 1.0]]
-    })
+    .backgroundColor(AppColors.BG_PAGE)
     .padding({ top: AppSpacing.XS })
     .bindSheet($$this.showFilterSheet, this.FilterSheetBuilder(), {
       height: SheetSize.LARGE,
       dragBar: true,
       showClose: true,
-      backgroundColor: '#F5F5F5'
+      backgroundColor: AppColors.BG_CARD
     })
   }
 }

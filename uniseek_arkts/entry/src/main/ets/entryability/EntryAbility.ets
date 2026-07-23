@@ -1,6 +1,11 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { ApiClient } from '../services/ApiClient';
+import { AuthService } from '../services/AuthService';
+import { UserSession } from '../services/UserSession';
+import { AppBootstrapPolicy } from '../common/AppBootstrapPolicy';
+import { ChatWebSocketService } from '../services/ChatWebSocketService';
 
 const DOMAIN = 0x0000;
 
@@ -11,10 +16,14 @@ export default class EntryAbility extends UIAbility {
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    ApiClient.initialize(this.context)
+    ApiClient.restoreConfiguration()
+    AuthService.restoreCachedSession()
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 
   onDestroy(): void {
+    ChatWebSocketService.getInstance().disconnect()
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
   }
 
@@ -22,7 +31,8 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/LoginPage', (err) => {
+    const initialPage: string = AppBootstrapPolicy.resolveInitialPage(ApiClient.hasToken(), UserSession.role)
+    windowStage.loadContent(initialPage, (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;

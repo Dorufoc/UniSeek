@@ -7,6 +7,7 @@ export interface RecruiterJobVO {
   jobType: number
   address: string
   status: number
+  rejectReason: string
   applicationCount: number
   remainingQuota: number
   totalQuota: number
@@ -25,6 +26,8 @@ export interface RecruiterApplicationVO {
   interviewLocation: string
   rejectReason: string
   createTime: string
+  resumeSnapshot?: string
+  attachmentUrl?: string
 }
 
 export interface RecruiterEnterpriseVO {
@@ -42,13 +45,15 @@ export interface RecruiterEnterpriseVO {
 export interface RecruiterJobRequest {
   title: string
   categoryId: number
+  regionId: number
+  description: string
   salaryMin: number
   salaryMax: number
   salaryUnit: number
   jobType: number
   totalQuota: number
   address: string
-  tag: string
+  tag: string[]
   deadline: string
 }
 
@@ -84,6 +89,8 @@ export interface ResumeCardData {
   category: string
   expectedSalary: string
   description: string
+  attachmentUrl?: string
+  graduationDate?: string
 }
 
 export interface RecruiterRequestVO {
@@ -106,6 +113,7 @@ export interface RecruiterRequestVO {
   interviewLocation: string
   rejectReason: string
   createTime: string
+  attachmentUrl: string
 }
 
 export const JOB_STATUS_MAP: number[] = [0, 1, 2, 3, 4]

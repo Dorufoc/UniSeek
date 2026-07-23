@@ -5,6 +5,7 @@
 
 import webSocket from '@ohos.net.webSocket';
 import { ApiClient } from './ApiClient';
+import { ServerConfig } from './ServerConfig';
 import { BusinessError } from '@kit.BasicServicesKit';
 
 /** WebSocket 推送的新消息数据类型 */
@@ -43,7 +44,8 @@ export class ChatWebSocketService {
   private readonly reconnectDelay: number = 5000;
   private readonly pingInterval: number = 30000;
   private connected: boolean = false;
-  private onNewMessageCallback: ((data: WsNewMessageData) => void) | null = null;
+  private onSessionMessageCallback: ((data: WsNewMessageData) => void) | null = null;
+  private onDetailMessageCallback: ((data: WsNewMessageData) => void) | null = null;
 
   static getInstance(): ChatWebSocketService {
     if (ChatWebSocketService.instance === null) {
@@ -52,14 +54,24 @@ export class ChatWebSocketService {
     return ChatWebSocketService.instance;
   }
 
-  /** 设置新消息回调 */
-  setOnNewMessageCallback(callback: ((data: WsNewMessageData) => void) | null): void {
-    this.onNewMessageCallback = callback;
+  /** 设置会话列表的新消息回调。 */
+  setOnSessionMessageCallback(callback: ((data: WsNewMessageData) => void) | null): void {
+    this.onSessionMessageCallback = callback;
   }
 
-  /** 移除新消息回调 */
-  removeOnNewMessageCallback(): void {
-    this.onNewMessageCallback = null;
+  /** 移除会话列表的新消息回调。 */
+  removeOnSessionMessageCallback(): void {
+    this.onSessionMessageCallback = null;
+  }
+
+  /** 设置聊天详情的新消息回调。 */
+  setOnDetailMessageCallback(callback: ((data: WsNewMessageData) => void) | null): void {
+    this.onDetailMessageCallback = callback;
+  }
+
+  /** 移除聊天详情的新消息回调。 */
+  removeOnDetailMessageCallback(): void {
+    this.onDetailMessageCallback = null;
   }
 
   /** 检查 WebSocket 是否已连接 */
@@ -78,7 +90,7 @@ export class ChatWebSocketService {
       return;
     }
 
-    const url: string = 'ws://192.168.246.118:8080/ws/chat?token=' + token;
+    const url: string = ServerConfig.toWebSocketUrl(ApiClient.BASE_URL, token);
 
     try {
       const socket: webSocket.WebSocket = webSocket.createWebSocket();
@@ -129,7 +141,8 @@ export class ChatWebSocketService {
   disconnect(): void {
     this.cancelReconnect();
     this.stopPing();
-    this.onNewMessageCallback = null;
+    this.onSessionMessageCallback = null;
+    this.onDetailMessageCallback = null;
     if (this.ws) {
       try {
         this.ws.close().catch(() => {});
@@ -163,8 +176,11 @@ export class ChatWebSocketService {
 
     if (msg.type === 'NEW_MESSAGE') {
       const messageData: WsNewMessageData = msg.data as WsNewMessageData;
-      if (this.onNewMessageCallback) {
-        this.onNewMessageCallback(messageData);
+      if (this.onSessionMessageCallback) {
+        this.onSessionMessageCallback(messageData);
+      }
+      if (this.onDetailMessageCallback) {
+        this.onDetailMessageCallback(messageData);
       }
     }
     // ERROR 类型消息忽略处理

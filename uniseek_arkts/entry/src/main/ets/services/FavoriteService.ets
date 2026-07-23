@@ -1,5 +1,5 @@
 import { ApiClient } from './ApiClient';
-import { JobData, TaskVO, mapTaskToJobData } from './ChatTypes';
+import { JobData } from './ChatTypes';
 import { PageResult } from './ResumeService';
 
 interface FavoriteTaskItem {
@@ -39,35 +39,22 @@ export class FavoriteService {
     return result.favorited
   }
 
-  static async getFavorites(page: number = 1, pageSize: number = 100): Promise<JobData[]> {
-    const favResult = await ApiClient.get<PageResult<FavoriteTaskItem>>('/api/favorites', [
-      ['page', String(page)],
-      ['pageSize', String(pageSize)]
-    ])
+  static async getFavorites(page: number = 1, pageSize: number = 20): Promise<JobData[]> {
+    const records: FavoriteTaskItem[] = []
+    let currentPage: number = page
+    let totalPages: number = page
+    do {
+      const result = await ApiClient.get<PageResult<FavoriteTaskItem>>('/api/favorites', [
+        ['page', String(currentPage)],
+        ['pageSize', String(pageSize)]
+      ])
+      records.push(...result.records)
+      totalPages = result.totalPages
+      currentPage++
+    } while (currentPage <= totalPages)
 
-    if (favResult.records.length === 0) {
-      return []
-    }
-
-    const taskResult = await ApiClient.get<PageResult<TaskVO>>('/api/tasks', [
-      ['page', '1'],
-      ['pageSize', '500']
-    ])
-
-    const taskMap = new Map<number, TaskVO>()
-    for (const t of taskResult.records) {
-      taskMap.set(t.id, t)
-    }
-
-    const favIds = new Set(favResult.records.map(r => r.id))
-    const matched: JobData[] = []
-
-    for (const fav of favResult.records) {
-      const full = taskMap.get(fav.id)
-      if (full) {
-        matched.push(mapTaskToJobData(full))
-      } else {
-        matched.push({
+    return records.map((fav: FavoriteTaskItem): JobData => {
+      return {
           id: String(fav.id),
           title: fav.title || '',
           company: '',
@@ -94,10 +81,7 @@ export class FavoriteService {
           hrAvatar: '',
           enterpriseName: '', totalQuota: 0, address: '', deadline: '',
           applicationCount: 0, hasFavorited: false
-        })
       }
-    }
-
-    return matched
+    })
   }
 }

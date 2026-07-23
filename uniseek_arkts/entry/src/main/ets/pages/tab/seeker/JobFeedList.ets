@@ -1,13 +1,7 @@
 import { JobData } from '../../../services/ChatTypes';
 import { AppColors, AppSpacing } from '../../../common/AppStyles';
 import { JobFeedCard } from './JobFeedCard';
-
-interface TabDataState {
-  jobs: JobData[]
-  page: number
-  hasMore: boolean
-  loading: boolean
-}
+import { TabDataState } from './JobFeedTypes'
 
 @Component
 export struct JobFeedList {
@@ -51,6 +45,23 @@ export struct JobFeedList {
             .width('100%')
             .justifyContent(FlexAlign.Center)
             .padding(AppSpacing.MD)
+          }
+        } else if (this.tabData[this.jobType]?.errorText) {
+          ListItem() {
+            Column({ space: AppSpacing.SM }) {
+              Text(this.tabData[this.jobType]?.errorText || '职位列表加载失败')
+                .fontSize(14)
+                .fontColor(AppColors.TEXT_SECONDARY)
+              Button('重新加载', { type: ButtonType.Capsule })
+                .height(36)
+                .fontSize(14)
+                .fontColor('#FFFFFF')
+                .backgroundColor(AppColors.PRIMARY)
+                .onClick((): void => { this.onRefresh(this.jobType) })
+            }
+            .width('100%')
+            .padding(AppSpacing.LG)
+            .alignItems(HorizontalAlign.Center)
           }
         } else if ((this.tabData[this.jobType]?.jobs.length ?? 0) === 0) {
           // 空状态
