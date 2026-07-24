@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useChatStore } from '@/stores/chat'
 import {
   getChatSessions,
   getChatSession,
@@ -15,12 +16,13 @@ import {
 import { getResume } from '@/api/resume'
 import PdfPreview from '@/components/PdfPreview.vue'
 import { View, Download, ChatDotRound, Plus, Picture, Document, Close } from '@element-plus/icons-vue'
-import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
 import { uploadImage } from '@/api/upload'
+import type { WsNewMessageData } from '@/composables/useChatWebSocket'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const chatStore = useChatStore()
 
 const sessions = ref<ChatSessionVO[]>([])
 const sessionsLoading = ref(true)
@@ -86,7 +88,9 @@ const truncate = (text: string, len = 40): string => {
 
 const loadSessions = async () => {
   try {
-    sessions.value = await getChatSessions()
+    const data = await getChatSessions()
+    sessions.value = data || []
+    chatStore.syncUnreadMap(data || [])
   } catch {
     sessions.value = []
   } finally {
@@ -130,6 +134,7 @@ const scrollToBottom = () => {
 const selectSession = async (appId: number) => {
   if (selectedAppId.value === appId) return
   selectedAppId.value = appId
+  chatStore.setActiveApplication(appId)
   chatLoading.value = true
   messages.value = []
   hasMore.value = true
@@ -140,7 +145,10 @@ const selectSession = async (appId: number) => {
       markSessionRead(appId)
     ])
     const s = sessions.value.find(s => s.applicationId === appId)
-    if (s) s.unreadCount = 0
+    if (s) {
+      chatStore.clearSessionUnread(appId)
+      s.unreadCount = 0
+    }
   } catch {
     /* 错误已在拦截器处理 */
   } finally {
@@ -323,30 +331,6 @@ const updateSessionInSidebar = (msg: ChatMessageVO) => {
   }
 }
 
-const handleWsNewMessage = (data: WsNewMessageData) => {
-  loadSessions()
-  if (data.applicationId !== selectedAppId.value) return
-  if (data.senderId === currentUserId.value) return
-  const msg: ChatMessageVO = {
-    id: data.messageId,
-    senderId: data.senderId,
-    senderName: data.senderName,
-    senderAvatar: data.senderAvatar || '',
-    messageType: data.messageType,
-    content: data.content,
-    isRead: data.isRead ?? 1,
-    sendTime: data.sendTime
-  }
-  messages.value.push(msg)
-  refreshCurrentSession()
-  scrollToBottom()
-}
-
-useChatWebSocket({
-  onNewMessage: handleWsNewMessage,
-  enabled: computed(() => !!currentUserId.value)
-})
-
 const handleLoadMore = async () => {
   if (!hasMore.value || messages.value.length === 0 || !selectedAppId.value) return
   const lastId = messages.value[0].id
@@ -372,7 +356,37 @@ const ensureSessionInList = async (appId: number) => {
   }
 }
 
+let unsubWs: (() => void) | null = null
+
+const onWsMessage = (data: WsNewMessageData) => {
+  if (data.applicationId !== selectedAppId.value) {
+    // 非活跃会话：本地更新侧栏最后消息预览
+    const s = sessions.value.find(s => s.applicationId === data.applicationId)
+    if (s) {
+      s.lastMessage = data.messageType === 1 ? '[图片]' : data.content
+      s.lastMessageTime = data.sendTime
+    }
+    return
+  }
+  if (data.senderId === currentUserId.value) return
+  markSessionRead(selectedAppId.value)
+  const msg: ChatMessageVO = {
+    id: data.messageId,
+    senderId: data.senderId,
+    senderName: data.senderName,
+    senderAvatar: data.senderAvatar || '',
+    messageType: data.messageType,
+    content: data.content,
+    isRead: data.isRead ?? 1,
+    sendTime: data.sendTime
+  }
+  messages.value.push(msg)
+  refreshCurrentSession()
+  scrollToBottom()
+}
+
 onMounted(async () => {
+  unsubWs = chatStore.subscribeWs(onWsMessage)
   await loadSessions()
   const chatParam = route.query.chat
   if (chatParam) {
@@ -391,6 +405,11 @@ watch(() => route.query.chat, async (newVal) => {
       await selectSession(appId)
     }
   }
+})
+
+onUnmounted(() => {
+  unsubWs?.()
+  chatStore.setActiveApplication(null)
 })
 </script>
 
@@ -428,8 +447,8 @@ watch(() => route.query.chat, async (newVal) => {
               <span class="session-preview">{{ truncate(sessionItem.lastMessage) }}</span>
             </div>
           </div>
-          <div v-if="sessionItem.unreadCount > 0" class="unread-badge">
-            {{ sessionItem.unreadCount > 99 ? '99+' : sessionItem.unreadCount }}
+          <div v-if="chatStore.getSessionUnread(sessionItem.applicationId) > 0 && sessionItem.applicationId !== chatStore.activeApplicationId" class="unread-badge">
+            {{ chatStore.getSessionUnread(sessionItem.applicationId) > 99 ? '99+' : chatStore.getSessionUnread(sessionItem.applicationId) }}
           </div>
         </div>
       </div>

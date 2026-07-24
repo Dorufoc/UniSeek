@@ -90,4 +90,9 @@ public interface ChatService {
      * @param role          当前用户角色
      */
     void initChatSession(Long applicationId, Long userId, Integer role);
+
+    /**
+     * 获取当前用户所有会话中的未读消息总数
+     */
+    Long getUnreadCount(Long userId);
 }

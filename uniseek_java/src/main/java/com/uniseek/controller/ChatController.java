@@ -161,4 +161,15 @@ public class ChatController {
         chatService.initChatSession(applicationId, userId, role);
         return ApiResult.success(null);
     }
+
+    /**
+     * 获取当前用户所有会话的未读消息总数
+     * GET /api/chat/unread-count
+     */
+    @GetMapping("/unread-count")
+    public ApiResult<Long> getUnreadCount() {
+        Long userId = UserContext.getUserId();
+        Long count = chatService.getUnreadCount(userId);
+        return ApiResult.success(count);
+    }
 }

@@ -332,6 +332,11 @@ public class ChatServiceImpl implements ChatService {
         chatSessionMapper.insert(chatSession);
     }
 
+    @Override
+    public Long getUnreadCount(Long userId) {
+        return chatMessageMapper.selectUnreadCount(userId);
+    }
+
     /**
      * 计算当前用户是否允许在当前会话中发送消息
      * <p>HR  unrestricted；求职者仅在「未发送过消息」或「HR 已回复」时可发送。</p>

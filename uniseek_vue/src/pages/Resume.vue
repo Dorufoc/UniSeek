@@ -354,7 +354,12 @@ const toggleSection = (key: string) => {
         <!-- 头像区域 -->
         <div class="sidebar-avatar">
           <div class="avatar-circle">
-            <el-icon :size="40"><User /></el-icon>
+            <template v-if="userStore.userInfo?.avatarUrl">
+              <img :src="userStore.userInfo.avatarUrl" class="avatar-img" />
+            </template>
+            <template v-else>
+              <el-icon :size="40"><User /></el-icon>
+            </template>
           </div>
           <div class="avatar-name">{{ userStore.userInfo?.nickname || '未设置昵称' }}</div>
           <div class="avatar-phone">{{ maskedPhone }}</div>
@@ -761,7 +766,7 @@ const toggleSection = (key: string) => {
   background: #fff;
   border-radius: 12px;
   padding: 28px 20px;
-  text-align: left;
+  text-align: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -773,8 +778,14 @@ const toggleSection = (key: string) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 0 12px;
+  margin: 0 auto 12px;
   color: #1762FB;
+  overflow: hidden;
+}
+.avatar-circle .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar-name {

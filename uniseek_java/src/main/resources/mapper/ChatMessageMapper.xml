@@ -38,4 +38,14 @@
         WHERE session_id = #{sessionId} AND is_read = 0 AND sender_id != #{userId}
     </select>
 
+    <!-- 统计当前用户所有会话的未读消息总数 -->
+    <select id="selectUnreadCount" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM chat_message cm
+        JOIN chat_session cs ON cm.session_id = cs.id
+        WHERE cm.is_read = 0
+        AND cm.sender_id != #{userId}
+        AND (cs.employer_id = #{userId} OR cs.seeker_id = #{userId})
+    </select>
+
 </mapper>

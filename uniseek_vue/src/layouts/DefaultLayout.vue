@@ -2,13 +2,16 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useChatStore } from '@/stores/chat'
 import { useAppStore } from '@/stores/app'
 import { getMyEnterprise } from '@/api/enterprise'
+import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
 import { WarningFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const chatStore = useChatStore()
 const appStore = useAppStore()
 
 // 判断当前用户是否为招聘者（role === 1 表示招聘者，0 表示求职者）
@@ -71,7 +74,26 @@ const goToEnterpriseCert = () => {
 }
 
 // 布局挂载时首次检查
-onMounted(checkEnterpriseCert)
+onMounted(() => {
+  checkEnterpriseCert()
+  chatStore.setCurrentUserId(userStore.userInfo?.id ?? null)
+  chatStore.fetchUnreadCount()
+})
+
+// 监听当前用户 ID 变更，保持 Store 同步
+watch(() => userStore.userInfo?.id, (id) => {
+  chatStore.setCurrentUserId(id ?? null)
+})
+
+// ---- 全局 WebSocket 消息监听（始终在线） ----
+const handleWsNewMessage = (data: WsNewMessageData) => {
+  chatStore.handleWsMessage(data)
+}
+
+useChatWebSocket({
+  onNewMessage: handleWsNewMessage,
+  enabled: computed(() => !!userStore.userInfo?.id)
+})
 // 路由变化时重新检查—确保每次页面切换都认证
 watch(() => route.path, checkEnterpriseCert)
 </script>
@@ -100,7 +122,9 @@ watch(() => route.path, checkEnterpriseCert)
             <router-link to="/jobs">职位</router-link>
             <router-link to="/company">公司</router-link>
           </template>
-          <router-link to="/messages">消息</router-link>
+          <router-link to="/messages" class="nav-msg-link">消息
+            <span v-if="chatStore.totalUnreadCount > 0" class="msg-badge">{{ chatStore.totalUnreadCount > 99 ? '99+' : chatStore.totalUnreadCount }}</span>
+          </router-link>
           <router-link v-if="isAdmin" to="/admin/dashboard" class="super-admin-link">管理后台</router-link>
         </nav>
 
@@ -258,6 +282,29 @@ watch(() => route.path, checkEnterpriseCert)
   color: #1a1a2e;
   background: #ffd700;
   font-weight: 600;
+}
+
+.nav-msg-link {
+  position: relative;
+}
+
+.msg-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(255, 71, 87, 0.3);
 }
 
 .header-actions {

@@ -109,14 +109,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> login(LoginRequest request) {
-        // 1. 根据手机号查询用户
-        String phone = request.getPhone().trim();
-        User user = userMapper.selectOne(
-                new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
+        // 1. 根据账号查询用户（含 @ 符为邮箱登录，否则手机号登录）
+        String account = request.getAccount().trim();
+        boolean isEmail = account.contains("@");
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
+                .eq(isEmail ? User::getEmail : User::getPhone, account);
+        User user = userMapper.selectOne(wrapper);
 
         // 2. 用户不存在
         if (user == null) {
-            throw new BusinessException("手机号或密码错误");
+            throw new BusinessException("账号或密码错误");
         }
 
         // 3. 检查账号状态
@@ -126,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 4. 校验密码
         if (!PasswordUtil.verify(request.getPassword(), user.getPassword(), user.getSalt())) {
-            throw new BusinessException("手机号或密码错误");
+            throw new BusinessException("账号或密码错误");
         }
 
         // 5. 更新最后登录时间

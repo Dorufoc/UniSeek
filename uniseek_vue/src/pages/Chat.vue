@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useChatStore } from '@/stores/chat'
 import {
   getChatSession,
   getChatMessages,
@@ -15,11 +16,12 @@ import { getResume } from '@/api/resume'
 import PdfPreview from '@/components/PdfPreview.vue'
 import { View, Download, Picture, Plus, Close } from '@element-plus/icons-vue'
 import { uploadImage } from '@/api/upload'
-import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
+import type { WsNewMessageData } from '@/composables/useChatWebSocket'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const chatStore = useChatStore()
 
 const applicationId = Number(route.params.applicationId)
 const session = ref<ChatSessionVO | null>(null)
@@ -214,9 +216,13 @@ const refreshSession = async () => {
   }
 }
 
-const handleWsNewMessage = (data: WsNewMessageData) => {
+let unsubWs: (() => void) | null = null
+
+const onWsMessage = (data: WsNewMessageData) => {
   if (data.applicationId !== applicationId) return
   if (data.senderId === currentUserId.value) return
+  // 活跃会话：立即标记已读
+  markSessionRead(applicationId)
   const msg: ChatMessageVO = {
     id: data.messageId,
     senderId: data.senderId,
@@ -231,11 +237,6 @@ const handleWsNewMessage = (data: WsNewMessageData) => {
   refreshSession()
   scrollToBottom()
 }
-
-useChatWebSocket({
-  onNewMessage: handleWsNewMessage,
-  enabled: computed(() => !!currentUserId.value)
-})
 
 const handleLoadMore = async () => {
   if (!hasMore.value || messages.value.length === 0) return
@@ -256,11 +257,18 @@ onMounted(async () => {
     router.back()
     return
   }
+  unsubWs = chatStore.subscribeWs(onWsMessage)
+  chatStore.setActiveApplication(applicationId)
   await loadSession()
   await loadMessages()
   await markSessionRead(applicationId)
   loading.value = false
   scrollToBottom()
+})
+
+onUnmounted(() => {
+  unsubWs?.()
+  chatStore.setActiveApplication(null)
 })
 </script>
 

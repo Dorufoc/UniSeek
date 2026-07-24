@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElDialog } from 'element-plus'
-import { UploadFilled, WarningFilled, CircleCheckFilled, Clock, Edit, ArrowLeft } from '@element-plus/icons-vue'
+import { UploadFilled, WarningFilled, CircleCheckFilled, Clock, Edit, ArrowLeft, PictureFilled } from '@element-plus/icons-vue'
 import { submitEnterprise, getMyEnterprise, updateEnterprise } from '@/api/enterprise'
 import type { EnterpriseInfo } from '@/api/enterprise'
 import { uploadImage } from '@/api/upload'
@@ -21,6 +21,8 @@ const editing = ref(false)
 const submitting = ref(false)
 const enterpriseInfo = ref<EnterpriseInfo | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const licensePreview = ref<any>(null)
+const viewLicensePreview = ref<any>(null)
 
 // 分类列表（从后端获取），用于所属行业选择
 const categoryOptions = ref<CategoryVO[]>([])
@@ -128,6 +130,17 @@ const removeLicense = () => {
   form.licenseImgUrl = ''
 }
 
+const previewLicense = () => {
+  if (!form.licenseImgUrl) return
+  const img = licensePreview.value?.$el?.querySelector('img')
+  if (img) img.click()
+}
+
+const previewViewLicense = () => {
+  const img = viewLicensePreview.value?.$el?.querySelector('img')
+  if (img) img.click()
+}
+
 const handleSave = async () => {
   if (!isFormValid.value || submitting.value) return
   submitting.value = true
@@ -195,6 +208,13 @@ onMounted(async () => {
         <div class="info-grid">
           <div class="info-row"><span class="info-label">公司全称</span><span class="info-value">{{ enterpriseInfo.companyName }}</span></div>
           <div class="info-row"><span class="info-label">信用代码</span><span class="info-value">{{ enterpriseInfo.creditCode }}</span></div>
+          <div class="info-row" v-if="enterpriseInfo.licenseImgUrl">
+            <span class="info-label">营业执照</span>
+            <span class="info-value">
+              <span class="license-text-link" @click="previewViewLicense">营业执照已上传，点击查看</span>
+              <el-image :src="enterpriseInfo.licenseImgUrl" :preview-src-list="[enterpriseInfo.licenseImgUrl]" preview-teleported ref="viewLicensePreview" style="position:fixed;left:-9999px;top:0;width:1px;height:1px" />
+            </span>
+          </div>
           <div class="info-row"><span class="info-label">所属行业</span><span class="info-value">{{ enterpriseInfo.industry || '未设置' }}</span></div>
           <div class="info-row"><span class="info-label">公司简介</span><span class="info-value">{{ enterpriseInfo.description || '未设置' }}</span></div>
         </div>
@@ -247,10 +267,12 @@ onMounted(async () => {
               <el-icon :size="32"><UploadFilled /></el-icon>
               <span>{{ uploading ? '上传中...' : '点击上传营业执照' }}</span>
             </div>
-            <div v-else class="uploaded-area">
-              <el-image :src="form.licenseImgUrl" style="max-height:80px;border-radius:4px" fit="contain" />
-              <button class="remove-btn" @click="removeLicense">删除</button>
+            <div v-else class="uploaded-area" @click="previewLicense">
+              <el-icon :size="20"><PictureFilled /></el-icon>
+              <span>营业执照已上传，点击查看</span>
+              <button class="remove-btn" @click.stop="removeLicense">删除</button>
             </div>
+            <el-image v-if="form.licenseImgUrl" :src="form.licenseImgUrl" :preview-src-list="[form.licenseImgUrl]" preview-teleported ref="licensePreview" style="position:fixed;left:-9999px;top:0;width:1px;height:1px" />
             <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelected" />
           </div>
           <div class="form-item">
@@ -375,6 +397,7 @@ onMounted(async () => {
   border-radius: 8px;
   font-size: 14px;
   color: #000;
+  cursor: pointer;
 }
 .remove-btn {
   padding: 4px 12px;
@@ -385,6 +408,14 @@ onMounted(async () => {
   cursor: pointer;
   font-size: 13px;
   margin-left: auto;
+}
+.license-text-link {
+  color: #1762FB;
+  cursor: pointer;
+  font-size: 14px;
+}
+.license-text-link:hover {
+  text-decoration: underline;
 }
 .form-actions {
   display: flex;

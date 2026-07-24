@@ -10,8 +10,9 @@ export function setupMock(request: AxiosInstance) {
 
   // 模拟密码登录接口 POST /auth/login
   mock.onPost('/auth/login').reply((config) => {
-    const { phone, password } = JSON.parse(config.data)
-    if (phone && password) {
+    const { account, phone, password } = JSON.parse(config.data)
+    const loginAccount = account || phone  // 兼容新旧字段
+    if (loginAccount && password) {
       return [
         200,
         {
@@ -22,8 +23,8 @@ export function setupMock(request: AxiosInstance) {
             userId: 1,
             nickname: '测试用户',
             avatarUrl: '',
-            role: 0,          // 默认求职者角色
-            phone: phone
+            role: 0,
+            phone: loginAccount
           }
         }
       ]
