@@ -2,10 +2,11 @@
 
 import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../../common/AppStyles';
 
-const INPUT_BAR_HEIGHT = 54       // IM 常见输入栏高度 +10
-const ACTION_BUTTON_SIZE = 34     // 左侧圆形加号按钮
-const SEND_BUTTON_HEIGHT = 32     // 发送按钮高度
-const SEND_BUTTON_MIN_WIDTH = 60  // 发送按钮最小宽度
+const INPUT_BAR_HEIGHT = 64       // 聊天输入栏整体高度：足够容纳 16sp 文字 + 内边距，避免裁切
+const ACTION_BUTTON_SIZE = 38     // 左侧圆形加号按钮
+const INPUT_FIELD_HEIGHT = 44     // 文本框高度
+const SEND_BUTTON_HEIGHT = 36     // 发送按钮高度
+const SEND_BUTTON_MIN_WIDTH = 64  // 发送按钮最小宽度
 
 @Component
 export struct MessageInputBar {
@@ -20,7 +21,7 @@ export struct MessageInputBar {
   }
 
   private getPlaceholder(): string {
-    return this.canSend ? '请输入消息...' : 'HR 未回复前，您只能发送一条消息';
+    return this.canSend ? '请输入消息...' : '当前无法对话';
   }
 
   build() {
@@ -49,12 +50,12 @@ export struct MessageInputBar {
       })
 
       // 文本输入框
-      TextInput({ placeholder: this.getPlaceholder(), text: this.inputText })
+        TextInput({ placeholder: this.getPlaceholder(), text: this.inputText })
         .onChange((value: string) => {
           this.inputText = value;
         })
         .layoutWeight(1)
-        .height(SEND_BUTTON_HEIGHT)
+        .height(INPUT_FIELD_HEIGHT)
         .fontSize(AppFontSize.BODY)
         .fontColor(AppColors.TEXT_PRIMARY)
         .placeholderColor(AppColors.TEXT_MUTED)

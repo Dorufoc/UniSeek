@@ -1,37 +1,23 @@
 import { ApiClient } from '../services/ApiClient'
+import { DataService } from '../services/DataService'
 import { JobData, mapTaskToJobData, TaskSearchParams, TaskVO } from '../services/ChatTypes'
 import { PageResult } from '../services/ResumeService'
-import { AppColors, AppFilter, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
-import { NavBar } from '../common/NavBar'
+import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
+import { WindowBreakpoint } from '../common/Responsive'
+import { FilterBar } from './tab/seeker/FilterBar'
 import { PageLoadPolicy } from '../common/BusinessPolicies'
 import { JobCard } from '../components/JobCard'
 import { EmptyView } from '../components/EmptyView'
 import { ErrorView } from '../components/ErrorView'
 import { LoadMoreFooter } from '../components/LoadMoreFooter'
-import { FilterChipBar, FilterChipData } from '../components/filter/FilterChipBar'
-import { FilterSheetHeader } from '../components/filter/FilterSheetHeader'
-import { SelectorOptionItem } from '../components/filter/SelectorOptionItem'
-import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips'
-
-interface SearchSortOption {
-  value: string
-  label: string
-}
-
-const SEARCH_SORT_OPTIONS: SearchSortOption[] = [
-  { value: 'create_time', label: '最新发布' },
-  { value: 'popular', label: '热度优先' },
-  { value: 'salary_max', label: '薪资优先' }
-]
+import { FilterSheet, FilterSelection } from '../components/filter/FilterSheet'
 
 @Entry
 @Component
 struct SearchResultsPage {
+  @StorageLink('breakpoint') breakpoint: WindowBreakpoint = WindowBreakpoint.COMPACT
   @State keyword: string = ''
   @State results: JobData[] = []
-  @State tags: string[] = []
-  @State selectedTag: string = ''
-  @State sortBy: string = 'create_time'
   @State isLoading: boolean = true
   @State isLoadingMore: boolean = false
   @State totalCount: number = 0
@@ -40,21 +26,45 @@ struct SearchResultsPage {
   @State errorText: string = ''
   @State showFilterSheet: boolean = false
 
+  // 复用首页 FilterSheet 的筛选状态
+  @State salaryMin: number = 0
+  @State salaryMax: number = 0
+  @State selectedSalaryUnit: number = -1
+  @State includeNegotiable: boolean = true
+  @State selectedRegion: string[] = []
+  @State selectedType: string[] = []
+  @State selectedTags: string[] = []
+  @State sortBy: string = 'create_time'
+
   aboutToAppear(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params && params['keyword']) {
       this.keyword = params['keyword']
     }
-    void this.loadTags()
+    this.preloadFilters()
     void this.loadResults(true)
   }
 
-  private async loadTags(): Promise<void> {
+  // 预加载地区/分类联级数据，确保 FilterSheet 打开时直接从 Java 后端展示
+  private async preloadFilters(): Promise<void> {
     try {
-      this.tags = await ApiClient.get<string[]>('/api/tasks/tags/all')
-    } catch {
-      this.tags = []
+      await Promise.all([
+        DataService.getRegionTree(),
+        DataService.getCategoryTree()
+      ])
+    } catch (e) {
+      console.error('预加载筛选条件失败', e)
     }
+  }
+
+  private hasActiveFilters(): boolean {
+    return this.salaryMin > 0 ||
+      this.salaryMax > 0 ||
+      this.selectedSalaryUnit >= 0 ||
+      !this.includeNegotiable ||
+      this.selectedRegion.length > 0 ||
+      this.selectedType.length > 0 ||
+      this.selectedTags.length > 0
   }
 
   private async loadResults(reset: boolean): Promise<void> {
@@ -68,12 +78,45 @@ struct SearchResultsPage {
     const targetPage: number = reset ? 1 : this.currentPage + 1
     const params: TaskSearchParams = {
       keyword: this.keyword.trim(),
-      tags: this.selectedTag,
       sortBy: this.sortBy,
       sortOrder: 'desc',
       page: targetPage,
-      pageSize: 20
+      pageSize: 20,
+      salaryMin: this.salaryMin > 0 ? this.salaryMin : undefined,
+      salaryMax: this.salaryMax > 0 ? this.salaryMax : undefined,
+      salaryUnit: this.selectedSalaryUnit >= 0 ? this.selectedSalaryUnit : undefined,
+      includeNegotiable: this.includeNegotiable,
+      tags: this.selectedTags.length > 0 ? this.selectedTags.join(',') : undefined
     }
+
+    // 地区名称转换为地区 ID 列表
+    if (this.selectedRegion.length > 0) {
+      const regionIdList: string[] = []
+      for (const regionName of this.selectedRegion) {
+        const id = DataService.getRegionIdByName(regionName)
+        if (id !== null) {
+          regionIdList.push(String(id))
+        }
+      }
+      if (regionIdList.length > 0) {
+        params.regionIds = regionIdList.join(',')
+      }
+    }
+
+    // 分类名称转换为分类 ID 列表
+    if (this.selectedType.length > 0) {
+      const categoryIdList: string[] = []
+      for (const typeName of this.selectedType) {
+        const id = DataService.getCategoryIdByName(typeName)
+        if (id !== null) {
+          categoryIdList.push(String(id))
+        }
+      }
+      if (categoryIdList.length > 0) {
+        params.categoryIds = categoryIdList.join(',')
+      }
+    }
+
     try {
       const result: PageResult<TaskVO> = await ApiClient.searchTasks(params)
       const nextRecords: JobData[] = result.records.map((task: TaskVO): JobData => mapTaskToJobData(task))
@@ -93,129 +136,48 @@ struct SearchResultsPage {
     this.isLoadingMore = false
   }
 
-  private sortLabel(): string {
-    const currentSort: string = this.sortBy
-    for (const option of SEARCH_SORT_OPTIONS) {
-      if (option.value === currentSort) {
-        return option.label
-      }
-    }
-    return '最新发布'
-  }
-
-  private selectedSortIndex(): number {
-    for (let index = 0; index < SEARCH_SORT_OPTIONS.length; index++) {
-      if (SEARCH_SORT_OPTIONS[index].value === this.sortBy) {
-        return index
-      }
-    }
-    return 0
-  }
-
-  private selectTag(tag: string): void {
-    this.selectedTag = this.selectedTag === tag ? '' : tag
+  // 子组件 FilterSheet 应用筛选后回调
+  private applyFilterSelection(selection: FilterSelection): void {
+    this.salaryMin = selection.salaryMin
+    this.salaryMax = selection.salaryMax
+    this.selectedSalaryUnit = selection.salaryUnit
+    this.includeNegotiable = selection.includeNegotiable
+    this.selectedRegion = selection.region
+    this.selectedType = selection.type
+    this.selectedTags = selection.tags
     this.showFilterSheet = false
     void this.loadResults(true)
-  }
-
-  private selectSort(value: string): void {
-    this.sortBy = value
-    this.showFilterSheet = false
-    void this.loadResults(true)
-  }
-
-  private sortOptionsForChoice(): ChoiceOption[] {
-    const options: ChoiceOption[] = []
-    for (let index = 0; index < SEARCH_SORT_OPTIONS.length; index++) {
-      options.push({ value: index, label: SEARCH_SORT_OPTIONS[index].label })
-    }
-    return options
-  }
-
-  private buildFilterChips(): FilterChipData[] {
-    const chips: FilterChipData[] = []
-    const hasActiveFilter: boolean = this.selectedTag.length > 0 || this.sortBy !== 'create_time'
-    chips.push({
-      label: '筛选',
-      active: hasActiveFilter
-    })
-    if (this.selectedTag.length > 0) {
-      chips.push({
-        label: this.selectedTag,
-        active: true,
-        hasClose: true
-      })
-    }
-    chips.push({
-      label: this.sortLabel(),
-      active: this.sortBy !== 'create_time',
-      hasClose: this.sortBy !== 'create_time'
-    })
-    return chips
   }
 
   @Builder
-  filterSheet() {
-    Column() {
-      FilterSheetHeader({
-        title: '筛选与排序',
-        showReset: false
-      })
-
-      Text('职位标签')
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
-
-      List() {
-        ListItem() {
-          SelectorOptionItem({
-            label: '全部标签',
-            selected: this.selectedTag.length === 0,
-            onItemClick: (): void => { this.selectTag('') }
-          })
-        }
-        ForEach(this.tags, (tag: string) => {
-          ListItem() {
-            SelectorOptionItem({
-              label: tag,
-              selected: this.selectedTag === tag,
-              onItemClick: (): void => { this.selectTag(tag) }
-            })
-          }
-        }, (tag: string): string => tag)
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .divider({ strokeWidth: AppFilter.DIVIDER_HEIGHT, color: AppFilter.DIVIDER_COLOR, startMargin: AppFilter.DIVIDER_INSETS, endMargin: AppFilter.DIVIDER_INSETS })
-
-      Text('排序方式')
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
-
-      ChoiceChips({
-        options: this.sortOptionsForChoice(),
-        selected: this.selectedSortIndex(),
-        onSelect: (index: number): void => {
-          if (index >= 0 && index < SEARCH_SORT_OPTIONS.length) {
-            this.selectSort(SEARCH_SORT_OPTIONS[index].value)
-          }
-        }
-      })
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS, bottom: AppSpacing.MD })
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(AppColors.BG_CARD)
+  FilterSheetBuilder() {
+    FilterSheet({
+      salaryMin: this.salaryMin,
+      salaryMax: this.salaryMax,
+      selectedSalaryUnit: this.selectedSalaryUnit,
+      includeNegotiable: this.includeNegotiable,
+      selectedRegion: this.selectedRegion,
+      selectedType: this.selectedType,
+      selectedTags: this.selectedTags,
+      breakpoint: this.breakpoint,
+      onApply: (selection: FilterSelection) => { this.applyFilterSelection(selection) },
+      onReset: () => { }
+    })
   }
 
   build() {
     Column() {
-      NavBar({ title: '搜索结果', showBack: true, onBack: (): void => { this.getUIContext().getRouter().back() } })
+      // 顶部标题与操作栏：与职位主页面（HomePage）保持一致的 FilterBar
+      FilterBar({
+        title: '搜索结果',
+        filterActive: this.hasActiveFilters(),
+        onFilterClick: () => { this.showFilterSheet = true },
+        onSearch: () => {
+          this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchPage' })
+        }
+      })
 
+      // 搜索输入栏
       Row({ space: AppSpacing.SM }) {
         Search({ value: this.keyword, placeholder: '搜索职位、企业或技能' })
           .layoutWeight(1)
@@ -228,24 +190,17 @@ struct SearchResultsPage {
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
 
-      FilterChipBar({
-        chips: this.buildFilterChips(),
-        onChipClick: (index: number): void => {
-          this.showFilterSheet = true
-        },
-        onClose: (index: number): void => {
-          if (index === 0) {
-            this.showFilterSheet = true
-          } else if (this.selectedTag.length > 0 && index === 1) {
-            this.selectTag('')
-          } else {
-            this.selectSort('create_time')
-          }
+      if (this.isLoading && this.results.length === 0) {
+        Column() {
+          LoadingProgress()
+            .width(32)
+            .height(32)
+            .color(AppColors.PRIMARY)
         }
-      })
-
-      if (this.isLoading) {
-        LoadingProgress().width(32).height(32).margin({ top: 100 }).color(AppColors.PRIMARY)
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
       } else if (this.errorText) {
         Column() {
           ErrorView({
@@ -304,7 +259,7 @@ struct SearchResultsPage {
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.BG_PAGE)
-    .bindSheet($$this.showFilterSheet, this.filterSheet(), {
+    .bindSheet($$this.showFilterSheet, this.FilterSheetBuilder(), {
       height: SheetSize.LARGE,
       dragBar: true,
       showClose: true,

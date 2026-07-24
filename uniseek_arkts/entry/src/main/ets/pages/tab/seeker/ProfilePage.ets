@@ -308,8 +308,7 @@ export struct ProfilePage {
     return [
       { key: 'resume', icon: $r('sys.symbol.doc_text'), label: '我的简历', color: AppColors.PRIMARY },
       { key: 'applications', icon: $r('sys.symbol.doc_text'), label: '投递记录', color: AppColors.PRIMARY },
-      { key: 'interviews', icon: $r('sys.symbol.message'), label: '面试邀请', color: AppColors.PRIMARY },
-      { key: 'favorites', icon: $r('sys.symbol.star'), label: '收藏职位', color: AppColors.PRIMARY }
+      { key: 'interviews', icon: $r('sys.symbol.message'), label: '面试邀请', color: AppColors.PRIMARY }
     ]
   }
 
@@ -488,28 +487,26 @@ export struct ProfilePage {
 
   @Builder
   roleMenuSection() {
-    StandardCard() {
-      Column({ space: AppSpacing.MD }) {
-        Text(this.role >= 9 ? '系统管理' : (this.role === 1 ? '招聘管理' : '求职管理'))
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .width('100%')
-
-        Grid() {
-          ForEach(this.roleMenus(), (item: ProfileMenuItem) => {
-            GridItem() {
-              this.gridItem(item)
-            }
-          }, (item: ProfileMenuItem): string => item.key)
-        }
-        .columnsTemplate(this.roleMenuColumnsTemplate())
-        .columnsGap(AppSpacing.SM)
-        .rowsGap(AppSpacing.SM)
+    Column({ space: AppSpacing.MD }) {
+      Text(this.role >= 9 ? '系统管理' : (this.role === 1 ? '招聘管理' : '求职管理'))
+        .fontSize(AppFontSize.MD)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY)
         .width('100%')
+
+      Grid() {
+        ForEach(this.roleMenus(), (item: ProfileMenuItem) => {
+          GridItem() {
+            this.gridItem(item)
+          }
+        }, (item: ProfileMenuItem): string => item.key)
       }
+      .columnsTemplate(this.roleMenuColumnsTemplate())
+      .columnsGap(AppSpacing.SM)
+      .rowsGap(AppSpacing.SM)
       .width('100%')
     }
+    .width('100%')
   }
 
   @Builder
@@ -551,32 +548,33 @@ export struct ProfilePage {
 
   @Builder
   accountSection() {
-    StandardCard() {
-      Column({ space: AppSpacing.SM }) {
-        Text('账户设置')
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .width('100%')
-
-        List({ space: 0 }) {
-          ForEach(this.accountMenus(), (item: ProfileMenuItem) => {
-            ListItem() {
-              this.accountListRow(item)
-            }
-          }, (item: ProfileMenuItem): string => item.key)
-        }
+    Column({ space: AppSpacing.SM }) {
+      Text('账户设置')
+        .fontSize(AppFontSize.MD)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY)
         .width('100%')
-        .divider({
-          strokeWidth: AppSpacing.DIVIDER_THICKNESS,
-          color: AppColors.BORDER,
-          startMargin: AppSpacing.ICON_LG
-        })
-        .edgeEffect(EdgeEffect.None)
-        .scrollBar(BarState.Off)
+
+      List({ space: 0 }) {
+        ForEach(this.accountMenus(), (item: ProfileMenuItem) => {
+          ListItem() {
+            this.accountListRow(item)
+          }
+          .backgroundColor(AppColors.BG_CARD)
+          .stateStyles({ pressed: { .backgroundColor(AppColors.INPUT_BG) } })
+          .onClick(() => { this.handleMenuClick(item.key) })
+        }, (item: ProfileMenuItem): string => item.key)
       }
       .width('100%')
+      .divider({
+        strokeWidth: AppSpacing.DIVIDER_THICKNESS,
+        color: AppColors.BORDER,
+        startMargin: AppSpacing.ICON_LG
+      })
+      .edgeEffect(EdgeEffect.None)
+      .scrollBar(BarState.Off)
     }
+    .width('100%')
   }
 
   @Builder
@@ -617,9 +615,8 @@ export struct ProfilePage {
     }
     .width('100%')
     .height(AppSpacing.LIST_ITEM_HEIGHT)
+    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
     .alignItems(VerticalAlign.Center)
-    .onClick(() => { this.handleMenuClick(item.key) })
-    .stateStyles({ pressed: { .backgroundColor(AppColors.INPUT_BG) } })
   }
 
   @Builder

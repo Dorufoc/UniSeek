@@ -368,7 +368,7 @@ export struct CompanyDiscovery {
     .height('100%')
     .backgroundColor(AppColors.BG_PAGE)
     .bindSheet($$this.showFilterSheet, this.companyFilterSheet(), {
-      height: SheetSize.LARGE,
+      height: SheetSize.FIT_CONTENT,
       dragBar: true,
       showClose: true,
       backgroundColor: AppColors.BG_CARD
@@ -572,11 +572,7 @@ export struct CompanyDiscovery {
     Column() {
       FilterSheetHeader({
         title: '筛选企业',
-        showReset: true,
-        onReset: () => {
-          this.resetFilters()
-          this.showFilterSheet = false
-        }
+        showReset: false
       })
 
       Scroll() {
@@ -653,25 +649,24 @@ export struct CompanyDiscovery {
         .width('100%')
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM_PLUS, bottom: AppSpacing.MD })
       }
-      .layoutWeight(1)
       .scrollBar(BarState.Auto)
 
-      // 底部完成按钮
-      Button('查看结果')
+      // 底部重置筛选按钮
+      Button('重置筛选')
         .width('100%')
         .height(AppSpacing.INPUT_HEIGHT)
-        .backgroundColor(AppColors.PRIMARY)
+        .backgroundColor(AppColors.DANGER)
         .fontColor('#FFFFFF')
         .fontSize(AppFontSize.MD)
         .fontWeight(FontWeight.Medium)
         .borderRadius(AppRadius.LG)
         .margin({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.MD })
         .onClick(() => {
+          this.resetFilters()
           this.showFilterSheet = false
         })
     }
     .width('100%')
-    .height('100%')
     .backgroundColor(AppColors.BG_CARD)
   }
 

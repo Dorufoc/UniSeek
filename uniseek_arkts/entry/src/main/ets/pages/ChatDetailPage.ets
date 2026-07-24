@@ -344,6 +344,27 @@ struct ChatDetailPage {
         .borderWidth({ bottom: 1 })
         .borderColor({ bottom: AppColors.BORDER })
 
+        // 限制发送提示横幅：求职者被限制时显示在顶栏下方
+        if (!this.canSendMessage()) {
+          Row({ space: AppSpacing.SM }) {
+            SymbolGlyph($r('sys.symbol.info_circle'))
+              .fontSize(AppFontSize.ICON_MD)
+              .fontColor([AppColors.WARNING])
+
+            Text('HR 未回复前，您只能发送一条消息')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.WARNING)
+              .layoutWeight(1)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .width('100%')
+          .height(AppSpacing.BUTTON_HEIGHT_SM)
+          .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+          .backgroundColor(AppColors.WARNING_BG)
+          .alignItems(VerticalAlign.Center)
+        }
+
         // 消息列表区域
         if (this.isLoadingMessages && this.messages.length === 0) {
           Column({ space: AppSpacing.SM }) {
