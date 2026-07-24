@@ -130,6 +130,8 @@ public class UserServiceImpl implements UserService {
             // 招聘者：通过企业 ID 查询投递数据
             QueryWrapper<Enterprise> entWrapper = new QueryWrapper<>();
             entWrapper.eq("user_id", userId);
+            entWrapper.orderByDesc("create_time");
+            entWrapper.last("LIMIT 1");
             Enterprise enterprise = enterpriseMapper.selectOne(entWrapper);
 
             if (enterprise != null) {

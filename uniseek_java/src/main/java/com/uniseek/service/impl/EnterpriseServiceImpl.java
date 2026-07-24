@@ -54,28 +54,31 @@ public class EnterpriseServiceImpl implements EnterpriseService {
             throw new BusinessException("请先完成实名认证后再提交企业资质");
         }
 
-        // 2. 检查用户是否已提交过企业资质
+        // 2. 检查用户是否已提交过企业资质（排除已驳回的记录，驳回后可重新提交）
         Integer existingCount = enterpriseMapper.selectCount(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getUserId, userId));
+                        .eq(Enterprise::getUserId, userId)
+                        .ne(Enterprise::getAuditStatus, 2));
 
         if (existingCount > 0) {
             throw new BusinessException(ApiResult.CONFLICT, "您已提交过企业资质，请勿重复提交");
         }
 
-        // 3. 检查统一社会信用代码唯一性
+        // 3. 检查统一社会信用代码唯一性（排除已驳回的记录）
         Integer creditCodeCount = enterpriseMapper.selectCount(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getCreditCode, request.getCreditCode().trim()));
+                        .eq(Enterprise::getCreditCode, request.getCreditCode().trim())
+                        .ne(Enterprise::getAuditStatus, 2));
 
         if (creditCodeCount > 0) {
             throw new BusinessException(ApiResult.CONFLICT, "该统一社会信用代码已被注册");
         }
 
-        // 4. 检查企业名称唯一性
+        // 4. 检查企业名称唯一性（排除已驳回的记录）
         Integer companyNameCount = enterpriseMapper.selectCount(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getCompanyName, request.getCompanyName().trim()));
+                        .eq(Enterprise::getCompanyName, request.getCompanyName().trim())
+                        .ne(Enterprise::getAuditStatus, 2));
 
         if (companyNameCount > 0) {
             throw new BusinessException(ApiResult.CONFLICT, "该企业名称已被注册");
@@ -104,56 +107,75 @@ public class EnterpriseServiceImpl implements EnterpriseService {
     public Enterprise getMyEnterprise(Long userId) {
         return enterpriseMapper.selectOne(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getUserId, userId));
+                        .eq(Enterprise::getUserId, userId)
+                        .orderByDesc(Enterprise::getCreateTime)
+                        .last("LIMIT 1"));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public Enterprise update(Long userId, EnterpriseRequest request) {
-        // 1. 查询现有企业资质
+        // 1. 查询现有企业资质（取最新一条）
         Enterprise existing = enterpriseMapper.selectOne(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getUserId, userId));
+                        .eq(Enterprise::getUserId, userId)
+                        .orderByDesc(Enterprise::getCreateTime)
+                        .last("LIMIT 1"));
 
         if (existing == null) {
             throw new BusinessException("未找到企业资质信息，请先提交");
         }
 
-        // 2. 检查统一社会信用代码唯一性（排除自身）
+        // 2. 检查统一社会信用代码唯一性（排除自身及已驳回的记录）
         Integer creditCodeCount = enterpriseMapper.selectCount(
                 new LambdaQueryWrapper<Enterprise>()
                         .ne(Enterprise::getId, existing.getId())
-                        .eq(Enterprise::getCreditCode, request.getCreditCode().trim()));
+                        .eq(Enterprise::getCreditCode, request.getCreditCode().trim())
+                        .ne(Enterprise::getAuditStatus, 2));
 
         if (creditCodeCount > 0) {
             throw new BusinessException(ApiResult.CONFLICT, "该统一社会信用代码已被其他企业使用");
         }
 
-        // 3. 检查企业名称唯一性（排除自身）
+        // 3. 检查企业名称唯一性（排除自身及已驳回的记录）
         Integer companyNameCount = enterpriseMapper.selectCount(
                 new LambdaQueryWrapper<Enterprise>()
                         .ne(Enterprise::getId, existing.getId())
-                        .eq(Enterprise::getCompanyName, request.getCompanyName().trim()));
+                        .eq(Enterprise::getCompanyName, request.getCompanyName().trim())
+                        .ne(Enterprise::getAuditStatus, 2));
 
         if (companyNameCount > 0) {
             throw new BusinessException(ApiResult.CONFLICT, "该企业名称已被其他企业使用");
         }
 
-        // 4. 更新字段
-        existing.setCompanyName(request.getCompanyName().trim());
-        existing.setCreditCode(request.getCreditCode().trim());
-        existing.setLicenseImgUrl(request.getLicenseImgUrl());
-        existing.setIndustry(request.getIndustry().trim());
-        existing.setRegionId(request.getRegionId());
-        existing.setDescription(request.getDescription());
-        existing.setAuditStatus(0); // 重新提交审核
-        existing.setUpdateTime(LocalDateTime.now());
-
-        // 5. 更新企业资质
-        enterpriseMapper.updateById(existing);
-
-        return existing;
+        // 4. 如果之前被驳回，创建新记录；否则更新原记录
+        if (existing.getAuditStatus() == 2) {
+            Enterprise newEnterprise = new Enterprise();
+            newEnterprise.setUserId(userId);
+            newEnterprise.setCompanyName(request.getCompanyName().trim());
+            newEnterprise.setCreditCode(request.getCreditCode().trim());
+            newEnterprise.setLicenseImgUrl(request.getLicenseImgUrl());
+            newEnterprise.setIndustry(request.getIndustry().trim());
+            newEnterprise.setRegionId(request.getRegionId());
+            newEnterprise.setDescription(request.getDescription());
+            newEnterprise.setAuditStatus(0);
+            newEnterprise.setCreateTime(LocalDateTime.now());
+            newEnterprise.setUpdateTime(LocalDateTime.now());
+            enterpriseMapper.insert(newEnterprise);
+            return newEnterprise;
+        } else {
+            existing.setCompanyName(request.getCompanyName().trim());
+            existing.setCreditCode(request.getCreditCode().trim());
+            existing.setLicenseImgUrl(request.getLicenseImgUrl());
+            existing.setIndustry(request.getIndustry().trim());
+            existing.setRegionId(request.getRegionId());
+            existing.setDescription(request.getDescription());
+            existing.setAuditStatus(0); // 重新提交审核
+            existing.setUpdateTime(LocalDateTime.now());
+            enterpriseMapper.updateById(existing);
+            return existing;
+        }
     }
 
     @Override

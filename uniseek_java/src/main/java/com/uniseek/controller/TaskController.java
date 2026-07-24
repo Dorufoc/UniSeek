@@ -170,7 +170,9 @@ public class TaskController {
     private Long getEnterpriseIdByUserId(Long userId) {
         Enterprise enterprise = enterpriseMapper.selectOne(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getUserId, userId));
+                        .eq(Enterprise::getUserId, userId)
+                        .orderByDesc(Enterprise::getCreateTime)
+                        .last("LIMIT 1"));
         if (enterprise == null) {
             throw new BusinessException("未找到企业信息，请先提交企业资质认证");
         }

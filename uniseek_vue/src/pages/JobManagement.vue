@@ -11,16 +11,15 @@ const tasks = ref<TaskVO[]>([])
 
 // 计算状态标签
 const getStatusInfo = (status: number, rejectReason?: string) => {
-  if (status === 0 && rejectReason) {
-    return { label: '已驳回', type: 'danger' as const, reason: rejectReason }
-  }
   const map: Record<number, { label: string; type: 'success' | 'warning' | 'info' | 'danger' }> = {
     0: { label: '待审核', type: 'warning' },
     1: { label: '招聘中', type: 'success' },
     2: { label: '已满员', type: 'danger' },
     3: { label: '已过期', type: 'info' },
-    4: { label: '已下架', type: 'info' }
+    4: { label: '已下架', type: 'info' },
+    5: { label: '已驳回', type: 'danger' }
   }
+  return { ...map[status] || { label: '未知', type: 'info' }, reason: status === 5 ? rejectReason : undefined }
   return { ...map[status] || { label: '未知', type: 'info' }, reason: undefined }
 }
 
@@ -128,7 +127,7 @@ onMounted(loadTasks)
               {{ getStatusInfo(task.status, task.rejectReason).label }}
             </el-tag>
           </div>
-          <div v-if="task.status === 0 && task.rejectReason" class="reject-hint">
+          <div v-if="task.status === 5 && task.rejectReason" class="reject-hint">
             驳回原因：{{ task.rejectReason }}
           </div>
             <div class="job-salary">
@@ -155,7 +154,7 @@ onMounted(loadTasks)
             <span class="job-time">发布于 {{ formatDate(task.createTime) }}</span>
           </div>
           <div class="job-actions">
-            <template v-if="task.status === 0 && task.rejectReason">
+            <template v-if="task.status === 5">
               <button class="jm-btn" @click="$router.push(`/post-job?id=${task.id}`)">编辑</button>
               <button class="jm-btn jm-btn-success" @click="handleResubmit(task)">重新提交</button>
             </template>

@@ -205,10 +205,11 @@ public class AdminServiceImpl implements AdminService {
 
             log.info("管理员 {} 通过了职位 {} 的审核并发布", adminId, task.getId());
         } else {
-            // 审核驳回（记录驳回原因，状态保持 0）
+            // 审核驳回（设置状态为5锁定，记录驳回原因）
             if (rejectReason == null || rejectReason.trim().isEmpty()) {
                 throw new BusinessException("驳回时必须填写原因");
             }
+            task.setStatus(5);
             task.setRejectReason(rejectReason);
             task.setUpdateTime(now);
             taskMapper.updateById(task);
