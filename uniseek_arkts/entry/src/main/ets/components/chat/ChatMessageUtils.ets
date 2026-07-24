@@ -74,6 +74,39 @@ export function getDateSeparatorLabel(dateStr: string): string {
   return monthStr + '-' + dayStr;
 }
 
+// 常见图片扩展名，用于会话最后一条消息类型识别
+const IMAGE_EXTENSIONS: string[] = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+
+// 判断字符串是否为 HTTP/HTTPS URL
+function looksLikeUrl(text: string): boolean {
+  if (!text || text.length === 0) {
+    return false;
+  }
+  return /^https?:\/\//i.test(text.trim());
+}
+
+// 取 URL 路径中的扩展名（去除查询参数）
+function getUrlExtension(text: string): string {
+  const cleanUrl: string = text.split('?')[0].toLowerCase();
+  const dotIndex: number = cleanUrl.lastIndexOf('.');
+  return dotIndex >= 0 ? cleanUrl.substring(dotIndex) : '';
+}
+
+// 格式化会话最后一条消息预览：链接类图片显示 [图片]，其他链接显示 [文件]，普通文本保持原样
+export function formatSessionPreview(lastMessage: string): string {
+  if (!lastMessage || lastMessage.length === 0) {
+    return '暂无消息';
+  }
+  if (!looksLikeUrl(lastMessage)) {
+    return lastMessage;
+  }
+  const ext: string = getUrlExtension(lastMessage);
+  if (IMAGE_EXTENSIONS.includes(ext)) {
+    return '[图片]';
+  }
+  return '[文件]';
+}
+
 // 从 URL 中提取文件名，超过 30 字符时截断
 export function getAttachmentName(url: string, defaultName: string = '简历附件'): string {
   if (!url || url.length === 0) {

@@ -358,6 +358,35 @@ export class DataService {
     return null
   }
 
+  /**
+   * 根据地区 ID 反查地区名称。
+   * 支持省/市/区县任意层级 ID。
+   */
+  static async getRegionNameById(regionId: number | null | undefined): Promise<string | null> {
+    if (regionId == null) {
+      return null
+    }
+    if (!DataService.regionTree) {
+      await DataService.getRegionTree()
+    }
+    return DataService.findRegionNameById(DataService.regionTree || [], regionId)
+  }
+
+  private static findRegionNameById(nodes: RegionNode[], regionId: number): string | null {
+    for (const node of nodes) {
+      if (node.id === regionId) {
+        return node.name
+      }
+      if (node.children) {
+        const found = DataService.findRegionNameById(node.children, regionId)
+        if (found !== null) {
+          return found
+        }
+      }
+    }
+    return null
+  }
+
   private static getFallbackRegions(): RegionNode[] {
     return [
       { id: 110000, name: '北京市', level: 1, children: [

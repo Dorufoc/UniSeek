@@ -1,7 +1,8 @@
-// 聊天会话列表包装组件：统一处理加载、错误、空状态与列表渲染
+// 聊天会话列表包装组件
+// 统一处理加载、错误、空状态，并以 HMOS List + 缩进分割线渲染会话项。
 
 import { ChatSessionVO } from '../../services/ChatTypes';
-import { AppColors, AppFontSize, AppSpacing, AppChat } from '../../common/AppStyles';
+import { AppColors, AppSpacing, AppChat } from '../../common/AppStyles';
 import { EmptyView } from '../EmptyView';
 import { ErrorView } from '../ErrorView';
 import { ChatSessionItem } from './ChatSessionItem';
@@ -11,8 +12,6 @@ export struct ChatSessionList {
   @Prop sessions: ChatSessionVO[] = []
   @Prop isLoading: boolean = true
   @Prop errorText: string = ''
-  @Prop selectedSessionId: number = -1
-  @Prop showChevron: boolean = true
   @Prop counterpartTag: string = ''
   onRetry?: () => void
   onItemClick?: (session: ChatSessionVO) => void
@@ -49,8 +48,6 @@ export struct ChatSessionList {
             ListItem() {
               ChatSessionItem({
                 session: session,
-                isSelected: session.applicationId === this.selectedSessionId,
-                showChevron: this.showChevron,
                 tagText: this.counterpartTag,
                 onItemClick: () => {
                   this.onItemClick?.(session)
@@ -64,6 +61,13 @@ export struct ChatSessionList {
       }
       .layoutWeight(1)
       .width('100%')
+      .listDirection(Axis.Vertical)
+      .divider({
+        strokeWidth: AppSpacing.DIVIDER_THICKNESS,
+        color: AppColors.BORDER,
+        startMargin: AppChat.SESSION_LIST_DIVIDER_INSET,
+        endMargin: 0
+      })
     }
   }
 }

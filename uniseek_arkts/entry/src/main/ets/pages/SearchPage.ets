@@ -1,4 +1,5 @@
 import { preferences } from '@kit.ArkData';
+import { SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 
@@ -6,6 +7,10 @@ const PREF_NAME = 'search_history_db';
 const PREF_KEY = 'searchHistory';
 const MAX_HISTORY = 20;
 const DEFAULT_SHOW = 6;
+
+// 搜索模式：0 职位，1 公司
+const SEARCH_MODE_JOB = 0;
+const SEARCH_MODE_COMPANY = 1;
 
 interface HistoryRow {
   left: string
@@ -22,10 +27,29 @@ struct SearchPage {
   @State showAll: boolean = false
   @State isDeleting: boolean = false
 
+  // 分段按钮：搜索职位 / 搜索公司
+  @State selectedModeIndexes: number[] = [SEARCH_MODE_JOB]
+  @State modeOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
+    buttons: [{ text: '职位' }, { text: '公司' }],
+    multiply: false,
+    selectedBackgroundColor: AppColors.PRIMARY,
+    backgroundColor: AppColors.INPUT_BG,
+    selectedFontColor: AppColors.BG_CARD,
+    fontColor: AppColors.TEXT_SECONDARY,
+    fontSize: AppFontSize.SM,
+    selectedFontSize: AppFontSize.SM
+  })
+
   onPageShow(): void {
     this.loadHistory()
-    // 从首页搜索入口传入的关键词自动填入并记录历史
     const params = this.getUIContext().getRouter().getParams() as Record<string, string | undefined>
+    // 从哪个分区进入搜索页，分段按钮默认选中哪个
+    if (params && params['from'] === 'company') {
+      this.selectedModeIndexes = [SEARCH_MODE_COMPANY]
+    } else {
+      this.selectedModeIndexes = [SEARCH_MODE_JOB]
+    }
+    // 从首页搜索入口传入的关键词自动填入并记录历史
     const keyword = params ? params['keyword'] : undefined
     if (keyword && keyword.trim().length > 0) {
       this.searchText = keyword.trim()
@@ -83,7 +107,7 @@ struct SearchPage {
   triggerSearch(text: string): void {
     this.searchText = text
     this.addToHistory(text)
-    this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
+    this.executeSearch()
   }
 
   handleSearch(): void {
@@ -92,7 +116,24 @@ struct SearchPage {
       return
     }
     this.addToHistory(text)
-    this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
+    this.executeSearch()
+  }
+
+  private executeSearch(): void {
+    const text = this.searchText.trim()
+    if (this.selectedModeIndexes[0] === SEARCH_MODE_COMPANY) {
+      // 搜索公司：进入企业发现页（带关键词）
+      this.getUIContext().getRouter().pushUrl({
+        url: 'pages/CompanyPage',
+        params: { keyword: text }
+      })
+    } else {
+      // 搜索职位：进入搜索结果页
+      this.getUIContext().getRouter().pushUrl({
+        url: 'pages/SearchResultsPage',
+        params: { keyword: text }
+      })
+    }
   }
 
   getDisplayList(): string[] {
@@ -158,67 +199,50 @@ struct SearchPage {
         showBack: true
       })
 
+      // 搜索输入与搜索按钮：重新分配尺寸，避免按钮被挤压
       Row() {
-        TextInput({ placeholder: '搜索职位、公司...', text: this.searchText })
+        TextInput({
+          placeholder: this.selectedModeIndexes[0] === SEARCH_MODE_COMPANY ? '搜索企业名称' : '搜索职位、公司或技能',
+          text: this.searchText
+        })
           .onChange((value: string) => {
             this.searchText = value
           })
-          .height(40)
+          .onSubmit(() => {
+            this.handleSearch()
+          })
+          .height(AppSpacing.BUTTON_HEIGHT_MD)
           .backgroundColor(AppColors.INPUT_BG)
           .borderRadius(AppRadius.FULL)
           .padding({ left: AppSpacing.MD })
-          .margin({ left: AppSpacing.SM })
           .layoutWeight(1)
 
-        Button({ type: ButtonType.Capsule }) {
-          Text('搜索')
-            .fontSize(AppFontSize.SM)
-            .fontColor('#FFFFFF')
-        }
-          .height(40)
+        Button('搜索', { type: ButtonType.Capsule })
+          .width(80)
+          .height(AppSpacing.BUTTON_HEIGHT_MD)
+          .fontSize(AppFontSize.SM)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
           .backgroundColor(AppColors.PRIMARY)
           .margin({ left: AppSpacing.SM })
           .onClick(() => {
             this.handleSearch()
-          })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.97, y: 0.97 })
-              .opacity(0.9)
-              .backgroundColor(AppColors.PRIMARY_HOVER)
-            },
-            normal: {
-              .scale({ x: 1, y: 1 })
-              .opacity(1)
-              .backgroundColor(AppColors.PRIMARY)
-            }
-          })
-          .animation({
-            duration: 200
           })
       }
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       .alignItems(VerticalAlign.Center)
 
-      Button() {
-        Row({ space: AppSpacing.XS }) {
-          SymbolGlyph($r('sys.symbol.building'))
-            .fontSize(16)
-            .fontColor([AppColors.PRIMARY])
-          Text('找企业')
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.PRIMARY)
-        }
+      // 分段按钮：职位 / 公司
+      Row() {
+        SegmentButton({
+          options: this.modeOptions,
+          selectedIndexes: $selectedModeIndexes
+        })
       }
-      .height(36)
-      .margin({ left: AppSpacing.MD, top: AppSpacing.MD })
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-      .backgroundColor(AppColors.SELECTED_BG)
-      .borderRadius(AppRadius.FULL)
-      .onClick(() => {
-        this.getUIContext().getRouter().pushUrl({ url: 'pages/CompanyPage', params: { keyword: this.searchText.trim() } })
-      })
+      .width('100%')
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
+      .justifyContent(FlexAlign.Center)
 
       Row() {
         Text('搜索历史')

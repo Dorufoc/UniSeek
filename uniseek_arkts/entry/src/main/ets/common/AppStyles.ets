@@ -300,11 +300,15 @@ export class AppChat {
 
   // 会话项
   static readonly SESSION_ITEM_PADDING = AppSpacing.SM;
+  static readonly SESSION_ITEM_HEIGHT = 72;
   static readonly SESSION_NAME_FONT = AppFontSize.SUBHEAD;
   static readonly SESSION_PREVIEW_FONT = AppFontSize.LABEL;
   static readonly SESSION_TIME_FONT = AppFontSize.XS;
   static readonly PREVIEW_LINE_HEIGHT = 20;
   static readonly SESSION_SELECT_DURATION = 180;
+
+  // 会话列表分割线：从左边缘缩进至文本区域起始位置（头像 + 左侧内边距 + 间距）
+  static readonly SESSION_LIST_DIVIDER_INSET = AppChat.AVATAR_SESSION + AppSpacing.MD + AppSpacing.SM_PLUS;
 
   // 列表项入场动效
   static readonly LIST_ENTER_TRANSLATE_Y = 12;

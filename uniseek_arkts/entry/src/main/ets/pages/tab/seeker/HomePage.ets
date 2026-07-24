@@ -30,7 +30,21 @@ export struct HomePage {
   @State showFilterSheet: boolean = false
 
   aboutToAppear(): void {
+    // 预加载地区/分类联级数据，确保 FilterSheet 打开时直接从 Java 后端展示
+    this.preloadFilters()
     this.loadTabData(1, false)
+  }
+
+  // 从 Java 后端预加载地区树与分类树，供筛选抽屉使用
+  private async preloadFilters(): Promise<void> {
+    try {
+      await Promise.all([
+        DataService.getRegionTree(),
+        DataService.getCategoryTree()
+      ])
+    } catch (e) {
+      console.error('预加载筛选数据失败', e)
+    }
   }
 
   private hasActiveFilters(): boolean {

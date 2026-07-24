@@ -6,6 +6,7 @@
 import webSocket from '@ohos.net.webSocket';
 import { ApiClient } from './ApiClient';
 import { ServerConfig } from './ServerConfig';
+import { ChatService } from './ChatService';
 import { BusinessError } from '@kit.BasicServicesKit';
 
 /** WebSocket 推送的新消息数据类型 */
@@ -46,6 +47,7 @@ export class ChatWebSocketService {
   private connected: boolean = false;
   private onSessionMessageCallback: ((data: WsNewMessageData) => void) | null = null;
   private onDetailMessageCallback: ((data: WsNewMessageData) => void) | null = null;
+  private onUnreadCountChangedCallbacks: ((count: number) => void)[] = [];
 
   static getInstance(): ChatWebSocketService {
     if (ChatWebSocketService.instance === null) {
@@ -72,6 +74,24 @@ export class ChatWebSocketService {
   /** 移除聊天详情的新消息回调。 */
   removeOnDetailMessageCallback(): void {
     this.onDetailMessageCallback = null;
+  }
+
+  /**
+   * 注册未读消息总数变化回调。
+   * 回调参数为当前所有聊天会话 unreadCount 的总和（上限 99）。
+   */
+  addOnUnreadCountChanged(callback: (count: number) => void): void {
+    this.onUnreadCountChangedCallbacks.push(callback);
+  }
+
+  /**
+   * 移除未读消息总数变化回调。
+   */
+  removeOnUnreadCountChanged(callback: (count: number) => void): void {
+    const index = this.onUnreadCountChangedCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.onUnreadCountChangedCallbacks.splice(index, 1);
+    }
   }
 
   /** 检查 WebSocket 是否已连接 */
@@ -101,6 +121,8 @@ export class ChatWebSocketService {
         this.connected = true;
         this.reconnectCount = 0;
         this.startPing();
+        // 连接建立后立即同步一次未读消息总数
+        this.refreshUnreadCount();
       });
 
       // 接收消息事件：解析 JSON 并分发
@@ -154,6 +176,33 @@ export class ChatWebSocketService {
     this.connected = false;
   }
 
+  /**
+   * 主动拉取会话列表并计算未读消息总数，然后通知所有监听者。
+   * 结果上限为 99（超过时显示 99+）。
+   */
+  async refreshUnreadCount(): Promise<void> {
+    try {
+      const sessions = await ChatService.getSessions();
+      let total = 0;
+      for (const session of sessions) {
+        total += session.unreadCount || 0;
+      }
+      const displayCount = total > 99 ? 99 : total;
+      this.notifyUnreadCountChanged(displayCount);
+    } catch (e) {
+      console.error('ChatWebSocket: 刷新未读数失败', e);
+    }
+  }
+
+  /**
+   * 通知未读数变化。
+   */
+  private notifyUnreadCountChanged(count: number): void {
+    for (const callback of this.onUnreadCountChangedCallbacks) {
+      callback(count);
+    }
+  }
+
   /** 发送 PING 保活消息 */
   sendPing(): void {
     if (this.ws && this.connected) {
@@ -182,6 +231,11 @@ export class ChatWebSocketService {
       if (this.onDetailMessageCallback) {
         this.onDetailMessageCallback(messageData);
       }
+      // 新消息会改变未读数，重新拉取会话列表计算总数
+      this.refreshUnreadCount();
+    } else if (msg.type === 'MESSAGE_READ') {
+      // 对方已读回执也可能影响未读数
+      this.refreshUnreadCount();
     }
     // ERROR 类型消息忽略处理
   }

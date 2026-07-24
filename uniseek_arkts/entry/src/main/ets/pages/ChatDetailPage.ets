@@ -332,7 +332,12 @@ struct ChatDetailPage {
         Column() {
           NavBar({
             showBack: true,
-            centerContent: this.chatHeaderCenter
+            centerContent: () => {
+              this.chatHeaderCenter(this.counterpartName,
+                this.counterpartCompany ?? '',
+                this.taskTitle,
+                this.enterpriseId)
+            }
           })
         }
         .width('100%')
@@ -431,23 +436,23 @@ struct ChatDetailPage {
 
   // ==================== 导航栏中间内容 ====================
 
-  @Builder chatHeaderCenter() {
+  @Builder chatHeaderCenter(name: string, company: string, title: string, id: number) {
     Column() {
       Row() {
-        Text(this.counterpartName || '聊天')
+        Text(name || '聊天')
           .fontSize(AppFontSize.LG)
           .fontColor(AppColors.TEXT_PRIMARY)
           .fontWeight(FontWeight.Bold)
-        if (this.counterpartCompany.length > 0) {
-          Text('@' + this.counterpartCompany)
+        if (company.length > 0) {
+          Text('@' + company)
             .fontSize(AppFontSize.LG)
             .fontColor(AppColors.PRIMARY)
             .fontWeight(FontWeight.Bold)
             .onClick(() => {
-              if (this.enterpriseId > 0) {
+              if (id > 0) {
                 this.getUIContext().getRouter().pushUrl({
                   url: 'pages/CompanyDetailPage',
-                  params: { enterpriseId: this.enterpriseId }
+                  params: { enterpriseId: id }
                 })
               }
             })
@@ -455,7 +460,7 @@ struct ChatDetailPage {
       }
       .alignItems(VerticalAlign.Center)
 
-      Text(this.taskTitle || '职位沟通')
+      Text(title || '职位沟通')
         .fontSize(AppFontSize.SM)
         .fontColor(AppColors.TEXT_MUTED)
     }

@@ -1,5 +1,5 @@
 // 聊天会话列表页 - 求职者端
-// 对齐 Vue Messages.vue 左侧会话列表面板样式
+// 参考微信/QQ/钉钉等即时通讯工具，采用清晰的头像 + 两行信息卡片式列表。
 
 import { ChatService } from '../../../services/ChatService';
 import { ChatSessionVO } from '../../../services/ChatTypes';
@@ -10,7 +10,6 @@ import { ChatSessionList } from '../../../components/chat/ChatSessionList';
 @Component
 export struct ChatPage {
   @State sessions: ChatSessionVO[] = []
-  @State selectedSessionId: number = -1
   @State isLoading: boolean = true
   @State errorText: string = ''
 
@@ -28,7 +27,6 @@ export struct ChatPage {
   }
 
   onPageShow(): void {
-    this.selectedSessionId = -1
     this.loadSessions()
   }
 
@@ -46,7 +44,6 @@ export struct ChatPage {
   }
 
   private navigateToDetail(session: ChatSessionVO): void {
-    this.selectedSessionId = session.applicationId
     try {
       this.getUIContext().getRouter().pushUrl({
         url: 'pages/ChatDetailPage',
@@ -63,19 +60,23 @@ export struct ChatPage {
 
   build() {
     Column() {
-      Text('消息')
-        .fontSize(AppFontSize.XL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .width('100%')
-        .padding({ left: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.XS })
+      // 页面标题栏
+      Row() {
+        Text('消息')
+          .fontSize(AppFontSize.XL)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.TEXT_PRIMARY)
+      }
+      .width('100%')
+      .height(AppSpacing.BUTTON_HEIGHT_MD)
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
 
       ChatSessionList({
         sessions: this.sessions,
         isLoading: this.isLoading,
         errorText: this.errorText,
-        selectedSessionId: this.selectedSessionId,
-        showChevron: true,
         counterpartTag: '招聘方',
         onRetry: () => { this.loadSessions() },
         onItemClick: (session: ChatSessionVO) => { this.navigateToDetail(session) }
@@ -83,6 +84,6 @@ export struct ChatPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.BG_CARD)
+    .backgroundColor(AppColors.BG_PAGE)
   }
 }

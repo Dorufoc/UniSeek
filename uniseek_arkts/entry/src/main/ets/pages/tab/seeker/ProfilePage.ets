@@ -294,23 +294,27 @@ export struct ProfilePage {
   private roleMenus(): ProfileMenuItem[] {
     if (this.role >= 9) {
       return [
-        { key: 'admin', icon: $r('sys.symbol.gearshape'), label: '管理面板', desc: '用户管理、企业认证、职位审核', color: AppColors.WARNING }
+        { key: 'admin', icon: $r('sys.symbol.gearshape'), label: '管理面板', color: AppColors.WARNING }
       ]
     }
     if (this.role === 1) {
       return [
-        { key: 'enterprise', icon: $r('sys.symbol.building'), label: '企业信息', desc: '管理企业资料与资质认证', color: AppColors.SUCCESS },
-        { key: 'postedJobs', icon: $r('sys.symbol.briefcase'), label: '发布职位', desc: '发布新职位或管理已发布', color: AppColors.SUCCESS },
-        { key: 'resumePool', icon: $r('sys.symbol.folder'), label: '简历池', desc: '查看处理收到的简历投递', color: AppColors.SUCCESS },
-        { key: 'interviewManage', icon: $r('sys.symbol.video'), label: '面试安排', desc: '管理候选人面试时间地点', color: AppColors.SUCCESS }
+        { key: 'enterprise', icon: $r('sys.symbol.building'), label: '企业信息', color: AppColors.SUCCESS },
+        { key: 'postedJobs', icon: $r('sys.symbol.briefcase'), label: '发布职位', color: AppColors.SUCCESS },
+        { key: 'resumePool', icon: $r('sys.symbol.folder'), label: '简历池', color: AppColors.SUCCESS },
+        { key: 'interviewManage', icon: $r('sys.symbol.video'), label: '面试安排', color: AppColors.SUCCESS }
       ]
     }
     return [
-      { key: 'resume', icon: $r('sys.symbol.doc_text'), label: '我的简历', desc: '编辑个人简历与附件上传', color: AppColors.PRIMARY },
-      { key: 'applications', icon: $r('sys.symbol.doc_text'), label: '投递记录', desc: '查看所有职位投递及状态', color: AppColors.PRIMARY },
-      { key: 'interviews', icon: $r('sys.symbol.message'), label: '面试邀请', desc: '收到的面试通知与安排', color: AppColors.PRIMARY },
-      { key: 'favorites', icon: $r('sys.symbol.star'), label: '收藏职位', desc: '收藏关注的心仪职位', color: AppColors.PRIMARY }
+      { key: 'resume', icon: $r('sys.symbol.doc_text'), label: '我的简历', color: AppColors.PRIMARY },
+      { key: 'applications', icon: $r('sys.symbol.doc_text'), label: '投递记录', color: AppColors.PRIMARY },
+      { key: 'interviews', icon: $r('sys.symbol.message'), label: '面试邀请', color: AppColors.PRIMARY },
+      { key: 'favorites', icon: $r('sys.symbol.star'), label: '收藏职位', color: AppColors.PRIMARY }
     ]
+  }
+
+  private roleMenuColumnsTemplate(): string {
+    return this.roleMenus().map(() => '1fr').join(' ')
   }
 
   private accountMenus(): ProfileMenuItem[] {
@@ -352,35 +356,40 @@ export struct ProfilePage {
 
   @Builder
   userHeader() {
-    Stack( { alignContent: Alignment.TopStart } ) {
-      Column() {
-        Column({ space: AppSpacing.SM }) {
-          Stack() {
-            Image(this.avatarSource())
-              .width(80)
-              .height(80)
-              .borderRadius(40)
-              .objectFit(ImageFit.Cover)
-            if (this.uploading) {
-              Column() {
-                LoadingProgress()
-                  .width(AppSpacing.ICON_MD)
-                  .height(AppSpacing.ICON_MD)
-                  .color(AppColors.PRIMARY)
-              }
-              .width('100%')
-              .height('100%')
-              .justifyContent(FlexAlign.Center)
-              .backgroundColor('rgba(255,255,255,0.7)')
-              .borderRadius(40)
+    Column() {
+      Row({ space: AppSpacing.MD }) {
+        // 左侧头像
+        Stack() {
+          Image(this.avatarSource())
+            .width(64)
+            .height(64)
+            .borderRadius(32)
+            .objectFit(ImageFit.Cover)
+          if (this.uploading) {
+            Column() {
+              LoadingProgress()
+                .width(AppSpacing.ICON_MD)
+                .height(AppSpacing.ICON_MD)
+                .color(AppColors.PRIMARY)
             }
+            .width('100%')
+            .height('100%')
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor('rgba(255,255,255,0.7)')
+            .borderRadius(32)
           }
-          .onClick(() => { this.selectAvatar() })
+        }
+        .onClick(() => { this.selectAvatar() })
 
+        // 右侧姓名 + 角色
+        Column({ space: AppSpacing.XS }) {
           Text(this.nickname || '未设置昵称')
-            .fontSize(AppFontSize.XXL)
+            .fontSize(AppFontSize.XL)
             .fontWeight(FontWeight.Bold)
             .fontColor('#FFFFFF')
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
 
           Text(this.roleLabel())
             .fontSize(AppFontSize.XS)
@@ -388,37 +397,21 @@ export struct ProfilePage {
             .backgroundColor(this.roleBgColor())
             .borderRadius(AppRadius.PILL)
             .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
-
-          Row({ space: AppSpacing.XS }) {
-            SymbolGlyph($r('sys.symbol.phone'))
-              .fontSize(AppFontSize.SM)
-              .fontColor(['rgba(255,255,255,0.85)'])
-            Text(this.maskPhone(this.phone))
-              .fontSize(AppFontSize.SM)
-              .fontColor('rgba(255,255,255,0.85)')
-          }
-
-          Button(this.primaryActionText(), { type: ButtonType.Capsule })
-            .height(AppSpacing.BUTTON_HEIGHT)
-            .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.PRIMARY)
-            .backgroundColor('#FFFFFF')
-            .margin({ top: AppSpacing.SM })
-            .onClick(() => { this.handleMenuClick(this.role >= 9 ? 'admin' : (this.role === 1 ? 'enterprise' : 'resume')) })
         }
-        .width('100%')
-        .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
-        .alignItems(HorizontalAlign.Center)
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.Center)
       }
       .width('100%')
-      .borderRadius(AppRadius.LG)
-      .linearGradient({
-        angle: 135,
-        colors: [['#1762FB', 0.0], [AppColors.PRIMARY_LIGHT, 1.0]]
-      })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
+    .padding(AppSpacing.MD)
+    .borderRadius(AppRadius.LG)
+    .linearGradient({
+      angle: 135,
+      colors: [['#1762FB', 0.0], [AppColors.PRIMARY_LIGHT, 1.0]]
+    })
   }
 
   @Builder
@@ -510,7 +503,7 @@ export struct ProfilePage {
             }
           }, (item: ProfileMenuItem): string => item.key)
         }
-        .columnsTemplate('1fr 1fr')
+        .columnsTemplate(this.roleMenuColumnsTemplate())
         .columnsGap(AppSpacing.SM)
         .rowsGap(AppSpacing.SM)
         .width('100%')
@@ -536,14 +529,6 @@ export struct ProfilePage {
         .fontSize(AppFontSize.SM)
         .fontWeight(FontWeight.Medium)
         .fontColor(AppColors.TEXT_PRIMARY)
-
-      if (item.desc) {
-        Text(item.desc)
-          .fontSize(AppFontSize.XXS)
-          .fontColor(AppColors.TEXT_MUTED)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
     }
     .width('100%')
     .padding(AppSpacing.MD)
@@ -567,40 +552,56 @@ export struct ProfilePage {
   @Builder
   accountSection() {
     StandardCard() {
-      Column() {
+      Column({ space: AppSpacing.SM }) {
         Text('账户设置')
           .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .width('100%')
-          .margin({ bottom: AppSpacing.SM })
 
-        ForEach(this.accountMenus(), (item: ProfileMenuItem, index: number) => {
-          this.accountItem(item, index < this.accountMenus().length - 1)
-        }, (item: ProfileMenuItem): string => item.key)
+        List({ space: 0 }) {
+          ForEach(this.accountMenus(), (item: ProfileMenuItem) => {
+            ListItem() {
+              this.accountListRow(item)
+            }
+          }, (item: ProfileMenuItem): string => item.key)
+        }
+        .width('100%')
+        .divider({
+          strokeWidth: AppSpacing.DIVIDER_THICKNESS,
+          color: AppColors.BORDER,
+          startMargin: AppSpacing.ICON_LG
+        })
+        .edgeEffect(EdgeEffect.None)
+        .scrollBar(BarState.Off)
       }
       .width('100%')
     }
   }
 
   @Builder
-  accountItem(item: ProfileMenuItem, showDivider: boolean) {
+  accountListRow(item: ProfileMenuItem) {
     Row({ space: AppSpacing.MD }) {
+      // 左侧图标：统一浅灰圆角底，退出登录用红色弱底
       Stack() {
         SymbolGlyph(item.icon)
-          .fontSize(AppFontSize.ICON_MD)
-          .fontColor([item.color])
+          .fontSize(AppFontSize.ICON_LG)
+          .fontColor([item.key === 'logout' ? AppColors.DANGER : item.color])
       }
-      .width(AppSpacing.ICON_XL)
-      .height(AppSpacing.ICON_XL)
-      .borderRadius(AppRadius.SM)
-      .backgroundColor(item.key === 'logout' ? 'rgba(239, 68, 68, 0.08)' : AppColors.INPUT_BG)
+      .width(AppSpacing.ICON_LG)
+      .height(AppSpacing.ICON_LG)
+      .borderRadius(AppRadius.MD)
+      .backgroundColor(item.key === 'logout' ? 'rgba(239, 68, 68, 0.10)' : AppColors.INPUT_BG)
 
+      // 标题
       Text(item.label)
         .fontSize(AppFontSize.MD)
         .fontColor(item.key === 'logout' ? AppColors.DANGER : AppColors.TEXT_PRIMARY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
 
+      // 右侧辅助文案
       if (item.hint) {
         Text(item.hint)
           .fontSize(AppFontSize.XS)
@@ -609,22 +610,16 @@ export struct ProfilePage {
           .margin({ right: AppSpacing.XS })
       }
 
+      // 右箭头
       SymbolGlyph($r('sys.symbol.chevron_right'))
         .fontSize(AppFontSize.MD)
-        .fontColor([item.key === 'logout' ? AppColors.DANGER : AppColors.TEXT_MUTED])
+        .fontColor([AppColors.TEXT_MUTED])
     }
     .width('100%')
     .height(AppSpacing.LIST_ITEM_HEIGHT)
+    .alignItems(VerticalAlign.Center)
     .onClick(() => { this.handleMenuClick(item.key) })
     .stateStyles({ pressed: { .backgroundColor(AppColors.INPUT_BG) } })
-
-    if (showDivider) {
-      Divider()
-        .width('100%')
-        .height(AppSpacing.DIVIDER_THICKNESS)
-        .color(AppColors.BORDER)
-        .margin({ left: AppSpacing.ICON_XL + AppSpacing.MD })
-    }
   }
 
   @Builder
