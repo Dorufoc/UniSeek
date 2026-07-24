@@ -51,14 +51,14 @@ const jobTypeLabel = (type: number) => {
 }
 
 const statusLabel = (status: number) => {
-  const map: Record<number, string> = { 0: '待审核', 1: '招聘中', 2: '已满员', 3: '已过期', 4: '已下架' }
+  const map: Record<number, string> = { 0: '待审核', 1: '招聘中', 2: '已满员', 3: '已过期', 4: '已下架', 5: '已驳回' }
   return map[status] || '未知'
 }
 
 const statusColor = (status: number) => {
-  const map: Record<number, string> = {
-    0: '#f39c12', 1: '#27ae60', 2: '#7f8c8d', 3: '#e74c3c', 4: '#95a5a6'
-  }
+    const map: Record<number, string> = {
+      0: '#f39c12', 1: '#27ae60', 2: '#7f8c8d', 3: '#e74c3c', 4: '#95a5a6', 5: '#e74c3c'
+    }
   return map[status] || '#7f8c8d'
 }
 

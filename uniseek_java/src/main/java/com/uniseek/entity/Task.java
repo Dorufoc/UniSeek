@@ -70,7 +70,7 @@ public class Task {
     /** 纬度 */
     private BigDecimal latitude;
 
-    /** 状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 */
+    /** 状态：0 待审 / 1 招聘中 / 2 已满员 / 3 已过期 / 4 已下架 / 5 已驳回（锁定） */
     private Integer status;
 
     /** 驳回原因 */

@@ -230,6 +230,13 @@
             GROUP BY task_id
         ) AS apps ON task.id = apps.task_id
         WHERE task.enterprise_id = #{enterpriseId}
+        AND NOT (task.status = 5 AND EXISTS (
+            SELECT 1 FROM task t2
+            WHERE t2.enterprise_id = task.enterprise_id
+            AND t2.title = task.title
+            AND t2.id != task.id
+            AND t2.status != 5
+        ))
         ORDER BY task.create_time DESC
     </select>
 
@@ -246,10 +253,10 @@
                 AND task.title LIKE CONCAT('%', #{keyword}, '%')
             </if>
             <if test="rejected != null and rejected">
-                AND task.reject_reason IS NOT NULL
+                AND task.status = 5
             </if>
             <if test="rejected != null and !rejected">
-                AND task.reject_reason IS NULL
+                AND task.status != 5
             </if>
         </where>
         ORDER BY task.id ASC

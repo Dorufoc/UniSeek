@@ -137,9 +137,9 @@ public class TaskServiceImpl implements TaskService {
             throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
         }
 
-        // 3. 校验状态：仅待审核（0）和已下架（4）可更新
-        if (task.getStatus() != 0 && task.getStatus() != 4) {
-            throw new BusinessException("仅待审核或已下架的职位可以编辑");
+        // 3. 校验状态：待审核（0）、已下架（4）、已驳回（5）可更新
+        if (task.getStatus() != 0 && task.getStatus() != 4 && task.getStatus() != 5) {
+            throw new BusinessException("仅待审核、已下架或已驳回的职位可以编辑");
         }
 
         // 4. 校验截止时间
@@ -199,7 +199,9 @@ public class TaskServiceImpl implements TaskService {
 	            // 查询企业 ID
 	            Enterprise enterprise = enterpriseMapper.selectOne(
 	                    new LambdaQueryWrapper<Enterprise>()
-	                            .eq(Enterprise::getUserId, userId));
+	                            .eq(Enterprise::getUserId, userId)
+	                            .orderByDesc(Enterprise::getCreateTime)
+	                            .last("LIMIT 1"));
 	            if (enterprise == null || !task.getEnterpriseId().equals(enterprise.getId())) {
 	                throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
 	            }
@@ -253,23 +255,75 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resubmit(Long userId, Long id) {
-        Task task = taskMapper.selectById(id);
-        if (task == null) {
+        Task oldTask = taskMapper.selectById(id);
+        if (oldTask == null) {
             throw new BusinessException(ApiResult.NOT_FOUND, "职位不存在");
         }
         // 校验企业归属
         Enterprise enterprise = enterpriseMapper.selectOne(
                 new LambdaQueryWrapper<Enterprise>()
-                        .eq(Enterprise::getUserId, userId));
-        if (enterprise == null || !task.getEnterpriseId().equals(enterprise.getId())) {
+                        .eq(Enterprise::getUserId, userId)
+                        .orderByDesc(Enterprise::getCreateTime)
+                        .last("LIMIT 1"));
+        if (enterprise == null || !oldTask.getEnterpriseId().equals(enterprise.getId())) {
             throw new BusinessException(ApiResult.FORBIDDEN, "无权操作该职位");
         }
         // 仅已驳回的职位可重新提交
-        if (task.getStatus() != 0 || task.getRejectReason() == null) {
+        if (oldTask.getStatus() != 5) {
             throw new BusinessException("仅已驳回的职位可重新提交审核");
         }
-        // 更新时间戳，驳回原因保留供管理员参考
-        task.setUpdateTime(LocalDateTime.now());
-        taskMapper.updateById(task);
+        // 校验企业已认证
+        if (enterprise.getAuditStatus() != 1) {
+            throw new BusinessException("企业尚未通过资质认证，无法发布职位");
+        }
+        // 检查是否已存在针对该驳回职位的待审核记录（同企业+同标题）
+        Task existingPending = taskMapper.selectOne(
+                new LambdaQueryWrapper<Task>()
+                        .eq(Task::getEnterpriseId, oldTask.getEnterpriseId())
+                        .eq(Task::getTitle, oldTask.getTitle())
+                        .eq(Task::getStatus, 0));
+        if (existingPending != null) {
+            // 已有待审核记录，直接更新，防止重复生成
+            existingPending.setCategoryId(oldTask.getCategoryId());
+            existingPending.setRegionId(oldTask.getRegionId());
+            existingPending.setDescription(oldTask.getDescription());
+            existingPending.setSalaryMin(oldTask.getSalaryMin());
+            existingPending.setSalaryMax(oldTask.getSalaryMax());
+            existingPending.setSalaryUnit(oldTask.getSalaryUnit());
+            existingPending.setJobType(oldTask.getJobType());
+            existingPending.setTotalQuota(oldTask.getTotalQuota());
+            existingPending.setRemainingQuota(oldTask.getTotalQuota());
+            existingPending.setAddress(oldTask.getAddress());
+            existingPending.setTag(oldTask.getTag());
+            existingPending.setLongitude(oldTask.getLongitude());
+            existingPending.setLatitude(oldTask.getLatitude());
+            existingPending.setDeadline(oldTask.getDeadline());
+            existingPending.setUpdateTime(LocalDateTime.now());
+            taskMapper.updateById(existingPending);
+        } else {
+            // 创建新记录，复制可编辑字段，原驳回记录锁定保留
+            Task newTask = new Task();
+            newTask.setEnterpriseId(oldTask.getEnterpriseId());
+            newTask.setCategoryId(oldTask.getCategoryId());
+            newTask.setRegionId(oldTask.getRegionId());
+            newTask.setTitle(oldTask.getTitle());
+            newTask.setDescription(oldTask.getDescription());
+            newTask.setSalaryMin(oldTask.getSalaryMin());
+            newTask.setSalaryMax(oldTask.getSalaryMax());
+            newTask.setSalaryUnit(oldTask.getSalaryUnit());
+            newTask.setJobType(oldTask.getJobType());
+            newTask.setTotalQuota(oldTask.getTotalQuota());
+            newTask.setRemainingQuota(oldTask.getTotalQuota());
+            newTask.setAddress(oldTask.getAddress());
+            newTask.setTag(oldTask.getTag());
+            newTask.setLongitude(oldTask.getLongitude());
+            newTask.setLatitude(oldTask.getLatitude());
+            newTask.setStatus(0);
+            newTask.setVersion(1);
+            newTask.setDeadline(oldTask.getDeadline());
+            newTask.setCreateTime(LocalDateTime.now());
+            newTask.setUpdateTime(LocalDateTime.now());
+            taskMapper.insert(newTask);
+        }
     }
 }

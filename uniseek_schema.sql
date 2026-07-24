@@ -1,7 +1,8 @@
 -- ====================================================================
 -- UniSeek 兼职招聘平台 - MySQL 8 数据库初始化脚本
--- 版本: V1.1
+-- 版本: V1.2
 -- 创建日期: 2026-07-13
+-- V1.2: task 新增 status=5（已驳回锁定）；enterprise 移除 uk_user_id/uk_credit_code 唯一约束
 -- V1.1: user 表新增 email 字段（必填，用于找回密码和通知）及 uk_email 唯一索引
 -- 说明: 包含 14 张业务表、完整外键约束、索引、中文注释及种子数据
 -- 使用: mysql -u root -p < uniseek_schema.sql
@@ -149,13 +150,13 @@ CREATE TABLE `enterprise` (
     `industry`        VARCHAR(50)  DEFAULT NULL             COMMENT '所属行业',
     `region_id`       BIGINT(20)   DEFAULT NULL             COMMENT '企业所在地区ID',
     `description`     TEXT         DEFAULT NULL             COMMENT '公司简介',
-    `audit_status`    TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '资质审核状态：0-待审, 1-已认证, 2-驳回',
+    `audit_status`    TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '资质审核状态：0-待审, 1-已认证, 2-已驳回（锁定）',
     `audit_time`      DATETIME     DEFAULT NULL             COMMENT '企业认证通过时间（audit_status变更为1的时间）',
     `create_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',
     `update_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_user_id` (`user_id`),
-    UNIQUE KEY `uk_credit_code` (`credit_code`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_credit_code` (`credit_code`),
     KEY `idx_audit_status` (`audit_status`),
     CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `fk_enterprise_region` FOREIGN KEY (`region_id`) REFERENCES `region` (`id`) ON DELETE SET NULL
@@ -181,7 +182,7 @@ CREATE TABLE `task` (
     `tag`             VARCHAR(200)  DEFAULT NULL             COMMENT '职位标签，格式如[XXX,XXXX,XX]',
     `longitude`       DECIMAL(10,7) DEFAULT NULL             COMMENT '经度',
     `latitude`        DECIMAL(10,7) DEFAULT NULL             COMMENT '纬度',
-    `status`          TINYINT(1)    NOT NULL DEFAULT 0       COMMENT '状态：0-待审, 1-招聘中, 2-已满员, 3-已过期, 4-已下架',
+    `status`          TINYINT(1)    NOT NULL DEFAULT 0       COMMENT '状态：0-待审, 1-招聘中, 2-已满员, 3-已过期, 4-已下架, 5-已驳回（锁定）',
     `reject_reason`   VARCHAR(500)  DEFAULT NULL             COMMENT '驳回原因（管理员驳回时填写）',
     `version`         INT(10)       NOT NULL DEFAULT 0       COMMENT '乐观锁版本号',
     `deadline`        DATETIME      DEFAULT NULL             COMMENT '报名截止时间',
@@ -3888,6 +3889,24 @@ INSERT INTO `region` (`id`, `parent_id`, `name`, `level`, `sort_order`, `create_
 (839011, 830000, '澎湖县', 3, 1, NOW()),
 (839012, 830000, '金门县(福建省泉州市)', 3, 1, NOW()),
 (839013, 830000, '连江县(福建省福州市)', 3, 1, NOW());
+
+-- ====================================================================
+-- 第四部分: 升级迁移（V1.2 管理员驳回记录锁定）
+-- 说明: 如果数据库已存在旧版表结构，执行以下语句进行升级
+-- ====================================================================
+
+-- 4.1 企业表：移除唯一约束（支持同一用户多条资质记录）
+-- ALTER TABLE `enterprise` DROP INDEX `uk_user_id`, ADD INDEX `idx_user_id` (`user_id`);
+-- ALTER TABLE `enterprise` DROP INDEX `uk_credit_code`, ADD INDEX `idx_credit_code` (`credit_code`);
+
+-- 4.2 企业表：更新 audit_status 注释
+-- ALTER TABLE `enterprise` MODIFY COLUMN `audit_status` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '资质审核状态：0-待审, 1-已认证, 2-已驳回（锁定）';
+
+-- 4.3 职位表：更新 status 注释
+-- ALTER TABLE `task` MODIFY COLUMN `status` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '状态：0-待审, 1-招聘中, 2-已满员, 3-已过期, 4-已下架, 5-已驳回（锁定）';
+
+-- 4.4 职位表：将旧系统驳回数据迁移（status=0 且 reject_reason 不为空的记录 → status=5）
+-- UPDATE `task` SET `status` = 5 WHERE `status` = 0 AND `reject_reason` IS NOT NULL;
 
 -- ====================================================================
 -- 执行完成

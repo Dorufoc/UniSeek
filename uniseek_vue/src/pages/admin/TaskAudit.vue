@@ -49,7 +49,7 @@ const handleTabChange = (tab: number | string) => {
   params.page = 1
   params.rejected = undefined
   if (tab === 'rejected') {
-    params.status = 0
+    params.status = undefined
     params.rejected = true
   } else if (tab === 0) {
     params.status = 0
@@ -109,15 +109,13 @@ const jobTypeText = (type: number) => {
 }
 
 const getStatusTag = (status: number, rejectReason?: string) => {
-  if (status === 0 && rejectReason) {
-    return { text: '已驳回', type: 'danger' }
-  }
   const map: Record<number, { text: string; type: string }> = {
     0: { text: '待审核', type: 'info' },
     1: { text: '招聘中', type: 'success' },
     2: { text: '已满员', type: 'warning' },
     3: { text: '已过期', type: 'info' },
-    4: { text: '已下架', type: 'danger' }
+    4: { text: '已下架', type: 'danger' },
+    5: { text: '已驳回', type: 'danger' }
   }
   return map[status] || { text: '未知', type: 'info' }
 }
