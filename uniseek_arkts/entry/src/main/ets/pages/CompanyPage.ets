@@ -1,16 +1,21 @@
-import { router } from '@kit.ArkUI'
-import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
+import { AppColors, AppFilter, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
 import { CategoryNode, DataService, RegionNode } from '../services/DataService'
 import { EnterpriseDiscoveryService, EnterpriseListItem } from '../services/EnterpriseDiscoveryService'
 import { TaskVO } from '../services/ChatTypes'
+import { FilterChipBar, FilterChipData } from '../components/filter/FilterChipBar'
+import { SelectorSheet, SelectorOption } from '../components/filter/SelectorSheet'
+import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips'
 
 const PAGE_SIZE = 15
 
-interface RegionOption {
-  id: number
-  name: string
-}
+const SORT_OPTIONS: ChoiceOption[] = [
+  { value: 0, label: '默认' },
+  { value: 1, label: '岗位数' },
+  { value: 2, label: '平均薪资' }
+]
+
+const SORT_FIELDS: string[] = ['', 'jobCount', 'avgSalary']
 
 @Entry
 @Component
@@ -19,7 +24,8 @@ struct CompanyPage {
   @State enterprises: EnterpriseListItem[] = []
   @State categories: CategoryNode[] = []
   @State regions: RegionNode[] = []
-  @State regionOptions: RegionOption[] = []
+  @State regionOptions: SelectorOption[] = []
+  @State industryOptions: SelectorOption[] = []
   @State selectedIndustry: string = ''
   @State selectedRegionId: number = 0
   @State selectedRegionName: string = '地区'
@@ -31,12 +37,13 @@ struct CompanyPage {
   @State isLoading: boolean = true
   @State errorText: string = ''
   @State showRegionPanel: boolean = false
+  @State showIndustrySheet: boolean = false
   @State selectedEnterprise: EnterpriseListItem | null = null
   @State enterpriseJobs: TaskVO[] = []
   @State isLoadingJobs: boolean = false
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, string>
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params && params['keyword']) {
       this.keyword = params['keyword']
     }
@@ -53,15 +60,38 @@ struct CompanyPage {
     this.categories = await DataService.getCategoryTree()
     this.regions = await DataService.getRegionTree()
     this.regionOptions = this.flattenRegions(this.regions, '')
+    this.industryOptions = this.flattenCategories(this.categories, '')
   }
 
-  private flattenRegions(nodes: RegionNode[], prefix: string): RegionOption[] {
-    const result: RegionOption[] = []
+  private flattenRegions(nodes: RegionNode[], prefix: string): SelectorOption[] {
+    const result: SelectorOption[] = []
     for (const node of nodes) {
       const fullName = prefix ? prefix + ' / ' + node.name : node.name
-      result.push({ id: node.id, name: fullName })
+      result.push({ id: node.id, label: fullName })
       if (node.children && node.children.length > 0) {
-        result.push(...this.flattenRegions(node.children, fullName))
+        for (const child of node.children) {
+          const childOptions = this.flattenRegions([child], fullName)
+          for (const option of childOptions) {
+            result.push(option)
+          }
+        }
+      }
+    }
+    return result
+  }
+
+  private flattenCategories(nodes: CategoryNode[], prefix: string): SelectorOption[] {
+    const result: SelectorOption[] = []
+    for (const node of nodes) {
+      const label = prefix ? prefix + ' / ' + node.name : node.name
+      result.push({ id: node.id, label: label })
+      if (node.children && node.children.length > 0) {
+        for (const child of node.children) {
+          const childOptions = this.flattenCategories([child], label)
+          for (const option of childOptions) {
+            result.push(option)
+          }
+        }
       }
     }
     return result
@@ -76,6 +106,7 @@ struct CompanyPage {
       this.loadEnterprises()
     }
   }
+
   private async loadEnterprises(): Promise<void> {
     this.isLoading = true
     this.errorText = ''
@@ -112,9 +143,9 @@ struct CompanyPage {
     this.loadEnterprises()
   }
 
-  private selectRegion(region: RegionOption): void {
-    this.selectedRegionId = region.id
-    this.selectedRegionName = region.name
+  private selectRegion(option: SelectorOption): void {
+    this.selectedRegionId = Number(option.id)
+    this.selectedRegionName = option.label
     this.showRegionPanel = false
     this.page = 1
     this.loadEnterprises()
@@ -139,6 +170,28 @@ struct CompanyPage {
     this.loadEnterprises()
   }
 
+  private selectedSortIndex(): number {
+    const index = SORT_FIELDS.indexOf(this.sortBy)
+    return index < 0 ? 0 : index
+  }
+
+  private buildFilterChips(): FilterChipData[] {
+    const chips: FilterChipData[] = []
+    chips.push({
+      icon: $r('sys.symbol.map'),
+      label: this.selectedRegionName,
+      active: this.selectedRegionId > 0,
+      hasClose: this.selectedRegionId > 0
+    })
+    chips.push({
+      icon: $r('sys.symbol.briefcase'),
+      label: this.selectedIndustry.length > 0 ? this.selectedIndustry : '全部行业',
+      active: this.selectedIndustry.length > 0,
+      hasClose: this.selectedIndustry.length > 0
+    })
+    return chips
+  }
+
   private async showEnterprise(item: EnterpriseListItem): Promise<void> {
     this.selectedEnterprise = item
     this.enterpriseJobs = []
@@ -157,7 +210,7 @@ struct CompanyPage {
   }
 
   private goToJob(taskId: number): void {
-    router.pushUrl({ url: 'pages/JobDetailPage', params: { jobId: taskId } })
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/JobDetailPage', params: { jobId: taskId } })
   }
 
   private salaryText(job: TaskVO): string {
@@ -181,35 +234,8 @@ struct CompanyPage {
     return '职位'
   }
 
-  @Builder filterChip(label: string, active: boolean, onClick: () => void) {
-    Button() {
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(active ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
-        .maxLines(1)
-    }
-    .height(32)
-    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-    .backgroundColor(active ? AppColors.SELECTED_BG : AppColors.INPUT_BG)
-    .borderRadius(AppRadius.FULL)
-    .onClick(onClick)
-    .animation({ duration: 180 })
-  }
-
-  @Builder sortButton(label: string, field: string) {
-    Button() {
-      Text(label + (this.sortBy === field ? (this.sortOrder === 'desc' ? ' ↓' : ' ↑') : ''))
-        .fontSize(AppFontSize.XS)
-        .fontColor(this.sortBy === field ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
-    }
-    .height(34)
-    .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-    .backgroundColor(this.sortBy === field ? AppColors.SELECTED_BG : Color.Transparent)
-    .borderRadius(AppRadius.SM)
-    .onClick(() => this.setSort(field))
-  }
-
-  @Builder enterpriseItem(item: EnterpriseListItem) {
+  @Builder
+  enterpriseItem(item: EnterpriseListItem) {
     Row({ space: AppSpacing.MD }) {
       Stack() {
         Text((item.companyName || '企').charAt(0))
@@ -241,8 +267,8 @@ struct CompanyPage {
           }
           Text('已认证')
             .fontSize(11)
-              .fontColor(AppColors.SUCCESS)
-              .backgroundColor(AppColors.SELECTED_BG)
+            .fontColor(AppColors.SUCCESS)
+            .backgroundColor(AppColors.SELECTED_BG)
             .padding({ left: 8, right: 8, top: 3, bottom: 3 })
             .borderRadius(AppRadius.SM)
         }
@@ -270,16 +296,27 @@ struct CompanyPage {
     .animation({ duration: 180 })
   }
 
-  @Builder companyList() {
+  @Builder
+  companyList() {
     Column() {
-      Row() {
-        Text('共 ' + this.totalCount + ' 家已认证企业')
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.TEXT_MUTED)
-        Blank()
-        this.sortButton('默认', '')
-        this.sortButton('岗位', 'jobCount')
-        this.sortButton('薪资', 'avgSalary')
+      Column({ space: AppSpacing.SM }) {
+        Row() {
+          Text('共 ' + this.totalCount + ' 家已认证企业')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED)
+          Blank()
+        }
+        .width('100%')
+
+        ChoiceChips({
+          options: SORT_OPTIONS,
+          selected: this.selectedSortIndex(),
+          onSelect: (index: number): void => {
+            if (index >= 0 && index < SORT_FIELDS.length) {
+              this.setSort(SORT_FIELDS[index])
+            }
+          }
+        })
       }
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
@@ -341,7 +378,8 @@ struct CompanyPage {
     .width('100%')
   }
 
-  @Builder jobItem(job: TaskVO) {
+  @Builder
+  jobItem(job: TaskVO) {
     Column({ space: AppSpacing.XS }) {
       Row() {
         Text(job.title)
@@ -354,7 +392,7 @@ struct CompanyPage {
         Text(this.salaryText(job))
           .fontSize(AppFontSize.SM)
           .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.DANGER)
+          .fontColor(AppColors.DANGER)
       }
       Row({ space: AppSpacing.SM }) {
         Text(this.jobTypeText(job.jobType)).fontSize(AppFontSize.XS).fontColor(AppColors.PRIMARY)
@@ -370,7 +408,8 @@ struct CompanyPage {
     .stateStyles({ pressed: { .backgroundColor(AppColors.SELECTED_BG) } })
   }
 
-  @Builder companyDetail() {
+  @Builder
+  companyDetail() {
     if (this.selectedEnterprise) {
       Column() {
         NavBar({ title: '企业详情', showBack: true, onBack: () => this.goBackToList() })
@@ -454,53 +493,35 @@ struct CompanyPage {
     }
   }
 
-  @Builder regionPanel() {
-    if (this.showRegionPanel) {
-      Stack() {
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor('rgba(0, 0, 0, 0.28)')
-          .onClick(() => this.showRegionPanel = false)
-        Column({ space: AppSpacing.SM }) {
-          Row() {
-            Text('选择地区').fontSize(AppFontSize.MD).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
-            Blank()
-            Button('不限', { type: ButtonType.Capsule })
-              .height(32)
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.PRIMARY)
-              .backgroundColor(AppColors.SELECTED_BG)
-              .onClick((): void => this.clearRegion())
-          }
-          .width('100%')
-          List() {
-            ForEach(this.regionOptions, (region: RegionOption) => {
-              ListItem() {
-                Text(region.name)
-                  .width('100%')
-                  .height(48)
-                  .fontSize(AppFontSize.SM)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .padding({ left: AppSpacing.SM })
-                  .onClick(() => this.selectRegion(region))
-              }
-            }, (region: RegionOption) => region.id.toString())
-          }
-          .height(260)
-          .width('100%')
-        }
-        .width('100%')
-        .padding(AppSpacing.LG)
-        .backgroundColor(AppColors.BG_CARD)
-        .borderRadius({ topLeft: AppRadius.LG, topRight: AppRadius.LG })
-        .align(Alignment.Bottom)
-        .transition({ opacity: 0, translate: { y: 24 } })
-        .animation({ duration: 220 })
+  @Builder
+  regionSheet() {
+    SelectorSheet({
+      title: '选择地区',
+      options: this.regionOptions,
+      selectedId: this.selectedRegionId,
+      emptyMessage: '暂无地区数据',
+      emptyActionText: '重新加载',
+      onSelect: (option: SelectorOption): void => {
+        this.selectRegion(option)
+      },
+      onEmptyAction: (): void => {
+        this.loadFilters()
       }
-      .width('100%')
-      .height('100%')
-    }
+    })
+  }
+
+  @Builder
+  industrySheet() {
+    SelectorSheet({
+      title: '选择行业',
+      options: this.industryOptions,
+      selectedId: this.selectedIndustry,
+      emptyMessage: '暂无行业数据',
+      onSelect: (option: SelectorOption): void => {
+        this.selectIndustry(option.label)
+        this.showIndustrySheet = false
+      }
+    })
   }
 
   build() {
@@ -509,7 +530,7 @@ struct CompanyPage {
         this.companyDetail()
       } else {
         Column() {
-          NavBar({ title: '企业发现', showBack: true, onBack: () => router.back() })
+          NavBar({ title: '企业发现', showBack: true, onBack: () => this.getUIContext().getRouter().back() })
           Row() {
             TextInput({ placeholder: '搜索企业名称', text: this.keyword })
               .layoutWeight(1)
@@ -528,19 +549,25 @@ struct CompanyPage {
           .width('100%')
           .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
 
-          Scroll() {
-            Row({ space: AppSpacing.SM }) {
-              this.filterChip(this.selectedRegionName, this.selectedRegionId > 0, () => this.showRegionPanel = true)
-              this.filterChip('全部行业', this.selectedIndustry.length === 0, () => this.selectIndustry(''))
-              ForEach(this.categories, (category: CategoryNode) => {
-                this.filterChip(category.name, this.selectedIndustry === category.name, () => this.selectIndustry(category.name))
-              }, (category: CategoryNode) => category.id.toString())
+          FilterChipBar({
+            chips: this.buildFilterChips(),
+            onChipClick: (index: number): void => {
+              if (index === 0) {
+                this.showRegionPanel = true
+              } else if (index === 1) {
+                this.showIndustrySheet = true
+              }
+            },
+            onClose: (index: number): void => {
+              if (index === 0) {
+                this.clearRegion()
+              } else if (index === 1) {
+                this.selectIndustry('')
+              }
             }
-            .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
-          }
-          .width('100%')
-          .scrollable(ScrollDirection.Horizontal)
-          .scrollBar(BarState.Off)
+          })
+            .width('100%')
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
 
           Scroll() {
             this.companyList()
@@ -552,9 +579,20 @@ struct CompanyPage {
         .height('100%')
         .backgroundColor(AppColors.BG_PAGE)
       }
-      this.regionPanel()
     }
     .width('100%')
     .height('100%')
+    .bindSheet($$this.showRegionPanel, this.regionSheet(), {
+      height: SheetSize.LARGE,
+      dragBar: true,
+      showClose: true,
+      backgroundColor: AppColors.BG_CARD
+    })
+    .bindSheet($$this.showIndustrySheet, this.industrySheet(), {
+      height: SheetSize.LARGE,
+      dragBar: true,
+      showClose: true,
+      backgroundColor: AppColors.BG_CARD
+    })
   }
 }

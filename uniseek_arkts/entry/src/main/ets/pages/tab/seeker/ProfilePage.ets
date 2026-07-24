@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { AuthService } from '../../../services/AuthService';
 import { UserService } from '../../../services/UserService';
 import { ApiClient } from '../../../services/ApiClient';
@@ -71,9 +70,9 @@ export struct ProfilePage {
       Column() {
         Row() {
           Image(this.avatarSource())
-            .width(72)
-            .height(72)
-            .borderRadius(36)
+            .width(AppSpacing.AVATAR_XL)
+            .height(AppSpacing.AVATAR_XL)
+            .borderRadius(AppSpacing.AVATAR_XL / 2)
 
           Column() {
             Text(this.username)
@@ -87,15 +86,16 @@ export struct ProfilePage {
                 .fontColor(this.isVerified ? AppColors.SUCCESS : AppColors.PRIMARY)
               if (!this.isVerified) {
                 SymbolGlyph($r('sys.symbol.chevron_right'))
-                  .fontSize(14)
+                  .fontSize(AppFontSize.SM)
                   .fontColor([AppColors.PRIMARY])
                   .margin({ left: AppSpacing.XS })
               }
             }
             .margin({ top: AppSpacing.SM })
+            .accessibilityText('实名认证')
             .onClick(() => {
               if (!this.isVerified) {
-                router.pushUrl({ url: 'pages/RealNameAuthPage' })
+                this.getUIContext().getRouter().pushUrl({ url: 'pages/RealNameAuthPage' })
               }
             })
           }
@@ -106,8 +106,9 @@ export struct ProfilePage {
           SymbolGlyph($r('sys.symbol.chevron_right'))
             .fontSize(AppFontSize.MD)
             .fontColor([AppColors.TEXT_MUTED])
+            .accessibilityText('个人资料')
             .onClick(() => {
-              router.pushUrl({ url: 'pages/ProfileDetailPage' })
+              this.getUIContext().getRouter().pushUrl({ url: 'pages/ProfileDetailPage' })
             })
             .stateStyles({
               pressed: {
@@ -116,7 +117,7 @@ export struct ProfilePage {
             })
         }
         .width('100%')
-        .height(104)
+        .height(AppSpacing.HEADER_HEIGHT)
         .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
         .alignItems(VerticalAlign.Center)
       }
@@ -130,7 +131,7 @@ export struct ProfilePage {
             .fontColor(AppColors.DANGER)
             .layoutWeight(1)
           Button('重试', { type: ButtonType.Capsule })
-            .height(32)
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
@@ -146,13 +147,13 @@ export struct ProfilePage {
       Column() {
         Column() {
           this.menuItem('已投简历', $r('sys.symbol.doc_text'), 'pages/SubmittedPage')
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItem('收藏', $r('sys.symbol.star'), 'pages/FavoritesPage')
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItem('个人简历', $r('sys.symbol.doc_text'), 'pages/ResumePage')
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItem('设置', $r('sys.symbol.gearshape'), 'pages/SettingsPage')
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItem('账号管理', $r('sys.symbol.lock'), 'pages/ProfileDetailPage')
         }
         .width('100%')
@@ -169,9 +170,9 @@ export struct ProfilePage {
   @Builder
   statsCard() {
     Row() {
-      this.statItem(this.applications, '已投简历', (): void => { router.pushUrl({ url: 'pages/SubmittedPage', params: { tab: 'applications' } }) })
-      this.statItem(this.interviews, '待面试', (): void => { router.pushUrl({ url: 'pages/SubmittedPage', params: { tab: 'interviews' } }) })
-      this.statItem(this.favorites, '收藏职位', (): void => { router.pushUrl({ url: 'pages/FavoritesPage' }) })
+      this.statItem(this.applications, '已投简历', (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/SubmittedPage', params: { tab: 'applications' } }) })
+      this.statItem(this.interviews, '待面试', (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/SubmittedPage', params: { tab: 'interviews' } }) })
+      this.statItem(this.favorites, '收藏职位', (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/FavoritesPage' }) })
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceAround)
@@ -201,7 +202,7 @@ export struct ProfilePage {
   @Builder menuItem(text: string, icon: Resource, target: string) {
     Row() {
       SymbolGlyph(icon)
-        .fontSize(22)
+        .fontSize(AppFontSize.ICON_LG)
         .fontColor([AppColors.TEXT_PRIMARY])
         .margin({ right: AppSpacing.MD })
       Text(text)
@@ -209,14 +210,15 @@ export struct ProfilePage {
         .fontColor(AppColors.TEXT_PRIMARY)
         .layoutWeight(1)
       SymbolGlyph($r('sys.symbol.chevron_right'))
-        .fontSize(16)
+        .fontSize(AppFontSize.MD)
         .fontColor([AppColors.TEXT_MUTED])
     }
     .width('100%')
-    .height(56)
+    .height(AppSpacing.BOTTOM_ACTION_HEIGHT)
     .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+    .accessibilityText(text)
     .onClick(() => {
-      router.pushUrl({ url: target })
+      this.getUIContext().getRouter().pushUrl({ url: target })
     })
     .stateStyles({
       pressed: {

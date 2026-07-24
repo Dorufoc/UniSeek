@@ -1,8 +1,7 @@
 import { HomePage } from './tab/seeker/HomePage'
 import { ChatPage } from './tab/seeker/ChatPage'
 import { ProfilePage } from './tab/seeker/ProfilePage'
-import { AppColors } from '../common/AppStyles';
-import { router } from '@kit.ArkUI';
+import { AppFontSize, AppSpacing } from '../common/AppStyles';
 
 @Entry
 @Component
@@ -24,17 +23,19 @@ struct MainPage {
   @Builder tabItem(label: string, icon: Resource, index: number) {
     Column() {
       SymbolGlyph(icon)
-        .fontSize(24)
-        .fontColor([this.currentIndex === index ? AppColors.PRIMARY : AppColors.TEXT_MUTED])
+        .fontSize(AppFontSize.XXL)
+        .fontColor([this.currentIndex === index ? $r('sys.color.brand') : $r('sys.color.icon_tertiary')])
+        .symbolEffect(new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN), this.currentIndex === index)
       Text(label)
-        .fontSize(10)
-        .fontColor(this.currentIndex === index ? AppColors.PRIMARY : AppColors.TEXT_MUTED)
+        .fontSize(AppFontSize.XXS)
+        .fontColor(this.currentIndex === index ? $r('sys.color.brand') : $r('sys.color.icon_tertiary'))
         .margin({ top: 4 })
     }
     .width('100%')
-    .height(56)
+    .height(AppSpacing.BOTTOM_ACTION_HEIGHT)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
+    .accessibilityText(label)
   }
 
   build() {

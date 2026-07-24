@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { RecruiterService } from '../services/RecruiterService';
 import {
   RecruiterJobVO,
@@ -9,6 +8,9 @@ import {
 } from '../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+import { StandardCard } from '../common/StandardCard';
+import { ErrorView } from '../components/ErrorView';
+import { EmptyView } from '../components/EmptyView';
 
 @Entry
 @Component
@@ -58,14 +60,14 @@ struct RecruiterPublishJobPage {
       NavBar({
         title: '发布职位',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       if (this.isLoading) {
         Column() {
           LoadingProgress()
-            .width(28)
-            .height(28)
+            .width(AppSpacing.ICON_MD)
+            .height(AppSpacing.ICON_MD)
             .color(AppColors.PRIMARY)
           Text('正在加载职位')
             .fontSize(AppFontSize.SM)
@@ -76,25 +78,13 @@ struct RecruiterPublishJobPage {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else if (this.errorText) {
-        Column({ space: AppSpacing.MD }) {
-          SymbolGlyph($r('sys.symbol.exclamationmark_circle'))
-            .fontSize(32)
-            .fontColor([AppColors.DANGER])
-          Text(this.errorText)
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.TEXT_SECONDARY)
-            .textAlign(TextAlign.Center)
-          Button('重新加载', { type: ButtonType.Capsule })
-            .height(40)
-            .fontSize(AppFontSize.SM)
-            .fontColor('#FFFFFF')
-            .backgroundColor(AppColors.PRIMARY)
-            .onClick(() => { this.loadJobs() })
-        }
-        .layoutWeight(1)
-        .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        ErrorView({
+          message: this.errorText,
+          retryText: '重新加载',
+          onRetry: () => { this.loadJobs() }
+        })
+          .width('100%')
+          .layoutWeight(1)
       } else {
         Scroll() {
           Column() {
@@ -105,7 +95,7 @@ struct RecruiterPublishJobPage {
                   .fontColor(AppColors.DANGER)
                   .layoutWeight(1)
                 Button('重试', { type: ButtonType.Capsule })
-                  .height(32)
+                  .height(AppSpacing.BUTTON_HEIGHT_MINI)
                   .fontSize(AppFontSize.XS)
                   .fontColor(AppColors.PRIMARY)
                   .backgroundColor(AppColors.SELECTED_BG)
@@ -125,11 +115,11 @@ struct RecruiterPublishJobPage {
                   .layoutWeight(1)
                 if (this.auditStatus === -1) {
                   Button('去认证', { type: ButtonType.Capsule })
-                    .height(32)
+                    .height(AppSpacing.BUTTON_HEIGHT_MINI)
                     .fontSize(AppFontSize.XS)
                     .fontColor(AppColors.PRIMARY)
                     .backgroundColor(AppColors.SELECTED_BG)
-                    .onClick(() => { router.pushUrl({ url: 'pages/RecruiterEnterprisePage' }) })
+                    .onClick(() => { this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterEnterprisePage' }) })
                 }
               }
               .width('100%')
@@ -145,7 +135,7 @@ struct RecruiterPublishJobPage {
                 .fontColor('#FFFFFF')
             }
               .width('100%')
-              .height(48)
+              .height(AppSpacing.INPUT_HEIGHT)
               .backgroundColor(this.auditStatus === 1 ? AppColors.PRIMARY : AppColors.TEXT_MUTED)
               .margin({ top: AppSpacing.SM })
               .enabled(this.auditStatus === 1)
@@ -154,7 +144,7 @@ struct RecruiterPublishJobPage {
                   this.getUIContext().showAlertDialog({ message: '企业资质审核未通过，暂无法发布职位', confirm: { value: '确定', action: () => {} } })
                   return
                 }
-                router.pushUrl({ url: 'pages/RecruiterJobFormPage' })
+                this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterJobFormPage' })
               })
               .stateStyles({
                 pressed: {
@@ -171,23 +161,35 @@ struct RecruiterPublishJobPage {
               })
 
             if (this.jobList.length === 0) {
-              Column() {
-                Text('暂无已发布职位')
-                  .fontSize(AppFontSize.SM)
-                  .fontColor(AppColors.TEXT_MUTED)
-                  .margin({ top: AppSpacing.XXL })
-              }
-              .width('100%')
-              .alignItems(HorizontalAlign.Center)
+              EmptyView({ message: '暂无已发布职位' })
+                .width('100%')
+                .layoutWeight(1)
             } else {
               ForEach(this.jobList, (job: RecruiterJobVO) => {
-                JobManageCard({
-                  job: job,
-                  onDelete: () => { this.confirmStatusChange(job) },
-                  onApplications: () => { this.openApplications(job) },
-                  onEdit: () => { this.openEdit(job) },
-                  onResubmit: () => { this.confirmResubmit(job) }
-                })
+                Column() {
+                  StandardCard({
+                    onClickAction: () => {
+                      this.getUIContext().getRouter().pushUrl({
+                        url: 'pages/JobDetailPage',
+                        params: {
+                          jobData: JSON.stringify(job),
+                          hideActions: 'true'
+                        }
+                      })
+                    },
+                    accessibilityLabel: job.title
+                  }) {
+                    JobManageCard({
+                      job: job,
+                      onDelete: () => { this.confirmStatusChange(job) },
+                      onApplications: () => { this.openApplications(job) },
+                      onEdit: () => { this.openEdit(job) },
+                      onResubmit: () => { this.confirmResubmit(job) }
+                    })
+                  }
+                }
+                .width('100%')
+                .margin({ top: AppSpacing.SM })
               }, (job: RecruiterJobVO) => job.id.toString())
             }
           }
@@ -259,14 +261,14 @@ struct RecruiterPublishJobPage {
   }
 
   openEdit(job: RecruiterJobVO): void {
-    router.pushUrl({
+    this.getUIContext().getRouter().pushUrl({
       url: 'pages/RecruiterJobFormPage',
       params: { jobId: String(job.id) }
     })
   }
 
   openApplications(job: RecruiterJobVO): void {
-    router.pushUrl({
+    this.getUIContext().getRouter().pushUrl({
       url: 'pages/RecruiterApplicationsPage',
       params: { jobId: String(job.id), jobTitle: job.title }
     })
@@ -309,7 +311,7 @@ struct JobManageCard {
               .fontColor(this.job.status === 1 ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
               .backgroundColor(this.job.status === 1 ? AppColors.SUCCESS_BG : AppColors.INPUT_BG)
               .borderRadius(AppRadius.SM)
-              .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 2, bottom: 2 })
+              .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
 
             Text(this.job.applicationCount.toString() + '人投递')
               .fontSize(AppFontSize.XS)
@@ -325,7 +327,7 @@ struct JobManageCard {
 
       Row({ space: AppSpacing.XS }) {
         Button(this.job.applicationCount + '份投递', { type: ButtonType.Capsule })
-          .height(32)
+          .height(AppSpacing.BUTTON_HEIGHT_MINI)
           .fontSize(AppFontSize.XS)
           .fontColor(AppColors.PRIMARY)
           .backgroundColor(AppColors.SELECTED_BG)
@@ -336,14 +338,14 @@ struct JobManageCard {
 
         if (this.job.status === 0 && this.job.rejectReason) {
           Button('编辑', { type: ButtonType.Capsule })
-            .height(32)
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
             .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
             .onClick(() => { this.onEdit?.() })
           Button('重新提交', { type: ButtonType.Capsule })
-            .height(32)
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.SUCCESS)
             .backgroundColor(AppColors.SUCCESS_BG)
@@ -353,10 +355,10 @@ struct JobManageCard {
           Text('审核中')
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.WARNING)
-            .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 8, bottom: 8 })
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.SM, bottom: AppSpacing.SM })
         } else if (this.job.status === 1 || this.job.status === 4) {
           Button(this.job.status === 1 ? '下架' : '上架', { type: ButtonType.Capsule })
-            .height(32)
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
             .fontSize(AppFontSize.XS)
             .fontColor(this.job.status === 1 ? AppColors.DANGER : AppColors.SUCCESS)
             .backgroundColor(this.job.status === 1 ? AppColors.ERROR_BG : AppColors.SUCCESS_BG)
@@ -374,23 +376,5 @@ struct JobManageCard {
       .justifyContent(FlexAlign.End)
     }
     .width('100%')
-    .padding(AppSpacing.SM)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.LG)
-    .margin({ top: AppSpacing.SM })
-    .onClick(() => {
-      router.pushUrl({
-        url: 'pages/JobDetailPage',
-        params: {
-          jobData: JSON.stringify(this.job),
-          hideActions: 'true'
-        }
-      })
-    })
-    .stateStyles({
-      pressed: {
-        .backgroundColor(AppColors.SELECTED_BG)
-      }
-    })
   }
 }

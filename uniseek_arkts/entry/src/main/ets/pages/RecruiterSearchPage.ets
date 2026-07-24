@@ -1,7 +1,8 @@
-import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+import { EmptyView } from '../components/EmptyView';
+import { ErrorView } from '../components/ErrorView';
 import { ResumeData, ResumeService } from '../services/ResumeService';
 
 
@@ -132,11 +133,11 @@ struct RecruiterSearchPage {
       if (this.isDeleting) {
         Button({ type: ButtonType.Circle }) {
           SymbolGlyph($r('sys.symbol.xmark'))
-            .fontSize(14)
+            .fontSize(AppFontSize.SM)
             .fontColor([AppColors.DANGER])
         }
-          .width(28)
-          .height(28)
+          .width(AppSpacing.ICON_MD)
+          .height(AppSpacing.ICON_MD)
           .backgroundColor(AppColors.ERROR_BG)
           .margin({ left: AppSpacing.XS })
           .onClick(() => {
@@ -144,7 +145,7 @@ struct RecruiterSearchPage {
           })
       }
     }
-    .height(36)
+    .height(AppSpacing.BUTTON_HEIGHT_SM)
     .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
     .backgroundColor(Color.Transparent)
     .borderRadius(AppRadius.XL)
@@ -165,7 +166,7 @@ struct RecruiterSearchPage {
       NavBar({
         title: '搜索简历',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       Row() {
@@ -173,7 +174,7 @@ struct RecruiterSearchPage {
           .onChange((value: string) => {
             this.searchText = value
           })
-          .height(40)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .backgroundColor(AppColors.INPUT_BG)
           .borderRadius(AppRadius.FULL)
           .padding({ left: AppSpacing.MD })
@@ -185,7 +186,7 @@ struct RecruiterSearchPage {
             .fontSize(AppFontSize.SM)
             .fontColor('#FFFFFF')
         }
-          .height(40)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .backgroundColor(AppColors.PRIMARY)
           .margin({ left: AppSpacing.SM })
           .onClick(() => {
@@ -222,7 +223,7 @@ struct RecruiterSearchPage {
         if (this.isDeleting) {
           Row({ space: AppSpacing.XS }) {
             Button('全部删除', { type: ButtonType.Capsule })
-              .height(32)
+              .height(AppSpacing.BUTTON_HEIGHT_MINI)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.DANGER)
               .backgroundColor(AppColors.ERROR_BG)
@@ -231,7 +232,7 @@ struct RecruiterSearchPage {
                 this.clearAllHistory()
               })
             Button('完成', { type: ButtonType.Capsule })
-              .height(32)
+              .height(AppSpacing.BUTTON_HEIGHT_MINI)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.PRIMARY)
               .backgroundColor(AppColors.SELECTED_BG)
@@ -242,7 +243,7 @@ struct RecruiterSearchPage {
           }
         } else if (this.searchHistory.length > 0) {
           Button('编辑', { type: ButtonType.Capsule })
-            .height(32)
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
@@ -290,12 +291,12 @@ struct RecruiterSearchPage {
                   .fontSize(AppFontSize.SM)
                   .fontColor(AppColors.PRIMARY)
                 SymbolGlyph(this.showAll ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
-                  .fontSize(14)
+                  .fontSize(AppFontSize.SM)
                   .fontColor([AppColors.PRIMARY])
               }
             }
               .width('100%')
-              .height(36)
+              .height(AppSpacing.BUTTON_HEIGHT_SM)
               .backgroundColor(Color.Transparent)
               .margin({ top: AppSpacing.SM })
               .onClick(() => {
@@ -326,8 +327,8 @@ struct RecruiterSearchPage {
           if (this.loading) {
             Column() {
               LoadingProgress()
-                .width(28)
-                .height(28)
+                .width(AppSpacing.ICON_MD)
+                .height(AppSpacing.ICON_MD)
                 .color(AppColors.PRIMARY)
               Text('正在匹配人才')
                 .fontSize(AppFontSize.SM)
@@ -337,25 +338,16 @@ struct RecruiterSearchPage {
             .width('100%')
             .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
           } else if (this.errorText) {
-            Text(this.errorText)
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.DANGER)
-              .width('100%')
-              .padding(AppSpacing.MD)
-              .backgroundColor(AppColors.ERROR_BG)
-              .borderRadius(AppRadius.SM)
+            ErrorView({
+              message: this.errorText,
+              retryText: '重新搜索',
+              onRetry: (): void => { this.searchResumes(this.searchText.trim()) }
+            })
           } else if (this.results.length === 0) {
-            Column() {
-              SymbolGlyph($r('sys.symbol.person'))
-                .fontSize(32)
-                .fontColor([AppColors.TEXT_MUTED])
-              Text('暂无匹配的人才')
-                .fontSize(AppFontSize.MD)
-                .fontColor(AppColors.TEXT_SECONDARY)
-                .margin({ top: AppSpacing.SM })
-            }
-            .width('100%')
-            .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
+            EmptyView({
+              message: '暂无匹配的人才',
+              icon: $r('sys.symbol.person')
+            })
           } else {
             List({ space: AppSpacing.SM }) {
               ForEach(this.results, (resume: ResumeData) => {
@@ -371,7 +363,7 @@ struct RecruiterSearchPage {
                     .height(44)
                     .justifyContent(FlexAlign.Center)
                     .backgroundColor(AppColors.PRIMARY)
-                    .borderRadius(22)
+                    .borderRadius(AppRadius.FULL)
 
                     Column() {
                       Row() {
@@ -397,7 +389,7 @@ struct RecruiterSearchPage {
                     .margin({ left: AppSpacing.MD })
 
                     SymbolGlyph($r('sys.symbol.chevron_right'))
-                      .fontSize(16)
+                      .fontSize(AppFontSize.MD)
                       .fontColor([AppColors.TEXT_MUTED])
                   }
                   .width('100%')
@@ -405,7 +397,7 @@ struct RecruiterSearchPage {
                   .backgroundColor(AppColors.BG_CARD)
                   .borderRadius(AppRadius.MD)
                   .onClick(() => {
-                    router.pushUrl({
+                    this.getUIContext().getRouter().pushUrl({
                       url: 'pages/ResumeDetailPage',
                       params: {
                         resumeData: JSON.stringify({

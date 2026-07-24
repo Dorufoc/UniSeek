@@ -1,8 +1,12 @@
-import { router } from '@kit.ArkUI'
-import { AppColors, AppFontSize, AppRadius, AppShadow, AppSpacing } from '../../../common/AppStyles'
+import { AppColors, AppFontSize, AppSpacing } from '../../../common/AppStyles'
+import { StandardCard } from '../../../common/StandardCard'
+import { EmptyView } from '../../../components/EmptyView'
+import { ErrorView } from '../../../components/ErrorView'
+import { LoadMoreFooter } from '../../../components/LoadMoreFooter'
 import { PageLoadPolicy, TalentFilterPolicy } from '../../../common/BusinessPolicies'
 import { ResumeCardData } from '../../../services/RecruiterTypes'
 import { ResumeData, ResumeService } from '../../../services/ResumeService'
+import { FilterChipBar, FilterChipData } from '../../../components/filter/FilterChipBar'
 
 const TALENT_FILTERS: string[] = ['全部', '有附件简历', '在校生', '有工作经验']
 
@@ -18,45 +22,43 @@ export struct RecruiterHomeTab {
 
   @Builder
   resumeCard(resume: ResumeCardData) {
-    Row({ space: AppSpacing.SM }) {
-      Column() {
-        Text(resume.name || '匿名候选人')
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(resume.school || resume.education || '暂未填写教育经历')
-          .fontSize(AppFontSize.SM)
-          .fontColor(AppColors.TEXT_SECONDARY)
-          .margin({ top: AppSpacing.XS })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        if (resume.skills) {
-          Text(resume.skills)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.TEXT_MUTED)
-            .margin({ top: AppSpacing.XS })
-            .maxLines(2)
+    StandardCard({
+      onClickAction: (): void => {
+        this.getUIContext().getRouter().pushUrl({ url: 'pages/ResumeDetailPage', params: { resumeData: JSON.stringify(resume) } })
+      },
+      accessibilityLabel: '查看候选人简历'
+    }) {
+      Row({ space: AppSpacing.SM }) {
+        Column() {
+          Text(resume.name || '匿名候选人')
+            .fontSize(AppFontSize.MD)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppColors.TEXT_PRIMARY)
+            .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(resume.school || resume.education || '暂未填写教育经历')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .margin({ top: AppSpacing.XS })
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          if (resume.skills) {
+            Text(resume.skills)
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_MUTED)
+              .margin({ top: AppSpacing.XS })
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
         }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(AppFontSize.MD)
+          .fontColor([AppColors.TEXT_MUTED])
       }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-      SymbolGlyph($r('sys.symbol.chevron_right'))
-        .fontSize(16)
-        .fontColor([AppColors.TEXT_MUTED])
+      .width('100%')
     }
-    .width('100%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_CARD)
-    .border({ width: 1, color: AppColors.BORDER })
-    .borderRadius(AppRadius.MD)
-    .shadow(AppShadow.SM)
-    .onClick((): void => {
-      router.pushUrl({ url: 'pages/ResumeDetailPage', params: { resumeData: JSON.stringify(resume) } })
-    })
-    .stateStyles({ pressed: { .backgroundColor(AppColors.SELECTED_BG).scale({ x: 0.99, y: 0.99 }) } })
   }
 
   aboutToAppear(): void {
@@ -119,6 +121,17 @@ export struct RecruiterHomeTab {
     void this.loadResumes(true)
   }
 
+  private buildFilterChips(): FilterChipData[] {
+    const chips: FilterChipData[] = []
+    for (const filter of TALENT_FILTERS) {
+      chips.push({
+        label: filter,
+        active: this.selectedFilter === filter
+      })
+    }
+    return chips
+  }
+
   build() {
     Column() {
       Row() {
@@ -128,57 +141,43 @@ export struct RecruiterHomeTab {
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Button({ type: ButtonType.Capsule }) {
-          SymbolGlyph($r('sys.symbol.magnifyingglass')).fontSize(18).fontColor([AppColors.TEXT_SECONDARY])
+          SymbolGlyph($r('sys.symbol.magnifyingglass')).fontSize(AppFontSize.ICON_MD).fontColor([AppColors.TEXT_SECONDARY])
         }
-        .width(40)
-        .height(40)
+        .width(AppSpacing.ICON_LG)
+        .height(AppSpacing.ICON_LG)
         .backgroundColor(AppColors.INPUT_BG)
         .accessibilityText('搜索人才')
-        .onClick((): void => { router.pushUrl({ url: 'pages/RecruiterSearchPage' }) })
+        .onClick((): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterSearchPage' }) })
       }
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
 
-      Scroll() {
-        Row({ space: AppSpacing.SM }) {
-          ForEach(TALENT_FILTERS, (filter: string) => {
-            Button(filter, { type: ButtonType.Capsule })
-              .height(32)
-              .fontSize(AppFontSize.XS)
-              .fontColor(this.selectedFilter === filter ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-              .backgroundColor(this.selectedFilter === filter ? AppColors.PRIMARY : AppColors.INPUT_BG)
-              .onClick((): void => { this.selectFilter(filter) })
-          }, (filter: string): string => filter)
+      FilterChipBar({
+        chips: this.buildFilterChips(),
+        onChipClick: (index: number): void => {
+          if (index >= 0 && index < TALENT_FILTERS.length) {
+            this.selectFilter(TALENT_FILTERS[index])
+          }
         }
+      })
+        .width('100%')
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-      }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
-      .width('100%')
-      .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
 
       if (this.isLoading) {
-        LoadingProgress().width(32).height(32).color(AppColors.PRIMARY).margin({ top: 96 })
+        LoadingProgress().width(32).height(AppSpacing.BUTTON_HEIGHT_MINI).color(AppColors.PRIMARY).margin({ top: 96 })
       } else if (this.errorText) {
-        Column({ space: AppSpacing.SM }) {
-          Text(this.errorText).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
-          Button('重新加载', { type: ButtonType.Capsule })
-            .height(40)
-            .backgroundColor(AppColors.PRIMARY)
-            .fontColor('#FFFFFF')
-            .onClick((): void => { void this.loadResumes(true) })
-        }
-        .width('100%')
-        .margin({ top: 96 })
-        .alignItems(HorizontalAlign.Center)
+        ErrorView({
+          message: this.errorText,
+          retryText: '重新加载',
+          onRetry: (): void => { void this.loadResumes(true) }
+        })
+          .margin({ top: 96 })
       } else if (this.resumes.length === 0) {
-        Column({ space: AppSpacing.SM }) {
-          Text('暂无可查看的人才').fontSize(AppFontSize.MD).fontColor(AppColors.TEXT_SECONDARY)
-          Text('调整筛选条件后再试').fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_MUTED)
-        }
-        .width('100%')
-        .margin({ top: 96 })
-        .alignItems(HorizontalAlign.Center)
+        EmptyView({
+          message: '暂无可查看的人才，调整筛选条件后再试',
+          icon: $r('sys.symbol.person')
+        })
+          .margin({ top: 96 })
       } else {
         List({ space: AppSpacing.SM }) {
           ForEach(this.resumes, (resume: ResumeCardData) => {
@@ -186,14 +185,17 @@ export struct RecruiterHomeTab {
           }, (resume: ResumeCardData): string => resume.id)
           if (PageLoadPolicy.hasNext(this.currentPage, this.totalPages)) {
             ListItem() {
-              Button(this.isLoadingMore ? '加载中...' : '加载更多', { type: ButtonType.Capsule })
-                .width('100%')
-                .height(40)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.PRIMARY)
-                .backgroundColor(AppColors.SELECTED_BG)
-                .enabled(!this.isLoadingMore)
-                .onClick((): void => { void this.loadResumes(false) })
+              if (this.isLoadingMore) {
+                LoadMoreFooter({ loading: true, hasMore: true })
+              } else {
+                Button('加载更多', { type: ButtonType.Capsule })
+                  .width('100%')
+                  .height(AppSpacing.BUTTON_HEIGHT)
+                  .fontSize(AppFontSize.SM)
+                  .fontColor(AppColors.PRIMARY)
+                  .backgroundColor(AppColors.SELECTED_BG)
+                  .onClick((): void => { void this.loadResumes(false) })
+              }
             }
           }
         }

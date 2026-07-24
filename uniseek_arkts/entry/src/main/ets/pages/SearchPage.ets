@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
@@ -77,7 +76,7 @@ struct SearchPage {
   triggerSearch(text: string): void {
     this.searchText = text
     this.addToHistory(text)
-    router.pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
   }
 
   handleSearch(): void {
@@ -86,7 +85,7 @@ struct SearchPage {
       return
     }
     this.addToHistory(text)
-    router.pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchResultsPage', params: { keyword: text } })
   }
 
   getDisplayList(): string[] {
@@ -211,7 +210,7 @@ struct SearchPage {
       .backgroundColor(AppColors.SELECTED_BG)
       .borderRadius(AppRadius.FULL)
       .onClick(() => {
-        router.pushUrl({ url: 'pages/CompanyPage', params: { keyword: this.searchText.trim() } })
+        this.getUIContext().getRouter().pushUrl({ url: 'pages/CompanyPage', params: { keyword: this.searchText.trim() } })
       })
 
       Row() {

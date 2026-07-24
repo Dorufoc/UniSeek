@@ -2,44 +2,9 @@
 // 位于 Tabs 结构上方，含三颗筛选胶囊芯片：薪资、区域、类型
 // 芯片选中时品牌色高亮 + 更新文字摘要，未选中时灰色背景
 
-import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
+import { AppColors, AppFilter } from '../../../common/AppStyles';
 import { SALARY_UNIT_LABELS } from '../../../services/RecruiterTypes';
-
-// ==================== 内部芯片子组件 ====================
-
-@Component
-struct FilterChip {
-  icon?: Resource;
-  label: string = '';
-  isActive: boolean = false;
-  chipOnClick?: () => void;
-
-  build() {
-    Button({ type: ButtonType.Capsule }) {
-      Row() {
-        if (this.icon !== undefined) {
-          SymbolGlyph(this.icon!)
-            .fontSize(AppFontSize.XS)
-            .fontColor([this.isActive ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY]);
-        }
-        Text(this.label)
-          .fontSize(AppFontSize.XS)
-          .fontColor(this.isActive ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
-          .margin({ left: AppSpacing.XS });
-      }
-    }
-    .height(32)
-    .backgroundColor(this.isActive ? AppColors.SELECTED_BG : AppColors.INPUT_BG)
-    .borderRadius(AppRadius.FULL)
-    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-    .onClick(() => {
-      this.chipOnClick?.();
-    })
-    .animation({ duration: 180 });
-  }
-}
-
-// ==================== 导出筛选栏组件 ====================
+import { FilterChipBar, FilterChipData } from '../../../components/filter/FilterChipBar';
 
 @Component
 export struct FilterBar {
@@ -54,40 +19,6 @@ export struct FilterBar {
   onClearSalary?: () => void;
   onClearRegion?: () => void;
   onClearType?: () => void;
-
-  build() {
-    Row({ space: AppSpacing.SM }) {
-      FilterChip({
-        icon: $r('sys.symbol.creditcard'),
-        label: this.salaryLabel(),
-        isActive: this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0 || this.includeNegotiable,
-        chipOnClick: () => {
-          this.onShowSheet?.();
-        }
-      });
-      FilterChip({
-        icon: $r('sys.symbol.map'),
-        label: this.selectedRegion.length > 0 ? this.compactLabel(this.selectedRegion) : '区域',
-        isActive: this.selectedRegion.length > 0,
-        chipOnClick: () => {
-          this.onShowSheet?.();
-        }
-      });
-      FilterChip({
-        icon: $r('sys.symbol.line_3_horizontal'),
-        label: this.selectedType.length > 0 ? this.compactLabel(this.selectedType) : '类型',
-        isActive: this.selectedType.length > 0,
-        chipOnClick: () => {
-          this.onShowSheet?.();
-        }
-      });
-    }
-    .width('100%')
-    .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.XS })
-    .justifyContent(FlexAlign.Start)
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor(AppColors.BG_PAGE);
-  }
 
   // 生成薪资芯片标签文字
   private salaryLabel(): string {
@@ -119,5 +50,52 @@ export struct FilterBar {
       return parts[parts.length - 1];
     }
     return list[0] + '等' + list.length + '项';
+  }
+
+  private buildChips(): FilterChipData[] {
+    const salaryActive: boolean = this.salaryMin > 0 || this.salaryMax > 0 || this.selectedSalaryUnit >= 0 || this.includeNegotiable;
+    const regionActive: boolean = this.selectedRegion.length > 0;
+    const typeActive: boolean = this.selectedType.length > 0;
+    return [
+      {
+        icon: $r('sys.symbol.creditcard'),
+        label: this.salaryLabel(),
+        active: salaryActive,
+        hasClose: salaryActive && this.onClearSalary !== undefined
+      },
+      {
+        icon: $r('sys.symbol.map'),
+        label: this.selectedRegion.length > 0 ? this.compactLabel(this.selectedRegion) : '区域',
+        active: regionActive,
+        hasClose: regionActive && this.onClearRegion !== undefined
+      },
+      {
+        icon: $r('sys.symbol.line_3_horizontal'),
+        label: this.selectedType.length > 0 ? this.compactLabel(this.selectedType) : '类型',
+        active: typeActive,
+        hasClose: typeActive && this.onClearType !== undefined
+      }
+    ];
+  }
+
+  build() {
+    FilterChipBar({
+      chips: this.buildChips(),
+      onChipClick: (index: number): void => {
+        this.onShowSheet?.();
+      },
+      onClose: (index: number): void => {
+        if (index === 0) {
+          this.onClearSalary?.();
+        } else if (index === 1) {
+          this.onClearRegion?.();
+        } else if (index === 2) {
+          this.onClearType?.();
+        }
+      }
+    })
+      .width('100%')
+      .padding({ left: AppFilter.CHIP_BAR_SPACE, right: AppFilter.CHIP_BAR_SPACE })
+      .backgroundColor(AppColors.BG_PAGE)
   }
 }

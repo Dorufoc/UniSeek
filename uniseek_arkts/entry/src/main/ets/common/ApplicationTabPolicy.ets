@@ -3,6 +3,9 @@ export class ApplicationTabPolicy {
     if (tab === 'interviews') {
       return 1
     }
+    if (tab === 'hired') {
+      return 2
+    }
     return 0
   }
 }

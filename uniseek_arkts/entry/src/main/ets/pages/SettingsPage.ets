@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { preferences } from '@kit.ArkData';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
@@ -15,7 +14,7 @@ struct SettingsPage {
     } catch {
     }
     await AuthService.logout()
-    router.replaceUrl({ url: 'pages/LoginPage' })
+    this.getUIContext().getRouter().replaceUrl({ url: 'pages/LoginPage' })
   }
 
   build() {
@@ -23,12 +22,12 @@ struct SettingsPage {
       NavBar({
         title: '设置',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       List({ space: AppSpacing.SM }) {
-        ListItem() { this.settingRow('用户协议', '查看服务使用规则', (): void => { router.pushUrl({ url: 'pages/UserAgreementPage' }) }) }
-        ListItem() { this.settingRow('隐私政策', '查看信息处理说明', (): void => { router.pushUrl({ url: 'pages/PrivacyPolicyPage' }) }) }
+        ListItem() { this.settingRow('用户协议', '查看服务使用规则', (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/UserAgreementPage' }) }) }
+        ListItem() { this.settingRow('隐私政策', '查看信息处理说明', (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/PrivacyPolicyPage' }) }) }
         ListItem() { this.settingRow('关于 UniSeek', '校园招聘与求职服务', (): void => {}) }
         ListItem() {
           Row() {

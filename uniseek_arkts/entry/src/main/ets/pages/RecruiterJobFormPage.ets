@@ -1,19 +1,13 @@
-import { router } from '@kit.ArkUI';
-import { AppAnimation, AppColors, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles';
+import { AppAnimation, AppColors, AppFilter, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 import { CategoryNode, DataService, RegionNode } from '../services/DataService';
 import { RecruiterService } from '../services/RecruiterService';
 import { RecruiterJobRequest } from '../services/RecruiterTypes';
-
-interface SelectorOption {
-  id: number
-  label: string
-}
-
-interface ChoiceOption {
-  value: number
-  label: string
-}
+import { SelectorSheet, SelectorOption } from '../components/filter/SelectorSheet';
+import { SelectorField } from '../components/filter/SelectorField';
+import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips';
+import { FilterSheetHeader } from '../components/filter/FilterSheetHeader';
+import { SelectorOptionItem } from '../components/filter/SelectorOptionItem';
 
 const SALARY_UNIT_OPTIONS: ChoiceOption[] = [
   { value: 0, label: '日薪' },
@@ -55,7 +49,7 @@ struct RecruiterJobFormPage {
   private editJobId: number = 0
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, string>
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params && params['jobId']) {
       this.editJobId = Number(params['jobId'])
     }
@@ -69,7 +63,7 @@ struct RecruiterJobFormPage {
       if (!enterprise || enterprise.auditStatus !== 1) {
         this.getUIContext().showAlertDialog({
           message: '企业资质审核通过后才能发布或编辑职位',
-          confirm: { value: '确定', action: (): void => { router.back() } },
+          confirm: { value: '确定', action: (): void => { this.getUIContext().getRouter().back() } },
           autoCancel: true
         })
         return
@@ -84,7 +78,7 @@ struct RecruiterJobFormPage {
     } catch {
       this.getUIContext().showAlertDialog({
         message: '表单数据加载失败，请稍后重试',
-        confirm: { value: '确定', action: (): void => { router.back() } },
+        confirm: { value: '确定', action: (): void => { this.getUIContext().getRouter().back() } },
         autoCancel: true
       })
     }
@@ -126,7 +120,7 @@ struct RecruiterJobFormPage {
     if (!job) {
       this.getUIContext().showAlertDialog({
         message: '职位信息加载失败，请返回列表后重试',
-        confirm: { value: '确定', action: (): void => { router.back() } },
+        confirm: { value: '确定', action: (): void => { this.getUIContext().getRouter().back() } },
         autoCancel: true
       })
       return
@@ -157,13 +151,13 @@ struct RecruiterJobFormPage {
   }
 
   selectCategory(option: SelectorOption): void {
-    this.categoryId = option.id
+    this.categoryId = Number(option.id)
     this.categoryLabel = option.label
     this.showCategorySheet = false
   }
 
   selectRegion(option: SelectorOption): void {
-    this.regionId = option.id
+    this.regionId = Number(option.id)
     this.regionLabel = option.label
     this.showRegionSheet = false
   }
@@ -224,7 +218,7 @@ struct RecruiterJobFormPage {
       this.showValidation('提交失败，请检查网络后重试')
       return
     }
-    router.back()
+    this.getUIContext().getRouter().back()
   }
 
   build() {
@@ -232,12 +226,12 @@ struct RecruiterJobFormPage {
       NavBar({
         title: this.editJobId > 0 ? '编辑职位' : '发布职位',
         showBack: true,
-        onBack: (): void => { router.back() }
+        onBack: (): void => { this.getUIContext().getRouter().back() }
       })
 
       if (this.isLoading) {
         Column() {
-          LoadingProgress().width(28).height(28).color(AppColors.PRIMARY)
+          LoadingProgress().width(AppSpacing.ICON_MD).height(AppSpacing.ICON_MD).color(AppColors.PRIMARY)
           Text('加载表单中')
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.TEXT_MUTED)
@@ -251,8 +245,18 @@ struct RecruiterJobFormPage {
           Column({ space: AppSpacing.MD }) {
             this.sectionTitle('基本信息')
             this.inputField('职位标题', '例如：周末餐厅服务员', this.title, (value: string): void => { this.title = value })
-            this.selectorField('职位分类', this.categoryLabel || '请选择职位分类', (): void => { this.showCategorySheet = true })
-            this.selectorField('工作地区', this.regionLabel || '请选择省 / 市 / 区', (): void => { this.showRegionSheet = true })
+            SelectorField({
+              label: '职位分类',
+              value: this.categoryLabel,
+              placeholder: '请选择职位分类',
+              onFieldClick: (): void => { this.showCategorySheet = true }
+            })
+            SelectorField({
+              label: '工作地区',
+              value: this.regionLabel,
+              placeholder: '请选择省 / 市 / 区',
+              onFieldClick: (): void => { this.showRegionSheet = true }
+            })
 
             Column() {
               Text('职位描述')
@@ -276,16 +280,47 @@ struct RecruiterJobFormPage {
               this.inputFieldHalf('最高薪资（元）', this.salaryMax, (value: string): void => { this.salaryMax = value })
             }
             .width('100%')
-            this.choiceRow('薪资单位', this.salaryUnit, SALARY_UNIT_OPTIONS, (value: number): void => { this.salaryUnit = value })
-            this.choiceRow('工作类型', this.jobType, JOB_TYPE_OPTIONS, (value: number): void => { this.jobType = value })
+            Column() {
+              Text('薪资单位')
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.TEXT_SECONDARY)
+                .width('100%')
+              ChoiceChips({
+                options: SALARY_UNIT_OPTIONS,
+                selected: this.salaryUnit,
+                onSelect: (value: number): void => { this.salaryUnit = value }
+              })
+                .margin({ top: AppSpacing.XS })
+            }
+            .width('100%')
+            .margin({ top: AppSpacing.SM })
+            Column() {
+              Text('工作类型')
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.TEXT_SECONDARY)
+                .width('100%')
+              ChoiceChips({
+                options: JOB_TYPE_OPTIONS,
+                selected: this.jobType,
+                onSelect: (value: number): void => { this.jobType = value }
+              })
+                .margin({ top: AppSpacing.XS })
+            }
+            .width('100%')
+            .margin({ top: AppSpacing.SM })
             this.numberField('招聘人数', '至少 1 人', this.totalQuota, (value: string): void => { this.totalQuota = value })
             this.inputField('工作地址', '例如：北京市朝阳区建国路 88 号', this.address, (value: string): void => { this.address = value })
             this.inputField('职位标签', '以英文逗号分隔，例如：急招,可远程', this.tagsText, (value: string): void => { this.tagsText = value })
-            this.selectorField('报名截止时间', this.deadline || '请选择截止时间', (): void => { this.showDeadlineSheet = true })
+            SelectorField({
+              label: '报名截止时间',
+              value: this.deadline,
+              placeholder: '请选择截止时间',
+              onFieldClick: (): void => { this.showDeadlineSheet = true }
+            })
 
             Button(this.isSubmitting ? '提交中...' : (this.editJobId > 0 ? '保存修改' : '立即发布'), { type: ButtonType.Capsule })
               .width('100%')
-              .height(48)
+              .height(AppSpacing.INPUT_HEIGHT)
               .fontSize(AppFontSize.MD)
               .fontWeight(FontWeight.Medium)
               .fontColor('#FFFFFF')
@@ -328,61 +363,34 @@ struct RecruiterJobFormPage {
 
   @Builder
   categorySheet() {
-    Column() {
-      Text('选择职位分类')
-        .fontSize(AppFontSize.LG)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.SM })
-      List() {
-        ForEach(this.categoryOptions, (option: SelectorOption) => {
-          ListItem() {
-            this.sheetOption(option, this.categoryId === option.id, (): void => { this.selectCategory(option) })
-          }
-        }, (option: SelectorOption) => String(option.id))
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .divider({ strokeWidth: 0.5, color: AppColors.BORDER, startMargin: AppSpacing.MD, endMargin: AppSpacing.MD })
-    }
-    .width('100%')
-    .height('100%')
+    SelectorSheet({
+      title: '选择职位分类',
+      options: this.categoryOptions,
+      selectedId: this.categoryId,
+      emptyMessage: '暂无职位分类',
+      onSelect: (option: SelectorOption): void => { this.selectCategory(option) }
+    })
   }
 
   @Builder
   regionSheet() {
-    Column() {
-      Text('选择工作地区')
-        .fontSize(AppFontSize.LG)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.SM })
-      List() {
-        ForEach(this.regionOptions, (option: SelectorOption) => {
-          ListItem() {
-            this.sheetOption(option, this.regionId === option.id, (): void => { this.selectRegion(option) })
-          }
-        }, (option: SelectorOption) => String(option.id))
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .divider({ strokeWidth: 0.5, color: AppColors.BORDER, startMargin: AppSpacing.MD, endMargin: AppSpacing.MD })
-    }
-    .width('100%')
-    .height('100%')
+    SelectorSheet({
+      title: '选择工作地区',
+      options: this.regionOptions,
+      selectedId: this.regionId,
+      emptyMessage: '暂无地区数据',
+      onSelect: (option: SelectorOption): void => { this.selectRegion(option) }
+    })
   }
 
   @Builder
   deadlineSheet() {
     Column() {
-      Text('选择报名截止时间')
-        .fontSize(AppFontSize.LG)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .width('100%')
-        .padding(AppSpacing.MD)
+      FilterSheetHeader({
+        title: '选择报名截止时间',
+        showReset: false
+      })
+
       DatePicker({
         start: new Date('2020-01-01'),
         end: new Date('2100-12-31'),
@@ -405,16 +413,16 @@ struct RecruiterJobFormPage {
           this.deadline = datePart + ' ' + this.twoDigits(hour) + ':' + this.twoDigits(minute)
         })
       Button('完成', { type: ButtonType.Capsule })
-        .width('90%')
-        .height(40)
+        .width('100%')
+        .height(AppSpacing.INPUT_HEIGHT)
         .fontSize(AppFontSize.MD)
         .fontColor('#FFFFFF')
         .backgroundColor(AppColors.PRIMARY)
-        .margin({ top: AppSpacing.MD })
+        .margin({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.XL })
         .onClick((): void => { this.showDeadlineSheet = false })
     }
     .width('100%')
-    .padding({ left: AppSpacing.MD, right: AppSpacing.MD, bottom: AppSpacing.XL })
+    .padding({ top: AppSpacing.XS, bottom: AppSpacing.XL })
   }
 
   deadlinePickerDate(): Date {
@@ -437,28 +445,6 @@ struct RecruiterJobFormPage {
   }
 
   @Builder
-  sheetOption(option: SelectorOption, selected: boolean, onClick: () => void) {
-    Row() {
-      Text(option.label)
-        .fontSize(AppFontSize.SM)
-        .fontColor(selected ? AppColors.PRIMARY : AppColors.TEXT_PRIMARY)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .layoutWeight(1)
-      if (selected) {
-        SymbolGlyph($r('sys.symbol.checkmark'))
-          .fontSize(18)
-          .fontColor([AppColors.PRIMARY])
-      }
-    }
-    .height(52)
-    .width('100%')
-    .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
-    .backgroundColor(selected ? AppColors.SELECTED_BG : AppColors.BG_CARD)
-    .onClick(onClick)
-  }
-
-  @Builder
   sectionTitle(title: string) {
     Text(title)
       .fontSize(AppFontSize.MD)
@@ -476,7 +462,7 @@ struct RecruiterJobFormPage {
         .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       TextInput({ placeholder: placeholder, text: value })
-        .height(44)
+        .height(AppSpacing.INPUT_HEIGHT)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
@@ -495,7 +481,7 @@ struct RecruiterJobFormPage {
         .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       TextInput({ placeholder: '请输入金额', text: value })
-        .height(44)
+        .height(AppSpacing.INPUT_HEIGHT)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
@@ -515,7 +501,7 @@ struct RecruiterJobFormPage {
         .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
       TextInput({ placeholder: placeholder, text: value })
-        .height(44)
+        .height(AppSpacing.INPUT_HEIGHT)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
@@ -523,63 +509,6 @@ struct RecruiterJobFormPage {
         .margin({ top: AppSpacing.XS })
         .type(InputType.Number)
         .onChange(onChange)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  selectorField(label: string, value: string, onClick: () => void) {
-    Column() {
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-      Button({ type: ButtonType.Normal }) {
-        Row() {
-          Text(value)
-            .fontSize(AppFontSize.SM)
-            .fontColor(value.indexOf('请选择') >= 0 ? AppColors.TEXT_MUTED : AppColors.TEXT_PRIMARY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .layoutWeight(1)
-          SymbolGlyph($r('sys.symbol.chevron_right'))
-            .fontSize(16)
-            .fontColor([AppColors.TEXT_MUTED])
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-      }
-      .height(44)
-      .width('100%')
-      .backgroundColor(AppColors.INPUT_BG)
-      .borderRadius(AppRadius.SM)
-      .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-      .margin({ top: AppSpacing.XS })
-      .onClick(onClick)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  choiceRow(label: string, selected: number, options: ChoiceOption[], onSelect: (value: number) => void) {
-    Column() {
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-      Row({ space: AppSpacing.SM }) {
-        ForEach(options, (option: ChoiceOption) => {
-          Button(option.label, { type: ButtonType.Capsule })
-            .height(32)
-            .fontSize(AppFontSize.XS)
-            .fontColor(selected === option.value ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-            .backgroundColor(selected === option.value ? AppColors.PRIMARY : AppColors.INPUT_BG)
-            .onClick((): void => { onSelect(option.value) })
-            .animation({ duration: 150, curve: AppAnimation.CURVE_DEFAULT })
-        }, (option: ChoiceOption) => String(option.value))
-      }
-      .width('100%')
-      .margin({ top: AppSpacing.XS })
     }
     .width('100%')
   }

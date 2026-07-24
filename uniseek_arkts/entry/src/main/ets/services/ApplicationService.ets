@@ -53,8 +53,8 @@ export class ApplicationService {
     return labels[status] || '未知状态'
   }
 
-  static statusColor(status: number): string {
-    const colors: Record<number, string> = {
+  static statusColor(status: number): ResourceColor {
+    const colors: Record<number, ResourceColor> = {
       0: AppColors.PRIMARY,
       1: AppColors.WARNING,
       2: AppColors.TEXT_SECONDARY,

@@ -1,7 +1,6 @@
 // 统一导航栏公共组件
 // 遵循 HMOS 设计规范，替代所有页面中手写的顶部导航栏模式
 
-import { router } from '@kit.ArkUI';
 import { AppColors, AppSpacing, AppFontSize } from './AppStyles';
 
 /**
@@ -16,7 +15,7 @@ import { AppColors, AppSpacing, AppFontSize } from './AppStyles';
  * NavBar({
  *   title: '职位详情',
  *   showBack: true,
- *   onBack: () => router.back()
+ *   onBack: () => this.getUIContext().getRouter().back()
  * })
  *
  * // 无返回按钮 + 右侧插槽
@@ -33,10 +32,23 @@ export struct NavBar {
   @Prop title: string = '';
   /** 是否显示返回按钮，默认 true */
   @Prop showBack: boolean = true;
-  /** 返回按钮点击回调，默认执行 router.back() */
+  /** 返回按钮点击回调，默认可通过 this.getUIContext().getRouter().back() 返回 */
   onBack?: () => void;
+  /** 中间内容区域插槽 */
+  @BuilderParam centerContent: () => void = this.defaultCenterContent;
   /** 右侧操作区域插槽 */
   @BuilderParam rightContent: () => void = this.emptyRightContent;
+
+  /** 默认中间标题内容 */
+  @Builder
+  defaultCenterContent() {
+    Text(this.title)
+      .fontSize(AppFontSize.LG)
+      .fontWeight(FontWeight.Bold)
+      .fontColor(AppColors.TEXT_PRIMARY)
+      .layoutWeight(1)
+      .textAlign(TextAlign.Center)
+  }
 
   /** 默认空右侧插槽 */
   @Builder
@@ -58,7 +70,7 @@ export struct NavBar {
           if (this.onBack) {
             this.onBack();
           } else {
-            router.back();
+            this.getUIContext().getRouter().back();
           }
         })
       } else {
@@ -66,13 +78,13 @@ export struct NavBar {
         Row().width(72)
       }
 
-      // 中间标题（弹性居中）
-      Text(this.title)
-        .fontSize(AppFontSize.LG)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
+      // 中间内容区（弹性居中）
+      Row() {
+        this.centerContent()
+      }
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
 
       // 右侧操作区域，固定 72vp 占位，保证标题居中
       Row() {
@@ -85,7 +97,7 @@ export struct NavBar {
     .width('100%')
     .height(56)
     .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_CARD)
     .alignItems(VerticalAlign.Center)
   }
 }

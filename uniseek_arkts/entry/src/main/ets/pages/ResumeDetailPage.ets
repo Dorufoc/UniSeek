@@ -1,4 +1,3 @@
-import { router, promptAction } from '@kit.ArkUI';
 import { ResumeCardData } from '../services/RecruiterTypes';
 import { ChatService } from '../services/ChatService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
@@ -16,7 +15,7 @@ struct ResumeDetailPage {
   @State isContacting: boolean = false
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, string>
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params['resumeData']) {
       this.resume = JSON.parse(params['resumeData']) as ResumeCardData
     }
@@ -36,13 +35,13 @@ struct ResumeDetailPage {
   openDirectChat(): void {
     const targetUserId = Number(this.resume.id)
     if (!targetUserId) {
-      promptAction.showToast({ message: '求职者信息不完整，暂无法发起沟通' })
+      this.getUIContext().getPromptAction().showToast({ message: '求职者信息不完整，暂无法发起沟通' })
       return
     }
     this.isContacting = true
     ChatService.createDirectSession(targetUserId).then((applicationId: number) => {
       this.contacted = true
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: 'pages/ChatDetailPage',
         params: {
           applicationId: applicationId,
@@ -53,7 +52,7 @@ struct ResumeDetailPage {
       this.isContacting = false
     }).catch(() => {
       this.isContacting = false
-      promptAction.showToast({ message: '暂时无法建立沟通，请稍后重试' })
+      this.getUIContext().getPromptAction().showToast({ message: '暂时无法建立沟通，请稍后重试' })
     })
   }
   build() {
@@ -61,7 +60,7 @@ struct ResumeDetailPage {
       NavBar({
         title: '简历详情',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       Scroll() {

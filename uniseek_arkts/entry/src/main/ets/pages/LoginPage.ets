@@ -1,9 +1,10 @@
-import { router, promptAction, CustomContentDialog } from '@kit.ArkUI';
+import { CustomContentDialog } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { UserSession } from '../services/UserSession';
 import { ApiClient } from '../services/ApiClient';
-import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { AppColors, AppSpacing, AppRadius, AppFontSize, StandardInput, PrimaryButton } from '../common/AppStyles';
 import { InputValidator } from '../common/FormValidators'
+import { WindowBreakpoint } from '../common/Responsive';
 
 @Entry
 @Component
@@ -12,6 +13,8 @@ struct LoginPage {
   @State password: string = ''
   @State serverAddrInput: string = ''
   @State pageLoaded: boolean = false
+  @State isLoggingIn: boolean = false
+  @StorageLink('breakpoint') breakpoint: WindowBreakpoint = WindowBreakpoint.COMPACT
 
   // 原生弹窗控制器
   private serverDialogController: CustomDialogController | null = null;
@@ -46,94 +49,35 @@ struct LoginPage {
           .onClick(() => {
             this.handleTitleClick()
           })
-          .margin({bottom:10})
-        Column() {
-          // 表单区域
+          .margin({ bottom: AppSpacing.SM_GAP })
+        Column({ space: AppSpacing.MD }) {
+          // 手机号输入框
+          StandardInput({
+            placeholder: '手机号',
+            value: $phone,
+            inputType: InputType.PhoneNumber,
+            maxLength: 11,
+            leadingIcon: $r('sys.symbol.phone')
+          })
+          .margin({ top: AppSpacing.XL })
 
-            // 手机号输入框
-            Row() {
-              SymbolGlyph($r('sys.symbol.phone'))
-                .fontSize(18)
-                .fontColor([AppColors.TEXT_MUTED])
-                .margin({ right: AppSpacing.SM })
-              TextInput({ placeholder: '手机号', text: this.phone })
-                .onChange((value: string) => {
-                  this.phone = value
-                })
-                .type(InputType.PhoneNumber)
-                .maxLength(11)
-                .layoutWeight(1)
-                .backgroundColor(Color.Transparent)
-                .fontSize(AppFontSize.MD)
-                .fontColor(AppColors.TEXT_PRIMARY)
-                .placeholderColor(AppColors.TEXT_MUTED)
-            }
-            .height(50)
-        .width('100%')
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(20)
-            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-            .margin({ top: 40 })
+          // 密码输入框
+          StandardInput({
+            placeholder: '密码',
+            value: $password,
+            inputType: InputType.Password,
+            maxLength: 20,
+            leadingIcon: $r('sys.symbol.lock')
+          })
 
-            // 密码输入框
-            Row() {
-              SymbolGlyph($r('sys.symbol.lock'))
-                .fontSize(18)
-                .fontColor([AppColors.TEXT_MUTED])
-                .margin({ right: AppSpacing.SM })
-              TextInput({ placeholder: '密码', text: this.password })
-                .onChange((value: string) => {
-                  this.password = value
-                })
-                .type(InputType.Password)
-                .maxLength(20)
-                .layoutWeight(1)
-                .backgroundColor(Color.Transparent)
-                .fontSize(AppFontSize.MD)
-                .fontColor(AppColors.TEXT_PRIMARY)
-                .placeholderColor(AppColors.TEXT_MUTED)
-            }
-            .height(50)
-        .width('100%')
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(20)
-            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-            .margin({ top: AppSpacing.MD })
-
-
-
-
-          Column() {
-            // 登录按钮——使用 HMOS Capsule 风格
-            Button('登录', { type: ButtonType.Capsule })
-              .width('100%')
-              .height(50)
-              .backgroundColor(AppColors.PRIMARY)
-              .fontColor('#FFFFFF')
-              .fontSize(AppFontSize.MD)
-              .fontWeight(FontWeight.Medium)
-              .margin({ top: AppSpacing.XL })
-              .onClick(() => {
-                this.handleLogin()
-              })
-              .stateStyles({
-                pressed: {
-                  .scale({ x: 0.97, y: 0.97 })
-                  .opacity(0.9)
-                  .backgroundColor(AppColors.PRIMARY_HOVER)
-                },
-                normal: {
-                  .scale({ x: 1, y: 1 })
-                  .opacity(1)
-                  .backgroundColor(AppColors.PRIMARY)
-                }
-              })
-              .animation({
-                duration: 200
-              })
-          }
-
-          .width('100%')
+          // 登录按钮
+          PrimaryButton({
+            text: '登录',
+            loading: this.isLoggingIn,
+            disabled: this.phone.length === 0 || this.password.length === 0,
+            onTap: () => { this.handleLogin() }
+          })
+          .margin({ top: AppSpacing.XL })
 
           // 注册引导
           Row() {
@@ -142,13 +86,13 @@ struct LoginPage {
               .fontColor(AppColors.TEXT_MUTED)
 
             Button('立即注册', { type: ButtonType.Normal })
-              .height(32)
+              .height(AppSpacing.BUTTON_HEIGHT_MINI)
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.PRIMARY)
               .backgroundColor(Color.Transparent)
               .padding({ left: AppSpacing.XS, right: AppSpacing.XS })
               .onClick(() => {
-                router.replaceUrl({ url: 'pages/RegisterPage' })
+                this.getUIContext().getRouter().replaceUrl({ url: 'pages/RegisterPage' })
               })
           }
           .width('90%')
@@ -160,12 +104,12 @@ struct LoginPage {
         }
         .justifyContent(FlexAlign.Center)
         .borderRadius(AppRadius.XL)
-        .width('95%')
-        .margin({bottom:128})
-        .padding({ left: AppSpacing.XL, right: AppSpacing.XL })
-        .backgroundColor(AppColors.BG_CARD)
-        .opacity(this.pageLoaded ? 1 : 0)
-        .transition({ opacity: 0, translate: { y: 12 } })
+.width(this.breakpoint === WindowBreakpoint.COMPACT ? '95%' : 420)
+.margin({ bottom: AppSpacing.BOTTOM_ACTION_HEIGHT })
+.padding({ left: AppSpacing.XL, right: AppSpacing.XL })
+.backgroundColor(AppColors.BG_CARD)
+.opacity(this.pageLoaded ? 1 : 0)
+.transition({ opacity: 0, translate: { y: 12 } })
 
       }
       // .backgroundImage($r('app.media.background_v2'))
@@ -173,14 +117,15 @@ struct LoginPage {
         direction: GradientDirection.Bottom,
         colors: [
           [AppColors.PRIMARY, 0.0],
-          ['#5A8CFF', 0.15],
-          ['#A8C4FF', 0.3],
-          ['#E4EEFF', 0.5],
-          ['#FFFFFF', 0.7],
-          ['#FFFFFF', 1.0]
+          [AppColors.PRIMARY_LIGHT, 0.15],
+          [AppColors.PRIMARY_LIGHTER, 0.3],
+          [AppColors.PRIMARY_FAINT, 0.5],
+          [AppColors.BG_CARD, 0.7],
+          [AppColors.BG_CARD, 1.0]
         ]
       })
       .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
       .width('100%')
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .height('100%')
@@ -218,7 +163,7 @@ struct LoginPage {
               action: (): void => {
                 const savedUrl: string = ApiClient.setBaseUrl(this.serverAddrInput)
                 this.serverAddrInput = savedUrl
-                promptAction.showToast({ message: '后端地址已持久化保存', duration: 1800 })
+                this.getUIContext().getPromptAction().showToast({ message: '后端地址已持久化保存', duration: 1800 })
                 this.serverDialogController?.close()
               }
             }
@@ -232,24 +177,30 @@ struct LoginPage {
   }
 
   async handleLogin() {
+    if (this.isLoggingIn) {
+      return
+    }
     if (!InputValidator.isPhone(this.phone.trim())) {
-      promptAction.showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
       return
     }
     if (!this.password.trim()) {
-      promptAction.showToast({ message: '请输入密码', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '请输入密码', duration: 2000 })
       return
     }
 
+    this.isLoggingIn = true
     try {
       await AuthService.login(this.phone.trim(), this.password.trim())
       if (UserSession.role === 0) {
-        router.replaceUrl({ url: 'pages/MainPage' })
+        this.getUIContext().getRouter().replaceUrl({ url: 'pages/MainPage' })
       } else {
-        router.replaceUrl({ url: 'pages/RecruiterHomePage' })
+        this.getUIContext().getRouter().replaceUrl({ url: 'pages/RecruiterHomePage' })
       }
     } catch (e) {
-      promptAction.showToast({ message: (e as Error).message || '登录失败', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: (e as Error).message || '登录失败', duration: 2000 })
+    } finally {
+      this.isLoggingIn = false
     }
   }
 }

@@ -1,4 +1,3 @@
-import { router, promptAction } from '@kit.ArkUI';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { AuthService, UserVO } from '../services/AuthService';
 import { ChatService } from '../services/ChatService';
@@ -142,7 +141,7 @@ struct ProfileDetailPage {
         await this.loadProfile(false)
       }
       this.successText = '资料更新成功'
-      promptAction.showToast({ message: '资料更新成功', duration: 1800 })
+      this.getUIContext().getPromptAction().showToast({ message: '资料更新成功', duration: 1800 })
       this.cancelEdit()
     } catch (error) {
       this.errorText = this.getErrorMessage(error)
@@ -176,9 +175,9 @@ struct ProfileDetailPage {
     this.errorText = ''
     try {
       await AuthService.changePassword(this.editPassword, this.editValue, this.editConfirm)
-      promptAction.showToast({ message: '密码修改成功，请重新登录', duration: 2200 })
+      this.getUIContext().getPromptAction().showToast({ message: '密码修改成功，请重新登录', duration: 2200 })
       await AuthService.logout()
-      router.replaceUrl({ url: 'pages/LoginPage' })
+      this.getUIContext().getRouter().replaceUrl({ url: 'pages/LoginPage' })
     } catch (error) {
       this.errorText = this.getErrorMessage(error)
     } finally {
@@ -211,7 +210,7 @@ struct ProfileDetailPage {
       const url: string = await ChatService.uploadImage(result.photoUris[0])
       const user: UserVO = await UserService.updateProfile({ avatarUrl: url })
       this.applyUser(user)
-      promptAction.showToast({ message: '头像更新成功', duration: 1800 })
+      this.getUIContext().getPromptAction().showToast({ message: '头像更新成功', duration: 1800 })
     } catch (error) {
       this.errorText = this.getErrorMessage(error)
     } finally {
@@ -234,7 +233,7 @@ struct ProfileDetailPage {
       NavBar({
         title: '个人资料',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       if (this.loading) {

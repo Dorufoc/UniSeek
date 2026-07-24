@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { AuthService } from '../../../services/AuthService';
 import { UserService } from '../../../services/UserService';
 import { ApiClient } from '../../../services/ApiClient';
@@ -77,9 +76,9 @@ export struct RecruiterProfileTab {
       Column() {
         Row() {
           Image(this.avatarSource())
-            .width(72)
-            .height(72)
-            .borderRadius(36)
+            .width(AppSpacing.AVATAR_XL)
+            .height(AppSpacing.AVATAR_XL)
+            .borderRadius(AppRadius.FULL)
 
           Column() {
             Text(this.username)
@@ -93,15 +92,16 @@ export struct RecruiterProfileTab {
                 .fontColor(this.isVerified ? AppColors.SUCCESS : AppColors.PRIMARY)
               if (!this.isVerified) {
                 SymbolGlyph($r('sys.symbol.chevron_right'))
-                  .fontSize(14)
+                  .fontSize(AppFontSize.SM)
                   .fontColor([AppColors.PRIMARY])
                   .margin({ left: AppSpacing.XS })
               }
             }
             .margin({ top: AppSpacing.SM })
+            .accessibilityText('实名认证')
             .onClick(() => {
               if (!this.isVerified) {
-                router.pushUrl({ url: 'pages/RealNameAuthPage' })
+                this.getUIContext().getRouter().pushUrl({ url: 'pages/RealNameAuthPage' })
               }
             })
 
@@ -114,14 +114,15 @@ export struct RecruiterProfileTab {
                 .fontColor(this.enterpriseAuditStatus === 1 ? AppColors.SUCCESS : AppColors.PRIMARY)
               if (this.enterpriseAuditStatus !== 1) {
                 SymbolGlyph($r('sys.symbol.chevron_right'))
-                  .fontSize(14)
+                  .fontSize(AppFontSize.SM)
                   .fontColor([AppColors.PRIMARY])
                   .margin({ left: AppSpacing.XS })
               }
             }
             .margin({ top: AppSpacing.XS })
+            .accessibilityText('企业资质')
             .onClick(() => {
-              router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
+              this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterEnterprisePage' })
             })
           }
           .alignItems(HorizontalAlign.Start)
@@ -131,8 +132,9 @@ export struct RecruiterProfileTab {
           SymbolGlyph($r('sys.symbol.chevron_right'))
             .fontSize(AppFontSize.MD)
             .fontColor([AppColors.TEXT_MUTED])
+            .accessibilityText('个人资料')
             .onClick(() => {
-              router.pushUrl({ url: 'pages/ProfileDetailPage' })
+              this.getUIContext().getRouter().pushUrl({ url: 'pages/ProfileDetailPage' })
             })
         }
         .width('100%')
@@ -149,7 +151,7 @@ export struct RecruiterProfileTab {
             .fontColor(AppColors.DANGER)
             .layoutWeight(1)
           Button('重试', { type: ButtonType.Capsule })
-            .height(32)
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
@@ -168,27 +170,27 @@ export struct RecruiterProfileTab {
               this.getUIContext().showAlertDialog({ message: '请先完成实名认证', confirm: { value: '确定', action: () => {} } })
               return
             }
-            router.pushUrl({ url: 'pages/RecruiterEnterprisePage' })
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterEnterprisePage' })
           })
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItemCheck('发布职位', $r('sys.symbol.briefcase'), () => {
             if (this.enterpriseAuditStatus !== 1) {
               this.getUIContext().showAlertDialog({ message: '企业资质审核未通过，暂无法发布职位', confirm: { value: '确定', action: () => {} } })
               return
             }
-            router.pushUrl({ url: 'pages/RecruiterPublishJobPage' })
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterPublishJobPage' })
           })
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItemCheck('请求处理', $r('sys.symbol.inbox'), () => {
-            router.pushUrl({ url: 'pages/RecruiterRequestsPage' })
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterRequestsPage' })
           })
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItemCheck('设置', $r('sys.symbol.gearshape'), () => {
-            router.pushUrl({ url: 'pages/SettingsPage' })
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/SettingsPage' })
           })
-          Divider().width('100%').color(AppColors.BORDER).height(0.5)
+          Divider().width('100%').color(AppColors.BORDER).height(AppSpacing.DIVIDER_THICKNESS)
           this.menuItemCheck('账号管理', $r('sys.symbol.lock'), () => {
-            router.pushUrl({ url: 'pages/ProfileDetailPage' })
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/ProfileDetailPage' })
           })
         }
         .width('100%')
@@ -242,12 +244,13 @@ export struct RecruiterProfileTab {
         .fontColor(AppColors.TEXT_PRIMARY)
         .layoutWeight(1)
       SymbolGlyph($r('sys.symbol.chevron_right'))
-        .fontSize(16)
+        .fontSize(AppFontSize.MD)
         .fontColor([AppColors.TEXT_MUTED])
     }
     .width('100%')
-    .height(56)
+    .height(AppSpacing.LIST_ITEM_HEIGHT)
     .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+    .accessibilityText(text)
     .onClick(onClick)
     .stateStyles({
       pressed: {

@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
@@ -37,7 +36,7 @@ struct RealNameAuthPage {
       NavBar({
         title: '实名认证',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       Scroll() {

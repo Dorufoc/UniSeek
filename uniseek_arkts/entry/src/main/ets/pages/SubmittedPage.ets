@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI'
 import { ApplicationService, ApplicationData } from '../services/ApplicationService'
 import { TaskVO, mapTaskToJobData } from '../services/ChatTypes'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
@@ -124,7 +123,7 @@ struct SubmittedPage {
   @State loadError: string = ''
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, string>
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     this.activeTab = ApplicationTabPolicy.resolve(params['tab'] || '')
     this.loadApplications()
   }
@@ -140,12 +139,17 @@ struct SubmittedPage {
       const result = await ApplicationService.getMyApplications()
       this.applications = result.records || []
       const nextTaskMap: Record<number, TaskVO> = {}
-      for (const app of this.applications) {
-        const task = await ApplicationService.getTask(app.taskId)
-        if (task) {
-          nextTaskMap[app.taskId] = task
+      const taskPromises = this.applications.map(async (app: ApplicationData): Promise<void> => {
+        try {
+          const task = await ApplicationService.getTask(app.taskId)
+          if (task) {
+            nextTaskMap[app.taskId] = task
+          }
+        } catch {
+          // 单个职位详情失败不影响整体列表展示
         }
-      }
+      })
+      await Promise.all(taskPromises)
       this.taskMap = nextTaskMap
     } catch (e) {
       this.loadError = '投递记录加载失败，请稍后重试'
@@ -157,6 +161,9 @@ struct SubmittedPage {
   filteredApplications(): ApplicationData[] {
     if (this.activeTab === 1) {
       return this.applications.filter((app: ApplicationData) => app.status === 1)
+    }
+    if (this.activeTab === 2) {
+      return this.applications.filter((app: ApplicationData) => app.status === 3)
     }
     return this.applications
   }
@@ -173,7 +180,7 @@ struct SubmittedPage {
     if (!task) {
       return
     }
-    router.pushUrl({
+    this.getUIContext().getRouter().pushUrl({
       url: 'pages/JobDetailPage',
       params: { jobData: JSON.stringify(mapTaskToJobData(task)) }
     })
@@ -184,13 +191,13 @@ struct SubmittedPage {
       NavBar({
         title: '我的求职',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       Row() {
         this.statItem(String(this.applications.length), '全部投递', AppColors.PRIMARY, (): void => { this.activeTab = 0 })
         this.statItem(String(this.countByStatus(1)), '待面试', AppColors.WARNING, (): void => { this.activeTab = 1 })
-        this.statItem(String(this.countByStatus(3)), '已录用', AppColors.SUCCESS, (): void => { this.activeTab = 0 })
+        this.statItem(String(this.countByStatus(3)), '已录用', AppColors.SUCCESS, (): void => { this.activeTab = 2 })
       }
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
@@ -199,6 +206,7 @@ struct SubmittedPage {
       Row() {
         this.tabItem('投递记录', 0)
         this.tabItem('面试邀请', 1)
+        this.tabItem('已录用', 2)
         this.favoriteTab()
       }
       .width('100%')
@@ -280,7 +288,7 @@ struct SubmittedPage {
   }
 
   @Builder
-  statItem(value: string, label: string, color: string, onClick: () => void): void {
+  statItem(value: string, label: string, color: ResourceColor, onClick: () => void): void {
     Column() {
       Text(value)
         .fontSize(AppFontSize.XL)
@@ -321,7 +329,7 @@ struct SubmittedPage {
       .backgroundColor(AppColors.INPUT_BG)
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS, bottom: AppSpacing.XS })
       .onClick(() => {
-        router.pushUrl({ url: 'pages/FavoritesPage' })
+        this.getUIContext().getRouter().pushUrl({ url: 'pages/FavoritesPage' })
       })
   }
 }

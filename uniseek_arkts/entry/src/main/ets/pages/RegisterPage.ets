@@ -1,7 +1,8 @@
-import { router, promptAction, SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
+import { SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
 import { AuthService } from '../services/AuthService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { InputValidator } from '../common/FormValidators'
+import { WindowBreakpoint } from '../common/Responsive';
 
 @Entry
 @Component
@@ -15,6 +16,7 @@ struct RegisterPage {
   @State pageLoaded: boolean = false
   @State selectedRoleIndexes: number[] = [0]
   @State agreed: boolean = false
+  @StorageLink('breakpoint') breakpoint: WindowBreakpoint = WindowBreakpoint.COMPACT
 
   // 胶囊单选分段按钮——求职者/招聘者切换
   @State roleOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
@@ -22,7 +24,7 @@ struct RegisterPage {
     multiply: false,
     selectedBackgroundColor: AppColors.PRIMARY,
     backgroundColor: AppColors.INPUT_BG,
-    selectedFontColor: '#FFFFFF',
+    selectedFontColor: AppColors.BG_CARD,
     fontColor: AppColors.TEXT_SECONDARY,
     fontSize: AppFontSize.SM,
     selectedFontSize: AppFontSize.SM
@@ -37,6 +39,7 @@ struct RegisterPage {
 
   build() {
     Column() {
+      Column() {
       Column() {
         Text('创建账号')
           .fontSize(AppFontSize.XXL)
@@ -58,7 +61,7 @@ struct RegisterPage {
         // 手机号输入框
         Row() {
           SymbolGlyph($r('sys.symbol.phone'))
-            .fontSize(18)
+            .fontSize(AppFontSize.ICON_MD)
             .fontColor([AppColors.TEXT_MUTED])
             .margin({ right: AppSpacing.SM })
           TextInput({ placeholder: '手机号', text: this.phone })
@@ -71,16 +74,16 @@ struct RegisterPage {
             .fontColor(AppColors.TEXT_PRIMARY)
             .placeholderColor(AppColors.TEXT_MUTED)
         }
-        .height(50)
+        .height(AppSpacing.INPUT_HEIGHT_STANDARD)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(20)
+        .borderRadius(AppRadius.PILL)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
 
         // 邮箱输入框
         Row() {
           SymbolGlyph($r('sys.symbol.envelope'))
-            .fontSize(18)
+            .fontSize(AppFontSize.ICON_MD)
             .fontColor([AppColors.TEXT_MUTED])
             .margin({ right: AppSpacing.SM })
           TextInput({ placeholder: '邮箱', text: this.email })
@@ -93,17 +96,17 @@ struct RegisterPage {
             .fontColor(AppColors.TEXT_PRIMARY)
             .placeholderColor(AppColors.TEXT_MUTED)
         }
-        .height(50)
+        .height(AppSpacing.INPUT_HEIGHT_STANDARD)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(20)
+        .borderRadius(AppRadius.PILL)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .margin({ top: AppSpacing.MD })
 
         // 昵称输入框
         Row() {
           SymbolGlyph($r('sys.symbol.person'))
-            .fontSize(18)
+            .fontSize(AppFontSize.ICON_MD)
             .fontColor([AppColors.TEXT_MUTED])
             .margin({ right: AppSpacing.SM })
           TextInput({ placeholder: '昵称', text: this.nickname })
@@ -116,17 +119,17 @@ struct RegisterPage {
             .fontColor(AppColors.TEXT_PRIMARY)
             .placeholderColor(AppColors.TEXT_MUTED)
         }
-        .height(50)
+        .height(AppSpacing.INPUT_HEIGHT_STANDARD)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(20)
+        .borderRadius(AppRadius.PILL)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .margin({ top: AppSpacing.MD })
 
         // 密码输入框
         Row() {
           SymbolGlyph($r('sys.symbol.lock'))
-            .fontSize(18)
+            .fontSize(AppFontSize.ICON_MD)
             .fontColor([AppColors.TEXT_MUTED])
             .margin({ right: AppSpacing.SM })
           TextInput({ placeholder: '密码', text: this.password })
@@ -140,17 +143,17 @@ struct RegisterPage {
             .fontColor(AppColors.TEXT_PRIMARY)
             .placeholderColor(AppColors.TEXT_MUTED)
         }
-        .height(50)
+        .height(AppSpacing.INPUT_HEIGHT_STANDARD)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(20)
+        .borderRadius(AppRadius.PILL)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .margin({ top: AppSpacing.MD })
 
         // 确认密码输入框
         Row() {
           SymbolGlyph($r('sys.symbol.lock'))
-            .fontSize(18)
+            .fontSize(AppFontSize.ICON_MD)
             .fontColor([AppColors.TEXT_MUTED])
             .margin({ right: AppSpacing.SM })
           TextInput({ placeholder: '确认密码', text: this.confirmPassword })
@@ -164,10 +167,10 @@ struct RegisterPage {
             .fontColor(AppColors.TEXT_PRIMARY)
             .placeholderColor(AppColors.TEXT_MUTED)
         }
-        .height(50)
+        .height(AppSpacing.INPUT_HEIGHT_STANDARD)
         .width('100%')
         .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(20)
+        .borderRadius(AppRadius.PILL)
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .margin({ top: AppSpacing.MD })
 
@@ -199,20 +202,20 @@ struct RegisterPage {
             .fontColor(AppColors.TEXT_SECONDARY)
             .margin({ left: AppSpacing.XS })
           Button('用户协议', { type: ButtonType.Normal })
-            .height(28)
+            .height(AppSpacing.BUTTON_HEIGHT_XS)
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(Color.Transparent)
-            .onClick((): void => { router.pushUrl({ url: 'pages/UserAgreementPage' }) })
+            .onClick((): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/UserAgreementPage' }) })
           Text('和')
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.TEXT_SECONDARY)
           Button('隐私政策', { type: ButtonType.Normal })
-            .height(28)
+            .height(AppSpacing.BUTTON_HEIGHT_XS)
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(Color.Transparent)
-            .onClick((): void => { router.pushUrl({ url: 'pages/PrivacyPolicyPage' }) })
+            .onClick((): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/PrivacyPolicyPage' }) })
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
@@ -220,9 +223,9 @@ struct RegisterPage {
 
         Button('注册', { type: ButtonType.Capsule })
           .width('100%')
-          .height(40)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .backgroundColor(AppColors.PRIMARY)
-          .fontColor('#FFFFFF')
+          .fontColor(AppColors.BG_CARD)
           .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Medium)
           .margin({ top: AppSpacing.LG })
@@ -253,54 +256,59 @@ struct RegisterPage {
           .fontColor(AppColors.TEXT_MUTED)
 
         Button('立即登录', { type: ButtonType.Normal })
-          .height(32)
+          .height(AppSpacing.BUTTON_HEIGHT_MINI)
           .fontSize(AppFontSize.SM)
           .fontColor(AppColors.PRIMARY)
           .backgroundColor(Color.Transparent)
           .padding({ left: AppSpacing.XS, right: AppSpacing.XS })
           .onClick(() => {
-            router.replaceUrl({ url: 'pages/LoginPage' })
+            this.getUIContext().getRouter().replaceUrl({ url: 'pages/LoginPage' })
           })
       }
       .width('100%')
       .justifyContent(FlexAlign.Center)
       .margin({ top: AppSpacing.LG })
     }
-    .width('100%')
+    .width(this.breakpoint === WindowBreakpoint.COMPACT ? '100%' : 420)
     .height('100%')
-    .padding({ left: 32, right: 32 })
+    .padding({ left: AppSpacing.XL, right: AppSpacing.XL })
     .opacity(this.pageLoaded ? 1 : 0)
     .transition({ opacity: 0, translate: { y: 12 } })
-    .backgroundColor('#FFFFFF')
+    .backgroundColor(AppColors.BG_CARD)
   }
+  .width('100%')
+  .height('100%')
+  .alignItems(HorizontalAlign.Center)
+  .backgroundColor(AppColors.BG_CARD)
+}
 
   async handleRegister() {
     if (!InputValidator.isPhone(this.phone.trim())) {
-      promptAction.showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
       return
     }
     if (!InputValidator.isEmail(this.email.trim())) {
-      promptAction.showToast({ message: '请输入正确的邮箱地址', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '请输入正确的邮箱地址', duration: 2000 })
       return
     }
     if (!InputValidator.isNickname(this.nickname.trim())) {
-      promptAction.showToast({ message: '昵称长度应为 2 到 20 个字符', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '昵称长度应为 2 到 20 个字符', duration: 2000 })
       return
     }
     if (!InputValidator.isStrongPassword(this.password)) {
-      promptAction.showToast({ message: '密码需为 8 到 20 位，且同时包含字母和数字', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '密码需为 8 到 20 位，且同时包含字母和数字', duration: 2000 })
       return
     }
     if (!this.confirmPassword.trim()) {
-      promptAction.showToast({ message: '请确认密码', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '请确认密码', duration: 2000 })
       return
     }
     if (this.password !== this.confirmPassword) {
-      promptAction.showToast({ message: '两次密码输入不一致', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '两次密码输入不一致', duration: 2000 })
       return
     }
     if (!this.agreed) {
-      promptAction.showToast({ message: '请先阅读并同意用户协议和隐私政策', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '请先阅读并同意用户协议和隐私政策', duration: 2000 })
       return
     }
 
@@ -314,9 +322,9 @@ struct RegisterPage {
         this.role
       )
       const loginResult = await AuthService.login(this.phone.trim(), this.password)
-      router.replaceUrl({ url: loginResult.userInfo.role === 0 ? 'pages/MainPage' : 'pages/RecruiterHomePage' })
+      this.getUIContext().getRouter().replaceUrl({ url: loginResult.userInfo.role === 0 ? 'pages/MainPage' : 'pages/RecruiterHomePage' })
     } catch (e) {
-      promptAction.showToast({ message: (e as Error).message || '注册失败', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: (e as Error).message || '注册失败', duration: 2000 })
     }
   }
 }

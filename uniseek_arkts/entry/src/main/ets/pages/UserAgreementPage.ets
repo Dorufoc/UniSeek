@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI'
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
 
@@ -7,7 +6,7 @@ import { NavBar } from '../common/NavBar'
 struct UserAgreementPage {
   build() {
     Column() {
-      NavBar({ title: '用户协议', showBack: true, onBack: (): void => { router.back() } })
+      NavBar({ title: '用户协议', showBack: true, onBack: (): void => { this.getUIContext().getRouter().back() } })
       Scroll() {
         Column({ space: AppSpacing.MD }) {
           Text('UniSeek 用户协议')

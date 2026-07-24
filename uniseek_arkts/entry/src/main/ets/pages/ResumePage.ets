@@ -1,4 +1,4 @@
-import { router, promptAction, SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
+import { SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
 import { picker } from '@kit.CoreFileKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { ChatService } from '../services/ChatService';
@@ -149,6 +149,92 @@ struct EducationPickerDialog {
   }
 }
 
+// 日期选择弹窗：用于出生日期、毕业日期等需要标准 DatePicker 的字段
+@CustomDialog
+struct DatePickerDialog {
+  controller?: CustomDialogController
+  title: string = '选择日期'
+  currentDate: string = ''
+  startDate?: Date
+  endDate?: Date
+  onConfirm?: (date: string) => void
+  onCancel?: () => void
+
+  @State selectedDate: Date = new Date()
+
+  aboutToAppear(): void {
+    if (this.currentDate) {
+      const parsed = new Date(this.currentDate.replace(/-/g, '/'))
+      if (!isNaN(parsed.getTime())) {
+        this.selectedDate = parsed
+      }
+    }
+  }
+
+  formatDate(date: Date): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  build() {
+    Column() {
+      Row() {
+        Text(this.title)
+          .fontSize(AppFontSize.LG)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .layoutWeight(1)
+        Button('取消', { type: ButtonType.Normal })
+          .height(32)
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_MUTED)
+          .backgroundColor(Color.Transparent)
+          .onClick(() => { this.onCancel?.() })
+      }
+      .width('100%')
+      .padding({ bottom: AppSpacing.MD })
+
+      DatePicker({
+        start: this.startDate,
+        end: this.endDate,
+        selected: this.selectedDate
+      })
+        .lunar(false)
+        .onDateChange((value: Date) => {
+          this.selectedDate = value
+        })
+        .layoutWeight(1)
+        .width('100%')
+
+      Row() {
+        Row().layoutWeight(1)
+        Button('确定', { type: ButtonType.Capsule })
+          .height(40)
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
+          .backgroundColor(AppColors.PRIMARY)
+          .padding({ left: 28, right: 28 })
+          .onClick(() => {
+            this.onConfirm?.(this.formatDate(this.selectedDate))
+          })
+          .stateStyles({
+            pressed: { .scale({ x: 0.97, y: 0.97 }) }
+          })
+      }
+      .width('100%')
+      .padding({ top: AppSpacing.MD })
+    }
+    .padding(AppSpacing.LG)
+    .width('100%')
+    .height('55%')
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
+  }
+}
+
 @Entry
 @Component
 struct ResumePage {
@@ -226,7 +312,7 @@ struct ResumePage {
       NavBar({
         title: '个人简历',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       Scroll() {
@@ -306,6 +392,7 @@ struct ResumePage {
             .borderRadius(AppRadius.SM)
             .padding({ left: AppSpacing.SM })
             .onChange((value: string): void => { this.birthDate = value })
+            .onClick(() => { this.showBirthDatePicker() })
             .margin({ bottom: AppSpacing.MD })
 
           Text('学校')
@@ -360,10 +447,8 @@ struct ResumePage {
             .borderRadius(AppRadius.SM)
             .padding({ left: AppSpacing.SM })
             .onChange((value: string): void => { this.graduationDate = value })
+            .onClick(() => { this.showGraduationDatePicker() })
             .margin({ bottom: AppSpacing.MD })
-          .onClick(() => {
-            this.showEducationPicker()
-          })
 
           Text('技能')
             .fontSize(AppFontSize.SM)
@@ -560,22 +645,22 @@ struct ResumePage {
         errorText = '无法读取所选文件'
       }
       if (errorText) {
-        promptAction.showToast({ message: errorText })
+        this.getUIContext().getPromptAction().showToast({ message: errorText })
         return
       }
       this.attachmentName = fileName
       this.uploading = true
       ChatService.uploadFile(uri).then((url: string) => {
         this.attachmentUrl = url
-        promptAction.showToast({ message: '简历上传成功' })
+        this.getUIContext().getPromptAction().showToast({ message: '简历上传成功' })
       }).catch(() => {
         this.attachmentUrl = ''
-        promptAction.showToast({ message: '简历上传失败，请重试' })
+        this.getUIContext().getPromptAction().showToast({ message: '简历上传失败，请重试' })
       }).finally(() => {
         this.uploading = false
       })
     }).catch(() => {
-      promptAction.showToast({ message: '未选择文件' })
+      this.getUIContext().getPromptAction().showToast({ message: '未选择文件' })
     })
   }
 
@@ -599,6 +684,42 @@ struct ResumePage {
     dialog.open()
   }
 
+  private showDatePicker(title: string, target: 'birthDate' | 'graduationDate'): void {
+    const now = new Date()
+    const startDate = target === 'birthDate' ? new Date('1950-01-01') : new Date('1970-01-01')
+    const endDate = target === 'birthDate' ? now : new Date(now.getFullYear() + 10, 11, 31)
+    const dialog = new CustomDialogController({
+      builder: DatePickerDialog({
+        title: title,
+        currentDate: target === 'birthDate' ? this.birthDate : this.graduationDate,
+        startDate: startDate,
+        endDate: endDate,
+        onConfirm: (date: string) => {
+          if (target === 'birthDate') {
+            this.birthDate = date
+          } else {
+            this.graduationDate = date
+          }
+          dialog.close()
+        },
+        onCancel: () => {
+          dialog.close()
+        }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom
+    })
+    dialog.open()
+  }
+
+  showBirthDatePicker(): void {
+    this.showDatePicker('选择出生日期', 'birthDate')
+  }
+
+  showGraduationDatePicker(): void {
+    this.showDatePicker('选择毕业日期', 'graduationDate')
+  }
+
   handleSave(): void {
     this.saving = true
     this.showError = false
@@ -617,7 +738,7 @@ struct ResumePage {
         this.saving = false
         this.showSuccess = true
         setTimeout(() => {
-          router.back()
+          this.getUIContext().getRouter().back()
         }, 1500)
       })
       .catch((e: Error) => {
@@ -630,16 +751,16 @@ struct ResumePage {
   handlePublishToggle(): void {
     if (!this.isPublished && !ResumeCompletionPolicy.canPublish(this.name, this.gender, this.birthDate,
       this.education, this.school, this.graduationDate)) {
-      promptAction.showToast({ message: '请完善姓名、性别、出生日期、学历、学校和毕业日期后再发布' })
+      this.getUIContext().getPromptAction().showToast({ message: '请完善姓名、性别、出生日期、学历、学校和毕业日期后再发布' })
       return
     }
     this.isPublishing = true
     const request: Promise<void> = this.isPublished ? ResumeService.unpublishResume() : ResumeService.publishResume()
     request.then((): void => {
       this.isPublished = !this.isPublished
-      promptAction.showToast({ message: this.isPublished ? '简历已发布到人才市场' : '简历已从人才市场下架' })
+      this.getUIContext().getPromptAction().showToast({ message: this.isPublished ? '简历已发布到人才市场' : '简历已从人才市场下架' })
     }).catch((): void => {
-      promptAction.showToast({ message: '简历状态更新失败，请稍后重试' })
+      this.getUIContext().getPromptAction().showToast({ message: '简历状态更新失败，请稍后重试' })
     }).finally((): void => {
       this.isPublishing = false
     })

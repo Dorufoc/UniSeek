@@ -1,11 +1,17 @@
-import { router } from '@kit.ArkUI'
 import { ApiClient } from '../services/ApiClient'
 import { JobData, mapTaskToJobData, TaskSearchParams, TaskVO } from '../services/ChatTypes'
 import { PageResult } from '../services/ResumeService'
-import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
+import { AppColors, AppFilter, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
 import { PageLoadPolicy } from '../common/BusinessPolicies'
-import { JobCard } from './tab/seeker/HomePage'
+import { JobCard } from '../components/JobCard'
+import { EmptyView } from '../components/EmptyView'
+import { ErrorView } from '../components/ErrorView'
+import { LoadMoreFooter } from '../components/LoadMoreFooter'
+import { FilterChipBar, FilterChipData } from '../components/filter/FilterChipBar'
+import { FilterSheetHeader } from '../components/filter/FilterSheetHeader'
+import { SelectorOptionItem } from '../components/filter/SelectorOptionItem'
+import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips'
 
 interface SearchSortOption {
   value: string
@@ -35,7 +41,7 @@ struct SearchResultsPage {
   @State showFilterSheet: boolean = false
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, string>
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params && params['keyword']) {
       this.keyword = params['keyword']
     }
@@ -97,6 +103,15 @@ struct SearchResultsPage {
     return '最新发布'
   }
 
+  private selectedSortIndex(): number {
+    for (let index = 0; index < SEARCH_SORT_OPTIONS.length; index++) {
+      if (SEARCH_SORT_OPTIONS[index].value === this.sortBy) {
+        return index
+      }
+    }
+    return 0
+  }
+
   private selectTag(tag: string): void {
     this.selectedTag = this.selectedTag === tag ? '' : tag
     this.showFilterSheet = false
@@ -109,130 +124,154 @@ struct SearchResultsPage {
     void this.loadResults(true)
   }
 
+  private sortOptionsForChoice(): ChoiceOption[] {
+    const options: ChoiceOption[] = []
+    for (let index = 0; index < SEARCH_SORT_OPTIONS.length; index++) {
+      options.push({ value: index, label: SEARCH_SORT_OPTIONS[index].label })
+    }
+    return options
+  }
+
+  private buildFilterChips(): FilterChipData[] {
+    const chips: FilterChipData[] = []
+    const hasActiveFilter: boolean = this.selectedTag.length > 0 || this.sortBy !== 'create_time'
+    chips.push({
+      label: '筛选',
+      active: hasActiveFilter
+    })
+    if (this.selectedTag.length > 0) {
+      chips.push({
+        label: this.selectedTag,
+        active: true,
+        hasClose: true
+      })
+    }
+    chips.push({
+      label: this.sortLabel(),
+      active: this.sortBy !== 'create_time',
+      hasClose: this.sortBy !== 'create_time'
+    })
+    return chips
+  }
+
   @Builder
   filterSheet() {
     Column() {
-      Text('筛选与排序')
-        .fontSize(AppFontSize.LG)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.SM })
+      FilterSheetHeader({
+        title: '筛选与排序',
+        showReset: false
+      })
+
       Text('职位标签')
         .fontSize(AppFontSize.XS)
         .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
+
       List() {
         ListItem() {
-          this.filterOption('全部标签', this.selectedTag.length === 0, (): void => { this.selectTag('') })
+          SelectorOptionItem({
+            label: '全部标签',
+            selected: this.selectedTag.length === 0,
+            onItemClick: (): void => { this.selectTag('') }
+          })
         }
         ForEach(this.tags, (tag: string) => {
           ListItem() {
-            this.filterOption(tag, this.selectedTag === tag, (): void => { this.selectTag(tag) })
+            SelectorOptionItem({
+              label: tag,
+              selected: this.selectedTag === tag,
+              onItemClick: (): void => { this.selectTag(tag) }
+            })
           }
         }, (tag: string): string => tag)
       }
       .layoutWeight(1)
       .width('100%')
-      .divider({ strokeWidth: 0.5, color: AppColors.BORDER, startMargin: AppSpacing.MD, endMargin: AppSpacing.MD })
+      .divider({ strokeWidth: AppFilter.DIVIDER_HEIGHT, color: AppFilter.DIVIDER_COLOR, startMargin: AppFilter.DIVIDER_INSETS, endMargin: AppFilter.DIVIDER_INSETS })
+
       Text('排序方式')
         .fontSize(AppFontSize.XS)
         .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
-      Row({ space: AppSpacing.SM }) {
-        ForEach(SEARCH_SORT_OPTIONS, (option: SearchSortOption) => {
-          Button(option.label, { type: ButtonType.Capsule })
-            .height(36)
-            .fontSize(AppFontSize.XS)
-            .fontColor(this.sortBy === option.value ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-            .backgroundColor(this.sortBy === option.value ? AppColors.PRIMARY : AppColors.INPUT_BG)
-            .onClick((): void => { this.selectSort(option.value) })
-        }, (option: SearchSortOption): string => option.value)
-      }
-      .width('100%')
-      .padding(AppSpacing.MD)
+
+      ChoiceChips({
+        options: this.sortOptionsForChoice(),
+        selected: this.selectedSortIndex(),
+        onSelect: (index: number): void => {
+          if (index >= 0 && index < SEARCH_SORT_OPTIONS.length) {
+            this.selectSort(SEARCH_SORT_OPTIONS[index].value)
+          }
+        }
+      })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS, bottom: AppSpacing.MD })
     }
     .width('100%')
     .height('100%')
-  }
-
-  @Builder
-  filterOption(label: string, selected: boolean, onClick: () => void) {
-    Row() {
-      Text(label)
-        .fontSize(AppFontSize.SM)
-        .fontColor(selected ? AppColors.PRIMARY : AppColors.TEXT_PRIMARY)
-        .layoutWeight(1)
-      if (selected) {
-        SymbolGlyph($r('sys.symbol.checkmark'))
-          .fontSize(18)
-          .fontColor([AppColors.PRIMARY])
-      }
-    }
-    .width('100%')
-    .height(48)
-    .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
-    .backgroundColor(selected ? AppColors.SELECTED_BG : AppColors.BG_CARD)
-    .onClick(onClick)
+    .backgroundColor(AppColors.BG_CARD)
   }
 
   build() {
     Column() {
-      NavBar({ title: '搜索结果', showBack: true, onBack: (): void => { router.back() } })
+      NavBar({ title: '搜索结果', showBack: true, onBack: (): void => { this.getUIContext().getRouter().back() } })
 
       Row({ space: AppSpacing.SM }) {
         Search({ value: this.keyword, placeholder: '搜索职位、企业或技能' })
           .layoutWeight(1)
-          .height(40)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .backgroundColor(AppColors.INPUT_BG)
           .borderRadius(AppRadius.FULL)
           .onChange((value: string): void => { this.keyword = value })
           .onSubmit((): void => { void this.loadResults(true) })
-        Button('筛选', { type: ButtonType.Capsule })
-        .width(56)
-        .height(40)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .backgroundColor(this.selectedTag || this.sortBy !== 'create_time' ? AppColors.SELECTED_BG : AppColors.INPUT_BG)
-        .accessibilityText('筛选和排序')
-        .onClick((): void => { this.showFilterSheet = true })
       }
       .width('100%')
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
 
-      if (this.selectedTag || this.sortBy !== 'create_time') {
-        Text((this.selectedTag || '全部标签') + ' · ' + this.sortLabel())
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.PRIMARY)
-          .width('100%')
-          .padding({ left: AppSpacing.MD, right: AppSpacing.MD, bottom: AppSpacing.SM })
-      }
+      FilterChipBar({
+        chips: this.buildFilterChips(),
+        onChipClick: (index: number): void => {
+          this.showFilterSheet = true
+        },
+        onClose: (index: number): void => {
+          if (index === 0) {
+            this.showFilterSheet = true
+          } else if (this.selectedTag.length > 0 && index === 1) {
+            this.selectTag('')
+          } else {
+            this.selectSort('create_time')
+          }
+        }
+      })
 
       if (this.isLoading) {
         LoadingProgress().width(32).height(32).margin({ top: 100 }).color(AppColors.PRIMARY)
       } else if (this.errorText) {
-        Column({ space: AppSpacing.SM }) {
-          Text(this.errorText).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
-          Button('重新加载', { type: ButtonType.Capsule })
-            .height(40)
-            .fontSize(AppFontSize.SM)
-            .fontColor('#FFFFFF')
-            .backgroundColor(AppColors.PRIMARY)
-            .onClick((): void => { void this.loadResults(true) })
+        Column() {
+          ErrorView({
+            message: this.errorText,
+            retryText: '重新加载',
+            onRetry: () => { void this.loadResults(true) }
+          })
         }
         .width('100%')
-        .margin({ top: 80 })
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
+        .padding(AppSpacing.MD)
       } else if (this.results.length === 0) {
-        Column({ space: AppSpacing.SM }) {
-          Text('未找到相关职位').fontSize(AppFontSize.MD).fontColor(AppColors.TEXT_MUTED)
-          Text('试试其他关键词或筛选条件').fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_MUTED)
+        Column() {
+          EmptyView({
+            message: '未找到相关职位，试试其他关键词或筛选条件',
+            actionText: '调整筛选',
+            onAction: () => { this.showFilterSheet = true }
+          })
         }
         .width('100%')
-        .margin({ top: 80 })
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
+        .padding(AppSpacing.MD)
       } else {
         List({ space: AppSpacing.SM }) {
           ListItem() {
@@ -244,22 +283,22 @@ struct SearchResultsPage {
           ForEach(this.results, (job: JobData) => {
             ListItem() { JobCard({ job: job }) }
           }, (job: JobData): string => job.id)
-          if (PageLoadPolicy.hasNext(this.currentPage, this.totalPages)) {
-            ListItem() {
-              Button(this.isLoadingMore ? '加载中...' : '加载更多', { type: ButtonType.Capsule })
-                .width('100%')
-                .height(40)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.PRIMARY)
-                .backgroundColor(AppColors.SELECTED_BG)
-                .enabled(!this.isLoadingMore)
-                .onClick((): void => { void this.loadResults(false) })
-            }
+          ListItem() {
+            LoadMoreFooter({
+              loading: this.isLoadingMore,
+              hasMore: PageLoadPolicy.hasNext(this.currentPage, this.totalPages),
+              finishedText: '已展示全部 ' + this.totalCount + ' 条结果'
+            })
           }
         }
         .width('100%')
         .layoutWeight(1)
         .padding(AppSpacing.MD)
+        .onReachEnd((): void => {
+          if (PageLoadPolicy.hasNext(this.currentPage, this.totalPages) && !this.isLoadingMore) {
+            void this.loadResults(false)
+          }
+        })
       }
     }
     .width('100%')

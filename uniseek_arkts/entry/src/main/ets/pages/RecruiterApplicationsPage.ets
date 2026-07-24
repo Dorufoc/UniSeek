@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { RecruiterService } from '../services/RecruiterService';
 import {
   RecruiterApplicationVO,
@@ -7,6 +6,9 @@ import {
 } from '../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
+import { EmptyView } from '../components/EmptyView';
+import { ErrorView } from '../components/ErrorView';
+import { StandardCard } from '../common/StandardCard';
 
 interface ApplicationResumeSnapshot {
   realName: string
@@ -32,7 +34,7 @@ struct RecruiterApplicationsPage {
   @State noJobContext: boolean = false
 
   aboutToAppear(): void {
-    const params = router.getParams() as Record<string, string>
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params['jobId']) {
       this.jobId = parseInt(params['jobId'])
     }
@@ -80,7 +82,7 @@ struct RecruiterApplicationsPage {
       attachmentUrl: application.attachmentUrl || snapshot.attachmentUrl,
       graduationDate: snapshot.graduationDate
     }
-    router.pushUrl({ url: 'pages/ResumeDetailPage', params: { resumeData: JSON.stringify(resume) } })
+    this.getUIContext().getRouter().pushUrl({ url: 'pages/ResumeDetailPage', params: { resumeData: JSON.stringify(resume) } })
   }
 
   private parseResumeSnapshot(value?: string): ApplicationResumeSnapshot {
@@ -127,21 +129,15 @@ struct RecruiterApplicationsPage {
       NavBar({
         title: this.jobTitle || '投递管理',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       this.filterTabs()
 
       if (this.noJobContext) {
-        Column() {
-          Text('请从职位列表中选择一个职位查看投递')
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.TEXT_MUTED)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        EmptyView({ message: '请从职位列表中选择一个职位查看投递' })
+          .width('100%')
+          .layoutWeight(1)
       } else if (this.isLoading) {
         Column() {
           LoadingProgress().width(32).height(32).color(AppColors.PRIMARY)
@@ -151,29 +147,17 @@ struct RecruiterApplicationsPage {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else if (this.errorText) {
-        Column({ space: AppSpacing.SM }) {
-          Text(this.errorText).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
-          Button('重新加载', { type: ButtonType.Capsule })
-            .height(40)
-            .fontSize(AppFontSize.SM)
-            .fontColor('#FFFFFF')
-            .backgroundColor(AppColors.PRIMARY)
-            .onClick((): void => { this.loadApplications() })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        ErrorView({
+          message: this.errorText,
+          retryText: '重新加载',
+          onRetry: () => { this.loadApplications() }
+        })
+          .width('100%')
+          .layoutWeight(1)
       } else if (this.filteredList.length === 0) {
-        Column() {
-          Text('暂无投递记录')
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.TEXT_MUTED)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        EmptyView({ message: '暂无投递记录' })
+          .width('100%')
+          .layoutWeight(1)
       } else {
         Scroll() {
           Column() {
@@ -219,7 +203,7 @@ struct RecruiterApplicationsPage {
   @Builder
   filterTab(label: string, status: number): void {
     Button(label, { type: ButtonType.Capsule })
-      .height(32)
+      .height(AppSpacing.BUTTON_HEIGHT_MINI)
       .fontSize(AppFontSize.SM)
       .fontColor(this.filterStatus === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
       .backgroundColor(this.filterStatus === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
@@ -245,51 +229,51 @@ struct ApplicationCard {
   onViewResume?: (app: RecruiterApplicationVO) => void
 
   build() {
-    Column() {
-      Row() {
-        Column()
-          .width(40).height(40)
-          .backgroundColor(AppColors.INPUT_BG)
-          .borderRadius(20)
+    StandardCard({
+      onClickAction: () => { this.onViewResume?.(this.app) }
+    }) {
+      Column() {
+        Row() {
+          Stack() {
+            Text(this.app.applicantName ? this.app.applicantName.charAt(0) : '?')
+              .fontSize(AppFontSize.MD)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.BG_CARD)
+          }
+          .width(AppSpacing.ICON_LG)
+          .height(AppSpacing.ICON_LG)
+          .borderRadius(AppRadius.PILL)
+          .backgroundColor(AppColors.PRIMARY)
 
-        Column() {
-          Text(this.app.applicantName)
+          Column() {
+            Text(this.app.applicantName)
+              .fontSize(AppFontSize.MD)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(AppColors.TEXT_PRIMARY)
+
+            Text(APPLICATION_STATUS_LABELS[this.app.status])
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.PRIMARY)
+              .margin({ top: 2 })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+          .margin({ left: AppSpacing.SM })
+
+          SymbolGlyph($r('sys.symbol.chevron_right'))
             .fontSize(AppFontSize.MD)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-
-          Text(APPLICATION_STATUS_LABELS[this.app.status])
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.PRIMARY)
-            .margin({ top: 2 })
+            .fontColor([AppColors.TEXT_MUTED])
         }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-        .margin({ left: AppSpacing.SM })
+        .width('100%')
 
-        SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontSize(AppFontSize.MD)
-          .fontColor([AppColors.TEXT_MUTED])
+        Text(this.app.createTime)
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_MUTED)
+          .width('100%')
+          .margin({ top: AppSpacing.XS })
+          .textAlign(TextAlign.End)
       }
       .width('100%')
-
-      Text(this.app.createTime)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-        .width('100%')
-        .margin({ top: AppSpacing.XS })
-        .textAlign(TextAlign.End)
     }
-    .width('100%')
-    .padding(AppSpacing.SM)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.LG)
-    .margin({ top: AppSpacing.SM })
-    .stateStyles({
-      pressed: {
-        .backgroundColor(AppColors.SELECTED_BG)
-      }
-    })
-    .onClick((): void => { this.onViewResume?.(this.app) })
   }
 }

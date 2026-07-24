@@ -1,4 +1,3 @@
-import { router } from '@kit.ArkUI';
 import { RecruiterService } from '../services/RecruiterService';
 import {
   RecruiterRequestVO,
@@ -6,7 +5,10 @@ import {
 } from '../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
-import { ApplicationNotePolicy } from '../common/BusinessPolicies'
+import { StandardCard } from '../common/StandardCard';
+import { ApplicationNotePolicy } from '../common/BusinessPolicies';
+import { EmptyView } from '../components/EmptyView';
+import { ErrorView } from '../components/ErrorView';
 
 @CustomDialog
 struct InterviewDialog {
@@ -27,7 +29,7 @@ struct InterviewDialog {
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Button('取消', { type: ButtonType.Normal })
-          .height(32)
+          .height(AppSpacing.BUTTON_HEIGHT_MINI)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_MUTED)
           .backgroundColor(Color.Transparent)
@@ -45,7 +47,7 @@ struct InterviewDialog {
       TextInput({ placeholder: '面试时间（如 2026-07-20 10:00）', text: this.timeText })
         .onChange((value: string) => { this.timeText = value })
         .width('100%')
-        .height(44)
+        .height(AppSpacing.BUTTON_HEIGHT_MD)
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
         .margin({ bottom: AppSpacing.SM })
@@ -53,7 +55,7 @@ struct InterviewDialog {
       TextInput({ placeholder: '面试地点', text: this.locationText })
         .onChange((value: string) => { this.locationText = value })
         .width('100%')
-        .height(44)
+        .height(AppSpacing.BUTTON_HEIGHT_MD)
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
         .margin({ bottom: AppSpacing.LG })
@@ -61,7 +63,7 @@ struct InterviewDialog {
       Row() {
         Row().layoutWeight(1)
           Button('确定', { type: ButtonType.Capsule })
-            .height(40)
+            .height(AppSpacing.BUTTON_HEIGHT)
             .fontSize(AppFontSize.MD)
             .fontWeight(FontWeight.Bold)
             .fontColor('#FFFFFF')
@@ -113,7 +115,7 @@ struct RejectDialog {
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Button('取消', { type: ButtonType.Normal })
-          .height(32)
+          .height(AppSpacing.BUTTON_HEIGHT_MINI)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_MUTED)
           .backgroundColor(Color.Transparent)
@@ -131,7 +133,7 @@ struct RejectDialog {
       TextInput({ placeholder: '淘汰原因（必填）', text: this.reasonText })
         .onChange((value: string) => { this.reasonText = value })
         .width('100%')
-        .height(44)
+        .height(AppSpacing.BUTTON_HEIGHT_MD)
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
         .margin({ bottom: AppSpacing.SM })
@@ -147,7 +149,7 @@ struct RejectDialog {
 
       Row() {
         Button('取消', { type: ButtonType.Capsule })
-          .height(40)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_SECONDARY)
           .backgroundColor(AppColors.INPUT_BG)
@@ -168,7 +170,7 @@ struct RejectDialog {
           })
         Blank().width(16)
         Button('确认淘汰', { type: ButtonType.Capsule })
-          .height(40)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Bold)
           .fontColor('#FFFFFF')
@@ -220,7 +222,7 @@ struct CompleteDialog {
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
         Button('取消', { type: ButtonType.Normal })
-          .height(32)
+          .height(AppSpacing.BUTTON_HEIGHT_MINI)
           .fontSize(AppFontSize.MD)
           .fontColor(AppColors.TEXT_MUTED)
           .backgroundColor(Color.Transparent)
@@ -245,7 +247,7 @@ struct CompleteDialog {
 
       Button('确认完成', { type: ButtonType.Capsule })
         .width('100%')
-        .height(40)
+        .height(AppSpacing.BUTTON_HEIGHT)
         .fontSize(AppFontSize.MD)
         .fontWeight(FontWeight.Medium)
         .fontColor('#FFFFFF')
@@ -278,8 +280,8 @@ struct RequestCard {
   onComplete?: (req: RecruiterRequestVO) => void
   onViewResume?: (req: RecruiterRequestVO) => void
 
-  statusColor(): string {
-    const map: Record<number, string> = {
+  statusColor(): ResourceColor {
+    const map: Record<number, ResourceColor> = {
       0: AppColors.WARNING,
       1: AppColors.PRIMARY,
       2: AppColors.TEXT_MUTED,
@@ -291,232 +293,238 @@ struct RequestCard {
   }
 
   build() {
-    Column() {
-      Row() {
-        Column()
-          .width(44).height(44)
-          .backgroundColor(AppColors.INPUT_BG)
-          .borderRadius(22)
-
-        Column() {
-          Row() {
-            Text(this.request.applicantName)
+    StandardCard({
+      onClickAction: () => { this.onViewResume?.(this.request) },
+      accessibilityLabel: (this.request.applicantName || '求职者') + '的投递请求'
+    }) {
+      Column() {
+        Row() {
+          // 无头像时使用首字母占位
+          Stack() {
+            Text(this.request.applicantName ? this.request.applicantName.charAt(0) : '?')
               .fontSize(AppFontSize.MD)
               .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.TEXT_PRIMARY)
+              .fontColor(AppColors.BG_CARD)
+          }
+          .width(44)
+          .height(44)
+          .borderRadius(AppRadius.FULL)
+          .backgroundColor(AppColors.PRIMARY)
 
-            if (this.request.applicantAge > 0) {
-              Text(this.request.applicantAge + '岁')
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_SECONDARY)
-                .margin({ left: AppSpacing.SM })
+          Column() {
+            Row() {
+              Text(this.request.applicantName)
+                .fontSize(AppFontSize.MD)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(AppColors.TEXT_PRIMARY)
+
+              if (this.request.applicantAge > 0) {
+                Text(this.request.applicantAge + '岁')
+                  .fontSize(AppFontSize.SM)
+                  .fontColor(AppColors.TEXT_SECONDARY)
+                  .margin({ left: AppSpacing.SM })
+              }
             }
-          }
-          .alignItems(VerticalAlign.Center)
+            .alignItems(VerticalAlign.Center)
 
-          Text(this.request.applicantSchool + ' · ' + this.request.applicantMajor)
+            Text(this.request.applicantSchool + ' · ' + this.request.applicantMajor)
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_SECONDARY)
+              .margin({ top: AppSpacing.XXS })
+
+            Row() {
+              Text(this.request.applicantEducation)
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.TEXT_MUTED)
+                .backgroundColor(AppColors.INPUT_BG)
+                .borderRadius(AppRadius.SM)
+                .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
+              Text(this.request.applicantExperience)
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.TEXT_MUTED)
+                .backgroundColor(AppColors.INPUT_BG)
+                .borderRadius(AppRadius.SM)
+                .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
+                .margin({ left: AppSpacing.XS })
+            }
+            .margin({ top: AppSpacing.XS })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+          .margin({ left: AppSpacing.SM })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        Text(this.request.applicantSkills)
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_MUTED)
+          .lineHeight(18)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+          .margin({ top: AppSpacing.SM })
+
+        Row() {
+          Text('期望薪资 ' + this.request.applicantSalary)
             .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.TEXT_SECONDARY)
-            .margin({ top: 2 })
+            .fontColor(AppColors.WARNING)
+            .fontWeight(FontWeight.Medium)
 
+          Blank()
+
+          Text(APPLICATION_STATUS_LABELS[this.request.status])
+            .fontSize(AppFontSize.XS)
+            .fontColor(this.statusColor())
+        }
+        .width('100%')
+        .margin({ top: AppSpacing.XS })
+
+        Row() {
+          Text('投递职位：' + this.request.jobTitle)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED)
+          Blank()
+          Text(this.request.createTime)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED)
+        }
+        .width('100%')
+        .margin({ top: AppSpacing.XXS })
+
+        if (this.request.status === 1 && this.request.interviewTime) {
           Row() {
-            Text(this.request.applicantEducation)
+            Text('面试安排：' + this.request.interviewTime + ' ' + this.request.interviewLocation)
               .fontSize(AppFontSize.XS)
-              .fontColor(AppColors.TEXT_MUTED)
-              .backgroundColor(AppColors.INPUT_BG)
-              .borderRadius(AppRadius.SM)
-              .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: 2, bottom: 2 })
-            Text(this.request.applicantExperience)
-              .fontSize(AppFontSize.XS)
-              .fontColor(AppColors.TEXT_MUTED)
-              .backgroundColor(AppColors.INPUT_BG)
-              .borderRadius(AppRadius.SM)
-              .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: 2, bottom: 2 })
-              .margin({ left: AppSpacing.XS })
+              .fontColor(AppColors.PRIMARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
+          .width('100%')
           .margin({ top: AppSpacing.XS })
         }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-        .margin({ left: AppSpacing.SM })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Top)
-      .onClick(() => {
-        this.onViewResume?.(this.request)
-      })
 
-      Text(this.request.applicantSkills)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-        .lineHeight(18)
-        .maxLines(2)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .width('100%')
-        .margin({ top: AppSpacing.SM })
-
-      Row() {
-        Text('期望薪资 ' + this.request.applicantSalary)
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.WARNING)
-          .fontWeight(FontWeight.Medium)
-
-        Blank()
-
-        Text(APPLICATION_STATUS_LABELS[this.request.status])
-          .fontSize(AppFontSize.XS)
-          .fontColor(this.statusColor())
-      }
-      .width('100%')
-      .margin({ top: AppSpacing.XS })
-
-      Row() {
-        Text('投递职位：' + this.request.jobTitle)
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.TEXT_MUTED)
-        Blank()
-        Text(this.request.createTime)
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.TEXT_MUTED)
-      }
-      .width('100%')
-      .margin({ top: 2 })
-
-      if (this.request.status === 1 && this.request.interviewTime) {
-        Row() {
-          Text('面试安排：' + this.request.interviewTime + ' ' + this.request.interviewLocation)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.PRIMARY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .width('100%')
-        .margin({ top: AppSpacing.XS })
-      }
-
-      if (this.request.status === 4 && this.request.rejectReason) {
-        Row() {
-          Text('淘汰原因：' + this.request.rejectReason)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.DANGER)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .width('100%')
-        .margin({ top: AppSpacing.XS })
-      }
-
-      if (this.request.status === 0) {
-        Row() {
-          Button({ type: ButtonType.Capsule }) {
-            Text('面试')
-              .fontSize(AppFontSize.XS)
-              .fontColor('#FFFFFF')
-          }
-            .height(32)
-            .backgroundColor(AppColors.PRIMARY)
-            .onClick(() => {
-              this.onInterview?.(this.request)
-            })
-            .stateStyles({
-              pressed: {
-                .scale({ x: 0.97, y: 0.97 })
-                .opacity(0.9)
-                .backgroundColor(AppColors.PRIMARY_HOVER)
-              },
-              normal: {
-                .scale({ x: 1, y: 1 })
-                .opacity(1)
-                .backgroundColor(AppColors.PRIMARY)
-              }
-            })
-            .animation({
-              duration: 200
-            })
-
-          this.statusAction('待定', AppColors.WARNING, () => {
-            this.onSimpleStatus?.(this.request, 2)
-          })
-          Blank().width(AppSpacing.SM)
-
-          Button({ type: ButtonType.Capsule }) {
-            Text('不合适')
+        if (this.request.status === 4 && this.request.rejectReason) {
+          Row() {
+            Text('淘汰原因：' + this.request.rejectReason)
               .fontSize(AppFontSize.XS)
               .fontColor(AppColors.DANGER)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
-            .height(32)
-            .backgroundColor(AppColors.BG_CARD)
-            .border({ width: 1, color: AppColors.DANGER })
-            .onClick(() => {
-              this.onReject?.(this.request)
-            })
-            .stateStyles({
-              pressed: {
-                .scale({ x: 0.97, y: 0.97 })
-                .opacity(0.9)
-              },
-              normal: {
-                .scale({ x: 1, y: 1 })
-                .opacity(1)
-              }
-            })
-            .animation({
-              duration: 200
-            })
+          .width('100%')
+          .margin({ top: AppSpacing.XS })
         }
-        .width('100%')
-        .margin({ top: AppSpacing.SM })
-        .justifyContent(FlexAlign.End)
-      }
-      if (this.request.status === 1 || this.request.status === 2) {
-        Row() {
-          if (this.request.status === 2) {
-            this.statusAction('安排面试', AppColors.PRIMARY, () => {
-              this.onInterview?.(this.request)
-            })
-          }
-          this.statusAction('录用', AppColors.SUCCESS, () => {
-            this.onSimpleStatus?.(this.request, 3)
-          })
-          if (this.request.status === 1) {
+
+        if (this.request.status === 0) {
+          Row() {
+            Button({ type: ButtonType.Capsule }) {
+              Text('面试')
+                .fontSize(AppFontSize.XS)
+                .fontColor('#FFFFFF')
+            }
+              .height(AppSpacing.BUTTON_HEIGHT_MINI)
+              .backgroundColor(AppColors.PRIMARY)
+              .onClick(() => {
+                this.onInterview?.(this.request)
+              })
+              .stateStyles({
+                pressed: {
+                  .scale({ x: 0.97, y: 0.97 })
+                  .opacity(0.9)
+                  .backgroundColor(AppColors.PRIMARY_HOVER)
+                },
+                normal: {
+                  .scale({ x: 1, y: 1 })
+                  .opacity(1)
+                  .backgroundColor(AppColors.PRIMARY)
+                }
+              })
+              .animation({
+                duration: 200
+              })
+
             this.statusAction('待定', AppColors.WARNING, () => {
               this.onSimpleStatus?.(this.request, 2)
             })
+            Blank().width(AppSpacing.SM)
+
+            Button({ type: ButtonType.Capsule }) {
+              Text('不合适')
+                .fontSize(AppFontSize.XS)
+                .fontColor(AppColors.DANGER)
+            }
+              .height(AppSpacing.BUTTON_HEIGHT_MINI)
+              .backgroundColor(AppColors.BG_CARD)
+              .border({ width: 1, color: AppColors.DANGER })
+              .onClick(() => {
+                this.onReject?.(this.request)
+              })
+              .stateStyles({
+                pressed: {
+                  .scale({ x: 0.97, y: 0.97 })
+                  .opacity(0.9)
+                },
+                normal: {
+                  .scale({ x: 1, y: 1 })
+                  .opacity(1)
+                }
+              })
+              .animation({
+                duration: 200
+              })
           }
-          this.statusAction('不合适', AppColors.DANGER, () => {
-            this.onReject?.(this.request)
-          })
+          .width('100%')
+          .margin({ top: AppSpacing.SM })
+          .justifyContent(FlexAlign.End)
         }
-        .width('100%')
-        .margin({ top: AppSpacing.SM })
-        .justifyContent(FlexAlign.End)
-      }
-      if (this.request.status === 3) {
-        Row() {
-          this.statusAction('完成结算', AppColors.SUCCESS, () => {
-            this.onComplete?.(this.request)
-          })
+        if (this.request.status === 1 || this.request.status === 2) {
+          Row() {
+            if (this.request.status === 2) {
+              this.statusAction('安排面试', AppColors.PRIMARY, () => {
+                this.onInterview?.(this.request)
+              })
+            }
+            this.statusAction('录用', AppColors.SUCCESS, () => {
+              this.onSimpleStatus?.(this.request, 3)
+            })
+            if (this.request.status === 1) {
+              this.statusAction('待定', AppColors.WARNING, () => {
+                this.onSimpleStatus?.(this.request, 2)
+              })
+            }
+            this.statusAction('不合适', AppColors.DANGER, () => {
+              this.onReject?.(this.request)
+            })
+          }
+          .width('100%')
+          .margin({ top: AppSpacing.SM })
+          .justifyContent(FlexAlign.End)
         }
-        .width('100%')
-        .margin({ top: AppSpacing.SM })
-        .justifyContent(FlexAlign.End)
+        if (this.request.status === 3) {
+          Row() {
+            this.statusAction('完成结算', AppColors.SUCCESS, () => {
+              this.onComplete?.(this.request)
+            })
+          }
+          .width('100%')
+          .margin({ top: AppSpacing.SM })
+          .justifyContent(FlexAlign.End)
+        }
       }
+      .width('100%')
+      .margin({ top: AppSpacing.SM })
     }
-    .width('100%')
-    .padding(AppSpacing.SM)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.LG)
-    .margin({ top: AppSpacing.SM })
   }
 
   @Builder
-  statusAction(label: string, color: string, onClick: () => void): void {
+  statusAction(label: string, color: ResourceColor, onClick: () => void): void {
     Button({ type: ButtonType.Capsule }) {
       Text(label)
         .fontSize(AppFontSize.XS)
         .fontColor(color === AppColors.PRIMARY || color === AppColors.SUCCESS ? '#FFFFFF' : color)
     }
-      .height(32)
+      .height(AppSpacing.BUTTON_HEIGHT_MINI)
       .backgroundColor(color === AppColors.PRIMARY || color === AppColors.SUCCESS ? color : AppColors.BG_CARD)
       .border({ width: 1, color: color })
       .margin({ left: AppSpacing.XS })
@@ -712,7 +720,7 @@ struct RecruiterRequestsPage {
     dialog.open()
   }
   openResume(req: RecruiterRequestVO): void {
-    router.pushUrl({
+    this.getUIContext().getRouter().pushUrl({
       url: 'pages/ResumeDetailPage',
       params: {
         resumeData: JSON.stringify({
@@ -731,7 +739,7 @@ struct RecruiterRequestsPage {
       NavBar({
         title: '请求处理',
         showBack: true,
-        onBack: () => router.back()
+        onBack: () => this.getUIContext().getRouter().back()
       })
 
       Scroll() {
@@ -754,8 +762,8 @@ struct RecruiterRequestsPage {
       if (this.isLoading) {
         Column() {
           LoadingProgress()
-            .width(28)
-            .height(28)
+            .width(AppSpacing.ICON_MD)
+            .height(AppSpacing.ICON_MD)
             .color(AppColors.PRIMARY)
           Text('正在加载请求记录')
             .fontSize(AppFontSize.SM)
@@ -767,32 +775,20 @@ struct RecruiterRequestsPage {
         .alignItems(HorizontalAlign.Center)
       } else if (this.errorText) {
         Column() {
-          SymbolGlyph($r('sys.symbol.exclamationmark_circle'))
-            .fontSize(32)
-            .fontColor([AppColors.DANGER])
-          Text(this.errorText)
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.TEXT_SECONDARY)
-            .textAlign(TextAlign.Center)
-            .margin({ top: AppSpacing.SM, bottom: AppSpacing.MD })
-          Button('重新加载', { type: ButtonType.Capsule })
-            .height(40)
-            .fontSize(AppFontSize.SM)
-            .fontColor('#FFFFFF')
-            .backgroundColor(AppColors.PRIMARY)
-            .onClick(() => {
-              this.loadRequests()
-            })
+          ErrorView({
+            message: this.errorText,
+            retryText: '重新加载',
+            onRetry: () => { this.loadRequests() }
+          })
+            .width('100%')
         }
         .layoutWeight(1)
-        .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else if (this.filteredList.length === 0) {
         Column() {
-          Text('暂无请求')
-            .fontSize(AppFontSize.SM)
-            .fontColor(AppColors.TEXT_MUTED)
+          EmptyView({ message: '暂无请求' })
+            .width('100%')
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
