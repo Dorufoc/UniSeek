@@ -24,6 +24,8 @@ struct ChatDetailPage {
   @State inputText: string = ''
   @State counterpartName: string = ''
   @State counterpartAvatar: string = ''
+  @State counterpartCompany: string = ''
+  @State enterpriseId: number = 0
   @State applicationId: number = 0
   @State taskTitle: string = ''
   @State isSending: boolean = false
@@ -102,6 +104,8 @@ struct ChatDetailPage {
     ChatService.getSessionDetail(this.applicationId).then((session: ChatSessionVO) => {
       this.counterpartName = session.counterpartName || this.counterpartName
       this.counterpartAvatar = session.counterpartAvatar || this.counterpartAvatar
+      this.counterpartCompany = session.counterpartCompany || ''
+      this.enterpriseId = session.enterpriseId || 0
       this.taskTitle = session.taskTitle || ''
       this.canSend = session.canSend !== false
     }).catch(() => {
@@ -377,27 +381,22 @@ struct ChatDetailPage {
           })
         }
 
-        // 输入区域
-        MessageInputBar({
-          inputText: $inputText,
-          canSend: this.canSendMessage(),
-          isSending: this.isSending,
-          onSend: () => { this.handleSend() },
-          onToggleMenu: () => { this.showActionMenu = !this.showActionMenu }
-        })
+        // 输入区域：宽度占屏幕 90% 并居中
+        Row() {
+          MessageInputBar({
+            inputText: $inputText,
+            canSend: this.canSendMessage(),
+            isSending: this.isSending,
+            onSend: () => { this.handleSend() },
+            onToggleMenu: () => { this.showActionMenu = !this.showActionMenu }
+          })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
       }
       .width('100%')
       .height('100%')
       .backgroundColor(AppColors.BG_PAGE)
-
-      // ========== 操作菜单遮罩层 ==========
-      if (this.showActionMenu) {
-        ActionMenuOverlay({
-          onSendImage: () => { this.handleSendImage() },
-          onSendResume: () => { this.handleSendResume() },
-          onClose: () => { this.showActionMenu = false }
-        })
-      }
 
       // ========== 图片预览 Lightbox ==========
       if (this.showLightbox) {
@@ -412,16 +411,50 @@ struct ChatDetailPage {
     }
     .width('100%')
     .height('100%')
+    .bindSheet($$this.showActionMenu, this.actionMenuBuilder(), {
+      height: 180,
+      dragBar: true,
+      showClose: true,
+      backgroundColor: AppColors.BG_CARD
+    })
+  }
+
+  // ==================== 底部操作抽屉 ====================
+
+  @Builder
+  actionMenuBuilder() {
+    ActionMenuOverlay({
+      onSendImage: () => { this.handleSendImage() },
+      onSendResume: () => { this.handleSendResume() }
+    })
   }
 
   // ==================== 导航栏中间内容 ====================
 
   @Builder chatHeaderCenter() {
     Column() {
-      Text(this.counterpartName || '聊天')
-        .fontSize(AppFontSize.LG)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .fontWeight(FontWeight.Bold)
+      Row() {
+        Text(this.counterpartName || '聊天')
+          .fontSize(AppFontSize.LG)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .fontWeight(FontWeight.Bold)
+        if (this.counterpartCompany.length > 0) {
+          Text('@' + this.counterpartCompany)
+            .fontSize(AppFontSize.LG)
+            .fontColor(AppColors.PRIMARY)
+            .fontWeight(FontWeight.Bold)
+            .onClick(() => {
+              if (this.enterpriseId > 0) {
+                this.getUIContext().getRouter().pushUrl({
+                  url: 'pages/CompanyDetailPage',
+                  params: { enterpriseId: this.enterpriseId }
+                })
+              }
+            })
+        }
+      }
+      .alignItems(VerticalAlign.Center)
+
       Text(this.taskTitle || '职位沟通')
         .fontSize(AppFontSize.SM)
         .fontColor(AppColors.TEXT_MUTED)

@@ -60,9 +60,9 @@ export struct NavBar {
       // 左侧返回区域，固定 72vp 占位（含箭头），保证标题居中对称
       if (this.showBack) {
         Row() {
-          SymbolGlyph($r('sys.symbol.chevron_left'))
+          SymbolGlyph($r('sys.symbol.chevron_backward'))
             .fontSize(20)
-            .fontColor([AppColors.PRIMARY])
+            .fontColor([AppColors.TEXT_PRIMARY])
         }
         .width(72)
         .alignItems(VerticalAlign.Center)

@@ -116,6 +116,7 @@ export struct ChatSessionItem {
       .animation({ duration: AppChat.SESSION_SELECT_DURATION })
     }
     .width('100%')
+    .height(AppChat.AVATAR_SESSION + AppChat.SESSION_ITEM_PADDING * 2)
     .onClick(() => {
       this.onItemClick?.()
     })

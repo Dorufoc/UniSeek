@@ -1,6 +1,11 @@
-// MessageInputBar.ets — 聊天输入栏：加号菜单、文本输入、发送按钮
+// MessageInputBar.ets — 聊天输入栏：紧凑布局，对齐微信/飞书/钉钉比例
 
-import { AppColors, AppFontSize, AppRadius, AppSpacing, AppChat } from '../../common/AppStyles';
+import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../../common/AppStyles';
+
+const INPUT_BAR_HEIGHT = 54       // IM 常见输入栏高度 +10
+const ACTION_BUTTON_SIZE = 34     // 左侧圆形加号按钮
+const SEND_BUTTON_HEIGHT = 32     // 发送按钮高度
+const SEND_BUTTON_MIN_WIDTH = 60  // 发送按钮最小宽度
 
 @Component
 export struct MessageInputBar {
@@ -19,83 +24,69 @@ export struct MessageInputBar {
   }
 
   build() {
-    Column() {
-      Row({ space: AppSpacing.SM_PLUS }) {
-        // 加号按钮：展开更多操作菜单
-        Button() {
-          SymbolGlyph($r('sys.symbol.plus'))
-            .fontSize(AppFontSize.ICON_LG)
-            .fontColor([AppColors.TEXT_SECONDARY])
+    Row({ space: AppSpacing.SM }) {
+      // 加号按钮：打开底部操作抽屉
+      Button() {
+        SymbolGlyph($r('sys.symbol.plus'))
+          .fontSize(AppFontSize.ICON_MD)
+          .fontColor([AppColors.TEXT_SECONDARY])
+      }
+      .width(ACTION_BUTTON_SIZE)
+      .height(ACTION_BUTTON_SIZE)
+      .padding(AppSpacing.ZERO)
+      .borderRadius(AppRadius.FULL)
+      .border({ width: 1, color: AppColors.BORDER })
+      .backgroundColor(AppColors.BG_PAGE)
+      .accessibilityText('更多操作')
+      .enabled(this.canSend)
+      .stateStyles({
+        pressed: {
+          .backgroundColor(AppColors.INPUT_FOCUS_BG)
         }
-        .width(AppSpacing.ICON_XXL)
-        .height(AppSpacing.ICON_XXL)
-        .padding(AppSpacing.ZERO)
-        .borderRadius(AppRadius.SOFT)
-        .border({ width: 1.5, color: AppColors.BORDER })
+      })
+      .onClick(() => {
+        this.onToggleMenu?.();
+      })
+
+      // 文本输入框
+      TextInput({ placeholder: this.getPlaceholder(), text: this.inputText })
+        .onChange((value: string) => {
+          this.inputText = value;
+        })
+        .layoutWeight(1)
+        .height(SEND_BUTTON_HEIGHT)
+        .fontSize(AppFontSize.BODY)
+        .fontColor(AppColors.TEXT_PRIMARY)
+        .placeholderColor(AppColors.TEXT_MUTED)
         .backgroundColor(AppColors.BG_PAGE)
+        .borderRadius(AppRadius.SOFT)
+        .border({ width: 1, color: AppColors.BORDER })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+        .enabled(this.canSend)
         .stateStyles({
-          pressed: {
-            .backgroundColor(AppColors.INPUT_FOCUS_BG)
+          focused: {
+            .borderColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.BG_CARD)
+            .shadow({ radius: 4, color: AppColors.PRIMARY_ALPHA_8, offsetX: 0, offsetY: 0 })
           }
         })
-        .accessibilityText('更多操作')
-        .enabled(this.canSend)
-        .onClick(() => {
-          this.onToggleMenu?.();
-        })
 
-        // 文本输入框
-        TextInput({ placeholder: this.getPlaceholder(), text: this.inputText })
-          .onChange((value: string) => {
-            this.inputText = value;
-          })
-          .layoutWeight(1)
-          .height(AppSpacing.INPUT_HEIGHT)
-          .borderRadius(AppRadius.SOFT)
-          .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-          .fontSize(AppFontSize.BODY)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .placeholderColor(AppColors.TEXT_MUTED)
-          .backgroundColor(AppColors.BG_PAGE)
-          .border({ width: 1.5, color: AppColors.BORDER })
-          .enabled(this.canSend)
-          .stateStyles({
-            focused: {
-              .borderColor(AppColors.PRIMARY)
-              .backgroundColor(AppColors.BG_CARD)
-              .shadow({ radius: 4, color: AppColors.PRIMARY_ALPHA_8, offsetX: 0, offsetY: 0 })
-            }
-          })
-
-        // 发送按钮
-        Button() {
-          Text(this.isSending ? '...' : '发送')
-            .fontSize(AppFontSize.BODY)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(AppColors.BG_CARD)
-        }
-        .height(AppSpacing.INPUT_HEIGHT)
-        .constraintSize({ minWidth: 80 })
-        .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
-        .borderRadius(AppRadius.SOFT)
-        .backgroundColor(AppColors.PRIMARY)
+      // 发送按钮
+      Button(this.isSending ? '...' : '发送', { type: ButtonType.Capsule })
+        .height(SEND_BUTTON_HEIGHT)
+        .constraintSize({ minWidth: SEND_BUTTON_MIN_WIDTH })
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+        .fontSize(AppFontSize.SM)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.BG_CARD)
+        .backgroundColor(this.canSendMessage() ? AppColors.PRIMARY : AppColors.TEXT_MUTED)
         .enabled(this.canSendMessage())
         .onClick(() => {
           this.onSend?.();
         })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
     }
-    .width('100%')
-    .padding({
-      left: AppSpacing.PAGE_PADDING_VERTICAL,
-      right: AppSpacing.PAGE_PADDING_VERTICAL,
-      top: AppSpacing.MD,
-      bottom: AppChat.INPUT_BAR_PADDING_BOTTOM
-    })
-    .backgroundColor(AppColors.BG_CARD)
-    .borderWidth({ top: 1 })
-    .borderColor({ top: AppColors.BORDER_FAINT })
+    .width('90%')
+    .height(INPUT_BAR_HEIGHT)
+    .alignItems(VerticalAlign.Center)
   }
 }

@@ -23,6 +23,7 @@
     "pages/ResumeDetailPage",
     "pages/RecruiterSearchPage",
     "pages/SearchResultsPage",
-    "pages/CompanyPage"
+    "pages/CompanyPage",
+    "pages/CompanyDetailPage"
   ]
 }

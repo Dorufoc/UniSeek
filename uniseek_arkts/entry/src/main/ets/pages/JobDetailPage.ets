@@ -1,5 +1,5 @@
 /**
- * 职位详情页 — 双参数兼容，标准页面转场
+ * 职位详情页 — 双参数兼容，标准页面转场，统一 HMOS 视觉风格
  * 双参数兼容：新 {jobId} / 旧 {jobData, hideActions}
  */
 import { ApiClient } from '../services/ApiClient';
@@ -133,7 +133,7 @@ struct JobDetailPage {
           title: '实名认证提示',
           message: '投递职位前需要先完成实名认证，是否前往认证？',
           primaryButton: { value: '前往认证', action: (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/RealNameAuthPage' }); } },
-           cancel: (): void => {}
+          cancel: (): void => {}
         });
         return;
       }
@@ -206,6 +206,14 @@ struct JobDetailPage {
     return true;
   }
 
+  // 将描述按段落拆分，过滤空行
+  private getDescriptionParagraphs(): string[] {
+    if (!this.job || !this.job.description || this.job.description.length === 0) {
+      return [];
+    }
+    return this.job.description.split('\n').filter((s: string): boolean => s.trim().length > 0);
+  }
+
   // ===== UI 构建 =====
   build() {
     Column() {
@@ -217,7 +225,9 @@ struct JobDetailPage {
           LoadingProgress().width(AppSpacing.BUTTON_HEIGHT).height(AppSpacing.BUTTON_HEIGHT).color(AppColors.PRIMARY);
           Text('加载中...').fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_MUTED).margin({ top: AppSpacing.MD });
         }
-        .layoutWeight(1).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center);
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center);
       }
       // 错误（无本地数据）
       else if (this.error !== '' && this.job === null) {
@@ -227,9 +237,9 @@ struct JobDetailPage {
             retryText: this.jobId > 0 ? '重新加载' : '返回',
             onRetry: () => {
               if (this.jobId > 0) {
-                this.loadJobFromApi(this.jobId)
+                this.loadJobFromApi(this.jobId);
               } else {
-                this.getUIContext().getRouter().back()
+                this.getUIContext().getRouter().back();
               }
             }
           })
@@ -237,290 +247,383 @@ struct JobDetailPage {
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .padding(AppSpacing.MD)
+        .padding(AppSpacing.MD);
       }
       // 内容
       else if (this.job !== null) {
         Scroll() {
-          Column() {
+          Column({ space: AppSpacing.MD }) {
             // 内联错误提示（非阻断性，由交互操作触发）
             if (this.error !== '') {
-              Text(this.error)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.DANGER)
-                .width('100%')
-                .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.SM, bottom: AppSpacing.SM })
-                .backgroundColor(AppColors.ERROR_BG)
-                .borderRadius(AppRadius.MD)
-                .margin({ bottom: AppSpacing.SM })
+              this.ErrorTipBuilder();
             }
 
-            // === 职位标题区 ===
-            Column() {
-              Row() {
-                Text(this.job.title)
-                  .fontSize(AppFontSize.XXXL)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                  .layoutWeight(1)
-                  .lineHeight(40)
-                Text(this.statusLabel(this.job.status))
-                  .fontSize(AppFontSize.XS)
-                  .fontColor(this.job.status === 1 ? AppColors.SUCCESS : AppColors.TEXT_MUTED)
-                  .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS })
-                  .backgroundColor(this.job.status === 1 ? AppColors.SUCCESS_BG : AppColors.INPUT_BG)
-                  .borderRadius(AppRadius.LG)
-                  .margin({ left: AppSpacing.SM })
-              }
-              .width('100%')
-              .alignItems(VerticalAlign.Top)
+            this.heroBuilder();
+            this.hrCardBuilder();
+            this.descriptionBuilder();
+            this.companyCardBuilder();
 
-              Text(this.salaryRangeText(this.job.salaryMin, this.job.salaryMax, this.job.salaryUnit))
-                .fontSize(AppFontSize.XXL)
-                .fontWeight(FontWeight.Bold)
-                .fontColor(AppColors.DANGER)
-                .margin({ top: AppSpacing.SM })
-
-              Divider()
-                .height(AppSpacing.DIVIDER_THICKNESS_BOLD)
-                .color(AppColors.BORDER)
-                .margin({ top: AppSpacing.MD })
+            // 为底部固定操作栏留出空间
+            if (!this.hideActions) {
+              Column().width('100%').height(AppSpacing.FOOTER_SPACER);
             }
-            .width('100%')
-            .margin({ bottom: AppSpacing.LG })
-
-            // === 地点 + 技能标签 ===
-            Flex({ wrap: FlexWrap.Wrap }) {
-              this.chip(
-                DataService.getRegionFullPath(this.job.region) ?? this.job.region,
-                AppColors.PRIMARY, AppColors.SELECTED_BG
-              )
-              if (this.job.tag && this.job.tag.length > 0) {
-                ForEach(this.job.tag, (tag: string): void => {
-                  Text(tag)
-                    .fontSize(AppFontSize.XS)
-                    .fontColor(AppColors.PRIMARY)
-                    .backgroundColor(AppColors.SELECTED_BG)
-                    .border({ width: 1, color: AppColors.BORDER })
-                    .borderRadius(AppRadius.LG)
-                    .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS })
-                    .margin({ right: AppSpacing.SM, bottom: AppSpacing.XS })
-                }, (tag: string): string => tag)
-              }
-            }
-            .width('100%')
-            .margin({ bottom: AppSpacing.LG })
-
-            // === HR信息 ===
-            Column() {
-              StandardCard() {
-                Column() {
-                  this.SectionHeader('招聘方')
-                  Row() {
-                    if (this.job.hrAvatar && this.job.hrAvatar.length > 0) {
-                      Image(this.job.hrAvatar)
-                        .width(AppSpacing.ICON_XXL)
-                        .height(AppSpacing.ICON_XXL)
-                        .borderRadius(AppRadius.FULL)
-                        .margin({ right: AppSpacing.SM })
-                    } else {
-                      Stack() {
-                        Text('HR')
-                          .fontSize(AppFontSize.SM)
-                          .fontColor(AppColors.BG_CARD)
-                      }
-                      .width(AppSpacing.ICON_XXL)
-                      .height(AppSpacing.ICON_XXL)
-                      .borderRadius(AppRadius.FULL)
-                      .backgroundColor(AppColors.PRIMARY)
-                      .margin({ right: AppSpacing.SM })
-                    }
-                    Column() {
-                      Text(this.job.hrName || '招聘方')
-                        .fontSize(AppFontSize.MD)
-                        .fontWeight(FontWeight.Medium)
-                        .fontColor(AppColors.TEXT_PRIMARY)
-                      Text('招聘HR')
-                        .fontSize(AppFontSize.XS)
-                        .fontColor(AppColors.TEXT_MUTED)
-                        .margin({ top: AppSpacing.XS })
-                    }
-                    .alignItems(HorizontalAlign.Start)
-                    .layoutWeight(1)
-                  }
-                  .width('100%')
-                  .alignItems(VerticalAlign.Center)
-                }
-                .width('100%')
-              }
-            }
-            .width('100%')
-            .margin({ bottom: AppSpacing.LG })
-
-          // === 职位描述 ===
-            Column() {
-              StandardCard() {
-                Column() {
-                  this.SectionHeader('职位描述')
-                  if (this.job.description && this.job.description.length > 0) {
-                    ForEach(
-                      this.job.description.split('\n').filter((s: string): boolean => s.trim().length > 0),
-                      (item: string): void => {
-                        Text(item)
-                          .fontSize(AppFontSize.SM)
-                          .fontColor(AppColors.TEXT_PRIMARY)
-                          .width('100%')
-                          .lineHeight(24)
-                          .margin({ bottom: AppSpacing.SM })
-                      },
-                      (item: string): string => item
-                    )
-                  } else {
-                    Text('暂无详细描述')
-                      .fontSize(AppFontSize.SM)
-                      .fontColor(AppColors.TEXT_MUTED)
-                  }
-                }
-                .width('100%')
-              }
-            }
-            .width('100%')
-            .margin({ bottom: AppSpacing.LG })
-
-            // === 公司信息 ===
-            Column() {
-              StandardCard({
-                onClickAction: () => {
-                  if (this.job && this.job.enterpriseId > 0) {
-                    this.getUIContext().getRouter().pushUrl({ url: 'pages/CompanyPage', params: { enterpriseId: this.job.enterpriseId } })
-                  }
-                },
-                accessibilityLabel: '查看公司详情'
-              }) {
-                Column() {
-                  this.SectionHeader('公司信息')
-                  Row() {
-                    Stack() {
-                      Text((this.job.enterpriseName || this.job.company || '企').charAt(0))
-                        .fontSize(AppFontSize.ICON_LG)
-                        .fontWeight(FontWeight.Bold)
-                        .fontColor(AppColors.BG_CARD)
-                    }
-                    .width(AppSpacing.BUTTON_HEIGHT_LG)
-                    .height(AppSpacing.BUTTON_HEIGHT_LG)
-                    .borderRadius(AppRadius.MD)
-                    .backgroundColor(AppColors.PRIMARY)
-                    .margin({ right: AppSpacing.MD })
-
-                    Column() {
-                      Text(this.job.enterpriseName || this.job.company || '未知企业')
-                        .fontSize(AppFontSize.MD)
-                        .fontWeight(FontWeight.Bold)
-                        .fontColor(AppColors.TEXT_PRIMARY)
-                        .width('100%')
-                      Row() {
-                        this.statCell(String(this.job.applicationCount || 0), '投递人数')
-                        this.statCell(String(this.job.totalQuota || 0), '招聘名额')
-                        this.statCell(String(this.job.remainingQuota ?? 0), '剩余名额')
-                      }
-                      .width('100%')
-                      .margin({ top: AppSpacing.XS })
-                    }
-                    .layoutWeight(1)
-                    .alignItems(HorizontalAlign.Start)
-                  }
-                  .width('100%')
-                  .margin({ top: AppSpacing.SM, bottom: AppSpacing.MD })
-
-                  this.infoRow('工作类型', this.jobTypeLabel(this.job.jobType), '薪资', this.salaryRangeText(this.job.salaryMin, this.job.salaryMax, this.job.salaryUnit))
-                  this.infoRow('工作地点', this.job.address || '未填写', '截止时间', this.formatDate(this.job.deadline))
-                }
-                .width('100%')
-              }
-            }
-            .width('100%')
-            .margin({ bottom: AppSpacing.LG })
-
-            if (!this.hideActions) Column().height(AppSpacing.FOOTER_SPACER).width('100%')
           }
-          .padding(AppSpacing.MD)
           .width('100%')
+          .padding(AppSpacing.MD);
         }
         .layoutWeight(1)
         .width('100%')
-        .backgroundColor(AppColors.BG_PAGE)
+        .backgroundColor(AppColors.BG_PAGE);
 
-        // === 底部操作栏 ===
+        // 底部操作栏
         if (!this.hideActions) {
-          Row() {
-            // 收藏 — 图标按钮
-            Button() {
-              SymbolGlyph($r('sys.symbol.star')).fontSize(AppFontSize.XL).fontColor([this.hasFavorited ? AppColors.WARNING : AppColors.TEXT_PRIMARY]);
-            }
-            .width(AppSpacing.BUTTON_HEIGHT_LG).height(AppSpacing.BUTTON_HEIGHT_LG).backgroundColor(this.hasFavorited ? AppColors.WARNING_BG : AppColors.BG_CARD)
-            .border({ width: 1, color: this.hasFavorited ? AppColors.WARNING : AppColors.BORDER }).borderRadius(AppRadius.LG).margin({ right: AppSpacing.SM })
-            .accessibilityText(this.hasFavorited ? '取消收藏职位' : '收藏职位')
-            .onClick((): void => { this.handleToggleFavorite(); });
-
-            // 主按钮 — 文字按钮（立即投递 / 继续沟通 / etc）
-            Button() { Text(this.getMainButtonText()).fontSize(AppFontSize.MD).fontWeight(FontWeight.Bold).fontColor(AppColors.BG_CARD); }
-              .layoutWeight(1).height(AppSpacing.BUTTON_HEIGHT_LG).backgroundColor(this.getMainButtonBg()).borderRadius(AppRadius.LG).margin({ right: AppSpacing.SM })
-              .enabled(this.isMainButtonEnabled())
-              .onClick((): void => {
-                const btnText: string = this.getMainButtonText();
-                if (btnText === '继续沟通') {
-                  const appId: number = this.currentApplicationId || this.job!.applicationId || 0;
-                  if (appId > 0) {
-                    this.getUIContext().getRouter().pushUrl({ url: 'pages/ChatDetailPage', params: { applicationId: appId, counterpartName: this.job!.hrName || '招聘方', counterpartAvatar: this.job!.hrAvatar || '' } });
-                  } else { this.error = '未找到会话信息，请从消息列表进入'; }
-                  return;
-                }
-                if (!ApiClient.hasToken()) { this.getUIContext().getRouter().pushUrl({ url: 'pages/LoginPage' }); return; }
-                this.handleApply();
-              });
-
-            // 联系HR — 图标按钮
-            Button() {
-              SymbolGlyph($r('sys.symbol.message')).fontSize(AppFontSize.XL).fontColor([AppColors.PRIMARY]);
-            }
-            .width(AppSpacing.BUTTON_HEIGHT_LG).height(AppSpacing.BUTTON_HEIGHT_LG).backgroundColor(AppColors.BG_CARD).borderRadius(AppRadius.LG).border({ width: 1, color: AppColors.PRIMARY })
-            .accessibilityText('联系招聘方')
-            .onClick((): void => { this.handleContactHr(); });
-          }
-          .width('100%').padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.LG })
-          .backgroundColor(AppColors.BG_CARD);
+          this.bottomBarBuilder();
         }
       }
     }
-    .width('100%').height('100%').backgroundColor(AppColors.BG_PAGE).alignItems(HorizontalAlign.Center);
+    .width('100%')
+    .height('100%')
+    .backgroundColor(AppColors.BG_PAGE)
+    .alignItems(HorizontalAlign.Center);
   }
 
   // ===== 子组件构建辅助 =====
-  @Builder chip(label: string, textColor: ResourceColor, bgColor: ResourceColor) {
-    Text(label).fontSize(AppFontSize.XS).fontColor(textColor).backgroundColor(bgColor)
-      .border({ width: 1, color: AppColors.BORDER_LIGHT }).borderRadius(AppRadius.LG)
-      .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS });
-  }
 
-  @Builder statCell(value: string, label: string) {
-    Column() {
-      Text(value).fontSize(AppFontSize.XL).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY);
-      Text(label).fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_MUTED).margin({ top: AppSpacing.XS });
+  // 顶部职位信息区：标题 + 状态、薪资、关键信息胶囊
+  @Builder
+  heroBuilder() {
+    StandardCard() {
+      Column({ space: AppSpacing.SM }) {
+        Row() {
+          Text(this.job!.title)
+            .fontSize(AppFontSize.LG)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppColors.TEXT_PRIMARY)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1);
+          this.statusPillBuilder(this.job!.status);
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top);
+
+        Text(this.salaryRangeText(this.job!.salaryMin, this.job!.salaryMax, this.job!.salaryUnit))
+          .fontSize(AppFontSize.XXL)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.DANGER);
+
+        // 关键信息胶囊
+        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start, alignItems: ItemAlign.Center }) {
+          this.infoChipBuilder(this.jobTypeLabel(this.job!.jobType));
+          this.infoChipBuilder(DataService.getRegionFullPath(this.job!.region) ?? this.job!.region);
+          this.infoChipBuilder('截止 ' + this.formatDate(this.job!.deadline));
+          this.infoChipBuilder('剩余 ' + String(this.job!.remainingQuota) + ' 个名额');
+        }
+        .width('100%');
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start);
     }
-    .layoutWeight(1).alignItems(HorizontalAlign.Center);
   }
 
-  @Builder infoRow(label1: string, value1: string, label2: string, value2: string) {
+  @Builder
+  statusPillBuilder(status: number) {
+    Text(this.statusLabel(status))
+      .fontSize(AppFontSize.XS)
+      .fontColor(this.statusColor(status))
+      .backgroundColor(status === 1 ? AppColors.SUCCESS_BG : AppColors.INPUT_BG)
+      .borderRadius(AppRadius.PILL)
+      .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS })
+      .margin({ left: AppSpacing.SM });
+  }
+
+  @Builder
+  infoChipBuilder(label: string) {
+    Text(label)
+      .fontSize(AppFontSize.XS)
+      .fontColor(AppColors.PRIMARY)
+      .backgroundColor(AppColors.SELECTED_BG)
+      .borderRadius(AppRadius.LG)
+      .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XS, bottom: AppSpacing.XS })
+      .margin({ right: AppSpacing.SM, bottom: AppSpacing.XS });
+  }
+
+  // HR 联系卡片
+  @Builder
+  hrCardBuilder() {
+    StandardCard({
+      onClickAction: () => {
+        this.handleContactHr();
+      },
+      accessibilityLabel: '联系招聘HR'
+    }) {
+      Row() {
+        this.avatarBuilder(this.job!.hrName || 'HR', AppSpacing.ICON_XL);
+        Column({ space: AppSpacing.XS }) {
+          Text(this.job!.hrName || '招聘方')
+            .fontSize(AppFontSize.MD)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.TEXT_PRIMARY);
+          Text('招聘HR')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED);
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+        .margin({ left: AppSpacing.SM });
+
+        this.chevronRightBuilder();
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+    }
+  }
+
+  @Builder
+  avatarBuilder(name: string, size: number) {
+    if (this.job && this.job.hrAvatar && this.job.hrAvatar.length > 0) {
+      Image(this.job.hrAvatar)
+        .width(size)
+        .height(size)
+        .borderRadius(AppRadius.FULL)
+        .objectFit(ImageFit.Cover);
+    } else {
+      Stack() {
+        Text(this.getInitials(name))
+          .fontSize(size * 0.4)
+          .fontColor(AppColors.BG_CARD)
+          .fontWeight(FontWeight.Bold);
+      }
+      .width(size)
+      .height(size)
+      .borderRadius(AppRadius.FULL)
+      .backgroundColor(AppColors.PRIMARY);
+    }
+  }
+
+  getInitials(name: string): string {
+    const safeName: string = name || 'HR';
+    return safeName.charAt(0);
+  }
+
+  @Builder
+  chevronRightBuilder() {
+    SymbolGlyph($r('sys.symbol.chevron_right'))
+      .fontSize(AppFontSize.MD)
+      .fontColor([AppColors.TEXT_MUTED]);
+  }
+
+  // 职位描述区
+  @Builder
+  descriptionBuilder() {
+    StandardCard() {
+      Column({ space: AppSpacing.SM }) {
+        this.SectionHeader('职位描述', $r('sys.symbol.doc_text'));
+
+        if (this.job && this.job.description && this.job.description.length > 0) {
+          ForEach(
+            this.getDescriptionParagraphs(),
+            (item: string): void => {
+              Text(item)
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .width('100%')
+                .lineHeight(22);
+            },
+            (item: string, index: number): string => String(index)
+          );
+        } else {
+          Text('暂无详细描述')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED);
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start);
+    }
+  }
+
+  // 公司信息卡片
+  @Builder
+  companyCardBuilder() {
+    StandardCard({
+      onClickAction: () => {
+        if (this.job && this.job.enterpriseId > 0) {
+          this.getUIContext().getRouter().pushUrl({
+            url: 'pages/CompanyDetailPage',
+            params: { enterpriseId: this.job.enterpriseId }
+          });
+        }
+      },
+      accessibilityLabel: '查看公司详情'
+    }) {
+      Column({ space: AppSpacing.SM }) {
+        Row() {
+          this.companyLogoBuilder();
+          Column({ space: AppSpacing.XS }) {
+            Text(this.job!.enterpriseName || this.job!.company || '未知企业')
+              .fontSize(AppFontSize.MD)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.TEXT_PRIMARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width('100%');
+
+            Row() {
+              this.statCellBuilder(String(this.job!.applicationCount || 0), '投递人数');
+              this.statCellBuilder(String(this.job!.totalQuota || 0), '招聘名额');
+              this.statCellBuilder(String(this.job!.remainingQuota ?? 0), '剩余名额');
+            }
+            .width('100%');
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+          .margin({ left: AppSpacing.SM });
+
+          this.chevronRightBuilder();
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center);
+
+        if (this.job!.address && this.job!.address.length > 0) {
+          Text(this.job!.address)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED)
+            .width('100%')
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start);
+    }
+  }
+
+  @Builder
+  companyLogoBuilder() {
+    Stack() {
+      Text(this.getInitials(this.job!.enterpriseName || this.job!.company || '企'))
+        .fontSize(AppFontSize.ICON_LG)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.BG_CARD);
+    }
+    .width(AppSpacing.ICON_LG)
+    .height(AppSpacing.ICON_LG)
+    .borderRadius(AppRadius.MD)
+    .backgroundColor(AppColors.PRIMARY);
+  }
+
+  @Builder
+  statCellBuilder(value: string, label: string) {
+    Column() {
+      Text(value)
+        .fontSize(AppFontSize.SM)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY);
+      Text(label)
+        .fontSize(AppFontSize.XXS)
+        .fontColor(AppColors.TEXT_MUTED)
+        .margin({ top: AppSpacing.XXS });
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Center);
+  }
+
+  // 底部固定操作栏
+  @Builder
+  bottomBarBuilder() {
     Row() {
-      Column() {
-        Text(label1).fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_MUTED);
-        Text(value1).fontSize(AppFontSize.MD).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).margin({ top: AppSpacing.XS });
-      }.layoutWeight(1).alignItems(HorizontalAlign.Start);
-      Column() {
-        Text(label2).fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_MUTED);
-        Text(value2).fontSize(AppFontSize.MD).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).margin({ top: AppSpacing.XS });
-      }.layoutWeight(1).alignItems(HorizontalAlign.Start).margin({ left: AppSpacing.LG });
-    }.width('100%').margin({ bottom: AppSpacing.MD });
+      // 收藏
+      Button({ type: ButtonType.Circle }) {
+        SymbolGlyph($r('sys.symbol.star'))
+          .fontSize(AppFontSize.LG)
+          .fontColor([this.hasFavorited ? AppColors.BG_CARD : AppColors.TEXT_PRIMARY]);
+      }
+      .width(AppSpacing.ICON_LG)
+      .height(AppSpacing.ICON_LG)
+      .backgroundColor(this.hasFavorited ? AppColors.WARNING : AppColors.BG_CARD)
+      .border({
+        width: this.hasFavorited ? 0 : 1,
+        color: this.hasFavorited ? AppColors.WARNING : AppColors.BORDER
+      })
+      .accessibilityText(this.hasFavorited ? '取消收藏职位' : '收藏职位')
+      .onClick((): void => {
+        this.handleToggleFavorite();
+      });
+
+      // 主操作
+      Button(this.getMainButtonText(), { type: ButtonType.Capsule })
+        .layoutWeight(1)
+        .height(AppSpacing.BUTTON_HEIGHT_MD)
+        .backgroundColor(this.getMainButtonBg())
+        .fontSize(AppFontSize.MD)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#FFFFFF')
+        .enabled(this.isMainButtonEnabled())
+        .margin({ left: AppSpacing.SM, right: AppSpacing.SM })
+        .onClick((): void => {
+          const btnText: string = this.getMainButtonText();
+          if (btnText === '继续沟通') {
+            const appId: number = this.currentApplicationId || this.job!.applicationId || 0;
+            if (appId > 0) {
+              this.getUIContext().getRouter().pushUrl({
+                url: 'pages/ChatDetailPage',
+                params: {
+                  applicationId: appId,
+                  counterpartName: this.job!.hrName || '招聘方',
+                  counterpartAvatar: this.job!.hrAvatar || ''
+                }
+              });
+            } else {
+              this.error = '未找到会话信息，请从消息列表进入';
+            }
+            return;
+          }
+          if (!ApiClient.hasToken()) {
+            this.getUIContext().getRouter().pushUrl({ url: 'pages/LoginPage' });
+            return;
+          }
+          this.handleApply();
+        });
+
+      // 联系 HR
+      Button({ type: ButtonType.Circle }) {
+        SymbolGlyph($r('sys.symbol.message'))
+          .fontSize(AppFontSize.LG)
+          .fontColor([AppColors.BG_CARD]);
+      }
+      .width(AppSpacing.ICON_LG)
+      .height(AppSpacing.ICON_LG)
+      .backgroundColor(AppColors.PRIMARY)
+      .accessibilityText('联系招聘方')
+      .onClick((): void => {
+        this.handleContactHr();
+      });
+    }
+    .width('100%')
+    .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.LG })
+    .backgroundColor(AppColors.BG_CARD)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center);
+  }
+
+  @Builder
+  ErrorTipBuilder() {
+    Row() {
+      SymbolGlyph($r('sys.symbol.exclamationmark_circle'))
+        .fontSize(AppFontSize.SM)
+        .fontColor([AppColors.DANGER])
+        .margin({ right: AppSpacing.XS });
+      Text(this.error)
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.DANGER)
+        .layoutWeight(1);
+    }
+    .width('100%')
+    .padding(AppSpacing.SM)
+    .backgroundColor(AppColors.ERROR_BG)
+    .borderRadius(AppRadius.MD)
+    .alignItems(VerticalAlign.Center);
   }
 
   // 统一区块标题（带系统图标）
@@ -531,21 +634,17 @@ struct JobDetailPage {
         SymbolGlyph(icon)
           .fontSize(AppFontSize.MD)
           .fontColor([AppColors.PRIMARY])
-          .margin({ right: AppSpacing.XS })
+          .margin({ right: AppSpacing.XS });
       }
       Text(title)
         .fontSize(AppFontSize.MD)
         .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
+        .fontColor(AppColors.TEXT_PRIMARY);
     }
     .width('100%')
-    .margin({ bottom: AppSpacing.SM })
-    .alignItems(VerticalAlign.Center)
+    .alignItems(VerticalAlign.Center);
   }
 
   // ===== 页面转场 =====
-  pageTransition() {
-    PageTransitionEnter({ duration: 300 }).slide(SlideEffect.Right);
-    PageTransitionExit({ duration: 300 }).slide(SlideEffect.Right);
-  }
+  // 不再自定义 pageTransition，统一使用系统原生页面切换动画，避免与系统动画叠加产生两层效果。
 }

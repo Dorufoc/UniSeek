@@ -16,7 +16,25 @@ export struct RecruiterProfileTab {
   @State loadErrorText: string = ''
 
   aboutToAppear(): void {
+    this.loadCachedProfile()
     this.reloadProfile()
+  }
+
+  /** 进入页面时优先展示本地缓存数据，无网络也能看到之前的企业与账号信息。 */
+  loadCachedProfile(): void {
+    const cachedUser = AuthService.getCachedCurrentUser()
+    if (cachedUser) {
+      this.username = cachedUser.nickname || '未设置昵称'
+      this.avatarUri = cachedUser.avatarUrl || ''
+    }
+    const cachedAuth = AuthService.getCachedRealNameStatus()
+    if (cachedAuth) {
+      this.isVerified = cachedAuth.status === 1
+    }
+    const cachedEnterprise = RecruiterService.getCachedEnterpriseInfo()
+    if (cachedEnterprise) {
+      this.enterpriseAuditStatus = cachedEnterprise.auditStatus
+    }
   }
 
   reloadProfile(): void {
@@ -26,14 +44,14 @@ export struct RecruiterProfileTab {
     AuthService.getRealNameStatus().then((info) => {
       this.isVerified = info.status === 1
     }).catch(() => {
-      this.loadErrorText = '部分个人信息加载失败'
+      // 保留本地缓存的实名认证状态
     })
     RecruiterService.getEnterpriseInfo().then((info) => {
       if (info) {
         this.enterpriseAuditStatus = info.auditStatus
       }
     }).catch(() => {
-      this.loadErrorText = '企业资质状态加载失败'
+      // 保留本地缓存的企业资质状态
     })
   }
 
@@ -43,8 +61,7 @@ export struct RecruiterProfileTab {
       this.username = user.nickname || '未设置昵称'
       this.avatarUri = user.avatarUrl || ''
     } catch {
-      this.username = '未设置昵称'
-      this.avatarUri = ''
+      // 保留本地缓存的个人信息，仅提示刷新失败
       this.loadErrorText = '部分个人信息加载失败'
     }
   }
@@ -65,8 +82,7 @@ export struct RecruiterProfileTab {
       this.receivedResumes = stats.receivedResumes || 0
       this.hired = stats.hired || 0
     } catch {
-      this.receivedResumes = 0
-      this.hired = 0
+      // 保留本地缓存的统计数据，仅提示刷新失败
       this.loadErrorText = '招聘统计加载失败'
     }
   }

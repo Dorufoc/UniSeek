@@ -1,10 +1,9 @@
 import { ApiClient } from '../../../services/ApiClient';
 import { DataService } from '../../../services/DataService';
 import { TaskVO, TaskSearchParams, mapTaskToJobData } from '../../../services/ChatTypes';
-import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
+import { AppColors, AppSpacing, AppFontSize } from '../../../common/AppStyles';
 import { FilterBar } from './FilterBar';
 import { JobFeedList } from './JobFeedList';
-import { JobFeedCard } from '../../../components/JobFeedCard';
 import { FilterSheet, FilterSelection } from '../../../components/filter/FilterSheet';
 import { TabDataState } from './JobFeedTypes'
 import { WindowBreakpoint } from '../../../common/Responsive';
@@ -20,17 +19,28 @@ export struct HomePage {
   @State includeNegotiable: boolean = true
   @State selectedRegion: string[] = []
   @State selectedType: string[] = []
+  @State selectedTags: string[] = []
   @State tabData: Record<number, TabDataState> = {
     1: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' },
     2: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' },
     3: { jobs: [], page: 1, hasMore: true, loading: false, errorText: '' }
   }
 
-  // 筛选面板显隐控制
+  // 筛选抽屉显隐控制
   @State showFilterSheet: boolean = false
 
   aboutToAppear(): void {
     this.loadTabData(1, false)
+  }
+
+  private hasActiveFilters(): boolean {
+    return this.salaryMin > 0 ||
+      this.salaryMax > 0 ||
+      this.selectedSalaryUnit >= 0 ||
+      !this.includeNegotiable ||
+      this.selectedRegion.length > 0 ||
+      this.selectedType.length > 0 ||
+      this.selectedTags.length > 0
   }
 
   async loadTabData(jobType: number, append: boolean): Promise<void> {
@@ -58,7 +68,8 @@ export struct HomePage {
         salaryMin: this.salaryMin > 0 ? this.salaryMin : undefined,
         salaryMax: this.salaryMax > 0 ? this.salaryMax : undefined,
         salaryUnit: this.selectedSalaryUnit >= 0 ? this.selectedSalaryUnit : undefined,
-        includeNegotiable: this.includeNegotiable
+        includeNegotiable: this.includeNegotiable,
+        tags: this.selectedTags.length > 0 ? this.selectedTags.join(',') : undefined
       }
 
       // 构建地区筛选参数：将 selectedRegion 中的名称转换为地区ID
@@ -153,6 +164,7 @@ export struct HomePage {
     this.includeNegotiable = selection.includeNegotiable
     this.selectedRegion = selection.region
     this.selectedType = selection.type
+    this.selectedTags = selection.tags
     this.showFilterSheet = false
     this.resetAllTabs()
   }
@@ -166,6 +178,7 @@ export struct HomePage {
       includeNegotiable: this.includeNegotiable,
       selectedRegion: this.selectedRegion,
       selectedType: this.selectedType,
+      selectedTags: this.selectedTags,
       breakpoint: this.breakpoint,
       onApply: (selection: FilterSelection) => { this.applyFilterSelection(selection) },
       onReset: () => { }
@@ -198,41 +211,14 @@ export struct HomePage {
 
   build() {
     Column() {
-      // === 顶部栏 ===
-      Row() {
-        Text('发现职位')
-          .fontSize(AppFontSize.XXL)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-        Blank()
-        Button({ type: ButtonType.Capsule }) {
-          SymbolGlyph($r('sys.symbol.magnifyingglass'))
-            .fontSize(AppFontSize.XL)
-            .fontColor([AppColors.TEXT_SECONDARY])
-        }
-        .width(AppSpacing.BUTTON_HEIGHT)
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .backgroundColor(AppColors.INPUT_BG)
-        .accessibilityText('搜索职位')
-        .onClick((): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchPage' }) })
-      }
-      .width('100%')
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.XS })
-      .alignItems(VerticalAlign.Center)
-      .backgroundColor(AppColors.BG_PAGE)
-
-      // === 筛选芯片栏 ===
+      // === 顶部标题与操作栏：标题 + 筛选按钮 + 搜索按钮 ===
       FilterBar({
-        salaryMin: this.salaryMin,
-        salaryMax: this.salaryMax,
-        selectedSalaryUnit: this.selectedSalaryUnit,
-        includeNegotiable: this.includeNegotiable,
-        selectedRegion: this.selectedRegion,
-        selectedType: this.selectedType,
-        onShowSheet: () => { this.showFilterSheet = true },
-        onClearSalary: () => { this.salaryMin = 0; this.salaryMax = 0; this.selectedSalaryUnit = -1; this.includeNegotiable = true; this.resetAllTabs() },
-        onClearRegion: () => { this.selectedRegion = []; this.resetAllTabs() },
-        onClearType: () => { this.selectedType = []; this.resetAllTabs() }
+        title: '发现职位',
+        filterActive: this.hasActiveFilters(),
+        onFilterClick: () => { this.showFilterSheet = true },
+        onSearch: () => {
+          this.getUIContext().getRouter().pushUrl({ url: 'pages/SearchPage' })
+        }
       })
 
       // === Tabs 三页面（带下拉刷新） ===

@@ -129,8 +129,8 @@ export struct ChatMessageList {
     .layoutWeight(1)
     .width('100%')
     .padding({
-      left: AppSpacing.XL,
-      right: AppSpacing.XL,
+      left: AppSpacing.MD,
+      right: AppSpacing.MD,
       top: AppSpacing.PAGE_PADDING_VERTICAL,
       bottom: AppSpacing.PAGE_PADDING_VERTICAL
     })

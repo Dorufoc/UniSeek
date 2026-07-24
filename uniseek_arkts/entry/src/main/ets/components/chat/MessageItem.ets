@@ -95,7 +95,7 @@ export struct MessageItem {
             }
           }
           .alignItems(this.isSelf ? HorizontalAlign.End : HorizontalAlign.Start)
-          .constraintSize({ maxWidth: AppChat.BUBBLE_MAX_WIDTH })
+          .width(AppChat.BUBBLE_MAX_WIDTH)
 
           if (this.isSelf) {
             Avatar({

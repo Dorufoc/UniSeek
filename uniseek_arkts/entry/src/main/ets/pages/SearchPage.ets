@@ -24,6 +24,13 @@ struct SearchPage {
 
   onPageShow(): void {
     this.loadHistory()
+    // 从首页搜索入口传入的关键词自动填入并记录历史
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string | undefined>
+    const keyword = params ? params['keyword'] : undefined
+    if (keyword && keyword.trim().length > 0) {
+      this.searchText = keyword.trim()
+      this.addToHistory(this.searchText)
+    }
   }
 
   loadHistory(): void {
@@ -148,7 +155,7 @@ struct SearchPage {
     Column() {
       NavBar({
         title: '搜索',
-        showBack: false
+        showBack: true
       })
 
       Row() {

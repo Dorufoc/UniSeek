@@ -12,7 +12,6 @@ struct LoginPage {
   @State phone: string = ''
   @State password: string = ''
   @State serverAddrInput: string = ''
-  @State pageLoaded: boolean = false
   @State isLoggingIn: boolean = false
   @StorageLink('breakpoint') breakpoint: WindowBreakpoint = WindowBreakpoint.COMPACT
 
@@ -33,10 +32,6 @@ struct LoginPage {
 
   aboutToAppear(): void {
     ApiClient.restoreConfiguration()
-    // 由组件转场承载首屏进入动效，避免使用已弃用的显式动画接口。
-    setTimeout(() => {
-      this.pageLoaded = true
-    }, 50)
   }
 
   build() {
@@ -44,8 +39,7 @@ struct LoginPage {
       Column(){
         Image($r('app.media.uniseek_text'))
           .width('90%')
-          .opacity(this.pageLoaded ? 1 : 0)
-          .transition({ opacity: 0, translate: { y: -8 } })
+          .fillColor(AppColors.PRIMARY)
           .onClick(() => {
             this.handleTitleClick()
           })
@@ -95,7 +89,7 @@ struct LoginPage {
                 this.getUIContext().getRouter().replaceUrl({ url: 'pages/RegisterPage' })
               })
           }
-          .width('90%')
+          .width('100%')
           .padding({
             bottom: 40
           })
@@ -104,26 +98,13 @@ struct LoginPage {
         }
         .justifyContent(FlexAlign.Center)
         .borderRadius(AppRadius.XL)
-.width(this.breakpoint === WindowBreakpoint.COMPACT ? '95%' : 420)
+.width(this.breakpoint === WindowBreakpoint.COMPACT ? '90%' : 420)
 .margin({ bottom: AppSpacing.BOTTOM_ACTION_HEIGHT })
 .padding({ left: AppSpacing.XL, right: AppSpacing.XL })
 .backgroundColor(AppColors.BG_CARD)
-.opacity(this.pageLoaded ? 1 : 0)
-.transition({ opacity: 0, translate: { y: 12 } })
 
       }
-      // .backgroundImage($r('app.media.background_v2'))
-      .linearGradient({
-        direction: GradientDirection.Bottom,
-        colors: [
-          [AppColors.PRIMARY, 0.0],
-          [AppColors.PRIMARY_LIGHT, 0.15],
-          [AppColors.PRIMARY_LIGHTER, 0.3],
-          [AppColors.PRIMARY_FAINT, 0.5],
-          [AppColors.BG_CARD, 0.7],
-          [AppColors.BG_CARD, 1.0]
-        ]
-      })
+      .backgroundColor(AppColors.BG_PAGE)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
       .width('100%')

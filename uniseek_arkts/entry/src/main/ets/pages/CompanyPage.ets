@@ -1,25 +1,21 @@
-import { AppColors, AppFilter, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
+import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
+import { StandardCard } from '../common/StandardCard'
+import { EmptyView } from '../components/EmptyView'
+import { ErrorView } from '../components/ErrorView'
 import { CategoryNode, DataService, RegionNode } from '../services/DataService'
 import { EnterpriseDiscoveryService, EnterpriseListItem } from '../services/EnterpriseDiscoveryService'
-import { TaskVO } from '../services/ChatTypes'
-import { FilterChipBar, FilterChipData } from '../components/filter/FilterChipBar'
-import { SelectorSheet, SelectorOption } from '../components/filter/SelectorSheet'
-import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips'
+import { FilterBar } from '../tab/seeker/FilterBar'
+import { FilterSheetHeader } from '../components/filter/FilterSheetHeader'
+import { SelectorOptionItem } from '../components/filter/SelectorOptionItem'
+import { SelectorOption } from '../components/filter/SelectorSheet'
 
 const PAGE_SIZE = 15
 
-const SORT_OPTIONS: ChoiceOption[] = [
-  { value: 0, label: '默认' },
-  { value: 1, label: '岗位数' },
-  { value: 2, label: '平均薪资' }
-]
-
-const SORT_FIELDS: string[] = ['', 'jobCount', 'avgSalary']
-
-@Entry
 @Component
-struct CompanyPage {
+export struct CompanyDiscovery {
+  @Prop showBack: boolean = true
+
   @State keyword: string = ''
   @State enterprises: EnterpriseListItem[] = []
   @State categories: CategoryNode[] = []
@@ -29,31 +25,24 @@ struct CompanyPage {
   @State selectedIndustry: string = ''
   @State selectedRegionId: number = 0
   @State selectedRegionName: string = '地区'
-  @State sortBy: string = ''
-  @State sortOrder: string = 'desc'
   @State page: number = 1
   @State totalPages: number = 1
   @State totalCount: number = 0
   @State isLoading: boolean = true
   @State errorText: string = ''
-  @State showRegionPanel: boolean = false
-  @State showIndustrySheet: boolean = false
-  @State selectedEnterprise: EnterpriseListItem | null = null
-  @State enterpriseJobs: TaskVO[] = []
-  @State isLoadingJobs: boolean = false
+  @State showFilterSheet: boolean = false
 
   aboutToAppear(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string>
     if (params && params['keyword']) {
       this.keyword = params['keyword']
     }
-    this.loadFilters()
-    const enterpriseId = params && params['enterpriseId'] ? Number(params['enterpriseId']) : 0
-    if (enterpriseId > 0) {
-      this.loadEnterpriseById(enterpriseId)
-    } else {
-      this.loadEnterprises()
+    // 支持由外部/Tab调用时隐藏返回按钮
+    if (params && params['showBack'] !== undefined) {
+      this.showBack = params['showBack'] !== 'false'
     }
+    this.loadFilters()
+    this.loadEnterprises()
   }
 
   private async loadFilters(): Promise<void> {
@@ -97,16 +86,6 @@ struct CompanyPage {
     return result
   }
 
-  private async loadEnterpriseById(enterpriseId: number): Promise<void> {
-    try {
-      const enterprise = await EnterpriseDiscoveryService.getEnterprise(enterpriseId)
-      this.showEnterprise(enterprise)
-    } catch {
-      this.errorText = '企业信息加载失败，请返回后重试'
-      this.loadEnterprises()
-    }
-  }
-
   private async loadEnterprises(): Promise<void> {
     this.isLoading = true
     this.errorText = ''
@@ -116,9 +95,7 @@ struct CompanyPage {
         pageSize: PAGE_SIZE,
         keyword: this.keyword.trim(),
         industry: this.selectedIndustry,
-        regionId: this.selectedRegionId > 0 ? this.selectedRegionId : undefined,
-        sortBy: this.sortBy,
-        sortOrder: this.sortOrder
+        regionId: this.selectedRegionId > 0 ? this.selectedRegionId : undefined
       })
       this.enterprises = result.records || []
       this.totalCount = result.total || 0
@@ -146,7 +123,6 @@ struct CompanyPage {
   private selectRegion(option: SelectorOption): void {
     this.selectedRegionId = Number(option.id)
     this.selectedRegionName = option.label
-    this.showRegionPanel = false
     this.page = 1
     this.loadEnterprises()
   }
@@ -154,152 +130,107 @@ struct CompanyPage {
   private clearRegion(): void {
     this.selectedRegionId = 0
     this.selectedRegionName = '地区'
-    this.showRegionPanel = false
     this.page = 1
     this.loadEnterprises()
   }
 
-  private setSort(field: string): void {
-    if (this.sortBy === field) {
-      this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc'
-    } else {
-      this.sortBy = field
-      this.sortOrder = 'desc'
-    }
-    this.page = 1
-    this.loadEnterprises()
-  }
-
-  private selectedSortIndex(): number {
-    const index = SORT_FIELDS.indexOf(this.sortBy)
-    return index < 0 ? 0 : index
-  }
-
-  private buildFilterChips(): FilterChipData[] {
-    const chips: FilterChipData[] = []
-    chips.push({
-      icon: $r('sys.symbol.map'),
-      label: this.selectedRegionName,
-      active: this.selectedRegionId > 0,
-      hasClose: this.selectedRegionId > 0
+  private showEnterprise(item: EnterpriseListItem): void {
+    // 点击企业卡片跳转独立企业详情页，不再在当前页面覆盖布局
+    this.getUIContext().getRouter().pushUrl({
+      url: 'pages/CompanyDetailPage',
+      params: { enterpriseId: item.id }
     })
-    chips.push({
-      icon: $r('sys.symbol.briefcase'),
-      label: this.selectedIndustry.length > 0 ? this.selectedIndustry : '全部行业',
-      active: this.selectedIndustry.length > 0,
-      hasClose: this.selectedIndustry.length > 0
-    })
-    return chips
   }
 
-  private async showEnterprise(item: EnterpriseListItem): Promise<void> {
-    this.selectedEnterprise = item
-    this.enterpriseJobs = []
-    this.isLoadingJobs = true
-    try {
-      this.enterpriseJobs = await EnterpriseDiscoveryService.getPublishedJobs(item.id)
-    } catch {
-      this.enterpriseJobs = []
-    }
-    this.isLoadingJobs = false
+  private companyInitials(name: string): string {
+    const safeName = name || '企'
+    return safeName.charAt(0)
   }
 
-  private goBackToList(): void {
-    this.selectedEnterprise = null
-    this.enterpriseJobs = []
+  private hasActiveFilters(): boolean {
+    return this.selectedRegionId > 0 || this.selectedIndustry.length > 0
   }
 
-  private goToJob(taskId: number): void {
-    this.getUIContext().getRouter().pushUrl({ url: 'pages/JobDetailPage', params: { jobId: taskId } })
-  }
-
-  private salaryText(job: TaskVO): string {
-    if (job.salaryMin === 0 && job.salaryMax === 0) {
-      return '面议'
-    }
-    const unit = job.salaryUnit === 0 ? '/日' : job.salaryUnit === 1 ? '/时' : '/月'
-    return '￥' + job.salaryMin + '-' + job.salaryMax + unit
-  }
-
-  private jobTypeText(jobType: number): string {
-    if (jobType === 1) {
-      return '全职'
-    }
-    if (jobType === 2) {
-      return '兼职'
-    }
-    if (jobType === 3) {
-      return '实习'
-    }
-    return '职位'
-  }
-
-  @Builder
-  enterpriseItem(item: EnterpriseListItem) {
-    Row({ space: AppSpacing.MD }) {
-      Stack() {
-        Text((item.companyName || '企').charAt(0))
-          .fontSize(22)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-      }
-      .width(56)
-      .height(56)
-      .borderRadius(AppRadius.MD)
-      .backgroundColor(AppColors.PRIMARY)
-
-      Column({ space: AppSpacing.XS }) {
-        Text(item.companyName || '企业')
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        Row({ space: AppSpacing.XS }) {
-          if (item.industry) {
-            Text(item.industry)
-              .fontSize(11)
-              .fontColor(AppColors.PRIMARY)
-              .backgroundColor(AppColors.SELECTED_BG)
-              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-              .borderRadius(AppRadius.SM)
-          }
-          Text('已认证')
-            .fontSize(11)
-            .fontColor(AppColors.SUCCESS)
-            .backgroundColor(AppColors.SELECTED_BG)
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .borderRadius(AppRadius.SM)
-        }
-
-        Text(item.description || '暂无企业简介')
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.TEXT_SECONDARY)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .lineHeight(18)
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      SymbolGlyph($r('sys.symbol.chevron_right'))
-        .fontSize(16)
-        .fontColor([AppColors.TEXT_MUTED])
+  // ===== UI 构建 =====
+  build() {
+    Column() {
+      this.companyListPage()
     }
     .width('100%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.MD)
-    .onClick(() => this.showEnterprise(item))
-    .stateStyles({ pressed: { .backgroundColor(AppColors.SELECTED_BG).scale({ x: 0.99, y: 0.99 }) } })
-    .animation({ duration: 180 })
+    .height('100%')
+    .backgroundColor(AppColors.BG_PAGE)
+    .bindSheet($$this.showFilterSheet, this.companyFilterSheet(), {
+      height: SheetSize.LARGE,
+      dragBar: true,
+      showClose: true,
+      backgroundColor: AppColors.BG_CARD
+    })
   }
 
+  // 企业列表主页面
+  @Builder
+  companyListPage() {
+    Column() {
+      // 作为独立页面进入时显示原生返回导航栏
+      if (this.showBack) {
+        NavBar({
+          title: '企业发现',
+          showBack: true,
+          onBack: () => this.getUIContext().getRouter().back()
+        })
+      }
+
+      // 顶部标题与操作栏：标题 + 筛选按钮 + 搜索按钮（与首页发现职位保持一致）
+      FilterBar({
+        title: this.showBack ? '' : '企业发现',
+        filterActive: this.hasActiveFilters(),
+        onFilterClick: () => { this.showFilterSheet = true },
+        onSearch: () => {
+          this.getUIContext().getRouter().pushUrl({
+            url: 'pages/SearchPage',
+            params: { from: 'company' }
+          })
+        }
+      })
+
+      // 内容区
+      if (this.isLoading) {
+        Column() {
+          LoadingProgress()
+            .width(AppSpacing.ICON_MD)
+            .height(AppSpacing.ICON_MD)
+            .color(AppColors.PRIMARY)
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.errorText !== '' && this.enterprises.length === 0) {
+        Column() {
+          ErrorView({
+            message: this.errorText,
+            retryText: '重新加载',
+            onRetry: () => { this.loadEnterprises() }
+          })
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .padding(AppSpacing.MD)
+      } else {
+        this.companyList()
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(AppColors.BG_PAGE)
+  }
+
+  // 企业列表：使用 List + StandardCard 呈现
   @Builder
   companyList() {
-    Column() {
-      Column({ space: AppSpacing.SM }) {
+    List({ space: AppSpacing.SM }) {
+      // 顶部统计
+      ListItem() {
         Row() {
           Text('共 ' + this.totalCount + ' 家已认证企业')
             .fontSize(AppFontSize.XS)
@@ -307,292 +238,227 @@ struct CompanyPage {
           Blank()
         }
         .width('100%')
-
-        ChoiceChips({
-          options: SORT_OPTIONS,
-          selected: this.selectedSortIndex(),
-          onSelect: (index: number): void => {
-            if (index >= 0 && index < SORT_FIELDS.length) {
-              this.setSort(SORT_FIELDS[index])
-            }
-          }
-        })
+        .padding({ top: AppSpacing.XS, bottom: AppSpacing.SM })
       }
-      .width('100%')
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
 
-      if (this.isLoading) {
-        LoadingProgress()
-          .width(32)
-          .height(32)
-          .margin({ top: 88 })
-          .color(AppColors.PRIMARY)
-      } else if (this.errorText) {
-        Column({ space: AppSpacing.SM }) {
-          Text(this.errorText).fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_SECONDARY)
-          Button('重新加载')
-            .fontSize(AppFontSize.SM)
-            .backgroundColor(AppColors.PRIMARY)
-            .fontColor('#FFFFFF')
-            .onClick(() => this.loadEnterprises())
+      if (this.enterprises.length === 0) {
+        ListItem() {
+          Column() {
+            EmptyView({
+              message: '暂无符合条件的企业',
+              icon: $r('sys.symbol.building')
+            })
+          }
+          .width('100%')
+          .padding({ top: AppSpacing.XL, bottom: AppSpacing.XL })
         }
-        .width('100%')
-        .margin({ top: 88 })
-      } else if (this.enterprises.length === 0) {
-        Column({ space: AppSpacing.SM }) {
-          SymbolGlyph($r('sys.symbol.building'))
-            .fontSize(36)
-            .fontColor([AppColors.TEXT_MUTED])
-          Text('暂无符合条件的企业').fontSize(AppFontSize.MD).fontColor(AppColors.TEXT_SECONDARY)
-          Text('调整筛选条件后再试').fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_MUTED)
-        }
-        .width('100%')
-        .margin({ top: 88 })
-      } else {
-        Column({ space: AppSpacing.SM }) {
-          ForEach(this.enterprises, (item: EnterpriseListItem) => {
-            this.enterpriseItem(item)
-          }, (item: EnterpriseListItem) => item.id.toString())
-        }
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS })
+      }
 
-        if (this.totalPages > 1) {
+      ForEach(this.enterprises, (item: EnterpriseListItem) => {
+        this.enterpriseItem(item)
+      }, (item: EnterpriseListItem): string => item.id.toString())
+
+      // 分页
+      if (this.totalPages > 1) {
+        ListItem() {
           Row({ space: AppSpacing.MD }) {
-            Button('上一页')
+            Button('上一页', { type: ButtonType.Capsule })
+              .height(AppSpacing.BUTTON_HEIGHT_SM)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+              .fontSize(AppFontSize.SM)
+              .fontColor(this.page > 1 ? '#FFFFFF' : AppColors.TEXT_MUTED)
+              .backgroundColor(this.page > 1 ? AppColors.PRIMARY : AppColors.INPUT_BG)
               .enabled(this.page > 1)
               .onClick(() => { this.page -= 1; this.loadEnterprises() })
+
             Text(this.page + ' / ' + this.totalPages)
               .fontSize(AppFontSize.XS)
               .fontColor(AppColors.TEXT_SECONDARY)
-            Button('下一页')
+
+            Button('下一页', { type: ButtonType.Capsule })
+              .height(AppSpacing.BUTTON_HEIGHT_SM)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+              .fontSize(AppFontSize.SM)
+              .fontColor(this.page < this.totalPages ? '#FFFFFF' : AppColors.TEXT_MUTED)
+              .backgroundColor(this.page < this.totalPages ? AppColors.PRIMARY : AppColors.INPUT_BG)
               .enabled(this.page < this.totalPages)
               .onClick(() => { this.page += 1; this.loadEnterprises() })
           }
           .width('100%')
           .justifyContent(FlexAlign.Center)
-          .padding(AppSpacing.LG)
+          .padding({ top: AppSpacing.MD, bottom: AppSpacing.XL })
         }
       }
     }
+    .layoutWeight(1)
     .width('100%')
+    .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+    .edgeEffect(EdgeEffect.Spring)
   }
 
+  // 单个企业卡片
   @Builder
-  jobItem(job: TaskVO) {
-    Column({ space: AppSpacing.XS }) {
-      Row() {
-        Text(job.title)
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
-        Text(this.salaryText(job))
-          .fontSize(AppFontSize.SM)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.DANGER)
-      }
-      Row({ space: AppSpacing.SM }) {
-        Text(this.jobTypeText(job.jobType)).fontSize(AppFontSize.XS).fontColor(AppColors.PRIMARY)
-        Text(job.regionName || job.address || '地点待定').fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_SECONDARY)
-        Text((job.applicationCount || 0) + ' 人投递').fontSize(AppFontSize.XS).fontColor(AppColors.TEXT_MUTED)
-      }
-    }
-    .width('100%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.MD)
-    .onClick(() => this.goToJob(job.id))
-    .stateStyles({ pressed: { .backgroundColor(AppColors.SELECTED_BG) } })
-  }
+  enterpriseItem(item: EnterpriseListItem) {
+    ListItem() {
+      StandardCard({
+        onClickAction: () => { this.showEnterprise(item) },
+        accessibilityLabel: item.companyName
+      }) {
+        Row({ space: AppSpacing.MD }) {
+          // Logo
+          Stack() {
+            Text(this.companyInitials(item.companyName))
+              .fontSize(AppFontSize.ICON_LG)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(AppColors.BG_CARD)
+          }
+          .width(AppSpacing.ICON_XL)
+          .height(AppSpacing.ICON_XL)
+          .borderRadius(AppRadius.MD)
+          .backgroundColor(AppColors.PRIMARY)
 
-  @Builder
-  companyDetail() {
-    if (this.selectedEnterprise) {
-      Column() {
-        NavBar({ title: '企业详情', showBack: true, onBack: () => this.goBackToList() })
-        Scroll() {
-          Column({ space: AppSpacing.LG }) {
-            Row({ space: AppSpacing.MD }) {
-              Stack() {
-                Text((this.selectedEnterprise.companyName || '企').charAt(0))
-                  .fontSize(30)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor('#FFFFFF')
-              }
-              .width(72)
-              .height(72)
-              .borderRadius(AppRadius.LG)
-              .backgroundColor(AppColors.PRIMARY)
-              Column({ space: AppSpacing.SM }) {
-                Text(this.selectedEnterprise.companyName || '企业')
-                  .fontSize(AppFontSize.XL)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(AppColors.TEXT_PRIMARY)
-                if (this.selectedEnterprise.industry) {
-                  Text(this.selectedEnterprise.industry)
-                    .fontSize(AppFontSize.XS)
-                    .fontColor(AppColors.PRIMARY)
-                    .backgroundColor(AppColors.SELECTED_BG)
-                    .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                    .borderRadius(AppRadius.SM)
-                }
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-            }
-            .width('100%')
-            .padding(AppSpacing.LG)
-            .backgroundColor(AppColors.BG_CARD)
-            .borderRadius(AppRadius.LG)
-
-            Text(this.selectedEnterprise.description || '暂无企业简介')
-              .width('100%')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.TEXT_SECONDARY)
-              .lineHeight(22)
-              .padding(AppSpacing.LG)
-              .backgroundColor(AppColors.BG_CARD)
-              .borderRadius(AppRadius.LG)
-
-            Text('招聘中的职位')
-              .fontSize(AppFontSize.LG)
+          // 信息
+          Column({ space: AppSpacing.XS }) {
+            Text(item.companyName || '企业')
+              .fontSize(AppFontSize.MD)
               .fontWeight(FontWeight.Bold)
               .fontColor(AppColors.TEXT_PRIMARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
               .width('100%')
 
-            if (this.isLoadingJobs) {
-              LoadingProgress().width(28).height(28).color(AppColors.PRIMARY)
-            } else if (this.enterpriseJobs.length === 0) {
-              Text('该企业暂无招聘中的职位')
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_MUTED)
-                .width('100%')
-                .textAlign(TextAlign.Center)
-                .padding(AppSpacing.XL)
-            } else {
-              Column({ space: AppSpacing.SM }) {
-                ForEach(this.enterpriseJobs, (job: TaskVO) => {
-                  this.jobItem(job)
-                }, (job: TaskVO) => job.id.toString())
+            Row({ space: AppSpacing.XS }) {
+              if (item.industry) {
+                this.infoChip(item.industry)
               }
-              .width('100%')
+              this.infoChip('已认证')
             }
+            .width('100%')
+
+            Text(item.description || '暂无企业简介')
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.TEXT_SECONDARY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .lineHeight(AppSpacing.BUTTON_HEIGHT_XS)
+              .width('100%')
           }
-          .width('100%')
-          .padding(AppSpacing.MD)
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          SymbolGlyph($r('sys.symbol.chevron_right'))
+            .fontSize(AppFontSize.MD)
+            .fontColor([AppColors.TEXT_MUTED])
         }
-        .layoutWeight(1)
         .width('100%')
+        .alignItems(VerticalAlign.Center)
       }
-      .width('100%')
-      .height('100%')
-      .backgroundColor(AppColors.BG_PAGE)
     }
   }
 
   @Builder
-  regionSheet() {
-    SelectorSheet({
-      title: '选择地区',
-      options: this.regionOptions,
-      selectedId: this.selectedRegionId,
-      emptyMessage: '暂无地区数据',
-      emptyActionText: '重新加载',
-      onSelect: (option: SelectorOption): void => {
-        this.selectRegion(option)
-      },
-      onEmptyAction: (): void => {
-        this.loadFilters()
-      }
-    })
+  infoChip(label: string) {
+    Text(label)
+      .fontSize(AppFontSize.XXS)
+      .fontColor(AppColors.PRIMARY)
+      .backgroundColor(AppColors.SELECTED_BG)
+      .borderRadius(AppRadius.SM)
+      .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
   }
 
+  // 企业筛选底部面板：集中选择地区与行业
   @Builder
-  industrySheet() {
-    SelectorSheet({
-      title: '选择行业',
-      options: this.industryOptions,
-      selectedId: this.selectedIndustry,
-      emptyMessage: '暂无行业数据',
-      onSelect: (option: SelectorOption): void => {
-        this.selectIndustry(option.label)
-        this.showIndustrySheet = false
-      }
-    })
-  }
+  companyFilterSheet() {
+    Column() {
+      FilterSheetHeader({
+        title: '筛选企业',
+        showReset: true,
+        onReset: () => {
+          this.clearRegion()
+          this.selectIndustry('')
+          this.showFilterSheet = false
+        }
+      })
 
-  build() {
-    Stack() {
-      if (this.selectedEnterprise) {
-        this.companyDetail()
-      } else {
-        Column() {
-          NavBar({ title: '企业发现', showBack: true, onBack: () => this.getUIContext().getRouter().back() })
-          Row() {
-            TextInput({ placeholder: '搜索企业名称', text: this.keyword })
-              .layoutWeight(1)
-              .height(42)
-              .backgroundColor(AppColors.INPUT_BG)
-              .borderRadius(AppRadius.MD)
-              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-              .onChange((value: string) => this.keyword = value)
-            Button('搜索')
-              .height(42)
-              .margin({ left: AppSpacing.SM })
-              .backgroundColor(AppColors.PRIMARY)
-              .fontColor('#FFFFFF')
-              .onClick(() => this.search())
-          }
-          .width('100%')
-          .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
+      Text('地区')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_SECONDARY)
+        .width('100%')
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
 
-          FilterChipBar({
-            chips: this.buildFilterChips(),
-            onChipClick: (index: number): void => {
-              if (index === 0) {
-                this.showRegionPanel = true
-              } else if (index === 1) {
-                this.showIndustrySheet = true
-              }
-            },
-            onClose: (index: number): void => {
-              if (index === 0) {
-                this.clearRegion()
-              } else if (index === 1) {
-                this.selectIndustry('')
-              }
+      Scroll() {
+        Column({ space: AppSpacing.XS }) {
+          SelectorOptionItem({
+            label: '全部地区',
+            selected: this.selectedRegionId === 0,
+            onItemClick: () => {
+              this.clearRegion()
+              this.showFilterSheet = false
             }
           })
-            .width('100%')
-            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-
-          Scroll() {
-            this.companyList()
-          }
-          .layoutWeight(1)
-          .width('100%')
+          ForEach(this.regionOptions, (option: SelectorOption) => {
+            SelectorOptionItem({
+              label: option.label,
+              selected: this.selectedRegionId === Number(option.id),
+              onItemClick: () => {
+                this.selectRegion(option)
+                this.showFilterSheet = false
+              }
+            })
+          }, (option: SelectorOption): string => String(option.id))
         }
         .width('100%')
-        .height('100%')
-        .backgroundColor(AppColors.BG_PAGE)
       }
+      .layoutWeight(1)
+      .scrollable(ScrollDirection.Vertical)
+
+      Text('行业')
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_SECONDARY)
+        .width('100%')
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
+
+      Scroll() {
+        Column({ space: AppSpacing.XS }) {
+          SelectorOptionItem({
+            label: '全部行业',
+            selected: this.selectedIndustry.length === 0,
+            onItemClick: () => {
+              this.selectIndustry('')
+              this.showFilterSheet = false
+            }
+          })
+          ForEach(this.industryOptions, (option: SelectorOption) => {
+            SelectorOptionItem({
+              label: option.label,
+              selected: this.selectedIndustry === option.label,
+              onItemClick: () => {
+                this.selectIndustry(option.label)
+                this.showFilterSheet = false
+              }
+            })
+          }, (option: SelectorOption): string => String(option.id))
+        }
+        .width('100%')
+      }
+      .layoutWeight(1)
+      .scrollable(ScrollDirection.Vertical)
     }
     .width('100%')
     .height('100%')
-    .bindSheet($$this.showRegionPanel, this.regionSheet(), {
-      height: SheetSize.LARGE,
-      dragBar: true,
-      showClose: true,
-      backgroundColor: AppColors.BG_CARD
-    })
-    .bindSheet($$this.showIndustrySheet, this.industrySheet(), {
-      height: SheetSize.LARGE,
-      dragBar: true,
-      showClose: true,
-      backgroundColor: AppColors.BG_CARD
-    })
+    .backgroundColor(AppColors.BG_CARD)
+  }
+}
+
+// 保留独立页面入口，内部复用 CompanyDiscovery
+@Entry
+@Component
+struct CompanyPage {
+  build() {
+    Stack() {
+      CompanyDiscovery({ showBack: true })
+    }
+    .width('100%')
+    .height('100%')
   }
 }

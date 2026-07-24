@@ -1,6 +1,7 @@
 import { HomePage } from './tab/seeker/HomePage'
 import { ChatPage } from './tab/seeker/ChatPage'
 import { ProfilePage } from './tab/seeker/ProfilePage'
+import { CompanyDiscovery } from './CompanyPage'
 import { AppFontSize, AppSpacing } from '../common/AppStyles';
 
 @Entry
@@ -12,12 +13,16 @@ struct MainPage {
     this.tabItem('首页', $r('sys.symbol.house'), 0)
   }
 
+  @Builder tabCompany() {
+    this.tabItem('企业', $r('sys.symbol.building'), 1)
+  }
+
   @Builder tabChat() {
-    this.tabItem('聊天', $r('sys.symbol.message'), 1)
+    this.tabItem('聊天', $r('sys.symbol.message'), 2)
   }
 
   @Builder tabProfile() {
-    this.tabItem('我的', $r('sys.symbol.person'), 2)
+    this.tabItem('我的', $r('sys.symbol.person'), 3)
   }
 
   @Builder tabItem(label: string, icon: Resource, index: number) {
@@ -44,6 +49,11 @@ struct MainPage {
         HomePage()
       }
       .tabBar(this.tabHome)
+
+      TabContent() {
+        CompanyDiscovery({ showBack: false })
+      }
+      .tabBar(this.tabCompany)
 
       TabContent() {
         ChatPage()

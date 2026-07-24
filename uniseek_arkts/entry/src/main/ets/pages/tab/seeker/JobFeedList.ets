@@ -68,7 +68,15 @@ export struct JobFeedList {
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM })
       .onReachEnd(() => { this.loadMore(this.jobType) })
     }
+    .width('100%')
+    .height('100%')
     .onRefreshing(() => {
+      const state = this.tabData[this.jobType]
+      if (state && state.loading) {
+        return
+      }
+      // 主动进入刷新状态，避免绑定变量未同步导致指示器不显示
+      this.isRefreshing = true
       this.onRefresh(this.jobType)
     })
   }

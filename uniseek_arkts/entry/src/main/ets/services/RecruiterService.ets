@@ -13,6 +13,8 @@ import {
 } from './RecruiterTypes';
 import { EnterpriseSubmissionPolicy } from '../common/BusinessPolicies'
 
+const KEY_CACHE_ENTERPRISE_INFO = 'cached_enterprise_info'
+
 interface CompleteApplicationRequest {
   hrNote: string
 }
@@ -27,6 +29,33 @@ interface ResumeSnapshot {
 }
 
 export class RecruiterService {
+  /** 将企业认证信息持久化到本地，供离线时展示招聘者个人中心。 */
+  static saveCachedEnterpriseInfo(info: RecruiterEnterpriseVO): void {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return
+    }
+    pref.putSync(KEY_CACHE_ENTERPRISE_INFO, JSON.stringify(info))
+    pref.flushSync()
+  }
+
+  /** 读取本地缓存的企业认证信息。 */
+  static getCachedEnterpriseInfo(): RecruiterEnterpriseVO | null {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return null
+    }
+    try {
+      const raw: string = pref.getSync(KEY_CACHE_ENTERPRISE_INFO, '') as string
+      if (!raw) {
+        return null
+      }
+      return JSON.parse(raw) as RecruiterEnterpriseVO
+    } catch {
+      return null
+    }
+  }
+
   static async getMyJobs(): Promise<RecruiterJobVO[]> {
     const records: RecruiterJobVO[] = []
     let page: number = 1
@@ -107,7 +136,11 @@ export class RecruiterService {
 
   static async getEnterpriseInfo(): Promise<RecruiterEnterpriseVO | null> {
     try {
-      return await ApiClient.get<RecruiterEnterpriseVO>('/api/enterprise/my')
+      const info = await ApiClient.get<RecruiterEnterpriseVO>('/api/enterprise/my')
+      if (info) {
+        RecruiterService.saveCachedEnterpriseInfo(info)
+      }
+      return info
     } catch {
       return null
     }

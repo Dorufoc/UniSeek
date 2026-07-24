@@ -13,7 +13,6 @@ struct RegisterPage {
   @State password: string = ''
   @State confirmPassword: string = ''
   @State role: number = 0
-  @State pageLoaded: boolean = false
   @State selectedRoleIndexes: number[] = [0]
   @State agreed: boolean = false
   @StorageLink('breakpoint') breakpoint: WindowBreakpoint = WindowBreakpoint.COMPACT
@@ -31,10 +30,6 @@ struct RegisterPage {
   })
 
   aboutToAppear(): void {
-    // 由组件转场承载首屏进入动效，避免使用已弃用的显式动画接口。
-    setTimeout(() => {
-      this.pageLoaded = true
-    }, 50)
   }
 
   build() {
@@ -269,11 +264,9 @@ struct RegisterPage {
       .justifyContent(FlexAlign.Center)
       .margin({ top: AppSpacing.LG })
     }
-    .width(this.breakpoint === WindowBreakpoint.COMPACT ? '100%' : 420)
+    .width(this.breakpoint === WindowBreakpoint.COMPACT ? '90%' : 420)
     .height('100%')
     .padding({ left: AppSpacing.XL, right: AppSpacing.XL })
-    .opacity(this.pageLoaded ? 1 : 0)
-    .transition({ opacity: 0, translate: { y: 12 } })
     .backgroundColor(AppColors.BG_CARD)
   }
   .width('100%')

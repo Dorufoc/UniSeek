@@ -32,7 +32,7 @@ export class ApiClient {
     ApiClient.appContext = context
   }
 
-  private static getPreferenceStore(): preferences.Preferences | null {
+  static getPreferenceStore(): preferences.Preferences | null {
     if (!ApiClient.appContext) {
       return null
     }

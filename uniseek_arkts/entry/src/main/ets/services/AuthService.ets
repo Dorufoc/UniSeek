@@ -2,6 +2,9 @@ import { ApiClient, ApiEmpty } from './ApiClient';
 import { UserSession } from './UserSession';
 import { ChatWebSocketService } from './ChatWebSocketService';
 
+const KEY_CACHE_CURRENT_USER = 'cached_current_user'
+const KEY_CACHE_REAL_NAME_STATUS = 'cached_real_name_status'
+
 // 请求体接口
 export interface LoginRequest {
   phone: string
@@ -84,6 +87,60 @@ export class AuthService {
     ApiClient.saveSession(userId, role, safeNickname, safeAvatarUrl)
   }
 
+  /** 将完整用户信息持久化到本地，供离线时展示个人中心。 */
+  static saveCachedCurrentUser(user: UserVO): void {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return
+    }
+    pref.putSync(KEY_CACHE_CURRENT_USER, JSON.stringify(user))
+    pref.flushSync()
+  }
+
+  /** 读取本地缓存的完整用户信息。 */
+  static getCachedCurrentUser(): UserVO | null {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return null
+    }
+    try {
+      const raw: string = pref.getSync(KEY_CACHE_CURRENT_USER, '') as string
+      if (!raw) {
+        return null
+      }
+      return JSON.parse(raw) as UserVO
+    } catch {
+      return null
+    }
+  }
+
+  /** 将实名认证状态持久化到本地。 */
+  static saveCachedRealNameStatus(status: RealNameStatus): void {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return
+    }
+    pref.putSync(KEY_CACHE_REAL_NAME_STATUS, JSON.stringify(status))
+    pref.flushSync()
+  }
+
+  /** 读取本地缓存的实名认证状态。 */
+  static getCachedRealNameStatus(): RealNameStatus | null {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return null
+    }
+    try {
+      const raw: string = pref.getSync(KEY_CACHE_REAL_NAME_STATUS, '') as string
+      if (!raw) {
+        return null
+      }
+      return JSON.parse(raw) as RealNameStatus
+    } catch {
+      return null
+    }
+  }
+
   static restoreCachedSession(): boolean {
     ApiClient.restoreConfiguration()
     if (!ApiClient.hasToken()) {
@@ -124,6 +181,7 @@ export class AuthService {
   static async getCurrentUser(): Promise<UserVO> {
     const user = await ApiClient.get<UserVO>('/api/auth/current-user')
     AuthService.applyUserInfo(user.id, user.role, user.nickname, user.avatarUrl)
+    AuthService.saveCachedCurrentUser(user)
     return user
   }
 
@@ -136,7 +194,9 @@ export class AuthService {
   }
 
   static async getRealNameStatus(): Promise<RealNameStatus> {
-    return ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
+    const status = await ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
+    AuthService.saveCachedRealNameStatus(status)
+    return status
   }
 
   static async updatePhone(newPhone: string, password: string): Promise<void> {
