@@ -388,18 +388,21 @@ def _record_to_row(record: dict) -> list:
     ]
 
 
-def _build_info(record: dict) -> dict:
+def _build_info(record: dict, task_title_map: Dict[int, str] = None) -> dict:
     """从投递记录中提取下游生成器所需的摘要信息。
 
     Args:
         record: 投递记录字典
+        task_title_map: task_id → title 映射（用于通知生成器）
 
     Returns:
         包含下游所需字段的字典
     """
+    task_id = record["task_id"]
     return {
         "app_id": record["id"],
-        "task_id": record["task_id"],
+        "task_id": task_id,
+        "task_title": (task_title_map or {}).get(task_id, "兼职岗位"),
         "applicant_id": record["applicant_id"],
         "status": record["status"],
         "hr_id": record["hr_id"],
@@ -425,6 +428,7 @@ def generate_applications(
     hr_enterprise_map: Dict[int, int],
     resume_id_map: Dict[int, int],
     task_enterprise_map: Dict[int, int] = None,
+    task_title_map: Dict[int, str] = None,
     resume_data_map: Dict[int, dict] = None,
     user_name_map: Dict[int, str] = None,
 ) -> Tuple[List[int], List[dict]]:
@@ -507,7 +511,7 @@ def generate_applications(
 
             # 收集返回信息
             application_ids.append(app_id)
-            application_info_list.append(_build_info(record))
+            application_info_list.append(_build_info(record, task_title_map))
 
     # ---- 第二阶段：若不足 80,000 条，补充投递 ----
     # 理论上 7,500 × 10.67 ≈ 80,000，但随机性可能导致略少，
@@ -535,7 +539,7 @@ def generate_applications(
         writer.add_row(_record_to_row(record))
 
         application_ids.append(app_id)
-        application_info_list.append(_build_info(record))
+        application_info_list.append(_build_info(record, task_title_map))
 
     # ---- 最终断言验证 ----
     generated = len(application_ids)

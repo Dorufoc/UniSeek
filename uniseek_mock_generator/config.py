@@ -35,11 +35,11 @@ ADMIN_PHONE_END = 13900000299
 
 # --- 默认密码 ---
 DEFAULT_PASSWORD = "123456"
-ADMIN_PASSWORD = "admin"
+ADMIN_PASSWORD = "123456"
 
 # --- 数据时间范围 ---
 START_DATE = "2010-01-01"
-END_DATE = "2026-07-15"
+END_DATE = "2026-07-25"
 
 # --- 全国各地区区县级 ID（全覆盖34个省级行政区） ---
 # 每个省至少包含省会 + 1-2个地级市

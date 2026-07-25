@@ -94,9 +94,8 @@ public class ChatServiceImpl implements ChatService {
         // 1. 权限校验
         ChatSession session = validateSessionAccess(applicationId, userId, role);
 
-        // 2. 自动标记对方消息为已读
+        // 2. 查询消息（标记已读由 markSessionRead 显式处理，避免翻页加载历史时清除未读状态）
         Long sessionId = session.getId();
-        chatMessageMapper.markAsRead(sessionId, userId);
 
         // 3. 查询消息
         List<ChatMessage> messages;

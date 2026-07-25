@@ -519,7 +519,7 @@ onUnmounted(() => {
                 <div v-else-if="msg.messageType === 1" class="bubble image-bubble">
                   <img class="chat-image" :src="msg.content" alt="图片消息" @click="previewImage(msg.content)" />
                 </div>
-                <div v-else class="bubble">{{ msg.content }}</div>
+                <div v-else class="bubble">{{ msg.content.trim() }}</div>
                 <div class="message-time">{{ formatTime(msg.sendTime) }}</div>
               </div>
             </div>
@@ -1128,11 +1128,13 @@ onUnmounted(() => {
   font-size: 14.5px;
   line-height: 1.6;
   word-break: break-word;
+  overflow-wrap: break-word;
   background: #ffffff;
   color: #1a1a2e;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: fit-content;
   max-width: 100%;
 }
 

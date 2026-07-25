@@ -77,12 +77,13 @@ const goToEnterpriseCert = () => {
 onMounted(() => {
   checkEnterpriseCert()
   chatStore.setCurrentUserId(userStore.userInfo?.id ?? null)
-  chatStore.fetchUnreadCount()
+  setTimeout(() => chatStore.fetchUnreadCount(), 300)
 })
 
-// 监听当前用户 ID 变更，保持 Store 同步
+// 监听当前用户 ID 变更，保持 Store 同步并刷新未读数
 watch(() => userStore.userInfo?.id, (id) => {
   chatStore.setCurrentUserId(id ?? null)
+  if (id) chatStore.fetchUnreadCount()
 })
 
 // ---- 全局 WebSocket 消息监听（始终在线） ----
@@ -90,9 +91,14 @@ const handleWsNewMessage = (data: WsNewMessageData) => {
   chatStore.handleWsMessage(data)
 }
 
-useChatWebSocket({
+const { connected: wsConnected } = useChatWebSocket({
   onNewMessage: handleWsNewMessage,
   enabled: computed(() => !!userStore.userInfo?.id)
+})
+
+// WebSocket 连接成功后刷新未读数
+watch(wsConnected, (val) => {
+  if (val) chatStore.fetchUnreadCount()
 })
 // 路由变化时重新检查—确保每次页面切换都认证
 watch(() => route.path, checkEnterpriseCert)

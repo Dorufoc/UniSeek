@@ -6,11 +6,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getRealNameAuthStatus, submitRealNameAuth, changePassword } from '@/api/auth'
 import type { RealNameAuthStatus } from '@/api/auth'
 import { updateProfile, getUserStats } from '@/api/user'
+import { getUnreadCount } from '@/api/notification'
 import { uploadImage } from '@/api/upload'
 import {
   User, Phone, Postcard, Edit, Document, Star,
-  OfficeBuilding, Briefcase, Files,
-  Lock, InfoFilled, SwitchButton, ArrowRight, ChatDotSquare, VideoCamera, Setting, Checked
+  OfficeBuilding, Briefcase, Files, Bell,
+  Lock, InfoFilled, SwitchButton, ArrowRight, VideoCamera, Setting, Checked
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -28,6 +29,9 @@ const userPhone = computed(() => {
 // 统计数据（初始为 0，由 API 加载）
 const seekerStats = ref({ applications: 0, interviews: 0, favorites: 0 })
 const recruiterStats = ref({ receivedResumes: 0, hired: 0 })
+
+// 通知未读数
+const notifyUnreadCount = ref(0)
 
 // 实名认证相关状态
 const authDialogVisible = ref(false)
@@ -192,6 +196,13 @@ onMounted(async () => {
       seekerStats.value.favorites = stats.favorites ?? 0
     }
   } catch { /* 忽略 */ }
+  // 求职者加载通知未读数
+  if (!isRecruiter.value && !isSuperAdmin.value) {
+    try {
+      const res = await getUnreadCount()
+      notifyUnreadCount.value = res?.totalUnread ?? 0
+    } catch { /* 忽略 */ }
+  }
 })
 
 // 修改密码
@@ -223,7 +234,7 @@ const handleMenuClick = (item: string) => {
       if (isRecruiter.value) {
         router.push('/resume-pool?tab=interview')
       } else {
-        router.push('/my-applications?tab=interviews')
+        router.push('/profile/notifications')
       }
       break
     case 'favorites':
@@ -430,13 +441,16 @@ const handleMenuClick = (item: string) => {
               </div>
               <div class="menu-item" @click="handleMenuClick('interviews')">
                 <div class="menu-icon seeker-bg">
-                  <el-icon :size="22"><ChatDotSquare /></el-icon>
+                  <el-icon :size="22"><Bell /></el-icon>
                 </div>
                 <div class="menu-info">
-                  <span class="menu-name">面试邀请</span>
-                  <span class="menu-desc">收到的面试通知与安排</span>
+                  <span class="menu-name">我的通知</span>
+                  <span class="menu-desc">查看面试、录用及淘汰通知</span>
                 </div>
-                <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <span v-if="notifyUnreadCount > 0" class="notify-badge">{{ notifyUnreadCount > 99 ? '99+' : notifyUnreadCount }}</span>
+                  <el-icon :size="16" class="menu-arrow"><ArrowRight /></el-icon>
+                </div>
               </div>
               <div class="menu-item" @click="handleMenuClick('favorites')">
                 <div class="menu-icon seeker-bg">
@@ -934,6 +948,22 @@ const handleMenuClick = (item: string) => {
   font-weight: 500;
   color: #000;
   margin: 0 0 12px;
+}
+
+.notify-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

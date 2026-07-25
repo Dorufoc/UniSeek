@@ -144,7 +144,7 @@ def _safe_format(template: str, **kwargs) -> str:
     result = template
     for key, value in kwargs.items():
         result = result.replace("{" + key + "}", str(value))
-    return result
+    return result.strip()
 
 
 # =============================================================================
@@ -156,6 +156,8 @@ def generate_notifications(
     writer: SQLWriter,
     application_info_list: List[dict],
     hr_ids: List[int],
+    task_map: Dict[int, str] = None,
+    enterprise_map: Dict[int, str] = None,
 ) -> List[int]:
     """生成 60,000 条通知数据并写入 SQL 文件。
 
@@ -174,13 +176,17 @@ def generate_notifications(
 
     Args:
         writer: SQLWriter 实例，用于写入 SQL 文件
-        application_info_list: 投递信息列表，每项含 app_id, task_id,
-                               applicant_id, status, hr_id, create_time
+        application_info_list: 投递信息列表，每项含 app_id, task_id, task_title,
+                               applicant_id, status, hr_id, enterprise_id, create_time
         hr_ids: HR 用户 ID 列表
+        task_map: task_id → title 映射字典
+        enterprise_map: enterprise_id → company_name 映射字典
 
     Returns:
         生成的通知 ID 列表（长度 60,000）
     """
+    task_map = task_map or {}
+    enterprise_map = enterprise_map or {}
     notification_ids: List[int] = []
 
     writer.write_comment(f"消息通知表（{NOTIFICATION_COUNT} 条记录）")
@@ -195,6 +201,13 @@ def generate_notifications(
         seeker_id = app["applicant_id"]
         status = app["status"]
         hr_id = app["hr_id"]
+        task_id = app.get("task_id", 0)
+        enterprise_id = app.get("enterprise_id")
+
+        # 真实数据（用于通知内容）
+        position_title = app.get("task_title") or task_map.get(task_id, "兼职岗位")
+        company_name = enterprise_map.get(enterprise_id, "招聘企业") if enterprise_id else "招聘企业"
+        seeker_label = f"求职者（编号：{seeker_id}）"
 
         create_time_str = app["create_time"]
         create_time = datetime.datetime.strptime(
@@ -227,22 +240,11 @@ def generate_notifications(
             nid = writer.next_id("notification")
             notification_ids.append(nid)
 
-            template = random.choice(NOTIFICATION_TEMPLATES[1])
             interview_time = create_time + datetime.timedelta(
                 days=random.randint(1, 7),
                 hours=random.randint(9, 18),
             )
-            content = _safe_format(
-                template,
-                seeker_name=f"求职者",
-                company="招聘企业",
-                position="兼职岗位",
-                time=_format_dt(interview_time),
-                location=f"{random.choice(_CITIES)}{random.choice(_DISTRICTS)}{random.choice(_STREETS)}",
-                interviewer="HR",
-                phone="400-888-0000",
-                minutes=str(random.randint(20, 60)),
-            )
+            content = f"您好，{company_name}已收到您对「{position_title}」的投递，拟安排面试。面试时间：{_format_dt(interview_time)}，面试地点：{random.choice(_CITIES)}{random.choice(_DISTRICTS)}，请携带简历准时参加。"
             writer.add_row([
                 nid,
                 seeker_id,                                   # receiver_id = 求职者
@@ -264,20 +266,11 @@ def generate_notifications(
             nid = writer.next_id("notification")
             notification_ids.append(nid)
 
-            template = random.choice(NOTIFICATION_TEMPLATES[2])
             onboard_time = create_time + datetime.timedelta(
                 days=random.randint(1, 14),
             )
-            content = _safe_format(
-                template,
-                seeker_name=f"求职者",
-                company="招聘企业",
-                position="兼职岗位",
-                time=_format_dt(onboard_time),
-                location=f"{random.choice(_CITIES)}{random.choice(_DISTRICTS)}",
-                salary=str(random.randint(2000, 8000)),
-                total=str(random.randint(30000, 100000)),
-            )
+            salary_val = random.randint(2000, 8000)
+            content = f"恭喜！{company_name}已通过您对「{position_title}」的录用审批。薪资：{salary_val}元/月，请于{_format_dt(onboard_time)}到{random.choice(_CITIES)}{random.choice(_DISTRICTS)}办理入职手续。"
             writer.add_row([
                 nid,
                 seeker_id,
@@ -299,13 +292,7 @@ def generate_notifications(
             nid = writer.next_id("notification")
             notification_ids.append(nid)
 
-            template = random.choice(NOTIFICATION_TEMPLATES[3])
-            content = _safe_format(
-                template,
-                seeker_name=f"求职者",
-                company="招聘企业",
-                position="兼职岗位",
-            )
+            content = f"感谢您对{company_name}「{position_title}」的关注。经综合评估，很遗憾未能通过。建议您关注平台其他更适合您的岗位。"
             writer.add_row([
                 nid,
                 seeker_id,
@@ -371,19 +358,20 @@ def generate_notifications(
 def generate_chat_sessions(
     writer: SQLWriter,
     application_info_list: List[dict],
+    user_names: Dict[int, str],
 ) -> List[dict]:
-    """生成 25,000 条聊天会话数据并写入 SQL 文件。
+    """生成聊天会话和消息数据并写入 SQL 文件。
 
-    从投递状态 >= 1（HR 已处理）的投递中随机选取 25,000 个，
-    为每个投递创建一个一对一聊天会话。
+    从投递状态 >= 1 的投递中随机选取会话，为每个投递创建会话并生成消息。
+    last_message 来自该会话实际生成的最后一条消息内容。
 
     Args:
         writer: SQLWriter 实例，用于写入 SQL 文件
         application_info_list: 投递信息列表
+        user_names: 用户 ID → 用户昵称的映射字典
 
     Returns:
-        session_info_list: 会话信息列表，每项含 session_id,
-                          task_application_id, employer_id, seeker_id, create_time
+        session_info_list: 会话信息列表
     """
     # 筛选 HR 已处理的投递（status >= 1 且有 HR 分配）
     eligible_apps = [
@@ -395,14 +383,21 @@ def generate_chat_sessions(
     selected_apps = random.sample(eligible_apps, sample_size)
 
     session_info_list: List[dict] = []
+    message_ids: List[int] = []
+    target_msg_count = CHAT_MESSAGE_COUNT
 
     writer.write_comment(
         f"聊天会话表（{sample_size} 条记录，目标 {CHAT_SESSION_COUNT}）",
     )
     writer.begin_insert("chat_session", CHAT_SESSION_COLUMNS)
 
-    for app in selected_apps:
-        sid = writer.next_id("chat_session")
+    # 确定性地分配消息数量
+    base_msgs = target_msg_count // sample_size if sample_size > 0 else 0
+    extra_msgs = target_msg_count % sample_size
+
+    # 先为每个会话生成消息（内存），获取真实 last_message
+    sessions_with_msgs = []
+    for idx, app in enumerate(selected_apps):
         app_id = app["app_id"]
         employer_id = app["hr_id"]
         seeker_id = app["applicant_id"]
@@ -411,136 +406,17 @@ def generate_chat_sessions(
         create_time = datetime.datetime.strptime(
             create_time_str, "%Y-%m-%d %H:%M:%S",
         )
-        update_time = create_time + datetime.timedelta(
-            minutes=random.randint(5, 120),
-        )
 
-        # 会话状态：90% 活跃(0)，10% 已关闭(1)
-        status = 0 if random.random() < 0.9 else 1
-
-        # 动态生成 last_message：随机从 HR 或求职者模板选取并格式化
-        if random.random() < 0.5:
-            template = random.choice(CHAT_MESSAGES_HR)
-            last_msg = _safe_format(
-                template,
-                salary=str(random.randint(100, 500)),
-                location=f"{random.choice(_CITIES)}{random.choice(_DISTRICTS)}",
-                content="日常运营工作",
-                hours=str(random.randint(4, 10)),
-                position="兼职岗位",
-                time=f"{random.randint(9, 18)}:00",
-                day=str(random.randint(1, 3)),
-                month=str(random.randint(1, 6)),
-                industry=random.choice(_CATEGORIES),
-                position2="其他岗位",
-            )
-        else:
-            template = random.choice(CHAT_MESSAGES_SEEKER)
-            last_msg = _safe_format(
-                template,
-                position="兼职岗位",
-                nums=str(random.randint(1, 5)),
-                num=str(random.randint(2, 12)),
-                company=random.choice(_COMPANY_NAMES),
-                age=str(random.randint(18, 35)),
-                gender="男" if random.random() < 0.5 else "女",
-                location=f"{random.choice(_CITIES)}{random.choice(_DISTRICTS)}",
-                time=f"{random.randint(9, 18)}:00",
-                time2=f"{random.randint(18, 22)}:00",
-                day="周一",
-            )
-
-        writer.add_row([
-            sid,
-            app_id,                                              # task_application_id
-            employer_id,                                         # employer_id = HR
-            seeker_id,                                           # seeker_id
-            last_msg,                                            # last_message（动态）
-            _format_dt(update_time),                             # last_message_time
-            status,
-            _format_dt(create_time),
-            _format_dt(update_time),
-        ])
-
-        session_info_list.append({
-            "session_id": sid,
-            "task_application_id": app_id,
-            "employer_id": employer_id,
-            "seeker_id": seeker_id,
-            "create_time": _format_dt(create_time),
-        })
-
-    generated = len(session_info_list)
-    assert generated == sample_size, (
-        f"会话记录数必须为 {sample_size}，实际生成 {generated}"
-    )
-
-    return session_info_list
-
-
-# =============================================================================
-# 3. 聊天消息生成器
-# =============================================================================
-
-
-def generate_chat_messages(
-    writer: SQLWriter,
-    session_info_list: List[dict],
-    user_names: Dict[int, str],
-) -> List[int]:
-    """生成 100,000 条聊天消息数据并写入 SQL 文件。
-
-    每个会话生成 2-6 条消息（平均约 4 条），
-    首条消息由求职者发送，之后交替发送。
-    is_read：前 60% 的消息已读，后 40% 未读。
-
-    Args:
-        writer: SQLWriter 实例，用于写入 SQL 文件
-        session_info_list: 会话信息列表（由 generate_chat_sessions 返回）
-        user_names: 用户 ID → 用户昵称的映射字典
-
-    Returns:
-        生成的消息 ID 列表（长度 100,000）
-    """
-    message_ids: List[int] = []
-    target_count = CHAT_MESSAGE_COUNT
-
-    writer.write_comment(f"聊天消息表（目标 {target_count} 条记录）")
-    writer.begin_insert("chat_message", CHAT_MESSAGE_COLUMNS)
-
-    # 确定性地分配消息数量，确保总数精确等于目标值
-    session_count = len(session_info_list)
-    base_msgs = target_count // session_count if session_count > 0 else 0
-    extra_msgs = target_count % session_count
-
-    for idx, session_info in enumerate(session_info_list):
-        if len(message_ids) >= target_count:
-            break
-
-        session_id = session_info["session_id"]
-        employer_id = session_info["employer_id"]
-        seeker_id = session_info["seeker_id"]
-
-        create_time_str = session_info["create_time"]
-        session_time = datetime.datetime.strptime(
-            create_time_str, "%Y-%m-%d %H:%M:%S",
-        )
-
-        # 每个会话生成 base_msgs 条消息，前 extra_msgs 个会话多 1 条
         num_messages = base_msgs + (1 if idx < extra_msgs else 0)
+        session_messages = []
 
-        # 发送顺序：求职者先发（i%2==0），HR 后发（i%2==1）
         sender_cycle = [seeker_id, employer_id]
-        current_time = session_time
+        current_time = create_time
 
         for i in range(num_messages):
-            mid = writer.next_id("chat_message")
-            message_ids.append(mid)
-
             sender_id = sender_cycle[i % 2]
             is_hr = (sender_id == employer_id)
 
-            # 选取对应角色的消息模板并格式化
             if is_hr:
                 template = random.choice(CHAT_MESSAGES_HR)
                 content = _safe_format(
@@ -572,31 +448,99 @@ def generate_chat_messages(
                     day="周一",
                 )
 
-            # 消息时间按发送顺序递增
-            current_time += datetime.timedelta(
-                minutes=random.randint(1, 30),
-            )
+            current_time += datetime.timedelta(minutes=random.randint(1, 30))
+            # 仅最后一条消息为未读，其余全部已读（由 SQL sender_id != userId 区分视角）
+            is_read = 0 if i == num_messages - 1 else 1
 
-            # is_read：前 60% 已读(1)，后 40% 未读(0)
-            read_threshold = int(num_messages * 0.6)
-            is_read = 1 if i < read_threshold else 0
+            session_messages.append({
+                "sender_id": sender_id,
+                "content": content,
+                "is_read": is_read,
+                "send_time": current_time,
+            })
+
+        sessions_with_msgs.append({
+            "app_id": app_id,
+            "employer_id": employer_id,
+            "seeker_id": seeker_id,
+            "create_time": create_time,
+            "messages": session_messages,
+        })
+
+    # 阶段1：写入所有会话（使用真实 last_message）
+    writer.write_comment(
+        f"聊天会话表（{sample_size} 条记录，目标 {CHAT_SESSION_COUNT}）",
+    )
+    writer.begin_insert("chat_session", CHAT_SESSION_COLUMNS)
+
+    for session_data in sessions_with_msgs:
+        sid = writer.next_id("chat_session")
+        session_data["sid"] = sid  # 存下来供阶段2使用
+
+        app_id = session_data["app_id"]
+        employer_id = session_data["employer_id"]
+        seeker_id = session_data["seeker_id"]
+        create_time = session_data["create_time"]
+        msgs = session_data["messages"]
+
+        last_msg = msgs[-1]["content"] if msgs else ""
+        last_msg_time = _format_dt(msgs[-1]["send_time"]) if msgs else _format_dt(create_time)
+        update_time = msgs[-1]["send_time"] if msgs else create_time
+
+        session_status = 0 if random.random() < 0.9 else 1
+
+        writer.add_row([
+            sid,
+            app_id,
+            employer_id,
+            seeker_id,
+            last_msg,
+            last_msg_time,
+            session_status,
+            _format_dt(create_time),
+            _format_dt(update_time),
+        ])
+
+        session_info_list.append({
+            "session_id": sid,
+            "task_application_id": app_id,
+            "employer_id": employer_id,
+            "seeker_id": seeker_id,
+            "create_time": _format_dt(create_time),
+        })
+
+    # 阶段2：写入所有消息
+    writer.write_comment(f"聊天消息表（目标 {target_msg_count} 条记录）")
+    writer.begin_insert("chat_message", CHAT_MESSAGE_COLUMNS)
+
+    for session_data in sessions_with_msgs:
+        sid = session_data["sid"]
+
+        for msg in session_data["messages"]:
+            mid = writer.next_id("chat_message")
+            message_ids.append(mid)
 
             writer.add_row([
                 mid,
-                session_id,
-                sender_id,
-                0,                              # message_type=0（文本）
-                content,
-                is_read,
-                _format_dt(current_time),
+                sid,
+                msg["sender_id"],
+                0,                      # message_type=0（文本）
+                msg["content"],
+                msg["is_read"],
+                _format_dt(msg["send_time"]),
             ])
 
-    generated = len(message_ids)
-    assert generated == target_count, (
-        f"消息记录数必须为 {target_count}，实际生成 {generated}"
+    generated_sessions = len(session_info_list)
+    assert generated_sessions == sample_size, (
+        f"会话记录数必须为 {sample_size}，实际生成 {generated_sessions}"
     )
 
-    return message_ids
+    generated_msgs = len(message_ids)
+    assert generated_msgs == target_msg_count, (
+        f"消息记录数必须为 {target_msg_count}，实际生成 {generated_msgs}"
+    )
+
+    return session_info_list
 
 
 # =============================================================================
@@ -719,11 +663,13 @@ def generate_notifications_chat_complaints(
     admin_ids: List[int],
     enterprise_ids: List[int],
     user_names: Dict[int, str],
+    task_map: Dict[int, str] = None,
+    enterprise_map: Dict[int, str] = None,
 ) -> dict:
     """编排所有通知/聊天/投诉生成器。
 
-    依次生成通知、聊天会话、聊天消息和投诉数据，
-    并将聊天会话信息传递给消息生成器。
+    依次生成通知、聊天会话+消息和投诉数据。
+    会话和消息合并生成以确保 last_message 来自真实消息。
 
     Args:
         writer: SQLWriter 实例
@@ -733,32 +679,23 @@ def generate_notifications_chat_complaints(
         admin_ids: 管理员用户 ID 列表
         enterprise_ids: 企业 ID 列表
         user_names: 用户 ID → 用户昵称的映射字典
+        task_map: task_id → title 映射
+        enterprise_map: enterprise_id → company_name 映射
 
     Returns:
-        dict 包含所有生成记录的 ID：
-        {
-            "notification_ids": List[int],
-            "session_info_list": List[dict],
-            "message_ids": List[int],
-            "complaint_ids": List[int],
-        }
+        dict 包含所有生成记录的 ID
     """
-    # 1. 生成通知
+    # 1. 生成通知（使用真实公司/职位名称）
     notification_ids = generate_notifications(
-        writer, application_info_list, hr_ids,
+        writer, application_info_list, hr_ids, task_map, enterprise_map,
     )
 
-    # 2. 生成聊天会话（返回会话信息供消息生成器使用）
+    # 2. 生成聊天会话和消息（合并生成，last_message 取自真实最后一条消息）
     session_info_list = generate_chat_sessions(
-        writer, application_info_list,
+        writer, application_info_list, user_names,
     )
 
-    # 3. 生成聊天消息（依赖会话信息）
-    message_ids = generate_chat_messages(
-        writer, session_info_list, user_names,
-    )
-
-    # 4. 生成投诉
+    # 3. 生成投诉
     complaint_ids = generate_complaints(
         writer, all_user_ids, enterprise_ids, admin_ids,
     )
@@ -766,6 +703,5 @@ def generate_notifications_chat_complaints(
     return {
         "notification_ids": notification_ids,
         "session_info_list": session_info_list,
-        "message_ids": message_ids,
         "complaint_ids": complaint_ids,
     }

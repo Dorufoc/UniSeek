@@ -9,8 +9,13 @@ const router = useRouter()
 const loading = ref(false)
 const tasks = ref<TaskVO[]>([])
 
-// 计算状态标签
-const getStatusInfo = (status: number, rejectReason?: string) => {
+// 计算状态标签（动态判断 deadline 是否过期）
+const getStatusInfo = (task: TaskVO) => {
+  const { status, rejectReason, deadline } = task
+  // status=1(招聘中) 或 status=0(待审核) 且 deadline 已过 → 显示为已过期
+  if (deadline && new Date(deadline) < new Date() && (status === 1 || status === 0)) {
+    return { label: '已过期', type: 'info' as const }
+  }
   const map: Record<number, { label: string; type: 'success' | 'warning' | 'info' | 'danger' }> = {
     0: { label: '待审核', type: 'warning' },
     1: { label: '招聘中', type: 'success' },
@@ -20,7 +25,6 @@ const getStatusInfo = (status: number, rejectReason?: string) => {
     5: { label: '已驳回', type: 'danger' }
   }
   return { ...map[status] || { label: '未知', type: 'info' }, reason: status === 5 ? rejectReason : undefined }
-  return { ...map[status] || { label: '未知', type: 'info' }, reason: undefined }
 }
 
 // 岗位类型映射
@@ -91,8 +95,12 @@ const handleResubmit = async (task: TaskVO) => {
   }
 }
 
-// 判断当前状态是否允许上下架操作
-const canToggle = (status: number) => status === 1 || status === 4
+// 判断当前状态是否允许上下架操作（过期的不允许）
+const canToggle = (task: TaskVO) => {
+  if (task.status !== 1 && task.status !== 4) return false
+  if (task.deadline && new Date(task.deadline) < new Date()) return false
+  return true
+}
 
 // 计算已投递数量显示
 const appliedText = (task: TaskVO) => {
@@ -123,8 +131,8 @@ onMounted(loadTasks)
         <div class="job-header">
           <div class="job-title-wrap">
             <span class="job-title">{{ task.title }}</span>
-            <el-tag :type="getStatusInfo(task.status, task.rejectReason).type" size="small">
-              {{ getStatusInfo(task.status, task.rejectReason).label }}
+            <el-tag :type="getStatusInfo(task).type" size="small">
+              {{ getStatusInfo(task).label }}
             </el-tag>
           </div>
           <div v-if="task.status === 5 && task.rejectReason" class="reject-hint">
@@ -160,7 +168,7 @@ onMounted(loadTasks)
             </template>
             <template v-else>
               <button
-                v-if="canToggle(task.status)"
+                v-if="canToggle(task)"
                 :class="['jm-btn', task.status === 1 ? 'jm-btn-danger' : 'jm-btn-success']"
                 @click="toggleStatus(task)"
               >

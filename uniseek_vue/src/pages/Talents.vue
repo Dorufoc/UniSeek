@@ -426,6 +426,14 @@ const genderLabel = (g?: number) => {
   position: relative;
   min-height: 140px;
   background: #fff;
+  height: auto !important;
+  overflow: visible !important;
+  flex-shrink: 0;
+}
+
+.talent-card :deep(.el-card__body) {
+  overflow: visible;
+  height: auto;
 }
 
 .talent-card:hover {

@@ -46,7 +46,7 @@ export const useChatStore = defineStore('chat', () => {
       ...sessionUnreadMap.value,
       [data.applicationId]: (sessionUnreadMap.value[data.applicationId] || 0) + 1
     }
-    totalUnreadCount.value = Object.values(sessionUnreadMap.value).reduce((a, b) => a + b, 0)
+    totalUnreadCount.value += 1
   }
 
   /** 页面订阅 WS 消息（用于活跃会话实时显示） */

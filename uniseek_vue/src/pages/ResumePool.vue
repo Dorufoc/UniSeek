@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Bell } from '@element-plus/icons-vue'
 import { getEnterpriseTasks, type TaskVO } from '@/api/task'
 import {
   getTaskApplications,
+  getApplicationById,
   updateApplicationStatus,
   completeApplication,
   type TaskApplication,
   type ResumeSnapshot
 } from '@/api/application'
+import { getMessages, getUnreadCount, markMessageRead, markAllRead, type NotificationItem } from '@/api/notification'
 
 const router = useRouter()
 const route = useRoute()
@@ -19,6 +22,15 @@ const selectedTaskId = ref<number | null>(null)
 const applications = ref<TaskApplication[]>([])
 const loadingTasks = ref(false)
 const loadingApps = ref(false)
+
+// 新投递通知
+const notifyPopoverVisible = ref(false)
+const newDeliveryNotifications = ref<NotificationItem[]>([])
+const newDeliveryUnreadCount = ref(0)
+const loadingNotifies = ref(false)
+
+// 从通知跳转时高亮的投递记录 ID
+const scopedAppId = ref<number | null>(null)
 
 // Tab 切换：从 URL query 读取，默认 pool
 const activeTab = computed<'pool' | 'interview'>(() =>
@@ -119,7 +131,10 @@ const loadApplications = async () => {
 }
 
 watch(selectedTaskId, loadApplications)
-onMounted(loadTasks)
+onMounted(() => {
+  loadTasks()
+  loadNewDeliveryUnreadCount()
+})
 
 // 弹窗相关
 const interviewDialogVisible = ref(false)
@@ -249,25 +264,147 @@ const availableActions = (app: TaskApplication) => {
   }
   return actions
 }
+
+// 加载新投递通知（type=0）
+const loadNewDeliveryNotifications = async () => {
+  loadingNotifies.value = true
+  try {
+    const res = await getMessages({ type: 0, page: 1, pageSize: 50 })
+    newDeliveryNotifications.value = res?.records || []
+  } catch {
+    newDeliveryNotifications.value = []
+  } finally {
+    loadingNotifies.value = false
+  }
+}
+
+// 加载新投递未读数
+const loadNewDeliveryUnreadCount = async () => {
+  try {
+    const res = await getUnreadCount()
+    newDeliveryUnreadCount.value = res?.totalUnread ?? 0
+  } catch { /* 忽略 */ }
+}
+
+// 标记单条通知已读并跳转到对应投递记录
+const handleNotifyClick = async (item: NotificationItem) => {
+  notifyPopoverVisible.value = false
+  if (item.isRead === 0) {
+    try {
+      await markMessageRead(item.id)
+      item.isRead = 1
+      if (newDeliveryUnreadCount.value > 0) newDeliveryUnreadCount.value--
+    } catch { /* 静默 */ }
+  }
+  if (!item.bizId) return
+  try {
+    const app = await getApplicationById(item.bizId) as any
+    if (app?.taskId) {
+      const targetTaskId = app.taskId
+      if (selectedTaskId.value !== targetTaskId) {
+        selectedTaskId.value = targetTaskId
+        await nextTick()
+        await loadApplications()
+      }
+      scopedAppId.value = item.bizId
+      await nextTick()
+      const el = document.getElementById(`app-card-${item.bizId}`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  } catch { /* 忽略 */ }
+}
+
+// 全部已读
+const handleNotifyAllRead = async () => {
+  try {
+    await markAllRead()
+    newDeliveryNotifications.value.forEach(n => { n.isRead = 1 })
+    newDeliveryUnreadCount.value = 0
+    ElMessage.success('已全部标记为已读')
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
+
+const formatNotifyTime = (str: string) => {
+  if (!str) return '-'
+  return str.replace('T', ' ').substring(0, 16)
+}
+
+const openNotifyPopover = () => {
+  notifyPopoverVisible.value = !notifyPopoverVisible.value
+  if (notifyPopoverVisible.value) {
+    loadNewDeliveryNotifications()
+  }
+}
 </script>
 
 <template>
   <div class="resume-pool-page">
     <div class="pool-header">
       <h2 class="pool-title">{{ activeTab === 'interview' ? '面试安排' : '简历池' }}</h2>
-      <el-select
-        v-model="selectedTaskId"
-        placeholder="请选择职位"
-        style="width: 320px"
-        :loading="loadingTasks"
-      >
-        <el-option
-          v-for="task in tasks"
-          :key="task.id"
-          :label="`${task.title}（${task.applicationCount || 0} 人投递）`"
-          :value="task.id"
-        />
-      </el-select>
+      <div class="pool-header-right">
+        <el-select
+          v-model="selectedTaskId"
+          placeholder="请选择职位"
+          style="width: 320px"
+          :loading="loadingTasks"
+        >
+          <el-option
+            v-for="task in tasks"
+            :key="task.id"
+            :label="`${task.title}（${task.applicationCount || 0} 人投递）`"
+            :value="task.id"
+          />
+        </el-select>
+        <!-- 新投递通知铃铛 -->
+        <el-popover
+          :visible="notifyPopoverVisible"
+          placement="bottom-end"
+          :width="400"
+          trigger="click"
+          :show-arrow="false"
+          popper-class="notify-popover"
+        >
+          <template #reference>
+            <div class="bell-btn" @click="openNotifyPopover">
+              <el-icon :size="20"><Bell /></el-icon>
+              <span v-if="newDeliveryUnreadCount > 0" class="bell-badge">{{ newDeliveryUnreadCount > 99 ? '99+' : newDeliveryUnreadCount }}</span>
+            </div>
+          </template>
+          <div class="notify-popover-content">
+            <div class="notify-popover-header">
+              <span class="notify-popover-title">新投递通知</span>
+              <el-button
+                size="small"
+                text
+                type="primary"
+                :loading="loadingNotifies"
+                @click="handleNotifyAllRead"
+              >全部已读</el-button>
+            </div>
+            <div class="notify-popover-list">
+              <div v-if="loadingNotifies" class="notify-popover-empty">加载中...</div>
+              <template v-else-if="newDeliveryNotifications.length">
+                <div
+                  v-for="item in newDeliveryNotifications"
+                  :key="item.id"
+                  :class="['notify-popover-item', { unread: item.isRead === 0 }]"
+                  @click="handleNotifyClick(item)"
+                >
+                  <div class="notify-popover-item-title">
+                    {{ item.title }}
+                    <span v-if="item.isRead === 0" class="notify-popover-dot"></span>
+                  </div>
+                  <div class="notify-popover-item-content">{{ item.content }}</div>
+                  <div class="notify-popover-item-time">{{ formatNotifyTime(item.createTime) }}</div>
+                </div>
+              </template>
+              <div v-else class="notify-popover-empty">暂无新投递通知</div>
+            </div>
+          </div>
+        </el-popover>
+      </div>
     </div>
 
     <div v-if="!selectedTaskId && !loadingTasks" class="empty-block">
@@ -281,7 +418,13 @@ const availableActions = (app: TaskApplication) => {
       <!-- 简历池 Tab -->
       <template v-if="!loadingApps && activeTab === 'pool'">
         <div v-if="poolApplications.length" class="application-list">
-          <el-card v-for="app in poolApplications" :key="app.id" class="application-card" shadow="hover">
+          <el-card
+            v-for="app in poolApplications"
+            :key="app.id"
+            :id="`app-card-${app.id}`"
+            :class="['application-card', { 'scoped-card': scopedAppId === app.id }]"
+            shadow="hover"
+          >
             <div class="application-main">
               <div class="application-avatar">
                 {{ parseSnapshot(app.resumeSnapshot)?.realName?.charAt(0) || '?' }}
@@ -511,6 +654,50 @@ const availableActions = (app: TaskApplication) => {
   margin-bottom: 24px;
 }
 
+.pool-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bell-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #555;
+}
+
+.bell-btn:hover {
+  background: rgba(23, 98, 251, 0.08);
+  color: #1762FB;
+}
+
+.bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(255, 71, 87, 0.3);
+}
+
 .pool-title {
   font-size: 18px;
   font-weight: 600;
@@ -535,6 +722,17 @@ const availableActions = (app: TaskApplication) => {
 
 .application-card {
   color: #000;
+}
+
+.application-card.scoped-card {
+  border-color: #1762FB;
+  box-shadow: 0 0 0 2px rgba(23, 98, 251, 0.2);
+  animation: scopePulse 1.5s ease-out;
+}
+
+@keyframes scopePulse {
+  0% { box-shadow: 0 0 0 0 rgba(23, 98, 251, 0.5); }
+  100% { box-shadow: 0 0 0 12px rgba(23, 98, 251, 0); }
 }
 
 .application-main {
@@ -739,5 +937,95 @@ const availableActions = (app: TaskApplication) => {
 
 .talent-tag {
   color: #000;
+}
+</style>
+
+<style>
+.notify-popover {
+  padding: 0 !important;
+}
+
+.notify-popover-content {
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.notify-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notify-popover-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #000;
+}
+
+.notify-popover-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notify-popover-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notify-popover-item:hover {
+  background: #f8f9fb;
+}
+
+.notify-popover-item.unread {
+  background: #f0f6ff;
+}
+
+.notify-popover-item.unread:hover {
+  background: #e8f0fd;
+}
+
+.notify-popover-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.notify-popover-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4757;
+  flex-shrink: 0;
+}
+
+.notify-popover-item-content {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notify-popover-item-time {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.notify-popover-empty {
+  text-align: center;
+  padding: 32px 16px;
+  font-size: 13px;
+  color: #999;
 }
 </style>
