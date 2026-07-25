@@ -31,7 +31,13 @@ export const getMessages = (params?: {
 
 /** GET /messages/unread-count 获取未读消息数 */
 export const getUnreadCount = () =>
-  request.get<any, { count: number }>('/messages/unread-count')
+  request.get<any, {
+    totalUnread: number
+    systemUnread: number
+    interviewUnread: number
+    offerUnread: number
+    rejectUnread: number
+  }>('/messages/unread-count')
 
 /** PUT /messages/:id/read 标记消息已读 */
 export const markMessageRead = (id: number) =>

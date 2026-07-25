@@ -1002,10 +1002,12 @@ def generate_tasks(
         (task_ids, task_enterprise_map) 二元组：
         - task_ids: 生成的岗位 ID 列表
         - task_enterprise_map: 岗位 ID → 企业 ID 的映射字典
+        - task_title_map: 岗位 ID → 岗位标题的映射字典（供通知生成器使用）
     """
     total_tasks = 5000
     task_ids: List[int] = []
     task_enterprise_map: Dict[int, int] = {}
+    task_title_map: Dict[int, str] = {}
 
     # ---- 过滤：只保留已认证的企业 ----
     if enterprise_audit_map:
@@ -1040,6 +1042,9 @@ def generate_tasks(
     writer.write_comment(f"岗位表（{total_tasks} 条记录，来自 {enterprise_count} 家已认证企业）")
     writer.begin_insert("task", TASK_COLUMNS)
 
+    # 追踪哪些企业已有 status=1 且 deadline 在未来的岗位
+    active_enterprises: set = set()
+
     for i in range(total_tasks):
         tid = writer.next_id("task")
         task_ids.append(tid)
@@ -1061,6 +1066,7 @@ def generate_tasks(
         # 3. 生成标题
         # -----------------------------------------------------------------
         title = _pick_title(category_id)
+        task_title_map[tid] = title
 
         # -----------------------------------------------------------------
         # 4. 生成描述
@@ -1114,17 +1120,22 @@ def generate_tasks(
         update_time = create_time
 
         # 根据状态生成 deadline
-        if status in (1, 0):  # 招聘中或待审核 → 未来截止
-            deadline = create_time + datetime.timedelta(
-                days=random.randint(15, 60)
+        now = datetime.datetime.now()
+        if status == 1:  # 招聘中 → deadline 必须在未来（相对于今天）
+            deadline = now + datetime.timedelta(
+                days=random.randint(7, 60)
             )
-        elif status == 3:  # 已过期 → 已过截止
-            deadline = create_time + datetime.timedelta(
-                days=random.randint(1, 10)
+        elif status == 0:  # 待审核 → deadline 也在未来
+            deadline = now + datetime.timedelta(
+                days=random.randint(15, 90)
             )
-        else:  # 已满员或已下架 → 可设 NULL 或短期限
+        elif status == 3:  # 已过期 → 确保 deadline 在过去
+            deadline = now - datetime.timedelta(
+                days=random.randint(1, 365)
+            )
+        else:  # 已满员或已下架
             if random.random() < 0.5:
-                deadline = create_time + datetime.timedelta(
+                deadline = now + datetime.timedelta(
                     days=random.randint(5, 30)
                 )
             else:
@@ -1139,6 +1150,10 @@ def generate_tasks(
             )
         else:
             audit_time = None
+
+        # 追踪有招聘中未来岗位的企业
+        if status == 1 and deadline is not None and deadline > now:
+            active_enterprises.add(enterprise_id)
 
         # -----------------------------------------------------------------
         # 13. 写入行
@@ -1168,4 +1183,56 @@ def generate_tasks(
             _format_dt(update_time), # update_time
         ])
 
-    return task_ids, task_enterprise_map
+    # ---- 保障：每家已认证企业至少有一个招聘中（deadline在未来）的岗位 ----
+    missing_enterprises = [eid for eid in enterprise_ids if eid not in active_enterprises]
+    if missing_enterprises:
+        for eid in missing_enterprises:
+            tid = writer.next_id("task")
+            task_ids.append(tid)
+            task_enterprise_map[tid] = eid
+
+            category_id = _pick_category_id()
+            title = _pick_title(category_id)
+            task_title_map[tid] = title
+            description = _generate_description(category_id)
+            region_id = random.choice(ALL_REGION_IDS)
+            salary_min = random.randint(50, 200)
+            salary_max = salary_min + random.randint(50, 300)
+            salary_unit = random.randint(0, 2)
+            job_type = random.randint(1, 3)
+            total_quota = _generate_total_quota()
+            address = _generate_address(region_id)
+            tag = _generate_tag(category_id)
+            lng, lat = _generate_coordinates(region_id)
+            version = 0
+            create_time = weighted_random_time()
+            update_time = create_time
+            audit_time = create_time + datetime.timedelta(days=random.randint(0, 7))
+            deadline = datetime.datetime.now() + datetime.timedelta(days=random.randint(7, 60))
+
+            writer.add_row([
+                tid,
+                eid,                     # enterprise_id
+                category_id,             # category_id
+                region_id,               # region_id
+                title,
+                description,
+                salary_min,
+                salary_max,
+                salary_unit,
+                job_type,
+                total_quota,
+                total_quota,             # remaining_quota（新岗位，all available）
+                address,
+                tag,
+                lng,
+                lat,
+                1,                       # status=1（招聘中）
+                version,
+                _format_dt(deadline),
+                _format_dt(audit_time),
+                _format_dt(create_time),
+                _format_dt(update_time),
+            ])
+
+    return task_ids, task_enterprise_map, task_title_map

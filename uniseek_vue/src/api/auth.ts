@@ -2,7 +2,7 @@ import request from './index'
 
 // 密码登录请求参数
 export interface LoginByPasswordParams {
-  phone: string       // 手机号（11位数字）
+  account: string    // 登录账号（手机号或邮箱）
   password: string    // 密码（明文，后端用 MD5+盐校验）
 }
 

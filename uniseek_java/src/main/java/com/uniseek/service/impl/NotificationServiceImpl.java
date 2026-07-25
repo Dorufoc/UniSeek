@@ -69,8 +69,8 @@ public class NotificationServiceImpl implements NotificationService {
             if (typeObj == null || countObj == null) {
                 continue;
             }
-            int type = ((Number) typeObj).intValue();
-            int count = ((Number) countObj).intValue();
+            int type = typeObj instanceof Number ? ((Number) typeObj).intValue() : 0;
+            int count = countObj instanceof Number ? ((Number) countObj).intValue() : 0;
             totalUnread += count;
             switch (type) {
                 case 0:

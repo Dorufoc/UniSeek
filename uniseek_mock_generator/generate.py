@@ -80,7 +80,7 @@ def main():
         # Step 3: 生成企业数据
         # =====================================================================
         print("Step 3/6: 生成企业数据...")
-        enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map = \
+        enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map = \
             generate_enterprises(writer, hr_ids)
         print(f"  -> {len(enterprise_ids)} 个企业")
 
@@ -95,7 +95,7 @@ def main():
         # Step 5: 生成岗位数据（仅已认证企业）
         # =====================================================================
         print("Step 5/6: 生成岗位数据...")
-        task_ids, task_enterprise_map = generate_tasks(
+        task_ids, task_enterprise_map, task_title_map = generate_tasks(
             writer, enterprise_ids, hr_enterprise_map,
             enterprise_industry_map, enterprise_audit_map,
         )
@@ -107,7 +107,7 @@ def main():
         print("Step 5/6: 生成投递数据...")
         app_ids, app_info_list = generate_applications(
             writer, seeker_ids, task_ids, hr_enterprise_map, resume_id_map,
-            task_enterprise_map, resume_data_map, user_name_map,
+            task_enterprise_map, task_title_map, resume_data_map, user_name_map,
         )
         print(f"  -> {len(app_ids)} 条投递记录")
 
@@ -125,6 +125,7 @@ def main():
         generate_notifications_chat_complaints(
             writer, app_info_list, hr_ids, all_user_ids,
             admin_ids, enterprise_ids, user_name_map,
+            task_title_map, enterprise_name_map,
         )
         print(f"  -> {NOTIFICATION_COUNT} 条通知, {CHAT_SESSION_COUNT} 个会话, "
               f"{CHAT_MESSAGE_COUNT} 条消息, 0 条投诉")
@@ -171,12 +172,12 @@ SET r.`status` = 1, r.`auth_time` = NOW(), r.`update_time` = NOW()
 WHERE u.`role` = 1
         """.strip())
 
-        writer.write_comment("为没有实名认证记录的招聘者插入认证记录")
+        writer.write_comment("为没有实名认证记录的管理员插入认证记录")
         writer.write_update("""
 INSERT INTO `real_name_auth` (`user_id`, `real_name`, `id_card`, `status`, `auth_time`, `create_time`, `update_time`)
 SELECT u.`id`, u.`nickname`, CONCAT('ID', LPAD(u.`id`, 16, '0')), 1, NOW(), NOW(), NOW()
 FROM `user` u
-WHERE u.`role` = 1 AND NOT EXISTS (SELECT 1 FROM `real_name_auth` r WHERE r.`user_id` = u.`id`)
+WHERE u.`role` >= 9 AND NOT EXISTS (SELECT 1 FROM `real_name_auth` r WHERE r.`user_id` = u.`id`)
         """.strip())
         print(f"  -> 招聘者实名认证已更新")
 

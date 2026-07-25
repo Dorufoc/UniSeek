@@ -62,3 +62,7 @@ export const createDirectSession = (targetUserId: number) =>
 /** POST /chat/sessions/:applicationId/init 初始化（创建）投递记录的聊天会话 */
 export const initChatSession = (applicationId: number) =>
   request.post<any, void>(`/chat/sessions/${applicationId}/init`)
+
+/** GET /chat/unread-count 获取当前用户聊天未读消息总数 */
+export const getChatUnreadCount = () =>
+  request.get<any, number>('/chat/unread-count')

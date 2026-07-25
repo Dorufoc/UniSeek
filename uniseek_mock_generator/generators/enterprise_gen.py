@@ -334,16 +334,18 @@ def generate_enterprises(
         hr_ids: HR 用户 ID 列表（长度 400）
 
     Returns:
-        (enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map) 四元组：
+        (enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map) 五元组：
         - enterprise_ids: 企业 ID 列表，顺序与 hr_ids 一一对应
         - hr_enterprise_map: HR 用户 ID → 企业 ID 的映射字典
         - enterprise_industry_map: 企业 ID → 行业名称的映射字典
         - enterprise_audit_map: 企业 ID → 审核状态（0/1/2）的映射字典
+        - enterprise_name_map: 企业 ID → 公司全称的映射字典
     """
     total = len(hr_ids)
     used_credit_codes: set = set()
     enterprise_ids: List[int] = []
     enterprise_industry_map: Dict[int, str] = {}
+    enterprise_name_map: Dict[int, str] = {}
     enterprise_audit_map: Dict[int, int] = {}
 
     writer.write_comment(f"企业表（{total} 条记录）")
@@ -358,6 +360,7 @@ def generate_enterprises(
 
         # 2. 生成企业名称
         company_name = _generate_company_name(short_industry)
+        enterprise_name_map[eid] = company_name
 
         # 3. 生成唯一信用代码
         credit_code = _generate_credit_code(used_credit_codes)
@@ -400,4 +403,4 @@ def generate_enterprises(
     hr_enterprise_map: Dict[int, int] = {
         hr_id: eid for hr_id, eid in zip(hr_ids, enterprise_ids)
     }
-    return enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map
+    return enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map

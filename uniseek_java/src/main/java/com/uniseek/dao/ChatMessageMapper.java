@@ -54,4 +54,9 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
      */
     @Update("UPDATE chat_message SET is_read = 1 WHERE session_id = #{sessionId} AND sender_id != #{userId} AND is_read = 0")
     Integer markAsRead(@Param("sessionId") Long sessionId, @Param("userId") Long userId);
+
+    /**
+     * 统计当前用户所有会话中的未读消息总数
+     */
+    Long selectUnreadCount(@Param("userId") Long userId);
 }

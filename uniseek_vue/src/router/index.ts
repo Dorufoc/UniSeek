@@ -102,6 +102,12 @@ const router = createRouter({
           name: 'Profile',
           component: () => import('@/pages/Profile.vue'),
           meta: { title: '个人中心 - UniSeek' }
+        },
+        {
+          path: 'profile/notifications',
+          name: 'Notifications',
+          component: () => import('@/pages/Notifications.vue'),
+          meta: { title: '我的通知 - UniSeek' }
         }
       ]
     },

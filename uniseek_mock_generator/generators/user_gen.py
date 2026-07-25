@@ -17,6 +17,7 @@ from config import (
     ADMIN_PHONE_END,
     DEFAULT_PASSWORD,
     ADMIN_PASSWORD,
+    END_DATE,
 )
 from crypto import generate_salt, encrypt_password
 from sql_output import SQLWriter
@@ -44,7 +45,7 @@ PHONE_PREFIXES = ["13", "15", "17", "18", "19"]
 
 # 时间范围
 START_DT = datetime.datetime(2010, 1, 1)
-END_DT = datetime.datetime(2026, 7, 15)
+END_DT = datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
 SPAN_SECONDS = int((END_DT - START_DT).total_seconds())
 
 # 角色常量
@@ -449,9 +450,9 @@ def generate_users(writer: SQLWriter) -> Tuple[List[int], List[int], List[int], 
     # 从所有求职者和 HR 中随机选取约 7,000 人进行实名认证
 
     eligible_users = [
-        u for u in all_users if u["role"] in (ROLE_SEEKER, ROLE_HR)
+        u for u in all_users if u["role"] in (ROLE_SEEKER, ROLE_HR, ROLE_ADMIN, ROLE_SUPER_ADMIN)
     ]
-    selected_count = min(REAL_NAME_AUTH_COUNT, len(eligible_users))
+    selected_count = min(REAL_NAME_AUTH_COUNT + ADMIN_TOTAL, len(eligible_users))
     selected_users = random.sample(eligible_users, selected_count)
 
     writer.write_comment(f"实名认证表（{selected_count} 条记录）")
@@ -463,8 +464,11 @@ def generate_users(writer: SQLWriter) -> Tuple[List[int], List[int], List[int], 
         real_name = user["nickname"]
         id_card = _fake.ssn()
 
-        # 95% 已认证，5% 待审核
-        auth_status = 1 if random.random() < 0.95 else 0
+        # 管理员和超级管理员固定已认证，普通用户 95% 已认证
+        if user["role"] in (ROLE_ADMIN, ROLE_SUPER_ADMIN):
+            auth_status = 1
+        else:
+            auth_status = 1 if random.random() < 0.95 else 0
 
         auth_time = (
             random_datetime_between(user["create_time"], END_DT)

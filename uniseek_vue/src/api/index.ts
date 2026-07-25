@@ -2,6 +2,9 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 // import { setupMock } from './mock'
 
+// 401 防抖标记（防止多个并发请求同时触发重复弹窗）
+let _isHandling401 = false
+
 // 创建 axios 实例，配置基础 URL 和超时时间
 const request = axios.create({
   baseURL: '/api',
@@ -39,13 +42,19 @@ request.interceptors.response.use(
     return data.data
   },
   (error) => {
-    // 401：未授权，清除本地登录态并跳转登录页
+    // 401：未授权，清除本地登录态并跳转登录页（防抖：同一时刻只弹一次提示）
     if (error.response?.status === 401) {
       localStorage.removeItem('uniseek_token')
       localStorage.removeItem('uniseek_user')
       localStorage.removeItem('uniseek_role')
-      ElMessage.error('认证令牌无效或已过期，请重新登录')
-      setTimeout(() => { window.location.href = '/login' }, 1500)
+      if (!_isHandling401) {
+        _isHandling401 = true
+        ElMessage.error('认证令牌无效或已过期，请重新登录')
+        setTimeout(() => {
+          _isHandling401 = false
+          window.location.href = '/login'
+        }, 1500)
+      }
       return Promise.reject(error)
     }
     // 5xx 服务端错误：统一跳转到错误页（避免在错误页自身内再触发跳转）

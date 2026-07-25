@@ -21,6 +21,7 @@ const role = ref<0 | 1 | null>(null)
 
 // 登录/注册表单数据
 const form = reactive({
+  account: '',
   phone: '',
   email: '',
   password: '',
@@ -31,7 +32,14 @@ const form = reactive({
 // 手机号正则校验：1 开头，第二位为 3-9，共 11 位数字
 const phonePattern = /^1[3-9]\d{9}$/
 
-// 手机号格式校验
+// 登录账号校验：含 @ 走邮箱格式，否则走手机号格式
+const isAccountValid = computed(() => {
+  const val = form.account
+  if (!val) return false
+  if (val.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
+  return phonePattern.test(val)
+})
+// 手机号格式校验（注册用）
 const isPhoneValid = computed(() => phonePattern.test(form.phone))
 // 邮箱格式校验
 const isEmailValid = computed(() => /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email))
@@ -44,9 +52,9 @@ const isNicknameValid = computed(() => form.nickname.trim().length >= 2 && form.
 // 角色是否已选择
 const isRoleValid = computed(() => role.value !== null)
 
-// 登录按钮是否可用：手机号 + 密码 + 同意协议均满足
+// 登录按钮是否可用：账号 + 密码 + 同意协议均满足
 const canLogin = computed(() => {
-  return isPhoneValid.value && isPasswordValid.value && agreed.value
+  return isAccountValid.value && isPasswordValid.value && agreed.value
 })
 
 // 注册按钮是否可用：角色 + 手机号 + 邮箱 + 昵称 + 密码 + 确认密码均满足
@@ -59,7 +67,7 @@ const handleLogin = async () => {
   if (!canLogin.value) return
   loading.value = true
   try {
-    const res = await loginByPassword({ phone: form.phone, password: form.password })
+    const res = await loginByPassword({ account: form.account, password: form.password })
     userStore.setToken(res.token)
     // 登录时优先使用本地已存储的角色（注册时设定），防止 Mock 默认值覆盖
     const storedUser = JSON.parse(localStorage.getItem('uniseek_user') || 'null')
@@ -147,17 +155,16 @@ const switchTab = (tab: 'login' | 'register') => {
         <!-- 登录表单区域 -->
         <template v-if="activeTab === 'login'">
           <div class="form-body">
-            <!-- 手机号输入 -->
+            <!-- 账号输入（手机号或邮箱） -->
             <div class="input-group">
               <el-input
-                v-model="form.phone"
+                v-model="form.account"
                 size="large"
-                placeholder="请输入手机号"
-                maxlength="11"
+                placeholder="请输入手机号或邮箱"
                 clearable
                 :prefix-icon="Phone"
               />
-              <span v-if="form.phone && !isPhoneValid" class="input-error">请输入正确的手机号</span>
+              <span v-if="form.account && !isAccountValid" class="input-error">请输入正确的手机号或邮箱</span>
             </div>
 
             <!-- 密码输入 -->
