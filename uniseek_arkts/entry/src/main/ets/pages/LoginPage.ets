@@ -9,7 +9,7 @@ import { WindowBreakpoint } from '../common/Responsive';
 @Entry
 @Component
 struct LoginPage {
-  @State phone: string = ''
+  @State account: string = ''
   @State password: string = ''
   @State serverAddrInput: string = ''
   @State isLoggingIn: boolean = false
@@ -45,12 +45,12 @@ struct LoginPage {
           })
           .margin({ bottom: AppSpacing.SM_GAP })
         Column({ space: AppSpacing.MD }) {
-          // 手机号输入框
+          // 账号输入框（支持手机号或邮箱）
           StandardInput({
-            placeholder: '手机号',
-            value: $phone,
-            inputType: InputType.PhoneNumber,
-            maxLength: 11,
+            placeholder: '手机号或邮箱',
+            value: $account,
+            inputType: InputType.Normal,
+            maxLength: 64,
             leadingIcon: $r('sys.symbol.phone')
           })
           .margin({ top: AppSpacing.XL })
@@ -68,7 +68,7 @@ struct LoginPage {
           PrimaryButton({
             text: '登录',
             loading: this.isLoggingIn,
-            disabled: this.phone.length === 0 || this.password.length === 0,
+            disabled: this.account.length === 0 || this.password.length === 0,
             onTap: () => { this.handleLogin() }
           })
           .margin({ top: AppSpacing.XL })
@@ -161,8 +161,13 @@ struct LoginPage {
     if (this.isLoggingIn) {
       return
     }
-    if (!InputValidator.isPhone(this.phone.trim())) {
-      this.getUIContext().getPromptAction().showToast({ message: '请输入正确的 11 位手机号', duration: 2000 })
+    const account = this.account.trim()
+    if (!account) {
+      this.getUIContext().getPromptAction().showToast({ message: '请输入账号', duration: 2000 })
+      return
+    }
+    if (!InputValidator.isPhone(account) && !InputValidator.isEmail(account)) {
+      this.getUIContext().getPromptAction().showToast({ message: '请输入正确的手机号或邮箱', duration: 2000 })
       return
     }
     if (!this.password.trim()) {
@@ -172,7 +177,7 @@ struct LoginPage {
 
     this.isLoggingIn = true
     try {
-      await AuthService.login(this.phone.trim(), this.password.trim())
+      await AuthService.login(account, this.password.trim())
       if (UserSession.role === 0) {
         this.getUIContext().getRouter().replaceUrl({ url: 'pages/MainPage' })
       } else {

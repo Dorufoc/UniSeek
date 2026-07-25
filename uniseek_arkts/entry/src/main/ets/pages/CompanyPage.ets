@@ -4,78 +4,13 @@ import { StandardCard } from '../common/StandardCard'
 import { EmptyView } from '../components/EmptyView'
 import { ErrorView } from '../components/ErrorView'
 import { LoadMoreFooter } from '../components/LoadMoreFooter'
-import { CategoryNode, DataService, RegionNode } from '../services/DataService'
+import { CategoryNode, DataService, RegionNode, Province, City, District, Field, Occupation }
+  from '../services/DataService'
 import { EnterpriseDiscoveryService, EnterpriseListItem } from '../services/EnterpriseDiscoveryService'
 import { FilterBar } from './tab/seeker/FilterBar'
 import { FilterSheetHeader } from '../components/filter/FilterSheetHeader'
 
 const PAGE_SIZE = 15
-
-/**
- * 企业发现联级选择弹窗
- * 职责：在筛选 Sheet 内统一展示省/市/区县、行业大类/子类等单选列表。
- */
-@CustomDialog
-struct CascadePickerDialog {
-  controller: CustomDialogController
-  @Prop title: string = ''
-  @Prop options: string[] = []
-  onSelect?: (name: string) => void
-  onClose?: () => void
-
-  build() {
-    Column() {
-      Text(this.title)
-        .fontSize(AppFontSize.MD)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .margin({ bottom: AppSpacing.MD })
-
-      List({ space: AppSpacing.XS }) {
-        ForEach(this.options, (name: string) => {
-          ListItem() {
-            Row() {
-              Text(name)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_PRIMARY)
-                .textAlign(TextAlign.Start)
-                .width('100%')
-            }
-            .width('100%')
-            .height(AppSpacing.BUTTON_HEIGHT_MD)
-            .padding({ left: AppSpacing.SM_PLUS, right: AppSpacing.SM_PLUS })
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.MD)
-            .onClick(() => {
-              this.onSelect?.(name)
-            })
-            .stateStyles({
-              pressed: { .opacity(0.8) }
-            })
-          }
-        }, (name: string): string => name)
-      }
-      .width('100%')
-      .height(280)
-
-      Button('取消', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .backgroundColor(AppColors.INPUT_BG)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .fontSize(AppFontSize.MD)
-        .margin({ top: AppSpacing.MD })
-        .onClick(() => {
-          this.onClose?.()
-          this.controller.close()
-        })
-    }
-    .width('80%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_PAGE)
-    .borderRadius(AppRadius.LG)
-  }
-}
 
 @Component
 export struct CompanyDiscovery {
@@ -102,37 +37,6 @@ export struct CompanyDiscovery {
   @State selectedIndustry: string = ''
   @State selectedRegionId: number = 0
   @State selectedRegionName: string = '地区'
-
-  // 联级选择器弹窗运行时状态
-  @State pickerOptions: string[] = []
-  @State pickerTitle: string = ''
-  @State pickerType: 'region' | 'category' | '' = ''
-  @State pickerLevel: number = 1
-  @State pickerPath: string[] = []
-
-  private regionDialogController: CustomDialogController = new CustomDialogController({
-    builder: CascadePickerDialog({
-      title: this.pickerTitle,
-      options: this.pickerOptions,
-      onSelect: (name: string): void => { this.handlePickerSelect(name) },
-      onClose: (): void => { this.resetPicker() }
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true
-  })
-
-  private categoryDialogController: CustomDialogController = new CustomDialogController({
-    builder: CascadePickerDialog({
-      title: this.pickerTitle,
-      options: this.pickerOptions,
-      onSelect: (name: string): void => { this.handlePickerSelect(name) },
-      onClose: (): void => { this.resetPicker() }
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true
-  })
 
   aboutToAppear(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string>
@@ -248,115 +152,70 @@ export struct CompanyDiscovery {
     this.loadEnterprises(false)
   }
 
-  // ===== 联级选择器逻辑 =====
-  private resetPicker(): void {
-    this.pickerType = ''
-    this.pickerLevel = 1
-    this.pickerPath = []
-    this.pickerOptions = []
-    this.pickerTitle = ''
-  }
-
+  // ===== 原生级联选择器（TextPickerDialog） =====
   private openRegionPicker(): void {
-    this.resetPicker()
-    this.pickerType = 'region'
-    this.pickerLevel = 1
-    this.pickerTitle = '选择省份 / 直辖市'
-    this.pickerOptions = this.regionTree.map((n: RegionNode) => n.name)
-    this.regionDialogController.open()
+    this.getUIContext().showTextPickerDialog({
+      range: this.buildRegionRange(),
+      selected: [0, 0, 0],
+      onAccept: (value: TextPickerResult): void => {
+        const selectedValues = value.value as string[]
+        if (selectedValues && selectedValues.length > 0) {
+          this.regionPath = selectedValues
+          const fullName = selectedValues.join('-')
+          const regionId = DataService.getRegionIdByName(fullName)
+          this.selectedRegionId = regionId || 0
+          this.selectedRegionName = fullName || '地区'
+          this.applyFilters()
+        }
+      }
+    })
   }
 
   private openCategoryPicker(): void {
-    this.resetPicker()
-    this.pickerType = 'category'
-    this.pickerLevel = 1
-    this.pickerTitle = '选择行业大类'
-    this.pickerOptions = this.categoryTree.map((n: CategoryNode) => n.name)
-    this.categoryDialogController.open()
+    this.getUIContext().showTextPickerDialog({
+      range: this.buildCategoryRange(),
+      selected: [0, 0],
+      onAccept: (value: TextPickerResult): void => {
+        const selectedValues = value.value as string[]
+        if (selectedValues && selectedValues.length > 0) {
+          this.categoryPath = selectedValues
+          this.selectedIndustry = selectedValues[selectedValues.length - 1]
+          this.applyFilters()
+        }
+      }
+    })
   }
 
-  private handlePickerSelect(name: string): void {
-    this.pickerPath = [...this.pickerPath, name]
-    if (this.pickerType === 'region') {
-      this.advanceRegionPicker(name)
-    } else if (this.pickerType === 'category') {
-      this.advanceCategoryPicker(name)
-    }
+  private buildRegionRange(): TextCascadePickerRangeContent[] {
+    return DataService.getProvinces().map((province: Province): TextCascadePickerRangeContent => {
+      if (province.isMunicipality) {
+        const city = province.cities[0]
+        const districts = city ? city.districts.map((d: District) => this.cascadeItem(d.name)) : []
+        return this.cascadeItem(province.name, districts)
+      }
+      return this.cascadeItem(
+        province.name,
+        province.cities.map((city: City): TextCascadePickerRangeContent =>
+          this.cascadeItem(
+            city.name,
+            city.districts.map((d: District) => this.cascadeItem(d.name))
+          )
+        )
+      )
+    })
   }
 
-  private advanceRegionPicker(name: string): void {
-    const node = this.findRegionNode(this.pickerPath)
-    if (!node) {
-      return
-    }
-
-    if (this.pickerLevel === 1) {
-      if (node.children && node.children.length > 0) {
-        this.pickerLevel = 2
-        this.pickerTitle = '选择城市'
-        this.pickerOptions = node.children.map((c: RegionNode) => c.name)
-        return
-      }
-    } else if (this.pickerLevel === 2) {
-      if (node.children && node.children.length > 0) {
-        this.pickerLevel = 3
-        this.pickerTitle = '选择区县'
-        this.pickerOptions = node.children.map((c: RegionNode) => c.name)
-        return
-      }
-    }
-
-    // 已选择到最深层（或无子级），应用地区筛选
-    this.regionPath = [...this.pickerPath]
-    this.regionDialogController.close()
-    this.applyFilters()
+  private buildCategoryRange(): TextCascadePickerRangeContent[] {
+    return DataService.getFields().map((field: Field): TextCascadePickerRangeContent => {
+      const children = field.occupations.length > 0
+        ? field.occupations.map((o: Occupation) => this.cascadeItem(o.name))
+        : []
+      return this.cascadeItem(field.name, children)
+    })
   }
 
-  private advanceCategoryPicker(name: string): void {
-    const node = this.findCategoryNode(this.pickerPath)
-    if (!node) {
-      return
-    }
-
-    if (this.pickerLevel === 1) {
-      if (node.children && node.children.length > 0) {
-        this.pickerLevel = 2
-        this.pickerTitle = '选择行业子类'
-        this.pickerOptions = node.children.map((c: CategoryNode) => c.name)
-        return
-      }
-    }
-
-    // 已选择到最深层（或无子级），应用行业筛选
-    this.categoryPath = [...this.pickerPath]
-    this.categoryDialogController.close()
-    this.applyFilters()
-  }
-
-  private findRegionNode(path: string[]): RegionNode | null {
-    let nodes = this.regionTree
-    let found: RegionNode | null = null
-    for (const name of path) {
-      found = nodes.find((n: RegionNode) => n.name === name) || null
-      if (!found) {
-        return null
-      }
-      nodes = found.children || []
-    }
-    return found
-  }
-
-  private findCategoryNode(path: string[]): CategoryNode | null {
-    let nodes = this.categoryTree
-    let found: CategoryNode | null = null
-    for (const name of path) {
-      found = nodes.find((n: CategoryNode) => n.name === name) || null
-      if (!found) {
-        return null
-      }
-      nodes = found.children || []
-    }
-    return found
+  private cascadeItem(text: string, children?: TextCascadePickerRangeContent[]): TextCascadePickerRangeContent {
+    return { text, children }
   }
 
   // ===== UI 构建 =====

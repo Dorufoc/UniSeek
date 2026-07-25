@@ -9,7 +9,7 @@ const KEY_CACHE_REAL_NAME_STATUS = 'cached_real_name_status'
 
 // 请求体接口
 export interface LoginRequest {
-  phone: string
+  account: string
   password: string
 }
 
@@ -159,8 +159,8 @@ export class AuthService {
     return true
   }
 
-  static async login(phone: string, password: string): Promise<LoginResult> {
-    const result = await ApiClient.post<LoginResult>('/api/auth/login', { phone, password } as LoginRequest)
+  static async login(account: string, password: string): Promise<LoginResult> {
+    const result = await ApiClient.post<LoginResult>('/api/auth/login', { account, password } as LoginRequest)
     ApiClient.saveToken(result.token)
     AuthService.applyUserInfo(result.userInfo.id, result.userInfo.role, result.userInfo.nickname, result.userInfo.avatarUrl)
     return result
