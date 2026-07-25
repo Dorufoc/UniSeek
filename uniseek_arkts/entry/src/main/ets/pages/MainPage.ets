@@ -10,6 +10,8 @@ import { ChatWebSocketService } from '../services/ChatWebSocketService'
 struct MainPage {
   @State currentIndex: number = 0
   @State totalUnreadCount: number = 0
+  // 用于通知我的 Tab 页刷新统计数据
+  @State profileRefreshTrigger: number = 0
 
   private unreadCountCallback: (count: number) => void = (count: number) => {
     this.totalUnreadCount = count
@@ -30,6 +32,10 @@ struct MainPage {
   onPageShow(): void {
     // 从聊天详情等子页面返回时兜底刷新一次
     ChatWebSocketService.getInstance().refreshUnreadCount()
+    // 返回底部导航页时，触发我的页刷新统计数据
+    if (this.currentIndex === 3) {
+      this.profileRefreshTrigger++
+    }
   }
 
   @Builder tabHome() {
@@ -116,7 +122,7 @@ struct MainPage {
       .tabBar(this.tabChat)
 
       TabContent() {
-        ProfilePage()
+        ProfilePage({ refreshTrigger: this.profileRefreshTrigger })
       }
       .tabBar(this.tabProfile)
     }
@@ -127,6 +133,10 @@ struct MainPage {
       if (index === 2) {
         // 切换到聊天 Tab 时主动刷新一次未读数
         ChatWebSocketService.getInstance().refreshUnreadCount()
+      }
+      // 切换到我的 Tab 时，触发 ProfilePage 刷新个人统计数据
+      if (index === 3) {
+        this.profileRefreshTrigger++
       }
     })
     .width('100%')

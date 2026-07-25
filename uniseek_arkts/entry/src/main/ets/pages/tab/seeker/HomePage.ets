@@ -204,7 +204,7 @@ export struct HomePage {
       .fontSize(AppFontSize.MD)
       .fontColor(this.selectedTabIndex === index ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
       .fontWeight(this.selectedTabIndex === index ? FontWeight.Bold : FontWeight.Regular)
-      .padding({ bottom: 6 })
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, bottom: 6 })
       .animation({
         duration: 250,
         curve: 'cubic-bezier(0.2, 0, 0, 1.0)'
@@ -275,7 +275,8 @@ export struct HomePage {
         this.selectedTabIndex = index
         this.onTabChange(index)
       })
-      .barMode(BarMode.Fixed)
+      // 使用 Scrollable 模式：TabBar 按钮按内容自适应宽度，超出时支持横向滚动，避免文字被省略
+      .barMode(BarMode.Scrollable)
       .backgroundColor(AppColors.BG_PAGE)
     }
     .width('100%')

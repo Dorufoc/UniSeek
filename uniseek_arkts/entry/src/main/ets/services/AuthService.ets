@@ -1,6 +1,8 @@
 import { ApiClient, ApiEmpty } from './ApiClient';
 import { UserSession } from './UserSession';
 import { ChatWebSocketService } from './ChatWebSocketService';
+import { preferences } from '@kit.ArkData';
+import { Router } from '@kit.ArkUI';
 
 const KEY_CACHE_CURRENT_USER = 'cached_current_user'
 const KEY_CACHE_REAL_NAME_STATUS = 'cached_real_name_status'
@@ -176,6 +178,34 @@ export class AuthService {
     ApiClient.clearSession()
     UserSession.clear()
     ChatWebSocketService.getInstance().disconnect()
+  }
+
+  /**
+   * 统一退出登录并跳转登录页。
+   * 无论网络是否可用，都立即清空本地角色状态与缓存，然后清空页面栈并跳转登录页；
+   * 远程退出接口仅在联网时尽力通知服务端，不会阻塞界面返回。
+   */
+  static logoutAndRedirect(router: Router): void {
+    // 1. 先立即清空本地会话、角色缓存与 WebSocket 连接
+    ApiClient.clearSession()
+    UserSession.clear()
+    ChatWebSocketService.getInstance().disconnect()
+
+    // 2. 清空搜索历史等本地业务缓存
+    try {
+      const pref = preferences.getPreferencesSync(getContext(), { name: 'search_history_db' })
+      pref.clearSync()
+      pref.flushSync()
+    } catch {
+      // 即使清空缓存失败，也不影响继续跳转登录页
+    }
+
+    // 3. 尽力通知服务端退出，不阻塞页面跳转
+    void AuthService.logout()
+
+    // 4. 清空页面历史栈并跳转登录页，确保登录页按返回键不会再回到登录态页面
+    router.clear()
+    router.replaceUrl({ url: 'pages/LoginPage' })
   }
 
   static async getCurrentUser(): Promise<UserVO> {

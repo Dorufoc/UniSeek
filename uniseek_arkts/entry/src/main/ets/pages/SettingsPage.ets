@@ -1,4 +1,3 @@
-import { preferences } from '@kit.ArkData';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 import { AuthService } from '../services/AuthService';
@@ -6,15 +5,8 @@ import { AuthService } from '../services/AuthService';
 @Entry
 @Component
 struct SettingsPage {
-  async handleLogout(): Promise<void> {
-    try {
-      const pref = preferences.getPreferencesSync(getContext(), { name: 'search_history_db' })
-      pref.clearSync()
-      pref.flushSync()
-    } catch {
-    }
-    await AuthService.logout()
-    this.getUIContext().getRouter().replaceUrl({ url: 'pages/LoginPage' })
+  handleLogout(): void {
+    AuthService.logoutAndRedirect(this.getUIContext().getRouter())
   }
 
   build() {

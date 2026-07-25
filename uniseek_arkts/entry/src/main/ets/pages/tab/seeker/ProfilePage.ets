@@ -19,7 +19,11 @@ interface ProfileMenuItem {
 @Component
 export struct ProfilePage {
   private isLoading: boolean = true
+  // 由 MainPage 在切换到我的 Tab 或从子页面返回时触发，刷新统计数据
+  @Prop @Watch('onRefreshProfile') refreshTrigger: number = 0
   @State nickname: string = ''
+
+
   @State phone: string = ''
   @State email: string = ''
   @State avatarUri: string = ''
@@ -42,9 +46,13 @@ export struct ProfilePage {
   }
 
   onPageShow(): void {
-    if (!this.isLoading) {
-      this.reloadProfile(false)
-    }
+    // 从子页面返回时主动刷新一次数据
+    this.reloadProfile(false)
+  }
+
+  private onRefreshProfile(): void {
+    // Tab 切换到我的页面时触发刷新
+    this.reloadProfile(false)
   }
 
   /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。 */
@@ -60,10 +68,12 @@ export struct ProfilePage {
   }
 
   private async reloadProfile(showLoading: boolean): Promise<void> {
-    this.loadErrorText = ''
-    if (showLoading) {
-      this.isLoading = true
+    // 防止并发请求覆盖结果
+    if (this.isLoading) {
+      return
     }
+    this.loadErrorText = ''
+    this.isLoading = showLoading
     await Promise.all([
       this.loadUser(),
       this.loadStats(),
@@ -286,9 +296,8 @@ export struct ProfilePage {
     }).catch(() => {})
   }
 
-  private async logout(): Promise<void> {
-    await AuthService.logout()
-    this.getUIContext().getRouter().replaceUrl({ url: 'pages/LoginPage' })
+  private logout(): void {
+    AuthService.logoutAndRedirect(this.getUIContext().getRouter())
   }
 
   private roleMenus(): ProfileMenuItem[] {
@@ -308,7 +317,7 @@ export struct ProfilePage {
     return [
       { key: 'resume', icon: $r('sys.symbol.doc_text'), label: '我的简历', color: AppColors.PRIMARY },
       { key: 'applications', icon: $r('sys.symbol.doc_text'), label: '投递记录', color: AppColors.PRIMARY },
-      { key: 'interviews', icon: $r('sys.symbol.message'), label: '面试邀请', color: AppColors.PRIMARY }
+      { key: 'favorites', icon: $r('sys.symbol.star'), label: '我的收藏', color: AppColors.WARNING }
     ]
   }
 
@@ -378,9 +387,8 @@ export struct ProfilePage {
             .borderRadius(32)
           }
         }
-        .onClick(() => { this.selectAvatar() })
 
-        // 右侧姓名 + 角色
+        // 中间姓名 + 角色
         Column({ space: AppSpacing.XS }) {
           Text(this.nickname || '未设置昵称')
             .fontSize(AppFontSize.XL)
@@ -400,6 +408,10 @@ export struct ProfilePage {
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.Center)
+
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(AppFontSize.MD)
+          .fontColor(['#FFFFFF'])
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
@@ -411,6 +423,8 @@ export struct ProfilePage {
       angle: 135,
       colors: [['#1762FB', 0.0], [AppColors.PRIMARY_LIGHT, 1.0]]
     })
+    .onClick(() => { this.getUIContext().getRouter().pushUrl({ url: 'pages/ProfileDetailPage' }) })
+    .stateStyles({ pressed: { .opacity(0.92) } })
   }
 
   @Builder

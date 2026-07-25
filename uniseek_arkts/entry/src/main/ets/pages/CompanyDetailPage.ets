@@ -230,7 +230,8 @@ struct CompanyDetailPage {
         // 名称与标签
         Column({ space: AppSpacing.XS }) {
           Text(this.enterprise!.companyName || '企业')
-            .fontSize(AppFontSize.XXL)
+            // 品牌卡片内公司名称使用标准正文字号，不再额外放大
+            .fontSize(AppFontSize.MD)
             .fontWeight(FontWeight.Bold)
             .fontColor('#FFFFFF')
             .maxLines(1)

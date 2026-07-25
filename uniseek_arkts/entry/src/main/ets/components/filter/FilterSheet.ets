@@ -30,142 +30,6 @@ const SALARY_UNIT_OPTIONS: SalaryUnitOption[] = [
   { value: 2, label: '月薪' }
 ]
 
-// ==================== 地区选择器弹窗 ====================
-@CustomDialog
-struct RegionPickerDialog {
-  controller: CustomDialogController
-  @Prop level: number = 1
-  @Prop options: string[] = []
-  onSelect?: (name: string) => void
-  onClose?: () => void
-
-  private titleText(): string {
-    if (this.level === 1) return '选择省份 / 直辖市'
-    if (this.level === 2) return '选择城市'
-    return '选择区县'
-  }
-
-  build() {
-    Column() {
-      Text(this.titleText())
-        .fontSize(AppFontSize.MD)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .margin({ bottom: AppSpacing.MD })
-
-      List({ space: AppSpacing.XS }) {
-        ForEach(this.options, (name: string) => {
-          ListItem() {
-            Row() {
-              Text(name)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_PRIMARY)
-                .textAlign(TextAlign.Start)
-                .width('100%')
-            }
-            .width('100%')
-            .height(AppSpacing.BUTTON_HEIGHT_MD)
-            .padding({ left: AppSpacing.SM_PLUS, right: AppSpacing.SM_PLUS })
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.MD)
-            .onClick(() => {
-              this.onSelect?.(name)
-            })
-            .stateStyles({
-              pressed: { .opacity(0.8) }
-            })
-          }
-        }, (name: string): string => name)
-      }
-      .width('100%')
-      .height(280)
-
-      Button('取消', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .backgroundColor(AppColors.INPUT_BG)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .fontSize(AppFontSize.MD)
-        .margin({ top: AppSpacing.MD })
-        .onClick(() => {
-          this.onClose?.()
-          this.controller.close()
-        })
-    }
-    .width('80%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_PAGE)
-    .borderRadius(AppRadius.LG)
-  }
-}
-
-// ==================== 职位类型选择器弹窗 ====================
-@CustomDialog
-struct CategoryPickerDialog {
-  controller: CustomDialogController
-  @Prop level: number = 1
-  @Prop options: string[] = []
-  onSelect?: (name: string) => void
-  onClose?: () => void
-
-  private titleText(): string {
-    return this.level === 1 ? '选择职位大类' : '选择职位子类'
-  }
-
-  build() {
-    Column() {
-      Text(this.titleText())
-        .fontSize(AppFontSize.MD)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.TEXT_PRIMARY)
-        .margin({ bottom: AppSpacing.MD })
-
-      List({ space: AppSpacing.XS }) {
-        ForEach(this.options, (name: string) => {
-          ListItem() {
-            Row() {
-              Text(name)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_PRIMARY)
-                .textAlign(TextAlign.Start)
-                .width('100%')
-            }
-            .width('100%')
-            .height(AppSpacing.BUTTON_HEIGHT_MD)
-            .padding({ left: AppSpacing.SM_PLUS, right: AppSpacing.SM_PLUS })
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.MD)
-            .onClick(() => {
-              this.onSelect?.(name)
-            })
-            .stateStyles({
-              pressed: { .opacity(0.8) }
-            })
-          }
-        }, (name: string): string => name)
-      }
-      .width('100%')
-      .height(280)
-
-      Button('取消', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .backgroundColor(AppColors.INPUT_BG)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .fontSize(AppFontSize.MD)
-        .margin({ top: AppSpacing.MD })
-        .onClick(() => {
-          this.onClose?.()
-          this.controller.close()
-        })
-    }
-    .width('80%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_PAGE)
-    .borderRadius(AppRadius.LG)
-  }
-}
-
 // ==================== 主筛选抽屉组件 ====================
 @Component
 export struct FilterSheet {
@@ -189,46 +53,11 @@ export struct FilterSheet {
   @State filterTags: string[] = []
   @State tagInput: string = ''
 
-  // 地区选择器状态
-  @State regionPickerLevel: number = 1
-  @State regionPickerPath: string[] = []
-  @State regionPickerOptions: string[] = []
-
-  // 职位类型选择器状态
-  @State categoryPickerLevel: number = 1
-  @State categoryPickerPath: string[] = []
-  @State categoryPickerOptions: string[] = []
-
   // 标签推荐
   @State allTags: string[] = []
 
   // 防止重置与关闭抽屉双重触发搜索
   @State hasApplied: boolean = false
-
-  // 弹窗控制器
-  private regionDialogController: CustomDialogController = new CustomDialogController({
-    builder: RegionPickerDialog({
-      level: this.regionPickerLevel,
-      options: this.regionPickerOptions,
-      onSelect: (name: string): void => { this.handleRegionSelect(name) },
-      onClose: (): void => { this.resetRegionPicker() }
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true
-  })
-
-  private categoryDialogController: CustomDialogController = new CustomDialogController({
-    builder: CategoryPickerDialog({
-      level: this.categoryPickerLevel,
-      options: this.categoryPickerOptions,
-      onSelect: (name: string): void => { this.handleCategorySelect(name) },
-      onClose: (): void => { this.resetCategoryPicker() }
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center,
-    customStyle: true
-  })
 
   aboutToAppear(): void {
     this.copyFromProps()
@@ -252,25 +81,11 @@ export struct FilterSheet {
     this.filterTags = [...this.selectedTags]
     this.tagInput = ''
     this.hasApplied = false
-    this.resetRegionPicker()
-    this.resetCategoryPicker()
   }
 
   private async loadAllTags(): Promise<void> {
     const list = await TaskService.getAllTags()
     this.allTags = list
-  }
-
-  private resetRegionPicker(): void {
-    this.regionPickerLevel = 1
-    this.regionPickerPath = []
-    this.regionPickerOptions = []
-  }
-
-  private resetCategoryPicker(): void {
-    this.categoryPickerLevel = 1
-    this.categoryPickerPath = []
-    this.categoryPickerOptions = []
   }
 
   // ==================== 回调 ====================
@@ -299,8 +114,6 @@ export struct FilterSheet {
     this.filterType = []
     this.filterTags = []
     this.tagInput = ''
-    this.resetRegionPicker()
-    this.resetCategoryPicker()
     this.onReset?.()
     // 重置后立即生效
     this.applyFilters()
@@ -356,104 +169,81 @@ export struct FilterSheet {
     return list.slice(0, 8)
   }
 
-  // ==================== 地区选择器逻辑 ====================
+  // ==================== 地区选择器逻辑（原生级联 TextPickerDialog） ====================
   private openRegionPicker(): void {
-    this.resetRegionPicker()
-    this.regionPickerLevel = 1
-    this.regionPickerOptions = DataService.getProvinces().map((p: Province) => p.name)
-    this.regionDialogController.open()
-  }
-
-  private handleRegionSelect(name: string): void {
-    this.regionPickerPath = [...this.regionPickerPath, name]
-    const provinceName = this.regionPickerPath[0]
-    const province = DataService.getProvinceByName(provinceName)
-    if (!province) {
-      return
-    }
-
-    if (this.regionPickerLevel === 1) {
-      if (province.isMunicipality) {
-        this.regionPickerLevel = 3
-        const districts = province.cities[0]?.districts || []
-        this.regionPickerOptions = districts.map((d: District) => d.name)
-      } else {
-        this.regionPickerLevel = 2
-        this.regionPickerOptions = province.cities.map((c: City) => c.name)
+    this.getUIContext().showTextPickerDialog({
+      range: this.buildRegionRange(),
+      selected: [0, 0, 0],
+      onAccept: (value: TextPickerResult): void => {
+        const selectedValues = value.value as string[]
+        if (selectedValues && selectedValues.length > 0) {
+          const path = selectedValues.join('-')
+          if (this.filterRegion.indexOf(path) < 0) {
+            this.filterRegion = [...this.filterRegion, path]
+          }
+        }
       }
-      return
-    }
-
-    if (this.regionPickerLevel === 2) {
-      this.regionPickerLevel = 3
-      const city = province.cities.find((c: City) => c.name === name)
-      const districts = city?.districts || []
-      this.regionPickerOptions = districts.map((d: District) => d.name)
-      return
-    }
-
-    // 第 3 级（区县）选择完成，自动添加
-    this.addRegionSelection()
-    this.regionDialogController.close()
+    })
   }
 
-  private addRegionSelection(): void {
-    if (this.regionPickerPath.length === 0) {
-      return
-    }
-    const path = this.regionPickerPath.join('-')
-    if (this.filterRegion.indexOf(path) < 0) {
-      this.filterRegion = [...this.filterRegion, path]
-    }
-    this.resetRegionPicker()
+  private buildRegionRange(): TextCascadePickerRangeContent[] {
+    return DataService.getProvinces().map((province: Province): TextCascadePickerRangeContent => {
+      if (province.isMunicipality) {
+        // 直辖市：省 -> 区县两级
+        const city = province.cities[0]
+        const districts = city ? city.districts.map((d: District) => this.cascadeItem(d.name)) : []
+        return this.cascadeItem(province.name, districts)
+      }
+      // 普通省份：省 -> 市 -> 区县三级
+      return this.cascadeItem(
+        province.name,
+        province.cities.map((city: City): TextCascadePickerRangeContent =>
+          this.cascadeItem(
+            city.name,
+            city.districts.map((d: District) => this.cascadeItem(d.name))
+          )
+        )
+      )
+    })
   }
 
   private removeRegion(path: string): void {
     this.filterRegion = this.filterRegion.filter((r: string) => r !== path)
   }
 
-  // ==================== 职位类型选择器逻辑 ====================
+  // ==================== 职位类型选择器逻辑（原生级联 TextPickerDialog） ====================
   private openCategoryPicker(): void {
-    this.resetCategoryPicker()
-    this.categoryPickerLevel = 1
-    this.categoryPickerOptions = DataService.getFields().map((f: Field) => f.name)
-    this.categoryDialogController.open()
-  }
-
-  private handleCategorySelect(name: string): void {
-    this.categoryPickerPath = [...this.categoryPickerPath, name]
-
-    if (this.categoryPickerLevel === 1) {
-      const field = DataService.getFieldByName(name)
-      if (field && field.occupations.length > 0) {
-        this.categoryPickerLevel = 2
-        this.categoryPickerOptions = field.occupations.map((o: Occupation) => o.name)
-      } else {
-        // 没有子类，直接添加大类
-        this.addCategorySelection()
-        this.categoryDialogController.close()
+    this.getUIContext().showTextPickerDialog({
+      range: this.buildCategoryRange(),
+      selected: [0, 0],
+      onAccept: (value: TextPickerResult): void => {
+        const selectedValues = value.value as string[]
+        if (selectedValues && selectedValues.length > 0) {
+          const path = selectedValues.join('-')
+          if (this.filterType.indexOf(path) < 0) {
+            this.filterType = [...this.filterType, path]
+          }
+        }
       }
-      return
-    }
-
-    // 第 2 级（子类）选择完成，自动添加
-    this.addCategorySelection()
-    this.categoryDialogController.close()
+    })
   }
 
-  private addCategorySelection(): void {
-    if (this.categoryPickerPath.length === 0) {
-      return
-    }
-    const path = this.categoryPickerPath.join('-')
-    if (this.filterType.indexOf(path) < 0) {
-      this.filterType = [...this.filterType, path]
-    }
-    this.resetCategoryPicker()
+  private buildCategoryRange(): TextCascadePickerRangeContent[] {
+    return DataService.getFields().map((field: Field): TextCascadePickerRangeContent => {
+      const children = field.occupations.length > 0
+        ? field.occupations.map((o: Occupation) => this.cascadeItem(o.name))
+        : []
+      return this.cascadeItem(field.name, children)
+    })
   }
 
   private removeCategory(path: string): void {
     this.filterType = this.filterType.filter((t: string) => t !== path)
+  }
+
+  // 将字符串包装为符合 TextPickerDialog range 要求的级联项，避免 ArkTS 的匿名对象字面量类型检查报错
+  private cascadeItem(text: string, children?: TextCascadePickerRangeContent[]): TextCascadePickerRangeContent {
+    return { text, children }
   }
 
   // ==================== UI 构建器 ====================
@@ -549,18 +339,8 @@ export struct FilterSheet {
   RegionSelectorRow() {
     Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
       this.SelectorButton(
-        this.regionPickerPath[0] || '',
-        '省 / 直辖市',
-        () => { this.openRegionPicker() }
-      )
-      this.SelectorButton(
-        this.regionPickerPath[1] || '',
-        '地级',
-        () => { this.openRegionPicker() }
-      )
-      this.SelectorButton(
-        this.regionPickerPath[2] || '',
-        '区县',
+        '',
+        '选择地区',
         () => { this.openRegionPicker() }
       )
     }
@@ -572,13 +352,8 @@ export struct FilterSheet {
   CategorySelectorRow() {
     Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
       this.SelectorButton(
-        this.categoryPickerPath[0] || '',
-        '大类',
-        () => { this.openCategoryPicker() }
-      )
-      this.SelectorButton(
-        this.categoryPickerPath[1] || '',
-        '子类',
+        '',
+        '选择职位类型',
         () => { this.openCategoryPicker() }
       )
     }

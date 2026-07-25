@@ -28,18 +28,42 @@ export struct ChatMessageList {
 
   private scroller: ListScroller = new ListScroller();
   private dataSource: ChatMessageDataSource = new ChatMessageDataSource(this.messages);
+  // 记录上一次可见的最后一条消息 ID，用于区分追加与预加载历史消息
+  private lastBottomMessageId: number = -1;
 
   aboutToAppear(): void {
     if (this.controller) {
       this.controller.scrollToBottom = (): void => {
-        this.scroller.scrollEdge(Edge.Bottom);
+        this.scrollToBottom();
       };
+    }
+    if (this.messages.length > 0) {
+      this.lastBottomMessageId = this.messages[this.messages.length - 1].id;
     }
     this.dataSource.setMessages(this.messages);
   }
 
   onMessagesChange(): void {
     this.dataSource.setMessages(this.messages);
+    const count = this.messages.length;
+    if (count === 0) {
+      this.lastBottomMessageId = -1;
+      return;
+    }
+    const newLastId = this.messages[count - 1].id;
+    // 只有在列表末尾追加新消息（ID 发生变化）时才自动滚动到底部；
+    // 预加载历史消息不会改变最后一条 ID，避免把用户拉回底部。
+    if (newLastId !== this.lastBottomMessageId) {
+      this.lastBottomMessageId = newLastId;
+      this.scrollToBottom();
+    }
+  }
+
+  private scrollToBottom(): void {
+    // 延迟到 LazyForEach 完成布局后再滚动，否则新项尚未测量，滚动目标会失效。
+    setTimeout(() => {
+      this.scroller.scrollEdge(Edge.Bottom);
+    }, 80);
   }
 
   private isSelfMessage(msg: ChatMessageVO): boolean {

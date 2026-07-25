@@ -1,16 +1,16 @@
 import { SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
-import { picker } from '@kit.CoreFileKit';
-import { fileIo } from '@kit.CoreFileKit';
+import { picker, fileIo } from '@kit.CoreFileKit';
 import { ChatService } from '../services/ChatService';
 import { ResumeService, ResumeRequest } from '../services/ResumeService';
-import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
+import { AppColors, AppSpacing, AppRadius, AppFontSize, PrimaryButton, StandardInput } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
-import { ResumeCompletionPolicy } from '../common/BusinessPolicies'
-import { UploadPolicy } from '../common/FormValidators'
+import { ResumeCompletionPolicy } from '../common/BusinessPolicies';
+import { UploadPolicy } from '../common/FormValidators';
 
 const EDUCATION_LEVELS: string[] = ['初中及以下', '中专/中技', '高中', '大专', '本科', '硕士', '博士']
 const FULLTIME_OPTIONS: string[] = ['全日制', '非全日制']
 
+// 学历选择弹窗
 @CustomDialog
 struct EducationPickerDialog {
   controller?: CustomDialogController
@@ -32,57 +32,41 @@ struct EducationPickerDialog {
   }
 
   build() {
-    Column() {
-      Row() {
-        Text('选择学历')
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(32)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => {
-            this.onCancel?.()
-          })
-      }
-      .width('100%')
-      .padding({ bottom: AppSpacing.MD })
+    Column({ space: AppSpacing.MD }) {
+      Text('选择学历')
+        .fontSize(AppFontSize.LG)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY)
+        .width('100%')
 
-      Row() {
+      Row({ space: AppSpacing.SM }) {
         Scroll() {
-          Column() {
+          Column({ space: AppSpacing.SM }) {
             ForEach(EDUCATION_LEVELS, (level: string) => {
               Text(level)
                 .fontSize(AppFontSize.MD)
                 .fontColor(this.selectedEducation === level ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                 .backgroundColor(this.selectedEducation === level ? AppColors.PRIMARY : 'transparent')
-                .borderRadius(AppRadius.SM)
-                .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.SM, right: AppSpacing.SM })
-                .textAlign(TextAlign.Start)
+                .borderRadius(AppRadius.MD)
+                .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.MD, right: AppSpacing.MD })
                 .width('100%')
+                .textAlign(TextAlign.Center)
                 .onClick(() => {
                   this.selectedEducation = level
                   if (!this.needFullTime()) {
                     this.selectedIsFullTime = false
                   }
                 })
-                .animation({
-                  duration: 150
-                })
             }, (level: string) => level)
           }
           .width('100%')
-          .padding({ left: 6, right: 6 })
         }
         .layoutWeight(1)
         .width(0)
 
         if (this.needFullTime()) {
           Scroll() {
-            Column() {
+            Column({ space: AppSpacing.SM }) {
               ForEach(FULLTIME_OPTIONS, (option: string) => {
                 Text(option)
                   .fontSize(AppFontSize.MD)
@@ -90,20 +74,16 @@ struct EducationPickerDialog {
                     (option === '非全日制' && !this.selectedIsFullTime) ? '#FFFFFF' : AppColors.TEXT_PRIMARY)
                   .backgroundColor((option === '全日制' && this.selectedIsFullTime) ||
                     (option === '非全日制' && !this.selectedIsFullTime) ? AppColors.PRIMARY : 'transparent')
-                  .borderRadius(AppRadius.SM)
-                  .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.SM, right: AppSpacing.SM })
-                  .textAlign(TextAlign.Start)
+                  .borderRadius(AppRadius.MD)
+                  .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM, left: AppSpacing.MD, right: AppSpacing.MD })
                   .width('100%')
+                  .textAlign(TextAlign.Center)
                   .onClick(() => {
                     this.selectedIsFullTime = (option === '全日制')
-                  })
-                  .animation({
-                    duration: 150
                   })
               }, (option: string) => option)
             }
             .width('100%')
-            .padding({ left: 6, right: 6 })
           }
           .layoutWeight(1)
           .width(0)
@@ -112,34 +92,27 @@ struct EducationPickerDialog {
       .layoutWeight(1)
       .width('100%')
 
-        Row() {
-          Row().layoutWeight(1)
-          Button('确定', { type: ButtonType.Capsule })
-            .height(40)
-            .fontSize(AppFontSize.MD)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#FFFFFF')
-            .backgroundColor(AppColors.PRIMARY)
-            .padding({ left: 28, right: 28 })
+      Row({ space: AppSpacing.SM }) {
+        Button('取消', { type: ButtonType.Normal })
+          .layoutWeight(1)
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .backgroundColor(AppColors.INPUT_BG)
+          .onClick(() => { this.onCancel?.() })
+
+        Button('确定', { type: ButtonType.Capsule })
+          .layoutWeight(1)
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
+          .backgroundColor(AppColors.PRIMARY)
           .onClick(() => {
             this.onConfirm?.(this.selectedEducation, this.selectedIsFullTime)
           })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.97, y: 0.97 })
-              .opacity(0.9)
-            },
-            normal: {
-              .scale({ x: 1, y: 1 })
-              .opacity(1)
-            }
-          })
-          .animation({
-            duration: 200
-          })
       }
       .width('100%')
-      .padding({ top: AppSpacing.MD })
     }
     .padding(AppSpacing.LG)
     .width('100%')
@@ -149,7 +122,7 @@ struct EducationPickerDialog {
   }
 }
 
-// 日期选择弹窗：用于出生日期、毕业日期等需要标准 DatePicker 的字段
+// 日期选择弹窗
 @CustomDialog
 struct DatePickerDialog {
   controller?: CustomDialogController
@@ -179,22 +152,12 @@ struct DatePickerDialog {
   }
 
   build() {
-    Column() {
-      Row() {
-        Text(this.title)
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(32)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: AppSpacing.MD })
+    Column({ space: AppSpacing.MD }) {
+      Text(this.title)
+        .fontSize(AppFontSize.LG)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY)
+        .width('100%')
 
       DatePicker({
         start: this.startDate,
@@ -208,24 +171,27 @@ struct DatePickerDialog {
         .layoutWeight(1)
         .width('100%')
 
-      Row() {
-        Row().layoutWeight(1)
+      Row({ space: AppSpacing.SM }) {
+        Button('取消', { type: ButtonType.Normal })
+          .layoutWeight(1)
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .backgroundColor(AppColors.INPUT_BG)
+          .onClick(() => { this.onCancel?.() })
+
         Button('确定', { type: ButtonType.Capsule })
-          .height(40)
+          .layoutWeight(1)
+          .height(AppSpacing.BUTTON_HEIGHT)
           .fontSize(AppFontSize.MD)
           .fontWeight(FontWeight.Medium)
           .fontColor('#FFFFFF')
           .backgroundColor(AppColors.PRIMARY)
-          .padding({ left: 28, right: 28 })
           .onClick(() => {
             this.onConfirm?.(this.formatDate(this.selectedDate))
           })
-          .stateStyles({
-            pressed: { .scale({ x: 0.97, y: 0.97 }) }
-          })
       }
       .width('100%')
-      .padding({ top: AppSpacing.MD })
     }
     .padding(AppSpacing.LG)
     .width('100%')
@@ -240,6 +206,7 @@ struct DatePickerDialog {
 struct ResumePage {
   @State name: string = ''
   @State gender: number = -1
+  @State genderIndexes: number[] = []
   @State birthDate: string = ''
   @State school: string = ''
   @State education: string = ''
@@ -251,14 +218,11 @@ struct ResumePage {
   @State attachmentUrl: string = ''
   @State uploading: boolean = false
   @State saving: boolean = false
-  @State showError: boolean = false
-  @State errorMsg: string = ''
-  @State showSuccess: boolean = false
   @State isLoadingResume: boolean = true
   @State loadError: string = ''
-  @State isPublished: boolean = false
-  @State isPublishing: boolean = false
-  @State genderIndexes: number[] = []
+  @State errorMsg: string = ''
+  @State showSuccess: boolean = false
+
   @State genderOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
     buttons: [{ text: '男' }, { text: '女' }],
     multiply: false,
@@ -288,13 +252,25 @@ struct ResumePage {
         this.graduationDate = saved.graduationDate || ''
         this.attachmentUrl = saved.attachmentUrl || ''
         this.attachmentName = saved.attachmentUrl ? saved.attachmentUrl.split('/').pop() || '' : ''
-        this.isPublished = saved.isPublished === 1
       }
     }).catch(() => {
-      this.loadError = '简历加载失败，为避免覆盖原数据，请重新加载'
+      this.loadError = '简历加载失败，请重新加载'
     }).finally(() => {
       this.isLoadingResume = false
     })
+  }
+
+  completionRate(): number {
+    return ResumeCompletionPolicy.calculate(
+      this.name,
+      this.gender,
+      this.birthDate,
+      this.education,
+      this.school,
+      this.graduationDate,
+      this.skills,
+      this.experience
+    )
   }
 
   educationLabel(): string {
@@ -302,327 +278,342 @@ struct ResumePage {
       return '请选择学历'
     }
     if (['大专', '本科', '硕士', '博士'].indexOf(this.education) >= 0) {
-      return this.education + ' ' + (this.isFullTime ? '全日制' : '非全日制')
+      return this.education + ' · ' + (this.isFullTime ? '全日制' : '非全日制')
     }
     return this.education
   }
 
+  // 分节标题
+  @Builder
+  sectionHeader(title: string) {
+    Column({ space: AppSpacing.XS }) {
+      Text(title)
+        .fontSize(AppFontSize.MD)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY)
+        .width('100%')
+
+      Divider()
+        .strokeWidth(AppSpacing.DIVIDER_THICKNESS)
+        .color(AppColors.BORDER)
+        .opacity(0.4)
+        .width('100%')
+    }
+    .width('100%')
+  }
+
+  // 文本标签
+  @Builder
+  fieldLabel(text: string) {
+    Text(text)
+      .fontSize(AppFontSize.SM)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(AppColors.TEXT_PRIMARY)
+      .width('100%')
+  }
+
+  // 选择器字段（学历、日期等）
+  @Builder
+  selectorField(label: string, value: string, placeholder: string, onTap: () => void) {
+    Column({ space: AppSpacing.XS }) {
+      this.fieldLabel(label)
+      Row() {
+        Text(value || placeholder)
+          .fontSize(AppFontSize.MD)
+          .fontColor(value ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
+          .layoutWeight(1)
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(AppFontSize.MD)
+          .fontColor([AppColors.TEXT_MUTED])
+      }
+      .width('100%')
+      .height(AppSpacing.INPUT_HEIGHT_STANDARD)
+      .backgroundColor(AppColors.INPUT_BG)
+      .borderRadius(AppRadius.PILL)
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => onTap())
+    }
+    .width('100%')
+  }
+
+  // 只读字段（姓名）
+  @Builder
+  readOnlyField(label: string, value: string) {
+    Column({ space: AppSpacing.XS }) {
+      this.fieldLabel(label)
+      Row() {
+        Text(value || '（暂未获取）')
+          .fontSize(AppFontSize.MD)
+          .fontColor(value ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .height(AppSpacing.INPUT_HEIGHT_STANDARD)
+      .backgroundColor(AppColors.INPUT_BG)
+      .borderRadius(AppRadius.PILL)
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+  }
+
+  // 状态提示
+  @Builder
+  statusBanner(message: string, bgColor: ResourceColor, textColor: ResourceColor, icon?: Resource) {
+    Row({ space: AppSpacing.SM }) {
+      if (icon) {
+        SymbolGlyph(icon)
+          .fontSize(AppFontSize.ICON_MD)
+          .fontColor([textColor])
+      }
+      Text(message)
+        .fontSize(AppFontSize.SM)
+        .fontColor(textColor)
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .padding(AppSpacing.MD)
+    .backgroundColor(bgColor)
+    .borderRadius(AppRadius.LG)
+  }
+
+  // 完成度进度卡片
+  @Builder
+  completionCard() {
+    Column({ space: AppSpacing.SM }) {
+      Row() {
+        Text('简历完整度')
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .layoutWeight(1)
+        Text(`${this.completionRate()}%`)
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.completionRate() === 100 ? AppColors.SUCCESS : AppColors.PRIMARY)
+      }
+      .width('100%')
+
+      Stack({ alignContent: Alignment.Start }) {
+        Row()
+          .width('100%')
+          .height(8)
+          .backgroundColor(AppColors.INPUT_BG)
+          .borderRadius(AppRadius.PILL)
+        Row()
+          .width(`${this.completionRate()}%`)
+          .height(8)
+          .backgroundColor(this.completionRate() === 100 ? AppColors.SUCCESS : AppColors.PRIMARY)
+          .borderRadius(AppRadius.PILL)
+          .animation({ duration: 300, curve: Curve.EaseInOut })
+      }
+      .width('100%')
+
+      Text(this.completionRate() === 100 ? '简历信息很完整，可以开始投递心仪的职位了' : '继续完善信息，让企业更快了解你')
+        .fontSize(AppFontSize.SM)
+        .fontColor(AppColors.TEXT_SECONDARY)
+        .width('100%')
+    }
+    .width('100%')
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius(AppRadius.LG)
+    .padding(AppSpacing.MD)
+  }
+
+  // 附件简历区域
+  @Builder
+  attachmentSection() {
+    Column({ space: AppSpacing.XS }) {
+      this.fieldLabel('附件简历（PDF）')
+      Row() {
+        Text(this.attachmentName || '未选择文件')
+          .fontSize(AppFontSize.MD)
+          .fontColor(this.attachmentName ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Button(this.uploading ? '上传中...' : (this.attachmentName ? '重新选择' : '选择文件'), { type: ButtonType.Capsule })
+          .height(AppSpacing.BUTTON_HEIGHT_SM)
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.PRIMARY)
+          .backgroundColor(AppColors.SELECTED_BG)
+          .enabled(!this.uploading)
+          .onClick(() => { this.selectFile() })
+      }
+      .width('100%')
+      .height(AppSpacing.INPUT_HEIGHT_STANDARD)
+      .backgroundColor(AppColors.INPUT_BG)
+      .borderRadius(AppRadius.PILL)
+      .padding({ left: AppSpacing.MD, right: AppSpacing.SM })
+      .alignItems(VerticalAlign.Center)
+
+      if (this.attachmentUrl) {
+        Row({ space: AppSpacing.SM }) {
+          Button('预览', { type: ButtonType.Capsule })
+            .height(AppSpacing.BUTTON_HEIGHT_SM)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.SELECTED_BG)
+            .onClick((): void => { void ChatService.previewAttachment(this.attachmentUrl) })
+          Button('删除', { type: ButtonType.Capsule })
+            .height(AppSpacing.BUTTON_HEIGHT_SM)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.DANGER)
+            .backgroundColor(AppColors.ERROR_BG)
+            .onClick((): void => {
+              this.attachmentUrl = ''
+              this.attachmentName = ''
+            })
+        }
+        .width('100%')
+      }
+    }
+    .width('100%')
+  }
+
   build() {
     Column() {
-      NavBar({
-        title: '个人简历',
-        showBack: true,
-        onBack: () => this.getUIContext().getRouter().back()
-      })
+      NavBar({ title: '个人简历', showBack: true })
 
       Scroll() {
-        Column() {
+        Column({ space: AppSpacing.LG }) {
           if (this.isLoadingResume) {
             Row({ space: AppSpacing.SM }) {
               LoadingProgress().width(20).height(20).color(AppColors.PRIMARY)
-              Text('正在加载简历').fontSize(AppFontSize.SM).fontColor(AppColors.TEXT_MUTED)
+              Text('正在加载简历...')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_MUTED)
             }
             .width('100%')
-            .padding(AppSpacing.SM)
-            .margin({ bottom: AppSpacing.SM })
+            .justifyContent(FlexAlign.Center)
+            .padding(AppSpacing.MD)
           } else if (this.loadError) {
-            Row({ space: AppSpacing.SM }) {
-              Text(this.loadError)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.DANGER)
-                .layoutWeight(1)
+            Column({ space: AppSpacing.MD }) {
+              this.statusBanner(this.loadError, AppColors.ERROR_BG, AppColors.DANGER, $r('sys.symbol.exclamationmark_circle'))
               Button('重新加载', { type: ButtonType.Capsule })
-                .height(32)
-                .fontSize(AppFontSize.XS)
+                .width('100%')
+                .height(AppSpacing.BUTTON_HEIGHT)
+                .fontSize(AppFontSize.MD)
                 .fontColor(AppColors.PRIMARY)
                 .backgroundColor(AppColors.SELECTED_BG)
                 .onClick(() => { this.loadResume() })
             }
             .width('100%')
-            .padding(AppSpacing.SM)
-            .backgroundColor(AppColors.ERROR_BG)
-            .borderRadius(AppRadius.SM)
-            .margin({ bottom: AppSpacing.SM })
-          }
+          } else {
+            // 完成度
+            this.completionCard()
 
-          Text('姓名')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-
-          Row() {
-            Text(this.name || '（暂未获取）')
-              .fontSize(AppFontSize.MD)
-              .fontColor(AppColors.TEXT_MUTED)
-          }
-          .width('100%')
-          .height(44)
-          .backgroundColor(AppColors.INPUT_BG)
-          .borderRadius(AppRadius.SM)
-          .padding({ left: AppSpacing.SM })
-          .alignItems(VerticalAlign.Center)
-          .margin({ bottom: AppSpacing.MD })
-
-          Text('性别')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-          SegmentButton({
-            options: this.genderOptions,
-            selectedIndexes: $genderIndexes,
-            onItemClicked: (index: number): void => { this.gender = index }
-          })
-          .width('100%')
-          .margin({ bottom: AppSpacing.MD })
-
-          Text('出生日期')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-          TextInput({ placeholder: '例如 2000-01-01', text: this.birthDate })
-            .height(44)
-            .maxLength(10)
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM })
-            .onChange((value: string): void => { this.birthDate = value })
-            .onClick(() => { this.showBirthDatePicker() })
-            .margin({ bottom: AppSpacing.MD })
-
-          Text('学校')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-
-          TextInput({ placeholder: '请输入毕业院校', text: this.school })
-            .onChange((value: string) => { this.school = value })
-            .height(44)
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM })
-            .margin({ bottom: AppSpacing.MD })
-
-          Text('学历')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-
-          Row() {
-            Text(this.educationLabel())
-              .fontSize(AppFontSize.MD)
-              .fontColor(this.education ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
-              .layoutWeight(1)
-            SymbolGlyph($r('sys.symbol.chevron_right'))
-              .fontSize(AppFontSize.MD)
-              .fontColor([AppColors.TEXT_MUTED])
-          }
-          .width('100%')
-          .height(44)
-          .backgroundColor(AppColors.INPUT_BG)
-          .borderRadius(AppRadius.SM)
-          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-          .alignItems(VerticalAlign.Center)
-          .margin({ bottom: AppSpacing.MD })
-
-          Text('毕业日期')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-          TextInput({ placeholder: '例如 2024-06-30', text: this.graduationDate })
-            .height(44)
-            .maxLength(10)
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM })
-            .onChange((value: string): void => { this.graduationDate = value })
-            .onClick(() => { this.showGraduationDatePicker() })
-            .margin({ bottom: AppSpacing.MD })
-
-          Text('技能')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-
-          TextArea({ placeholder: '请输入技能特长', text: this.skills })
-            .onChange((value: string) => { this.skills = value })
-            .height(80)
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-            .margin({ bottom: AppSpacing.MD })
-
-          Text('经历')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-
-          TextArea({ placeholder: '请输入工作经历', text: this.experience })
-            .onChange((value: string) => { this.experience = value })
-            .height(100)
-            .backgroundColor(AppColors.INPUT_BG)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-            .margin({ bottom: AppSpacing.MD })
-
-          Text('简历（PDF）')
-            .fontSize(AppFontSize.SM)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .width('100%')
-            .margin({ bottom: AppSpacing.SM })
-
-          Row() {
-            Button(this.uploading ? '上传中...' : '选择文件')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.PRIMARY)
-              .backgroundColor(AppColors.SELECTED_BG)
-              .borderRadius(AppRadius.SM)
-              .height(36)
-              .enabled(!this.uploading)
-              .onClick(() => {
-                this.selectFile()
-              })
-              .stateStyles({
-                pressed: {
-                  .scale({ x: 0.97, y: 0.97 })
-                  .opacity(0.9)
-                },
-                normal: {
-                  .scale({ x: 1, y: 1 })
-                  .opacity(1)
-                }
-              })
-              .animation({
-                duration: 200
-              })
-            if (this.attachmentName) {
-              Text(this.attachmentName)
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_PRIMARY)
-                .margin({ left: AppSpacing.SM })
-                .layoutWeight(1)
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-            } else {
-              Text('未选择文件')
-                .fontSize(AppFontSize.SM)
-                .fontColor(AppColors.TEXT_MUTED)
-                .margin({ left: AppSpacing.SM })
-            }
-          }
-          .width('100%')
-          .height(44)
-          .backgroundColor(AppColors.INPUT_BG)
-          .borderRadius(AppRadius.SM)
-          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-          .alignItems(VerticalAlign.Center)
-
-          if (this.attachmentUrl) {
-            Row({ space: AppSpacing.SM }) {
-              Button('预览', { type: ButtonType.Capsule })
-                .height(32)
-                .fontSize(AppFontSize.XS)
-                .fontColor(AppColors.PRIMARY)
-                .backgroundColor(AppColors.SELECTED_BG)
-                .onClick((): void => { void ChatService.previewAttachment(this.attachmentUrl) })
-              Button('删除', { type: ButtonType.Capsule })
-                .height(32)
-                .fontSize(AppFontSize.XS)
-                .fontColor(AppColors.DANGER)
-                .backgroundColor(AppColors.ERROR_BG)
-                .onClick((): void => {
-                  this.attachmentUrl = ''
-                  this.attachmentName = ''
+            // 基本信息
+            Column({ space: AppSpacing.MD }) {
+              this.sectionHeader('基本信息')
+              this.readOnlyField('姓名', this.name)
+              Column({ space: AppSpacing.XS }) {
+                this.fieldLabel('性别')
+                SegmentButton({
+                  options: this.genderOptions,
+                  selectedIndexes: $genderIndexes,
+                  onItemClicked: (index: number): void => { this.gender = index }
                 })
+                  .width('100%')
+              }
+              .width('100%')
+              this.selectorField('出生日期', this.birthDate, '请选择出生日期', () => { this.showBirthDatePicker() })
             }
             .width('100%')
-            .margin({ top: AppSpacing.SM })
-          }
+            .backgroundColor(AppColors.BG_CARD)
+            .borderRadius(AppRadius.LG)
+            .padding(AppSpacing.MD)
 
-          if (this.showSuccess) {
-            Text('保存成功')
-              .fontSize(AppFontSize.MD)
-              .fontColor('#FFFFFF')
-              .width('100%')
-              .height(44)
-              .backgroundColor(AppColors.SUCCESS)
-              .borderRadius(AppRadius.SM)
-              .textAlign(TextAlign.Center)
-              .margin({ top: AppSpacing.SM })
-          }
-
-          if (this.showError) {
-            Text(this.errorMsg)
-              .fontSize(AppFontSize.SM)
-              .fontColor('#FFFFFF')
-              .width('100%')
-              .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
-              .backgroundColor(AppColors.DANGER)
-              .borderRadius(AppRadius.SM)
-              .textAlign(TextAlign.Center)
-              .margin({ top: AppSpacing.SM })
-          }
-
-          Button({ type: ButtonType.Capsule }) {
-            Text('保存简历')
-              .fontSize(AppFontSize.LG)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#FFFFFF')
-          }
+            // 教育经历
+            Column({ space: AppSpacing.MD }) {
+              this.sectionHeader('教育经历')
+              StandardInput({
+                value: $school,
+                placeholder: '请输入毕业院校'
+              })
+              this.selectorField('学历', this.educationLabel(), '请选择学历', () => { this.showEducationPicker() })
+              this.selectorField('毕业日期', this.graduationDate, '请选择毕业日期', () => { this.showGraduationDatePicker() })
+            }
             .width('100%')
-            .height(48)
-            .backgroundColor(this.saving || this.isLoadingResume || this.loadError !== '' ? AppColors.DISABLED : AppColors.PRIMARY)
-            .enabled(!this.saving && !this.isLoadingResume && this.loadError === '')
-            .margin({ top: AppSpacing.SM })
-            .onClick(() => { this.handleSave() })
-            .stateStyles({
-              pressed: {
-                .scale({ x: 0.97, y: 0.97 })
-                .opacity(0.9)
-                .backgroundColor(AppColors.PRIMARY_HOVER)
-              },
-              normal: {
-                .scale({ x: 1, y: 1 })
-                .opacity(1)
-              }
-            })
-            .animation({
-              duration: 200
+            .backgroundColor(AppColors.BG_CARD)
+            .borderRadius(AppRadius.LG)
+            .padding(AppSpacing.MD)
+
+            // 个人优势
+            Column({ space: AppSpacing.MD }) {
+              this.sectionHeader('个人优势')
+              TextArea({ placeholder: '描述你的技能特长，如沟通能力强、熟练使用 Office 等', text: this.skills })
+                .onChange((value: string) => { this.skills = value })
+                .width('100%')
+                .height(100)
+                .backgroundColor(AppColors.INPUT_BG)
+                .borderRadius(AppRadius.LG)
+                .padding(AppSpacing.MD)
+                .fontSize(AppFontSize.MD)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .placeholderColor(AppColors.TEXT_MUTED)
+                .align(Alignment.TopStart)
+            }
+            .width('100%')
+            .backgroundColor(AppColors.BG_CARD)
+            .borderRadius(AppRadius.LG)
+            .padding(AppSpacing.MD)
+
+            // 实践经历
+            Column({ space: AppSpacing.MD }) {
+              this.sectionHeader('实践经历')
+              TextArea({ placeholder: '描述你的校园经历、实习经历或项目经验', text: this.experience })
+                .onChange((value: string) => { this.experience = value })
+                .width('100%')
+                .height(120)
+                .backgroundColor(AppColors.INPUT_BG)
+                .borderRadius(AppRadius.LG)
+                .padding(AppSpacing.MD)
+                .fontSize(AppFontSize.MD)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .placeholderColor(AppColors.TEXT_MUTED)
+                .align(Alignment.TopStart)
+            }
+            .width('100%')
+            .backgroundColor(AppColors.BG_CARD)
+            .borderRadius(AppRadius.LG)
+            .padding(AppSpacing.MD)
+
+            // 附件
+            Column({ space: AppSpacing.MD }) {
+              this.sectionHeader('附件简历')
+              this.attachmentSection()
+            }
+            .width('100%')
+            .backgroundColor(AppColors.BG_CARD)
+            .borderRadius(AppRadius.LG)
+            .padding(AppSpacing.MD)
+
+            PrimaryButton({
+              text: '保存简历',
+              loading: this.saving,
+              disabled: this.isLoadingResume || this.loadError !== '',
+              onTap: () => { void this.handleSave() }
             })
 
-          Button({ type: ButtonType.Capsule }) {
-            Text(this.isPublishing ? '正在更新...' : (this.isPublished ? '从人才市场下架' : '发布到人才市场'))
-              .fontSize(AppFontSize.MD)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.isPublished ? AppColors.PRIMARY : '#FFFFFF')
+            if (this.errorMsg) {
+              this.statusBanner(this.errorMsg, AppColors.ERROR_BG, AppColors.DANGER, $r('sys.symbol.exclamationmark_circle'))
+            }
+
+            if (this.showSuccess) {
+              this.statusBanner('保存成功', AppColors.SUCCESS_BG, AppColors.SUCCESS, $r('sys.symbol.checkmark'))
+            }
           }
-            .width('100%')
-            .height(44)
-            .backgroundColor(this.isPublished ? AppColors.SELECTED_BG : AppColors.PRIMARY)
-            .enabled(!this.isPublishing && !this.saving)
-            .margin({ top: AppSpacing.SM })
-            .onClick((): void => { this.handlePublishToggle() })
         }
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.LG })
+        .width('100%')
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.LG, bottom: AppSpacing.XL })
+        .alignItems(HorizontalAlign.Center)
       }
       .layoutWeight(1)
       .width('100%')
+      .scrollBar(BarState.Auto)
     }
     .width('100%')
     .height('100%')
@@ -720,9 +711,10 @@ struct ResumePage {
     this.showDatePicker('选择毕业日期', 'graduationDate')
   }
 
-  handleSave(): void {
+  async handleSave(): Promise<void> {
     this.saving = true
-    this.showError = false
+    this.errorMsg = ''
+    this.showSuccess = false
     const data: ResumeRequest = {
       gender: this.gender >= 0 ? this.gender : undefined,
       birthDate: this.birthDate || undefined,
@@ -733,36 +725,16 @@ struct ResumePage {
       experience: this.experience || undefined,
       attachmentUrl: this.attachmentUrl || undefined
     }
-    ResumeService.saveResume(data)
-      .then(() => {
-        this.saving = false
-        this.showSuccess = true
-        setTimeout(() => {
-          this.getUIContext().getRouter().back()
-        }, 1500)
-      })
-      .catch((e: Error) => {
-        this.saving = false
-        this.showError = true
-        this.errorMsg = e.message || '保存失败，请重试'
-      })
-  }
-
-  handlePublishToggle(): void {
-    if (!this.isPublished && !ResumeCompletionPolicy.canPublish(this.name, this.gender, this.birthDate,
-      this.education, this.school, this.graduationDate)) {
-      this.getUIContext().getPromptAction().showToast({ message: '请完善姓名、性别、出生日期、学历、学校和毕业日期后再发布' })
-      return
+    try {
+      await ResumeService.saveResume(data)
+      this.showSuccess = true
+      setTimeout(() => {
+        this.getUIContext().getRouter().back()
+      }, 1500)
+    } catch (e) {
+      this.errorMsg = (e as Error).message || '保存失败，请重试'
+    } finally {
+      this.saving = false
     }
-    this.isPublishing = true
-    const request: Promise<void> = this.isPublished ? ResumeService.unpublishResume() : ResumeService.publishResume()
-    request.then((): void => {
-      this.isPublished = !this.isPublished
-      this.getUIContext().getPromptAction().showToast({ message: this.isPublished ? '简历已发布到人才市场' : '简历已从人才市场下架' })
-    }).catch((): void => {
-      this.getUIContext().getPromptAction().showToast({ message: '简历状态更新失败，请稍后重试' })
-    }).finally((): void => {
-      this.isPublishing = false
-    })
   }
 }

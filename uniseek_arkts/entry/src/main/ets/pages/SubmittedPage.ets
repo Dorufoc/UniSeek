@@ -2,7 +2,17 @@ import { ApplicationService, ApplicationData } from '../services/ApplicationServ
 import { TaskVO, mapTaskToJobData } from '../services/ChatTypes'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
-import { ApplicationTabPolicy } from '../common/ApplicationTabPolicy'
+import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips'
+
+// 投递记录状态筛选选项：-1 表示全部，其余对应 application status
+const FILTER_OPTIONS: ChoiceOption[] = [
+  { value: -1, label: '全部' },
+  { value: 1, label: '待面试' },
+  { value: 2, label: '待定' },
+  { value: 3, label: '已录用' },
+  { value: 4, label: '已淘汰' },
+  { value: 5, label: '已完成' }
+]
 
 @Component
 struct ApplicationCard {
@@ -115,7 +125,7 @@ struct ApplicationCard {
 @Entry
 @Component
 struct SubmittedPage {
-  @State activeTab: number = 0
+  @State selectedFilter: number = -1
   @State applications: ApplicationData[] = []
   @State taskMap: Record<number, TaskVO> = {}
   @State expandedId: number = -1
@@ -124,7 +134,15 @@ struct SubmittedPage {
 
   aboutToAppear(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string>
-    this.activeTab = ApplicationTabPolicy.resolve(params['tab'] || '')
+    const tab = params['tab'] || ''
+    // 兼容旧入口参数，默认进入“全部”
+    if (tab === 'interviews') {
+      this.selectedFilter = 1
+    } else if (tab === 'hired') {
+      this.selectedFilter = 3
+    } else {
+      this.selectedFilter = -1
+    }
     this.loadApplications()
   }
 
@@ -159,17 +177,10 @@ struct SubmittedPage {
   }
 
   filteredApplications(): ApplicationData[] {
-    if (this.activeTab === 1) {
-      return this.applications.filter((app: ApplicationData) => app.status === 1)
+    if (this.selectedFilter === -1) {
+      return this.applications
     }
-    if (this.activeTab === 2) {
-      return this.applications.filter((app: ApplicationData) => app.status === 3)
-    }
-    return this.applications
-  }
-
-  countByStatus(status: number): number {
-    return this.applications.filter((app: ApplicationData) => app.status === status).length
+    return this.applications.filter((app: ApplicationData) => app.status === this.selectedFilter)
   }
 
   toggleApplication(id: number): void {
@@ -194,24 +205,17 @@ struct SubmittedPage {
         onBack: () => this.getUIContext().getRouter().back()
       })
 
-      Row() {
-        this.statItem(String(this.applications.length), '全部投递', AppColors.PRIMARY, (): void => { this.activeTab = 0 })
-        this.statItem(String(this.countByStatus(1)), '待面试', AppColors.WARNING, (): void => { this.activeTab = 1 })
-        this.statItem(String(this.countByStatus(3)), '已录用', AppColors.SUCCESS, (): void => { this.activeTab = 2 })
-      }
-      .width('100%')
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
-      .backgroundColor(AppColors.BG_CARD)
-
-      Row() {
-        this.tabItem('投递记录', 0)
-        this.tabItem('面试邀请', 1)
-        this.tabItem('已录用', 2)
-        this.favoriteTab()
-      }
-      .width('100%')
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, bottom: AppSpacing.SM })
-      .backgroundColor(AppColors.BG_CARD)
+      // 状态分段筛选：第一个为“全部”，其余为常见投递状态
+      ChoiceChips({
+        options: FILTER_OPTIONS,
+        selected: this.selectedFilter,
+        onSelect: (value: number): void => {
+          this.selectedFilter = value
+        }
+      })
+        .width('100%')
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
+        .backgroundColor(AppColors.BG_CARD)
 
       if (this.isLoading) {
         Column() {
@@ -249,7 +253,7 @@ struct SubmittedPage {
           SymbolGlyph($r('sys.symbol.doc_text'))
             .fontSize(42)
             .fontColor([AppColors.TEXT_MUTED])
-          Text(this.activeTab === 1 ? '暂无面试邀请' : '还没有投递记录')
+          Text(this.selectedFilter === -1 ? '还没有投递记录' : `暂无${ApplicationService.statusLabel(this.selectedFilter)}的记录`)
             .fontSize(AppFontSize.MD)
             .fontColor(AppColors.TEXT_SECONDARY)
             .margin({ top: AppSpacing.SM })
@@ -287,49 +291,4 @@ struct SubmittedPage {
     .backgroundColor(AppColors.BG_PAGE)
   }
 
-  @Builder
-  statItem(value: string, label: string, color: ResourceColor, onClick: () => void): void {
-    Column() {
-      Text(value)
-        .fontSize(AppFontSize.XL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(color)
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-        .margin({ top: 2 })
-    }
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Center)
-    .onClick(onClick)
-    .stateStyles({ pressed: { .opacity(0.72) } })
-  }
-
-  @Builder
-  tabItem(label: string, index: number): void {
-    Button(label, { type: ButtonType.Capsule })
-      .height(32)
-      .fontSize(AppFontSize.SM)
-      .fontColor(this.activeTab === index ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-      .backgroundColor(this.activeTab === index ? AppColors.PRIMARY : AppColors.INPUT_BG)
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS, bottom: AppSpacing.XS })
-      .margin({ right: AppSpacing.SM })
-      .onClick(() => {
-        this.activeTab = index
-      })
-      .animation({ duration: 180 })
-  }
-
-  @Builder
-  favoriteTab(): void {
-    Button('收藏职位', { type: ButtonType.Capsule })
-      .height(32)
-      .fontSize(AppFontSize.SM)
-      .fontColor(AppColors.TEXT_SECONDARY)
-      .backgroundColor(AppColors.INPUT_BG)
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.XS, bottom: AppSpacing.XS })
-      .onClick(() => {
-        this.getUIContext().getRouter().pushUrl({ url: 'pages/FavoritesPage' })
-      })
-  }
 }
