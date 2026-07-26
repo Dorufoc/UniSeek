@@ -557,7 +557,6 @@ struct RecruiterRequestsPage {
   @State isLoading: boolean = true
   @State errorText: string = ''
   @State filterStatus: number = -1
-  @State filterParamApplied: boolean = false
 
   aboutToAppear(): void {
     this.loadRequests()
