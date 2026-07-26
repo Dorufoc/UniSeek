@@ -7,6 +7,8 @@ import { AppFontSize, AppSpacing } from '../common/AppStyles';
 @Component
 struct RecruiterHomePage {
   @State currentIndex: number = 0
+  // 用于通知我的 Tab 页刷新数据
+  @State profileRefreshTrigger: number = 0
 
   @Builder tabHome() {
     this.tabItem('首页', $r('sys.symbol.house'), 0)
@@ -51,7 +53,7 @@ struct RecruiterHomePage {
       .tabBar(this.tabChat)
 
       TabContent() {
-        RecruiterProfileTab()
+        RecruiterProfileTab({ refreshTrigger: this.profileRefreshTrigger })
       }
       .tabBar(this.tabProfile)
     }
@@ -59,8 +61,19 @@ struct RecruiterHomePage {
     .scrollable(false)
     .onChange((index: number) => {
       this.currentIndex = index
+      // 切换到我的 Tab 时，触发 RecruiterProfileTab 刷新数据
+      if (index === 2) {
+        this.profileRefreshTrigger++
+      }
     })
     .width('100%')
     .height('100%')
+  }
+
+  onPageShow(): void {
+    // 从子页面返回时，如果当前在我的 Tab，触发刷新
+    if (this.currentIndex === 2) {
+      this.profileRefreshTrigger++
+    }
   }
 }

@@ -13,12 +13,16 @@ interface MenuAction {
 export struct ActionMenuOverlay {
   onSendImage?: () => void;
   onSendResume?: () => void;
+  showSendResume: boolean = true
 
   private actionButtons(): MenuAction[] {
-    return [
-      { label: '发送图片', icon: $r('sys.symbol.picture'), onClick: this.onSendImage },
-      { label: '发送简历', icon: $r('sys.symbol.doc_text'), onClick: this.onSendResume }
-    ];
+    const actions: MenuAction[] = [
+      { label: '发送图片', icon: $r('sys.symbol.picture'), onClick: this.onSendImage }
+    ]
+    if (this.showSendResume) {
+      actions.push({ label: '发送简历', icon: $r('sys.symbol.doc_text'), onClick: this.onSendResume })
+    }
+    return actions;
   }
 
   build() {

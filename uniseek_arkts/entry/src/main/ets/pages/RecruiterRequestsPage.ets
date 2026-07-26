@@ -292,6 +292,13 @@ struct RequestCard {
     return map[this.request.status] || AppColors.TEXT_MUTED
   }
 
+  private formatDate(timeText?: string): string {
+    if (!timeText) {
+      return ''
+    }
+    return timeText.split('T')[0] || timeText.split(' ')[0] || timeText
+  }
+
   build() {
     StandardCard({
       onClickAction: () => { this.onViewResume?.(this.request) },
@@ -385,7 +392,7 @@ struct RequestCard {
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.TEXT_MUTED)
           Blank()
-          Text(this.request.createTime)
+          Text(this.formatDate(this.request.createTime))
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.TEXT_MUTED)
         }
@@ -550,26 +557,63 @@ struct RecruiterRequestsPage {
   @State isLoading: boolean = true
   @State errorText: string = ''
   @State filterStatus: number = -1
+  @State filterParamApplied: boolean = false
 
   aboutToAppear(): void {
     this.loadRequests()
+  }
+
+  onPageShow(): void {
+    // 从子页面返回时刷新一次数据
+    this.loadRequests()
+
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string | number>
+    if (!params) {
+      return
+    }
+    const rawStatus = params['filterStatus']
+    let targetStatus: number = -1
+    if (typeof rawStatus === 'number') {
+      targetStatus = rawStatus
+    } else if (typeof rawStatus === 'string') {
+      targetStatus = parseInt(rawStatus)
+    }
+    if (!isNaN(targetStatus)) {
+      console.info('[RecruiterRequestsPage] onPageShow param filterStatus=', targetStatus)
+      this.filterStatus = targetStatus
+    }
   }
 
   loadRequests(): void {
     this.isLoading = true
     this.errorText = ''
     RecruiterService.getIncomingRequests().then((list: RecruiterRequestVO[]) => {
-      this.requestList = list
+      const sorted = (list ?? []).sort((a: RecruiterRequestVO, b: RecruiterRequestVO): number =>
+        this.parseTime(b.createTime) - this.parseTime(a.createTime)
+      )
+      console.info('[RecruiterRequestsPage] loadRequests got', sorted.length, 'requests, filterStatus=', this.filterStatus)
+      this.requestList = sorted
       this.isLoading = false
-    }).catch(() => {
+    }).catch((err: Error) => {
+      console.error('[RecruiterRequestsPage] loadRequests error:', err.message)
+      this.requestList = []
       this.isLoading = false
       this.errorText = '请求记录加载失败，请检查网络后重试'
     })
   }
 
+  private parseTime(timeText?: string): number {
+    if (!timeText) {
+      return 0
+    }
+    const ts = new Date(timeText).getTime()
+    return Number.isNaN(ts) ? 0 : ts
+  }
+
   get filteredList(): RecruiterRequestVO[] {
     const filterStatus = this.filterStatus
-    const requestList = this.requestList
+    const requestList = this.requestList ?? []
+    console.info('[RecruiterRequestsPage] filteredList filterStatus=', filterStatus, 'requestList.length=', requestList.length)
     if (filterStatus === -1) {
       return requestList
     }
@@ -579,6 +623,7 @@ struct RecruiterRequestsPage {
         result.push(req)
       }
     }
+    console.info('[RecruiterRequestsPage] filteredList result.length=', result.length)
     return result
   }
 
@@ -724,12 +769,25 @@ struct RecruiterRequestsPage {
       url: 'pages/ResumeDetailPage',
       params: {
         resumeData: JSON.stringify({
-          id: String(req.applicantId), name: req.applicantName, age: req.applicantAge,
-          avatar: req.applicantAvatar, education: req.applicantEducation,
-          school: req.applicantSchool, major: req.applicantMajor,
-          experience: req.applicantExperience, skills: req.applicantSkills,
-          region: req.applicantRegion, type: req.applicantType, category: '',
-          expectedSalary: req.applicantSalary, description: '', attachmentUrl: req.attachmentUrl
+          id: String(req.applicantId),
+          name: req.applicantName,
+          age: req.applicantAge,
+          avatar: req.applicantAvatar,
+          education: req.applicantEducation,
+          school: req.applicantSchool,
+          major: req.applicantMajor,
+          experience: req.applicantExperience,
+          skills: req.applicantSkills,
+          region: req.applicantRegion,
+          type: req.applicantType,
+          category: '',
+          expectedSalary: req.applicantSalary,
+          description: '',
+          attachmentUrl: req.attachmentUrl,
+          applicationId: req.id,
+          applicationStatus: req.status,
+          jobTitle: req.jobTitle,
+          createTime: req.createTime
         })
       }
     })
@@ -750,6 +808,7 @@ struct RecruiterRequestsPage {
           this.filterTab('待定', 2)
           this.filterTab('已录用', 3)
           this.filterTab('已淘汰', 4)
+          this.filterTab('已完成', 5)
         }
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       }
@@ -785,9 +844,9 @@ struct RecruiterRequestsPage {
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-      } else if (this.filteredList.length === 0) {
+      } else if (!this.filteredList || this.filteredList.length === 0) {
         Column() {
-          EmptyView({ message: '暂无请求' })
+          EmptyView({ message: '暂无应聘记录' })
             .width('100%')
         }
         .layoutWeight(1)

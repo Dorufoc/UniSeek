@@ -37,9 +37,11 @@ struct LoginPage {
   build() {
     Stack() {
       Column(){
+        // Logo：仅保留定位和尺寸，不设置任何填充或主题色包裹
         Image($r('app.media.uniseek_text'))
           .width('90%')
-          .fillColor(AppColors.PRIMARY)
+          .height(80)
+          .objectFit(ImageFit.Contain)
           .onClick(() => {
             this.handleTitleClick()
           })

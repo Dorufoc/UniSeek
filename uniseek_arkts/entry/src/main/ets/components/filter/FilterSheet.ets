@@ -211,6 +211,10 @@ export struct FilterSheet {
     this.filterRegion = this.filterRegion.filter((r: string) => r !== path)
   }
 
+  private buildRegionButtonLabel(): string {
+    return this.formatSelectionLabel(this.filterRegion)
+  }
+
   // ==================== 职位类型选择器逻辑（原生级联 TextPickerDialog） ====================
   private openCategoryPicker(): void {
     this.getUIContext().showTextPickerDialog({
@@ -239,6 +243,22 @@ export struct FilterSheet {
 
   private removeCategory(path: string): void {
     this.filterType = this.filterType.filter((t: string) => t !== path)
+  }
+
+  private buildCategoryButtonLabel(): string {
+    return this.formatSelectionLabel(this.filterType)
+  }
+
+  private formatSelectionLabel(items: string[]): string {
+    if (items.length === 0) {
+      return ''
+    }
+    // 取第一条路径的末级名称，避免按钮过长
+    const first = items[0].split('-').pop() || items[0]
+    if (items.length === 1) {
+      return first
+    }
+    return `${first} +${items.length - 1}`
   }
 
   // 将字符串包装为符合 TextPickerDialog range 要求的级联项，避免 ArkTS 的匿名对象字面量类型检查报错
@@ -339,7 +359,7 @@ export struct FilterSheet {
   RegionSelectorRow() {
     Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
       this.SelectorButton(
-        '',
+        this.buildRegionButtonLabel(),
         '选择地区',
         () => { this.openRegionPicker() }
       )
@@ -352,7 +372,7 @@ export struct FilterSheet {
   CategorySelectorRow() {
     Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
       this.SelectorButton(
-        '',
+        this.buildCategoryButtonLabel(),
         '选择职位类型',
         () => { this.openCategoryPicker() }
       )

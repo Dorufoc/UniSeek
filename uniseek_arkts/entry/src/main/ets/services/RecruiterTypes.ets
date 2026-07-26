@@ -91,6 +91,13 @@ export interface ResumeCardData {
   description: string
   attachmentUrl?: string
   graduationDate?: string
+  // 以下字段用于 HR 端求职者详情页，按需补充原生简历中不存在的信息
+  gender?: number
+  birthDate?: string
+  applicationId?: number
+  applicationStatus?: number
+  jobTitle?: string
+  createTime?: string
 }
 
 export interface RecruiterRequestVO {

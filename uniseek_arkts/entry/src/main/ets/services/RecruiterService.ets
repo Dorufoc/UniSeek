@@ -62,8 +62,9 @@ export class RecruiterService {
     let totalPages: number = 1
     do {
       const result = await ApiClient.get<PageResult<RecruiterJobVO>>('/api/enterprise/tasks', [['page', String(page)], ['pageSize', '20']])
-      records.push(...result.records)
-      totalPages = result.totalPages
+      const pageRecords = result?.records ?? []
+      records.push(...pageRecords)
+      totalPages = result?.totalPages ?? 0
       page++
     } while (page <= totalPages)
     return records
@@ -118,8 +119,9 @@ export class RecruiterService {
     let totalPages: number = 1
     do {
       const result = await ApiClient.get<PageResult<RecruiterApplicationVO>>('/api/tasks/' + taskId + '/applications', [['page', String(page)], ['pageSize', '20']])
-      records.push(...result.records)
-      totalPages = result.totalPages
+      const pageRecords = result?.records ?? []
+      records.push(...pageRecords)
+      totalPages = result?.totalPages ?? 0
       page++
     } while (page <= totalPages)
     return records
@@ -168,34 +170,31 @@ export class RecruiterService {
     const allRequests: RecruiterRequestVO[] = []
 
     for (const job of jobs) {
-      try {
-        const apps = await RecruiterService.getJobApplications(job.id)
-        for (const app of apps) {
-          const resume = RecruiterService.parseResumeSnapshot(app.resumeSnapshot)
-          allRequests.push({
-            id: app.id,
-            applicantId: app.applicantId,
-            applicantName: app.applicantName || resume.realName || '求职者',
-            applicantAvatar: app.applicantAvatar,
-            applicantAge: RecruiterService.getAge(resume.birthDate),
-            applicantSchool: resume.school || '',
-            applicantMajor: '',
-            applicantEducation: resume.education || '',
-            applicantExperience: resume.experience || '',
-            applicantSkills: resume.skills || '',
-            applicantRegion: '',
-            applicantType: '',
-            applicantSalary: '',
-            jobTitle: job.title,
-            status: app.status,
-            interviewTime: app.interviewTime,
-            interviewLocation: app.interviewLocation,
-            rejectReason: app.rejectReason,
-            createTime: app.createTime,
-            attachmentUrl: app.attachmentUrl || ''
-          })
-        }
-      } catch {
+      const apps = await RecruiterService.getJobApplications(job.id)
+      for (const app of apps) {
+        const resume = RecruiterService.parseResumeSnapshot(app.resumeSnapshot)
+        allRequests.push({
+          id: app.id,
+          applicantId: app.applicantId,
+          applicantName: app.applicantName || resume.realName || '求职者',
+          applicantAvatar: app.applicantAvatar,
+          applicantAge: RecruiterService.getAge(resume.birthDate),
+          applicantSchool: resume.school || '',
+          applicantMajor: '',
+          applicantEducation: resume.education || '',
+          applicantExperience: resume.experience || '',
+          applicantSkills: resume.skills || '',
+          applicantRegion: '',
+          applicantType: '',
+          applicantSalary: '',
+          jobTitle: job.title,
+          status: app.status,
+          interviewTime: app.interviewTime,
+          interviewLocation: app.interviewLocation,
+          rejectReason: app.rejectReason,
+          createTime: app.createTime,
+          attachmentUrl: app.attachmentUrl || ''
+        })
       }
     }
 

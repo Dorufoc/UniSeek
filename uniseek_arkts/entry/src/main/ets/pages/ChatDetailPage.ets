@@ -6,6 +6,7 @@ import { ChatService } from '../services/ChatService';
 import { ChatMessageVO, ChatSessionVO } from '../services/ChatTypes';
 import { ChatWebSocketService, WsNewMessageData } from '../services/ChatWebSocketService';
 import { UserSession } from '../services/UserSession';
+import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { picker } from '@kit.CoreFileKit';
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles';
@@ -28,6 +29,7 @@ struct ChatDetailPage {
   @State enterpriseId: number = 0
   @State applicationId: number = 0
   @State taskTitle: string = ''
+  @State applicationStatus: number = -1
   @State isSending: boolean = false
   @State isLoadingMessages: boolean = true
   @State messageError: string = ''
@@ -107,6 +109,7 @@ struct ChatDetailPage {
       this.counterpartCompany = session.counterpartCompany || ''
       this.enterpriseId = session.enterpriseId || 0
       this.taskTitle = session.taskTitle || ''
+      this.applicationStatus = session.applicationStatus ?? -1
       this.canSend = session.canSend !== false
     }).catch(() => {
       this.canSend = true
@@ -365,6 +368,18 @@ struct ChatDetailPage {
           .alignItems(VerticalAlign.Center)
         }
 
+        // HR 操作栏：在顶栏下方固定显示切换求职者状态的按钮
+        if (UserSession.role === 1 && this.applicationId > 0 && this.applicationStatus >= 0) {
+          ApplicationStatusBar({
+            applicationId: this.applicationId,
+            currentStatus: this.applicationStatus,
+            applicantName: this.counterpartName,
+            onStatusChanged: (status: number): void => {
+              this.applicationStatus = status
+            }
+          })
+        }
+
         // 消息列表区域
         if (this.isLoadingMessages && this.messages.length === 0) {
           Column({ space: AppSpacing.SM }) {
@@ -451,7 +466,8 @@ struct ChatDetailPage {
   actionMenuBuilder() {
     ActionMenuOverlay({
       onSendImage: () => { this.handleSendImage() },
-      onSendResume: () => { this.handleSendResume() }
+      onSendResume: () => { this.handleSendResume() },
+      showSendResume: UserSession.role !== 1
     })
   }
 
