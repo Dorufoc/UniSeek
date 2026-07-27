@@ -515,7 +515,7 @@ public class AdminServiceImpl implements AdminService {
         // 投递相关：targetId 是 applicationId，需查 task_application 获取 taskId
         if ("APPLICATION_DELIVER".equals(type) || "APPLICATION_INTERVIEW".equals(type)
             || "APPLICATION_PENDING".equals(type) || "APPLICATION_HIRE".equals(type)
-            || "APPLICATION_REJECT".equals(type) || "APPLICATION_COMPLETE".equals(type)) {
+            || "APPLICATION_REJECT".equals(type)) {
             TaskApplication app = taskApplicationMapper.selectById(targetId);
             if (app != null && app.getTaskId() != null) {
                 Task task = taskMapper.selectById(app.getTaskId());
@@ -585,8 +585,6 @@ public class AdminServiceImpl implements AdminService {
                 return userName + " 成功入职 " + (targetTitle.isEmpty() ? "新岗位" : targetTitle);
             case "APPLICATION_REJECT":
                 return userName + " 未通过筛选：" + (targetTitle.isEmpty() ? "" : targetTitle);
-            case "APPLICATION_COMPLETE":
-                return userName + " 已完成工作结算：" + (targetTitle.isEmpty() ? "" : targetTitle);
 
             case "ADMIN_SET_ROLE":
                 return userName + " 调整了用户角色";

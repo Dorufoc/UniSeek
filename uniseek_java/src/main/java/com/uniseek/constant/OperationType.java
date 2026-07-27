@@ -45,9 +45,6 @@ public final class OperationType {
     /** 淘汰/拒绝 */
     public static final String APPLICATION_REJECT = "APPLICATION_REJECT";
 
-    /** 结算完成 */
-    public static final String APPLICATION_COMPLETE = "APPLICATION_COMPLETE";
-
 
     /** 实名认证 */
     public static final String REAL_NAME_AUTH = "REAL_NAME_AUTH";
