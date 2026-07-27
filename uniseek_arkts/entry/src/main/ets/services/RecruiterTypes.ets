@@ -143,7 +143,7 @@ export const APPLICATION_STATUS_LABELS: Record<number, string> = {
 
 export const AUDIT_STATUS_LABELS: Record<number, string> = {
   0: '审核中',
-  1: '已审核',
+  1: '已认证',
   2: '已驳回'
 }
 

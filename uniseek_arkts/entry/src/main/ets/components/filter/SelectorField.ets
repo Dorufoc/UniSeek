@@ -8,14 +8,22 @@ export struct SelectorField {
   @Prop label: string = '';
   @Prop value: string = '';
   @Prop placeholder: string = '请选择';
+  @Prop required: boolean = false;
   onFieldClick?: () => void;
 
   build() {
     Column() {
-      Text(this.label)
-        .fontSize(AppFilter.SELECTOR_FIELD_LABEL_FONT_SIZE)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
+      Row() {
+        Text(this.label)
+          .fontSize(AppFilter.SELECTOR_FIELD_LABEL_FONT_SIZE)
+          .fontColor(AppColors.TEXT_SECONDARY)
+        if (this.required) {
+          Text(' *')
+            .fontSize(AppFilter.SELECTOR_FIELD_LABEL_FONT_SIZE)
+            .fontColor(AppColors.DANGER)
+        }
+      }
+      .width('100%')
 
       Button({ type: ButtonType.Normal }) {
         Row() {

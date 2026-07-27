@@ -33,7 +33,7 @@ export struct ChatSessionItem {
         if (this.session.unreadCount > 0) {
           UnreadBadge({ count: this.session.unreadCount })
             .align(Alignment.TopEnd)
-            .margin({ top: -AppSpacing.XXS, right: -AppSpacing.XXS })
+            .margin({ top: AppSpacing.XXS, right: AppSpacing.XXS })
         }
       }
       .width(AppChat.AVATAR_SESSION)

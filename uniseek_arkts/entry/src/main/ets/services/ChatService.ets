@@ -58,12 +58,12 @@ export class ChatService {
 
   /** 上传图片文件到服务器，返回图片 URL */
   static async uploadImage(uri: string): Promise<string> {
-    return ChatService.uploadToServer(uri, '/upload/image')
+    return ChatService.uploadToServer(uri, '/api/upload/image')
   }
 
   /** 上传普通文件（简历附件等）到服务器，返回文件 URL */
   static async uploadFile(uri: string): Promise<string> {
-    return ChatService.uploadToServer(uri, '/upload/file')
+    return ChatService.uploadToServer(uri, '/api/upload/file')
   }
 
   /** 通用文件上传：读取本地文件，以 multipart/form-data 形式上传 */
@@ -76,7 +76,10 @@ export class ChatService {
     fileIo.closeSync(file)
 
     // 解析文件名和 Content-Type
-    const fileName = uri.substring(uri.lastIndexOf('/') + 1)
+    const rawFileName = uri.substring(uri.lastIndexOf('/') + 1).split('?')[0]
+    const defaultExtension = serverPath.endsWith('/image') ? 'jpg' : 'pdf'
+    const hasExtension = rawFileName.lastIndexOf('.') > 0
+    const fileName = hasExtension ? rawFileName : (rawFileName || 'upload-' + new Date().getTime()) + '.' + defaultExtension
     const ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
     let contentType: string = 'application/octet-stream'
     if (ext === 'jpg' || ext === 'jpeg') {

@@ -147,6 +147,7 @@ export struct FilterSheet {
     }
     this.filterTags = [...this.filterTags, value]
     this.tagInput = ''
+    this.hasApplied = false
   }
 
   private addSuggestedTag(tag: string): void {
@@ -154,10 +155,12 @@ export struct FilterSheet {
       return
     }
     this.filterTags = [...this.filterTags, tag]
+    this.hasApplied = false
   }
 
   private removeTag(tag: string): void {
     this.filterTags = this.filterTags.filter((t: string) => t !== tag)
+    this.hasApplied = false
   }
 
   private computeSuggestedTags(): string[] {
@@ -180,6 +183,7 @@ export struct FilterSheet {
           const path = selectedValues.join('-')
           if (this.filterRegion.indexOf(path) < 0) {
             this.filterRegion = [...this.filterRegion, path]
+            this.applyFilters()
           }
         }
       }
@@ -209,6 +213,7 @@ export struct FilterSheet {
 
   private removeRegion(path: string): void {
     this.filterRegion = this.filterRegion.filter((r: string) => r !== path)
+    this.applyFilters()
   }
 
   private buildRegionButtonLabel(): string {
@@ -226,6 +231,7 @@ export struct FilterSheet {
           const path = selectedValues.join('-')
           if (this.filterType.indexOf(path) < 0) {
             this.filterType = [...this.filterType, path]
+            this.applyFilters()
           }
         }
       }
@@ -243,6 +249,7 @@ export struct FilterSheet {
 
   private removeCategory(path: string): void {
     this.filterType = this.filterType.filter((t: string) => t !== path)
+    this.applyFilters()
   }
 
   private buildCategoryButtonLabel(): string {
@@ -329,6 +336,7 @@ export struct FilterSheet {
           .onClick((): void => {
             // 单选可取消：再次点击同一项则清空
             this.filterSalaryUnit = this.filterSalaryUnit === option.value ? -1 : option.value
+            this.applyFilters()
           })
           .stateStyles({
             pressed: { .opacity(0.85) }
@@ -459,6 +467,7 @@ export struct FilterSheet {
               TextInput({ placeholder: '最低薪资', text: this.filterSalaryMin > 0 ? String(this.filterSalaryMin) : '' })
                 .onChange((v: string) => {
                   this.filterSalaryMin = parseInt(v) || 0
+                  this.hasApplied = false
                 })
                 .height(AppSpacing.BUTTON_HEIGHT_MD)
                 .backgroundColor(AppColors.INPUT_BG)
@@ -471,6 +480,7 @@ export struct FilterSheet {
               TextInput({ placeholder: '最高薪资', text: this.filterSalaryMax > 0 ? String(this.filterSalaryMax) : '' })
                 .onChange((v: string) => {
                   this.filterSalaryMax = parseInt(v) || 0
+                  this.hasApplied = false
                 })
                 .height(AppSpacing.BUTTON_HEIGHT_MD)
                 .backgroundColor(AppColors.INPUT_BG)
@@ -491,6 +501,7 @@ export struct FilterSheet {
                 .shape(CheckBoxShape.ROUNDED_SQUARE)
                 .onChange((value: boolean) => {
                   this.filterIncludeNeg = value
+                  this.applyFilters()
                 })
               Text('包含面议')
                 .fontSize(AppFontSize.SM)

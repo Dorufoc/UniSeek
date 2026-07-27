@@ -19,7 +19,8 @@ interface ProfileMenuItem {
 
 @Component
 export struct ProfilePage {
-  private isLoading: boolean = true
+  private isLoading: boolean = false
+  private isReloading: boolean = false
   // 由 MainPage 在切换到我的 Tab 或从子页面返回时触发，刷新统计数据
   @Prop @Watch('onRefreshProfile') refreshTrigger: number = 0
   @State nickname: string = ''
@@ -72,17 +73,22 @@ export struct ProfilePage {
 
   private async reloadProfile(showLoading: boolean): Promise<void> {
     // 防止并发请求覆盖结果
-    if (this.isLoading) {
+    if (this.isReloading) {
       return
     }
+    this.isReloading = true
     this.loadErrorText = ''
     this.isLoading = showLoading
-    await Promise.all([
-      this.loadUser(),
-      this.loadStats(),
-      this.loadAuthStatus()
-    ])
-    this.isLoading = false
+    try {
+      await Promise.all([
+        this.loadUser(),
+        this.loadStats(),
+        this.loadAuthStatus()
+      ])
+    } finally {
+      this.isLoading = false
+      this.isReloading = false
+    }
   }
 
   private async loadUser(): Promise<void> {

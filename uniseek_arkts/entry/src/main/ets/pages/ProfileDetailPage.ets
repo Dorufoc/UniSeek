@@ -357,7 +357,9 @@ struct ProfileDetailPage {
       this.applyUser(user)
       this.getUIContext().getPromptAction().showToast({ message: '头像更新成功', duration: 1800 })
     } catch (error) {
-      this.errorText = this.getErrorMessage(error)
+      const message = this.getErrorMessage(error)
+      this.errorText = (message && message !== 'No message available') ? message : '头像更新失败，请重试'
+      this.getUIContext().getPromptAction().showToast({ message: this.errorText, duration: 1800 })
     } finally {
       this.uploading = false
     }
@@ -402,7 +404,7 @@ struct ProfileDetailPage {
   @Builder
   avatarCard() {
     Column({ space: AppSpacing.SM }) {
-      Stack({ alignContent: Alignment.BottomEnd }) {
+      Stack({ alignContent: Alignment.Center }) {
         Image(this.avatarSource())
           .width(96)
           .height(96)
@@ -423,17 +425,6 @@ struct ProfileDetailPage {
             .backgroundColor('#E5FFFFFF')
             .borderRadius(AppRadius.FULL)
         }
-
-        Stack() {
-          Text('编辑')
-            .fontSize(10)
-            .fontColor('#FFFFFF')
-        }
-        .width(32)
-        .height(32)
-        .backgroundColor(AppColors.PRIMARY)
-        .borderRadius(AppRadius.FULL)
-        .border({ width: 2, color: AppColors.BG_CARD })
       }
       .width(96)
       .height(96)

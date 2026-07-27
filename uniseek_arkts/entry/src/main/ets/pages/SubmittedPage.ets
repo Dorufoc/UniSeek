@@ -2,7 +2,7 @@ import { ApplicationService, ApplicationData } from '../services/ApplicationServ
 import { TaskVO, mapTaskToJobData } from '../services/ChatTypes'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
-import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips'
+import { ChoiceOption } from '../components/filter/ChoiceChips'
 
 // 投递记录状态筛选选项：-1 表示全部，其余对应 application status
 const FILTER_OPTIONS: ChoiceOption[] = [
@@ -205,17 +205,38 @@ struct SubmittedPage {
         onBack: () => this.getUIContext().getRouter().back()
       })
 
-      // 状态分段筛选：第一个为“全部”，其余为常见投递状态
-      ChoiceChips({
-        options: FILTER_OPTIONS,
-        selected: this.selectedFilter,
-        onSelect: (value: number): void => {
-          this.selectedFilter = value
+      // 状态筛选：横向滚动展示完整按钮，选中项使用主色强调
+      Scroll() {
+        Row() {
+          ForEach(FILTER_OPTIONS, (option: ChoiceOption) => {
+            Button(option.label, { type: ButtonType.Capsule })
+              .height(AppSpacing.BUTTON_HEIGHT_SM)
+              .fontSize(AppFontSize.SM)
+              .fontColor(this.selectedFilter === option.value ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
+              .backgroundColor(this.selectedFilter === option.value ? AppColors.PRIMARY : AppColors.INPUT_BG)
+              .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+              .margin({ right: AppSpacing.SM })
+              .onClick((): void => {
+                this.selectedFilter = option.value
+              })
+              .stateStyles({
+                pressed: {
+                  .opacity(0.88)
+                },
+                normal: {
+                  .opacity(1)
+                }
+              })
+              .animation({ duration: 180 })
+          }, (option: ChoiceOption): string => String(option.value))
         }
-      })
-        .width('100%')
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
-        .backgroundColor(AppColors.BG_CARD)
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
+      .backgroundColor(AppColors.BG_CARD)
 
       if (this.isLoading) {
         Column() {

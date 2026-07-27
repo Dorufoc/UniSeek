@@ -20,6 +20,7 @@ interface RecruiterMenuItem {
 @Component
 export struct RecruiterProfileTab {
   private isLoading: boolean = false
+  private isReloading: boolean = false
   // 由 RecruiterHomePage 在切换到我的 Tab 或从子页面返回时触发刷新
   @Prop @Watch('onRefreshTrigger') refreshTrigger: number = 0
 
@@ -73,17 +74,23 @@ export struct RecruiterProfileTab {
 
   private async reloadProfile(showLoading: boolean): Promise<void> {
     // 防止并发请求覆盖结果
-    if (this.isLoading) {
+    if (this.isReloading) {
       return
     }
+    this.isReloading = true
     this.loadErrorText = ''
     this.isLoading = showLoading
-    await Promise.all([
-      this.loadUser(),
-      this.loadAuthStatus(),
-      this.loadEnterprise()
-    ])
-    this.isLoading = false
+    try {
+      await Promise.all([
+        this.loadUser(),
+        this.loadStats(),
+        this.loadAuthStatus(),
+        this.loadEnterprise()
+      ])
+    } finally {
+      this.isLoading = false
+      this.isReloading = false
+    }
   }
 
   private async loadUser(): Promise<void> {
@@ -110,6 +117,21 @@ export struct RecruiterProfileTab {
       this.isVerified = auth.status === 1
     } catch {
       // 保留本地缓存的实名认证状态，避免离线时显示为未认证
+    }
+  }
+
+  private async loadStats(): Promise<void> {
+    try {
+      const stats = await UserService.getStats()
+      this.stats = {
+        applications: stats.applications || 0,
+        interviews: stats.interviews || 0,
+        favorites: stats.favorites || 0,
+        receivedResumes: stats.receivedResumes || 0,
+        hired: stats.hired || 0
+      }
+    } catch {
+      this.loadErrorText = '统计加载失败'
     }
   }
 
@@ -249,6 +271,7 @@ export struct RecruiterProfileTab {
         Column({ space: AppSpacing.LG }) {
           this.userHeader()
           this.errorBanner()
+          this.statsSection()
           this.roleMenuSection()
           this.accountSection()
         }
@@ -362,6 +385,44 @@ export struct RecruiterProfileTab {
       .backgroundColor(AppColors.ERROR_BG)
       .borderRadius(AppRadius.LG)
     }
+  }
+
+  @Builder
+  statsSection() {
+    StandardCard() {
+      Row() {
+        this.statItem(this.stats.receivedResumes || 0, '收到简历', 'resumePool')
+        this.divider()
+        this.statItem(this.stats.hired || 0, '已录取', 'interviewManage')
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceAround)
+    }
+  }
+
+  @Builder
+  statItem(value: number, label: string, targetKey: string) {
+    Column({ space: AppSpacing.XS }) {
+      Text(value.toString())
+        .fontSize(AppFontSize.XXL)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.PRIMARY)
+      Text(label)
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.TEXT_MUTED)
+    }
+    .alignItems(HorizontalAlign.Center)
+    .layoutWeight(1)
+    .onClick(() => { this.handleMenuClick(targetKey) })
+    .stateStyles({ pressed: { .opacity(0.72) } })
+  }
+
+  @Builder
+  divider() {
+    Column()
+      .width(0.5)
+      .height(AppSpacing.LG)
+      .backgroundColor(AppColors.BORDER)
   }
 
   @Builder

@@ -75,6 +75,14 @@ export struct HomePage {
     }
 
     try {
+      // 若启用地区/职位类型筛选，先确保名称到 ID 的映射树已完成异步加载
+      if (this.selectedRegion.length > 0) {
+        await DataService.getRegionTree()
+      }
+      if (this.selectedType.length > 0) {
+        await DataService.getCategoryTree()
+      }
+
       const params: TaskSearchParams = {
         jobType: jobType,
         page: append ? state.page + 1 : 1,
@@ -170,7 +178,7 @@ export struct HomePage {
     this.loadTabData(jobType, true)
   }
 
-  // 子组件 FilterSheet 应用筛选后回调
+  // 子组件 FilterSheet 应用筛选后回调：同步状态并刷新职位列表，不主动关闭抽屉
   private applyFilterSelection(selection: FilterSelection): void {
     this.salaryMin = selection.salaryMin
     this.salaryMax = selection.salaryMax
@@ -179,7 +187,6 @@ export struct HomePage {
     this.selectedRegion = selection.region
     this.selectedType = selection.type
     this.selectedTags = selection.tags
-    this.showFilterSheet = false
     this.resetAllTabs()
   }
 

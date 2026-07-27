@@ -11,6 +11,7 @@ import { ChatSessionList } from '../../../components/chat/ChatSessionList';
 export struct RecruiterChatTab {
   @State sessions: ChatSessionVO[] = []
   @State isLoading: boolean = true
+  @State isRefreshing: boolean = false
   @State errorText: string = ''
 
   aboutToAppear(): void {
@@ -30,20 +31,43 @@ export struct RecruiterChatTab {
     this.loadSessions()
   }
 
-  private loadSessions(): void {
+  private async loadSessions(): Promise<void> {
     this.isLoading = true
     this.errorText = ''
-    ChatService.getSessions().then((list: ChatSessionVO[]): void => {
+    try {
+      const list: ChatSessionVO[] = await ChatService.getSessions()
       this.sessions = list || []
-      this.isLoading = false
-    }).catch((): void => {
+    } catch {
       this.sessions = []
       this.errorText = '会话列表加载失败，请检查网络后重试'
+    } finally {
       this.isLoading = false
-    })
+    }
+  }
+
+  private async refreshSessions(): Promise<void> {
+    if (this.isLoading || this.isRefreshing) {
+      return
+    }
+    this.isRefreshing = true
+    try {
+      await this.loadSessions()
+    } finally {
+      this.isRefreshing = false
+    }
   }
 
   private navigateToDetail(session: ChatSessionVO): void {
+    if (session.unreadCount > 0) {
+      session.unreadCount = 0
+      // 重新赋值触发 @State 刷新，红点立即消失
+      this.sessions = [...this.sessions]
+      // 异步同步后端已读，失败不影响本地体验
+      ChatService.markSessionRead(session.applicationId).catch((err: Error) => {
+        console.error('标记会话已读失败: ' + String(err))
+      })
+    }
+
     try {
       this.getUIContext().getRouter().pushUrl({
         url: 'pages/ChatDetailPage',
@@ -76,7 +100,9 @@ export struct RecruiterChatTab {
       ChatSessionList({
         sessions: this.sessions,
         isLoading: this.isLoading,
+        refreshing: this.isRefreshing,
         errorText: this.errorText,
+        onRefresh: () => { this.refreshSessions() },
         counterpartTag: '求职者',
         onRetry: () => { this.loadSessions() },
         onItemClick: (session: ChatSessionVO) => { this.navigateToDetail(session) }
