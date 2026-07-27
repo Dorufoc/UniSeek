@@ -20,6 +20,35 @@ struct InterviewDialog {
   @State timeText: string = ''
   @State locationText: string = ''
 
+  private padTimePart(value: number): string {
+    return value < 10 ? '0' + String(value) : String(value)
+  }
+
+  private formatDateTime(value: Date): string {
+    return String(value.getFullYear()) + '-' +
+      this.padTimePart(value.getMonth() + 1) + '-' +
+      this.padTimePart(value.getDate()) + 'T' +
+      this.padTimePart(value.getHours()) + ':' +
+      this.padTimePart(value.getMinutes()) + ':' +
+      this.padTimePart(value.getSeconds())
+  }
+
+  private chooseInterviewTime(): void {
+    const now = new Date()
+    const selected = new Date(now.getTime() + 60 * 60 * 1000)
+    this.getUIContext().showDatePickerDialog({
+      start: now,
+      end: new Date(now.getFullYear() + 2, 11, 31, 23, 59, 59),
+      selected: selected,
+      showTime: true,
+      useMilitaryTime: true,
+      dateTimeOptions: { hour: '2-digit', minute: '2-digit' },
+      onDateAccept: (value: Date): void => {
+        this.timeText = this.formatDateTime(value)
+      }
+    })
+  }
+
   build() {
     Column() {
       Row() {
@@ -28,12 +57,15 @@ struct InterviewDialog {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
+        Button({ type: ButtonType.Normal }) {
+          Text('取消')
+            .fontSize(AppFontSize.MD)
+            .fontColor(AppColors.TEXT_MUTED)
+        }
+          .width(64)
           .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
           .backgroundColor(Color.Transparent)
-          .onClick(() => { this.onCancel?.() })
+          .onClick((): void => { this.onCancel?.() })
       }
       .width('100%')
       .padding({ bottom: AppSpacing.MD })
@@ -44,10 +76,24 @@ struct InterviewDialog {
         .width('100%')
         .margin({ bottom: AppSpacing.MD })
 
-      TextInput({ placeholder: '面试时间（如 2026-07-20 10:00）', text: this.timeText })
-        .onChange((value: string) => { this.timeText = value })
+      Button({ type: ButtonType.Normal }) {
+        Row() {
+          Text(this.timeText || '选择面试时间')
+            .fontSize(AppFontSize.MD)
+            .fontColor(this.timeText ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
+            .layoutWeight(1)
+            .textAlign(TextAlign.Start)
+          SymbolGlyph($r('sys.symbol.calendar'))
+            .fontSize(AppFontSize.ICON_MD)
+            .fontColor([AppColors.TEXT_SECONDARY])
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+      }
+        .onClick((): void => { this.chooseInterviewTime() })
         .width('100%')
         .height(AppSpacing.BUTTON_HEIGHT_MD)
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .backgroundColor(AppColors.INPUT_BG)
         .borderRadius(AppRadius.SM)
         .margin({ bottom: AppSpacing.SM })
@@ -61,30 +107,28 @@ struct InterviewDialog {
         .margin({ bottom: AppSpacing.LG })
 
       Row() {
-        Row().layoutWeight(1)
-          Button('确定', { type: ButtonType.Capsule })
-            .height(AppSpacing.BUTTON_HEIGHT)
-            .fontSize(AppFontSize.MD)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#FFFFFF')
-            .backgroundColor(AppColors.PRIMARY)
-            .padding({ left: 28, right: 28 })
-            .onClick(() => {
-              this.onConfirm?.(this.timeText, this.locationText)
-            })
-            .stateStyles({
-              pressed: {
-                .scale({ x: 0.97, y: 0.97 })
-                .opacity(0.9)
-              },
-              normal: {
-                .scale({ x: 1, y: 1 })
-                .opacity(1)
-              }
-            })
-            .animation({
-              duration: 200
-            })
+        Blank().layoutWeight(1)
+        Button('确定', { type: ButtonType.Capsule })
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#FFFFFF')
+          .backgroundColor(AppColors.PRIMARY)
+          .padding({ left: 28, right: 28 })
+          .onClick((): void => {
+            this.onConfirm?.(this.timeText, this.locationText)
+          })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.97, y: 0.97 })
+              .opacity(0.9)
+            },
+            normal: {
+              .scale({ x: 1, y: 1 })
+              .opacity(1)
+            }
+          })
+          .animation({ duration: 200 })
         }
         .width('100%')
         .padding({ top: AppSpacing.MD })
@@ -635,17 +679,16 @@ struct RecruiterRequestsPage {
             this.getUIContext().getPromptAction().showToast({ message: '请填写面试时间和地点' })
             return
           }
-          dialog.close()
           RecruiterService.processRequest(req.id, {
             status: 1,
             interviewTime: time,
-            interviewLocation: location,
-            rejectReason: '',
-            hrNote: ''
+            interviewLocation: location
           }).then((success: boolean) => {
             if (!success) {
+              this.getUIContext().getPromptAction().showToast({ message: '面试安排失败，请刷新后重试' })
               return
             }
+            dialog.close()
             req.status = 1
             req.interviewTime = time
             req.interviewLocation = location
@@ -674,17 +717,16 @@ struct RecruiterRequestsPage {
             this.getUIContext().getPromptAction().showToast({ message: '请填写淘汰原因和内部备注' })
             return
           }
-          dialog.close()
           RecruiterService.processRequest(req.id, {
             status: 4,
-            interviewTime: '',
-            interviewLocation: '',
             rejectReason: reason,
             hrNote: note
           }).then((success: boolean) => {
             if (!success) {
+              this.getUIContext().getPromptAction().showToast({ message: '操作失败，请刷新后重试' })
               return
             }
+            dialog.close()
             req.status = 4
             req.rejectReason = reason
             this.requestList = [...this.requestList]
@@ -716,11 +758,7 @@ struct RecruiterRequestsPage {
 
   updateSimpleStatus(req: RecruiterRequestVO, status: number): void {
     RecruiterService.processRequest(req.id, {
-      status: status,
-      interviewTime: req.interviewTime || '',
-      interviewLocation: req.interviewLocation || '',
-      rejectReason: '',
-      hrNote: ''
+      status: status
     }).then((success: boolean) => {
       if (!success) {
         this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })

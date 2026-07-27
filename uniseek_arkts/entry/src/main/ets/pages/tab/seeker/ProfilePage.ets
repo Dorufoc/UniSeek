@@ -3,6 +3,7 @@ import { AuthService, UserVO } from '../../../services/AuthService';
 import { UserService, UserStats } from '../../../services/UserService';
 import { ChatService } from '../../../services/ChatService';
 import { ApiClient } from '../../../services/ApiClient';
+import { UserSession } from '../../../services/UserSession';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
 import { StandardCard } from '../../../common/StandardCard';
 
@@ -55,10 +56,12 @@ export struct ProfilePage {
     this.reloadProfile(false)
   }
 
-  /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。 */
+  /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。
+   * 仅当缓存用户 ID 与当前登录用户一致时才使用缓存，防止切换账号后显示旧账号信息。
+   */
   private loadCachedProfile(): void {
     const cachedUser = AuthService.getCachedCurrentUser()
-    if (cachedUser) {
+    if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
     }
     const cachedAuth = AuthService.getCachedRealNameStatus()

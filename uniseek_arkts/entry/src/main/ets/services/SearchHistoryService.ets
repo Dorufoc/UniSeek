@@ -7,11 +7,13 @@ import { common } from '@kit.AbilityKit';
 const PREF_NAME = 'uniseek_search_history';
 const PREF_KEY_JOB = 'job_keywords';
 const PREF_KEY_COMPANY = 'company_keywords';
+const PREF_KEY_TALENT = 'talent_keywords';
 const MAX_HISTORY = 20;
 
 export enum SearchMode {
   JOB = 0,
-  COMPANY = 1
+  COMPANY = 1,
+  TALENT = 2
 }
 
 export class SearchHistoryService {
@@ -20,6 +22,13 @@ export class SearchHistoryService {
    */
   static getHotKeywords(): string[] {
     return ['客服', '家教', '打包分拣', '新媒体运营', '日结', '兼职会计', '骑手', '促销导购', '网店客服', '展会协助'];
+  }
+
+  /**
+   * 人才搜索热搜关键词（本地静态池）。
+   */
+  static getTalentHotKeywords(): string[] {
+    return ['客服', '家教', '新媒体运营', '会计', '促销导购', '会展协助', '文案写作', '骑手', '翻译校对', '设计创作'];
   }
 
   /**
@@ -103,7 +112,13 @@ export class SearchHistoryService {
   }
 
   private static prefKeyOf(mode: SearchMode): string {
-    return mode === SearchMode.COMPANY ? PREF_KEY_COMPANY : PREF_KEY_JOB;
+    if (mode === SearchMode.COMPANY) {
+      return PREF_KEY_COMPANY;
+    }
+    if (mode === SearchMode.TALENT) {
+      return PREF_KEY_TALENT;
+    }
+    return PREF_KEY_JOB;
   }
 
   private static cleanHistory(history: string[]): string[] {

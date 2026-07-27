@@ -9,12 +9,13 @@ import { UserSession } from '../services/UserSession';
 import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { picker } from '@kit.CoreFileKit';
+import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 import { ChatMessagePolicy } from '../common/BusinessPolicies';
 import { ErrorView } from '../components/ErrorView';
 import { ChatMessageList, ChatMessageListController } from '../components/chat/ChatMessageList';
-import { MessageInputBar } from '../components/chat/MessageInputBar';
+import { MessageInputBar, INPUT_BAR_HEIGHT } from '../components/chat/MessageInputBar';
 import { ActionMenuOverlay } from '../components/chat/ActionMenuOverlay';
 import { LightboxOverlay } from '../components/chat/LightboxOverlay';
 
@@ -49,10 +50,17 @@ struct ChatDetailPage {
   // 聊天列表控制器：用于主动滚动到底部
   @State chatListController: ChatMessageListController = new ChatMessageListController()
 
+  // 进入页面前的键盘避让模式，用于离开页面时恢复
+  private keyboardAvoidModeBackup: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET
+
   // ==================== 生命周期 ====================
 
   aboutToAppear(): void {
-    const params = this.getUIContext().getRouter().getParams() as Record<string, Object>
+    const uiContext = this.getUIContext()
+    this.keyboardAvoidModeBackup = uiContext.getKeyboardAvoidMode()
+    uiContext.setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE)
+
+    const params = uiContext.getRouter().getParams() as Record<string, Object>
     this.counterpartName = params['counterpartName'] as string
     this.counterpartAvatar = params['counterpartAvatar'] as string
     this.applicationId = params['applicationId'] as number
@@ -83,6 +91,7 @@ struct ChatDetailPage {
 
   aboutToDisappear(): void {
     ChatWebSocketService.getInstance().removeOnDetailMessageCallback()
+    this.getUIContext().setKeyboardAvoidMode(this.keyboardAvoidModeBackup)
   }
 
   onPageShow(): void {
@@ -380,49 +389,53 @@ struct ChatDetailPage {
           })
         }
 
-        // 消息列表区域
-        if (this.isLoadingMessages && this.messages.length === 0) {
-          Column({ space: AppSpacing.SM }) {
-            LoadingProgress()
-              .width(AppSpacing.ICON_MD)
-              .height(AppSpacing.ICON_MD)
-              .color(AppColors.PRIMARY)
-            Text('正在加载消息')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.TEXT_MUTED)
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-        } else if (this.messageError && this.messages.length === 0) {
-          ErrorView({
-            message: this.messageError,
-            retryText: '重新加载',
-            onRetry: () => { this.loadMessages() }
-          })
+// 中部消息区：占满顶栏与底栏之间的剩余空间，键盘弹起时自动压缩
+        Column() {
+          if (this.isLoadingMessages && this.messages.length === 0) {
+            Column({ space: AppSpacing.SM }) {
+              LoadingProgress()
+                .width(AppSpacing.ICON_MD)
+                .height(AppSpacing.ICON_MD)
+                .color(AppColors.PRIMARY)
+              Text('正在加载消息')
+                .fontSize(AppFontSize.SM)
+                .fontColor(AppColors.TEXT_MUTED)
+            }
             .width('100%')
             .layoutWeight(1)
-        } else {
-          ChatMessageList({
-            messages: $messages,
-            controller: this.chatListController,
-            counterpartName: this.counterpartName,
-            counterpartAvatar: this.counterpartAvatar,
-            isLoadingMore: this.isLoadingMore,
-            hasMore: this.hasMore,
-            isAttachmentHandling: this.isHandlingAttachment,
-            onLoadMore: () => { this.loadMoreMessages() },
-            onImageClick: (url: string) => {
-              this.lightboxImageUrl = url
-              this.showLightbox = true
-            },
-            onResumePreview: (url: string) => { this.previewAttachment(url) },
-            onResumeDownload: (url: string) => { this.downloadAttachment(url) }
-          })
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+          } else if (this.messageError && this.messages.length === 0) {
+            ErrorView({
+              message: this.messageError,
+              retryText: '重新加载',
+              onRetry: () => { this.loadMessages() }
+            })
+              .width('100%')
+              .layoutWeight(1)
+          } else {
+            ChatMessageList({
+              messages: $messages,
+              controller: this.chatListController,
+              counterpartName: this.counterpartName,
+              counterpartAvatar: this.counterpartAvatar,
+              isLoadingMore: this.isLoadingMore,
+              hasMore: this.hasMore,
+              isAttachmentHandling: this.isHandlingAttachment,
+              onLoadMore: () => { this.loadMoreMessages() },
+              onImageClick: (url: string) => {
+                this.lightboxImageUrl = url
+                this.showLightbox = true
+              },
+              onResumePreview: (url: string) => { this.previewAttachment(url) },
+              onResumeDownload: (url: string) => { this.downloadAttachment(url) }
+            })
+          }
         }
+        .width('100%')
+        .layoutWeight(1)
 
-        // 输入区域：宽度占屏幕 90% 并居中
+        // 底部固定输入栏：高度恒定，键盘弹起时整体随键盘上移
         Row() {
           MessageInputBar({
             inputText: $inputText,
@@ -433,6 +446,7 @@ struct ChatDetailPage {
           })
         }
         .width('100%')
+        .height(INPUT_BAR_HEIGHT)
         .justifyContent(FlexAlign.Center)
       }
       .width('100%')

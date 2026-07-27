@@ -34,11 +34,11 @@ struct RecruiterApplicationsPage {
   @State noJobContext: boolean = false
 
   aboutToAppear(): void {
-    const params = this.getUIContext().getRouter().getParams() as Record<string, string>
-    if (params['jobId']) {
+    const params = this.getUIContext().getRouter().getParams() as Record<string, string> | null
+    if (params && params['jobId']) {
       this.jobId = parseInt(params['jobId'])
     }
-    if (params['jobTitle']) {
+    if (params && params['jobTitle']) {
       this.jobTitle = params['jobTitle']
     }
     if (this.jobId > 0) {

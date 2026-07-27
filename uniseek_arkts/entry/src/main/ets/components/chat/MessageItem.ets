@@ -115,6 +115,7 @@ export struct MessageItem {
       .alignItems(VerticalAlign.Top)
     }
     .width('100%')
+    .margin({ bottom: AppSpacing.SM })
     .transition({ opacity: 0, translate: { y: AppSpacing.SM_PLUS } })
   }
 }

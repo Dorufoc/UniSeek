@@ -2,7 +2,7 @@
 
 import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../../common/AppStyles';
 
-const INPUT_BAR_HEIGHT = 64       // 聊天输入栏整体高度：足够容纳 16sp 文字 + 内边距，避免裁切
+export const INPUT_BAR_HEIGHT = 64 // 聊天输入栏整体高度：足够容纳 16sp 文字 + 内边距，避免裁切
 const ACTION_BUTTON_SIZE = 38     // 左侧圆形加号按钮
 const INPUT_FIELD_HEIGHT = 44     // 文本框高度
 const SEND_BUTTON_HEIGHT = 36     // 发送按钮高度

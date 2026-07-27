@@ -29,13 +29,16 @@ export struct RecruiterProfileTab {
   @State avatarUri: string = ''
   @State isVerified: boolean = false
   @State enterpriseAuditStatus: number = -1
-  @State stats: UserStats = {
-    receivedResumes: 0,
-    hired: 0
-  }
   @State loadErrorText: string = ''
   @State uploading: boolean = false
   @State showAbout: boolean = false
+  @State stats: UserStats = {
+    applications: 0,
+    interviews: 0,
+    favorites: 0,
+    receivedResumes: 0,
+    hired: 0
+  }
 
   aboutToAppear(): void {
     this.loadCachedProfile()
@@ -77,7 +80,6 @@ export struct RecruiterProfileTab {
     this.isLoading = showLoading
     await Promise.all([
       this.loadUser(),
-      this.loadStats(),
       this.loadAuthStatus(),
       this.loadEnterprise()
     ])
@@ -100,21 +102,6 @@ export struct RecruiterProfileTab {
     this.email = user.email || ''
     this.avatarUri = user.avatarUrl || ''
     AuthService.applyUserInfo(user.id, user.role, user.nickname, user.avatarUrl)
-  }
-
-  private async loadStats(): Promise<void> {
-    try {
-      const stats = await UserService.getStats()
-      this.stats = {
-        receivedResumes: stats.receivedResumes || 0,
-        hired: stats.hired || 0,
-        applications: stats.applications || 0,
-        interviews: stats.interviews || 0,
-        favorites: stats.favorites || 0
-      }
-    } catch {
-      this.loadErrorText = '招聘统计加载失败'
-    }
   }
 
   private async loadAuthStatus(): Promise<void> {
@@ -193,7 +180,7 @@ export struct RecruiterProfileTab {
         router.pushUrl({ url: 'pages/RecruiterPublishJobPage' })
         break
       case 'resumePool':
-        router.pushUrl({ url: 'pages/RecruiterApplicationsPage' })
+        router.pushUrl({ url: 'pages/RecruiterRequestsPage' })
         break
       case 'interviewManage':
         router.pushUrl({ url: 'pages/RecruiterRequestsPage' })
@@ -262,7 +249,6 @@ export struct RecruiterProfileTab {
         Column({ space: AppSpacing.LG }) {
           this.userHeader()
           this.errorBanner()
-          this.statsSection()
           this.roleMenuSection()
           this.accountSection()
         }
@@ -379,44 +365,6 @@ export struct RecruiterProfileTab {
   }
 
   @Builder
-  statsSection() {
-    StandardCard() {
-      Row() {
-        this.statItem(this.stats.receivedResumes || 0, '收到简历', 'resumePool')
-        this.divider()
-        this.statItem(this.stats.hired || 0, '已录取', 'interviewManage')
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceAround)
-    }
-  }
-
-  @Builder
-  statItem(value: number, label: string, targetKey: string) {
-    Column({ space: AppSpacing.XS }) {
-      Text(value.toString())
-        .fontSize(AppFontSize.XXL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.PRIMARY)
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-    }
-    .alignItems(HorizontalAlign.Center)
-    .layoutWeight(1)
-    .onClick(() => { this.handleMenuClick(targetKey) })
-    .stateStyles({ pressed: { .opacity(0.72) } })
-  }
-
-  @Builder
-  divider() {
-    Column()
-      .width(0.5)
-      .height(AppSpacing.LG)
-      .backgroundColor(AppColors.BORDER)
-  }
-
-  @Builder
   roleMenuSection() {
     Column({ space: AppSpacing.MD }) {
       Text('招聘管理')
@@ -459,7 +407,8 @@ export struct RecruiterProfileTab {
         .fontColor(AppColors.TEXT_PRIMARY)
     }
     .width('100%')
-    .padding(AppSpacing.MD)
+    // 横向内边距收缩，避免 4 列宫格中单格宽度过小导致文字被截断；保持竖向呼吸感
+    .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: AppSpacing.MD, bottom: AppSpacing.MD })
     .borderRadius(AppRadius.MD)
     .alignItems(HorizontalAlign.Center)
     .backgroundColor(AppColors.BG_CARD)

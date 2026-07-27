@@ -154,9 +154,7 @@ export struct ChatMessageList {
     .width('100%')
     .padding({
       left: AppSpacing.MD,
-      right: AppSpacing.MD,
-      top: AppSpacing.PAGE_PADDING_VERTICAL,
-      bottom: AppSpacing.PAGE_PADDING_VERTICAL
+      right: AppSpacing.MD
     })
     .onReachStart(() => {
       if (this.hasMore && !this.isLoadingMore && this.messages.length > 0) {

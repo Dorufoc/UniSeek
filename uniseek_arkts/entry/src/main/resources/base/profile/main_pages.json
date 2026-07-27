@@ -22,6 +22,7 @@
     "pages/RecruiterJobFormPage",
     "pages/ResumeDetailPage",
     "pages/RecruiterSearchPage",
+    "pages/TalentSearchResultsPage",
     "pages/SearchResultsPage",
     "pages/CompanyPage",
     "pages/CompanyDetailPage"

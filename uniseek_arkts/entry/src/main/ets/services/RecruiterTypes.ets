@@ -68,10 +68,10 @@ export interface RecruiterEnterpriseRequest {
 
 export interface RecruiterUpdateStatusRequest {
   status: number
-  interviewTime: string
-  interviewLocation: string
-  rejectReason: string
-  hrNote: string
+  interviewTime?: string
+  interviewLocation?: string
+  rejectReason?: string
+  hrNote?: string
 }
 
 export interface ResumeCardData {
