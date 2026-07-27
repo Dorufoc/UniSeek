@@ -99,15 +99,8 @@ public class ChatController {
         Integer role = UserContext.getRole();
         ChatMessageVO vo = chatService.sendMessage(applicationId, userId, role, request);
 
-        // 查询会话并获取接收方
-        ChatSession session = chatSessionMapper.selectById(applicationId);
-        if (session == null) {
-            // applicationId 是 task_application_id，取真正的 session PK
-            Long sid = chatSessionMapper.selectIdByApplicationId(applicationId);
-            if (sid != null) {
-                session = chatSessionMapper.selectById(sid);
-            }
-        }
+        // 使用与服务层一致的会话解析规则，避免投递记录 ID 与会话主键重叠时取错会话。
+        ChatSession session = resolveChatSession(applicationId);
         if (session != null) {
             Long receiverId = userId.equals(session.getEmployerId())
                     ? session.getSeekerId()
@@ -116,6 +109,18 @@ public class ChatController {
         }
 
         return ApiResult.success("发送成功", vo);
+    }
+
+    private ChatSession resolveChatSession(Long applicationId) {
+        Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
+        if (sessionId != null) {
+            return chatSessionMapper.selectById(sessionId);
+        }
+        ChatSession directSession = chatSessionMapper.selectById(applicationId);
+        if (directSession != null && directSession.getTaskApplicationId() == null) {
+            return directSession;
+        }
+        return null;
     }
 
     /**

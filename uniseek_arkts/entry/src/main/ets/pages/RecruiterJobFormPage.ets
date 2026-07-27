@@ -40,9 +40,8 @@ struct RecruiterJobFormPage {
   @State deadline: string = ''
   @State categoryOptions: SelectorOption[] = []
   @State regionOptions: SelectorOption[] = []
-  @State showCategorySheet: boolean = false
-  @State showRegionSheet: boolean = false
-  @State showDeadlineSheet: boolean = false
+  @State activeSheet: string = ''
+  @State showSheet: boolean = false
   @State isSubmitting: boolean = false
   @State isLoading: boolean = true
 
@@ -150,16 +149,26 @@ struct RecruiterJobFormPage {
     return fallback || ''
   }
 
+  openSheet(type: string): void {
+    this.activeSheet = type
+    this.showSheet = true
+  }
+
+  closeSheet(): void {
+    this.showSheet = false
+    this.activeSheet = ''
+  }
+
   selectCategory(option: SelectorOption): void {
     this.categoryId = Number(option.id)
     this.categoryLabel = option.label
-    this.showCategorySheet = false
+    this.closeSheet()
   }
 
   selectRegion(option: SelectorOption): void {
     this.regionId = Number(option.id)
     this.regionLabel = option.label
-    this.showRegionSheet = false
+    this.closeSheet()
   }
 
   showValidation(message: string): void {
@@ -249,13 +258,13 @@ struct RecruiterJobFormPage {
               label: '职位分类',
               value: this.categoryLabel,
               placeholder: '请选择职位分类',
-              onFieldClick: (): void => { this.showCategorySheet = true }
+              onFieldClick: (): void => { this.openSheet('category') }
             })
             SelectorField({
               label: '工作地区',
               value: this.regionLabel,
               placeholder: '请选择省 / 市 / 区',
-              onFieldClick: (): void => { this.showRegionSheet = true }
+              onFieldClick: (): void => { this.openSheet('region') }
             })
 
             Column() {
@@ -315,7 +324,7 @@ struct RecruiterJobFormPage {
               label: '报名截止时间',
               value: this.deadline,
               placeholder: '请选择截止时间',
-              onFieldClick: (): void => { this.showDeadlineSheet = true }
+              onFieldClick: (): void => { this.openSheet('deadline') }
             })
 
             Button(this.isSubmitting ? '提交中...' : (this.editJobId > 0 ? '保存修改' : '立即发布'), { type: ButtonType.Capsule })
@@ -341,24 +350,23 @@ struct RecruiterJobFormPage {
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.BG_PAGE)
-    .bindSheet($$this.showCategorySheet, this.categorySheet(), {
+    .bindSheet($$this.showSheet, this.activeSheetContent(), {
       height: SheetSize.LARGE,
       dragBar: true,
       showClose: true,
       backgroundColor: AppColors.BG_CARD
     })
-    .bindSheet($$this.showRegionSheet, this.regionSheet(), {
-      height: SheetSize.LARGE,
-      dragBar: true,
-      showClose: true,
-      backgroundColor: AppColors.BG_CARD
-    })
-    .bindSheet($$this.showDeadlineSheet, this.deadlineSheet(), {
-      height: SheetSize.LARGE,
-      dragBar: true,
-      showClose: true,
-      backgroundColor: AppColors.BG_CARD
-    })
+  }
+
+  @Builder
+  activeSheetContent() {
+    if (this.activeSheet === 'category') {
+      this.categorySheet()
+    } else if (this.activeSheet === 'region') {
+      this.regionSheet()
+    } else if (this.activeSheet === 'deadline') {
+      this.deadlineSheet()
+    }
   }
 
   @Builder
@@ -419,7 +427,7 @@ struct RecruiterJobFormPage {
         .fontColor('#FFFFFF')
         .backgroundColor(AppColors.PRIMARY)
         .margin({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.XL })
-        .onClick((): void => { this.showDeadlineSheet = false })
+        .onClick((): void => { this.closeSheet() })
     }
     .width('100%')
     .padding({ top: AppSpacing.XS, bottom: AppSpacing.XL })

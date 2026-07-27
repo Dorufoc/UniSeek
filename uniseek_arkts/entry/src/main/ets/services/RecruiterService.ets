@@ -127,6 +127,15 @@ export class RecruiterService {
     return records
   }
 
+  /** 通过投递记录 ID 查询详情，用于通知铃铛跳转定位。 */
+  static async getApplicationById(applicationId: number): Promise<RecruiterApplicationVO | null> {
+    try {
+      return await ApiClient.get<RecruiterApplicationVO>('/api/applications/' + applicationId)
+    } catch {
+      return null
+    }
+  }
+
   static async updateApplicationStatus(applicationId: number, data: RecruiterUpdateStatusRequest): Promise<boolean> {
     try {
       await ApiClient.put<ApiEmpty>('/api/applications/' + applicationId + '/status', data)

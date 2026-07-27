@@ -83,8 +83,7 @@ struct ChatDetailPage {
           senderName: data.senderName,
           senderAvatar: data.senderAvatar
         }
-      this.messages = this.messages.concat([newMsg])
-      this.scrollToBottomOfList()
+        this.appendMessageIfNeeded(newMsg)
       }
     })
   }
@@ -104,6 +103,25 @@ struct ChatDetailPage {
     setTimeout(() => {
       this.chatListController.scrollToBottom()
     }, 0)
+  }
+
+  private appendMessageIfNeeded(message: ChatMessageVO): void {
+    if (this.messages.some((item: ChatMessageVO): boolean => item.id === message.id)) {
+      return
+    }
+    this.messages = this.messages.concat([message])
+    this.scrollToBottomOfList()
+  }
+
+  private mergeLoadedMessages(loadedMessages: ChatMessageVO[]): ChatMessageVO[] {
+    const merged: ChatMessageVO[] = loadedMessages.slice()
+    for (const current of this.messages) {
+      if (!merged.some((item: ChatMessageVO): boolean => item.id === current.id)) {
+        merged.push(current)
+      }
+    }
+    merged.sort((left: ChatMessageVO, right: ChatMessageVO): number => left.id - right.id)
+    return merged
   }
 
   // ==================== 数据加载 ====================
@@ -154,7 +172,7 @@ struct ChatDetailPage {
       if (msgs.length < 20) {
         this.hasMore = false
       }
-      this.messages = msgs.reverse()
+      this.messages = this.mergeLoadedMessages(msgs.reverse())
       this.isLoadingMessages = false
       this.scrollToBottomOfList()
     }).catch(() => {
@@ -233,7 +251,7 @@ struct ChatDetailPage {
     this.inputText = ''
     ChatService.sendMessage(this.applicationId, text).then((msg: ChatMessageVO | null) => {
       if (msg) {
-        this.messages = this.messages.concat([msg])
+        this.appendMessageIfNeeded(msg)
         this.loadSessionInfo()
         this.scrollToBottomOfList()
       }
@@ -276,7 +294,7 @@ struct ChatDetailPage {
           return
         }
         ChatService.sendMessageWithType(this.applicationId, 1, url).then((msg: ChatMessageVO) => {
-          this.messages = this.messages.concat([msg])
+          this.appendMessageIfNeeded(msg)
           this.isSendingImage = false
           this.loadSessionInfo()
           this.scrollToBottomOfList()
@@ -317,7 +335,7 @@ struct ChatDetailPage {
           return
         }
         ChatService.sendMessageWithType(this.applicationId, 2, url).then((msg: ChatMessageVO) => {
-          this.messages = this.messages.concat([msg])
+          this.appendMessageIfNeeded(msg)
           this.isSendingResume = false
           this.loadSessionInfo()
           this.scrollToBottomOfList()

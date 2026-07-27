@@ -1,705 +1,266 @@
-import { RecruiterService } from '../services/RecruiterService';
-import {
-  RecruiterRequestVO,
-  APPLICATION_STATUS_LABELS
-} from '../services/RecruiterTypes';
-import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles';
-import { NavBar } from '../common/NavBar';
-import { StandardCard } from '../common/StandardCard';
-import { ApplicationNotePolicy } from '../common/BusinessPolicies';
-import { EmptyView } from '../components/EmptyView';
-import { ErrorView } from '../components/ErrorView';
+// 招聘方简历池 / 面试安排页
+// 完全对标 Vue ResumePool.vue：职位选择、Tabs 切换、新投递通知铃铛、候选人卡片操作、共享弹窗。
 
-@CustomDialog
-struct InterviewDialog {
-  controller?: CustomDialogController
-  requestName?: string
-  onConfirm?: (time: string, location: string) => void
-  onCancel?: () => void
+import { RecruiterService } from '../services/RecruiterService'
+import { RecruiterApplicationVO, RecruiterJobVO, ResumeCardData } from '../services/RecruiterTypes'
+import { InterviewDialog, RejectDialog, CompleteDialog } from '../components/application/SharedDialogs'
+import { PoolApplicationCard } from '../components/application/PoolApplicationCard'
+import { NotificationBell } from '../components/NotificationBell'
+import { ApplicationActionPolicy } from '../common/BusinessPolicies'
+import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
+import { EmptyView } from '../components/EmptyView'
+import { ErrorView } from '../components/ErrorView'
+import { StandardCard } from '../common/StandardCard'
 
-  @State timeText: string = ''
-  @State locationText: string = ''
-
-  private padTimePart(value: number): string {
-    return value < 10 ? '0' + String(value) : String(value)
-  }
-
-  private formatDateTime(value: Date): string {
-    return String(value.getFullYear()) + '-' +
-      this.padTimePart(value.getMonth() + 1) + '-' +
-      this.padTimePart(value.getDate()) + 'T' +
-      this.padTimePart(value.getHours()) + ':' +
-      this.padTimePart(value.getMinutes()) + ':' +
-      this.padTimePart(value.getSeconds())
-  }
-
-  private chooseInterviewTime(): void {
-    const now = new Date()
-    const selected = new Date(now.getTime() + 60 * 60 * 1000)
-    this.getUIContext().showDatePickerDialog({
-      start: now,
-      end: new Date(now.getFullYear() + 2, 11, 31, 23, 59, 59),
-      selected: selected,
-      showTime: true,
-      useMilitaryTime: true,
-      dateTimeOptions: { hour: '2-digit', minute: '2-digit' },
-      onDateAccept: (value: Date): void => {
-        this.timeText = this.formatDateTime(value)
-      }
-    })
-  }
-
-  build() {
-    Column() {
-      Row() {
-        Text('安排面试')
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
-        Button({ type: ButtonType.Normal }) {
-          Text('取消')
-            .fontSize(AppFontSize.MD)
-            .fontColor(AppColors.TEXT_MUTED)
-        }
-          .width(64)
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .backgroundColor(Color.Transparent)
-          .onClick((): void => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: AppSpacing.MD })
-
-      Text('为 ' + (this.requestName || '') + ' 安排面试')
-        .fontSize(AppFontSize.SM)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-        .margin({ bottom: AppSpacing.MD })
-
-      Button({ type: ButtonType.Normal }) {
-        Row() {
-          Text(this.timeText || '选择面试时间')
-            .fontSize(AppFontSize.MD)
-            .fontColor(this.timeText ? AppColors.TEXT_PRIMARY : AppColors.TEXT_MUTED)
-            .layoutWeight(1)
-            .textAlign(TextAlign.Start)
-          SymbolGlyph($r('sys.symbol.calendar'))
-            .fontSize(AppFontSize.ICON_MD)
-            .fontColor([AppColors.TEXT_SECONDARY])
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-      }
-        .onClick((): void => { this.chooseInterviewTime() })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT_MD)
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(AppRadius.SM)
-        .margin({ bottom: AppSpacing.SM })
-
-      TextInput({ placeholder: '面试地点', text: this.locationText })
-        .onChange((value: string) => { this.locationText = value })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT_MD)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(AppRadius.SM)
-        .margin({ bottom: AppSpacing.LG })
-
-      Row() {
-        Blank().layoutWeight(1)
-        Button('确定', { type: ButtonType.Capsule })
-          .height(AppSpacing.BUTTON_HEIGHT)
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor(AppColors.PRIMARY)
-          .padding({ left: 28, right: 28 })
-          .onClick((): void => {
-            this.onConfirm?.(this.timeText, this.locationText)
-          })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.97, y: 0.97 })
-              .opacity(0.9)
-            },
-            normal: {
-              .scale({ x: 1, y: 1 })
-              .opacity(1)
-            }
-          })
-          .animation({ duration: 200 })
-        }
-        .width('100%')
-        .padding({ top: AppSpacing.MD })
-      }
-      .padding(AppSpacing.LG)
-      .width('100%')
-      .backgroundColor(AppColors.BG_CARD)
-      .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
-    }
-  }
-
-@CustomDialog
-struct RejectDialog {
-  controller?: CustomDialogController
-  requestName?: string
-  onConfirm?: (reason: string, note: string) => void
-  onCancel?: () => void
-
-  @State reasonText: string = ''
-  @State noteText: string = ''
-
-  build() {
-    Column() {
-      Row() {
-        Text('淘汰候选人')
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: AppSpacing.MD })
-
-      Text('确认淘汰 ' + (this.requestName || '') + '？')
-        .fontSize(AppFontSize.SM)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-        .margin({ bottom: AppSpacing.MD })
-
-      TextInput({ placeholder: '淘汰原因（必填）', text: this.reasonText })
-        .onChange((value: string) => { this.reasonText = value })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT_MD)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(AppRadius.SM)
-        .margin({ bottom: AppSpacing.SM })
-
-      TextArea({ placeholder: '内部备注（必填，仅招聘方可见）', text: this.noteText })
-        .onChange((value: string) => { this.noteText = value })
-        .width('100%')
-        .height(88)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(AppRadius.SM)
-        .padding(AppSpacing.SM)
-        .margin({ bottom: AppSpacing.LG })
-
-      Row() {
-        Button('取消', { type: ButtonType.Capsule })
-          .height(AppSpacing.BUTTON_HEIGHT)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_SECONDARY)
-          .backgroundColor(AppColors.INPUT_BG)
-          .padding({ left: 28, right: 28 })
-          .onClick(() => { this.onCancel?.() })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.97, y: 0.97 })
-              .opacity(0.9)
-            },
-            normal: {
-              .scale({ x: 1, y: 1 })
-              .opacity(1)
-            }
-          })
-          .animation({
-            duration: 200
-          })
-        Blank().width(16)
-        Button('确认淘汰', { type: ButtonType.Capsule })
-          .height(AppSpacing.BUTTON_HEIGHT)
-          .fontSize(AppFontSize.MD)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .backgroundColor(AppColors.DANGER)
-          .padding({ left: 28, right: 28 })
-          .onClick(() => {
-            this.onConfirm?.(this.reasonText, this.noteText)
-          })
-          .stateStyles({
-            pressed: {
-              .scale({ x: 0.97, y: 0.97 })
-              .opacity(0.9)
-            },
-            normal: {
-              .scale({ x: 1, y: 1 })
-              .opacity(1)
-            }
-          })
-          .animation({
-            duration: 200
-          })
-      }
-      .width('100%')
-      .padding({ top: AppSpacing.MD })
-      .justifyContent(FlexAlign.Center)
-    }
-    .padding(AppSpacing.LG)
-    .width('100%')
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
-  }
+interface ResumeSnapshot {
+  realName?: string
+  birthDate?: string
+  education?: string
+  school?: string
+  skills?: string
+  experience?: string
+  attachmentUrl?: string
 }
 
-@CustomDialog
-struct CompleteDialog {
-  controller?: CustomDialogController
-  requestName?: string
-  onConfirm?: (note: string) => void
-  onCancel?: () => void
-
-  @State noteText: string = ''
-
-  build() {
-    Column() {
-      Row() {
-        Text('完成结算')
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick((): void => { this.onCancel?.() })
-      }
-      .width('100%')
-      .padding({ bottom: AppSpacing.MD })
-
-      Text('为 ' + (this.requestName || '') + ' 记录结算说明')
-        .fontSize(AppFontSize.SM)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-        .margin({ bottom: AppSpacing.MD })
-
-      TextArea({ placeholder: '结算备注（必填）', text: this.noteText })
-        .onChange((value: string): void => { this.noteText = value })
-        .width('100%')
-        .height(96)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(AppRadius.SM)
-        .padding(AppSpacing.SM)
-
-      Button('确认完成', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .fontSize(AppFontSize.MD)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .backgroundColor(AppColors.SUCCESS)
-        .margin({ top: AppSpacing.LG })
-        .onClick((): void => { this.onConfirm?.(this.noteText) })
-        .stateStyles({ pressed: { .opacity(0.85).scale({ x: 0.98, y: 0.98 }) } })
-        .animation({ duration: 180 })
-    }
-    .padding(AppSpacing.LG)
-    .width('100%')
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
-  }
+interface SelectOption {
+  value: string
 }
 
-@Component
-struct RequestCard {
-  request: RecruiterRequestVO = {
-    id: 0, applicantId: 0, applicantName: '', applicantAvatar: '',
-    applicantAge: 0, applicantSchool: '', applicantMajor: '',
-    applicantEducation: '', applicantExperience: '', applicantSkills: '',
-    applicantRegion: '', applicantType: '', applicantSalary: '',
-    jobTitle: '', status: 0, interviewTime: '',
-    interviewLocation: '', rejectReason: '', createTime: '', attachmentUrl: ''
-  }
-  onInterview?: (req: RecruiterRequestVO) => void
-  onReject?: (req: RecruiterRequestVO) => void
-  onSimpleStatus?: (req: RecruiterRequestVO, status: number) => void
-  onComplete?: (req: RecruiterRequestVO) => void
-  onViewResume?: (req: RecruiterRequestVO) => void
-
-  statusColor(): ResourceColor {
-    const map: Record<number, ResourceColor> = {
-      0: AppColors.WARNING,
-      1: AppColors.PRIMARY,
-      2: AppColors.TEXT_MUTED,
-      3: AppColors.SUCCESS,
-      4: AppColors.DANGER,
-      5: AppColors.TEXT_MUTED
-    }
-    return map[this.request.status] || AppColors.TEXT_MUTED
-  }
-
-  private formatDate(timeText?: string): string {
-    if (!timeText) {
-      return ''
-    }
-    return timeText.split('T')[0] || timeText.split(' ')[0] || timeText
-  }
-
-  build() {
-    StandardCard({
-      onClickAction: () => { this.onViewResume?.(this.request) },
-      accessibilityLabel: (this.request.applicantName || '求职者') + '的投递请求'
-    }) {
-      Column() {
-        Row() {
-          // 无头像时使用首字母占位
-          Stack() {
-            Text(this.request.applicantName ? this.request.applicantName.charAt(0) : '?')
-              .fontSize(AppFontSize.MD)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(AppColors.BG_CARD)
-          }
-          .width(44)
-          .height(44)
-          .borderRadius(AppRadius.FULL)
-          .backgroundColor(AppColors.PRIMARY)
-
-          Column() {
-            Row() {
-              Text(this.request.applicantName)
-                .fontSize(AppFontSize.MD)
-                .fontWeight(FontWeight.Bold)
-                .fontColor(AppColors.TEXT_PRIMARY)
-
-              if (this.request.applicantAge > 0) {
-                Text(this.request.applicantAge + '岁')
-                  .fontSize(AppFontSize.SM)
-                  .fontColor(AppColors.TEXT_SECONDARY)
-                  .margin({ left: AppSpacing.SM })
-              }
-            }
-            .alignItems(VerticalAlign.Center)
-
-            Text(this.request.applicantSchool + ' · ' + this.request.applicantMajor)
-              .fontSize(AppFontSize.XS)
-              .fontColor(AppColors.TEXT_SECONDARY)
-              .margin({ top: AppSpacing.XXS })
-
-            Row() {
-              Text(this.request.applicantEducation)
-                .fontSize(AppFontSize.XS)
-                .fontColor(AppColors.TEXT_MUTED)
-                .backgroundColor(AppColors.INPUT_BG)
-                .borderRadius(AppRadius.SM)
-                .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
-              Text(this.request.applicantExperience)
-                .fontSize(AppFontSize.XS)
-                .fontColor(AppColors.TEXT_MUTED)
-                .backgroundColor(AppColors.INPUT_BG)
-                .borderRadius(AppRadius.SM)
-                .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
-                .margin({ left: AppSpacing.XS })
-            }
-            .margin({ top: AppSpacing.XS })
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-          .margin({ left: AppSpacing.SM })
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
-
-        Text(this.request.applicantSkills)
-          .fontSize(AppFontSize.XS)
-          .fontColor(AppColors.TEXT_MUTED)
-          .lineHeight(18)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-          .margin({ top: AppSpacing.SM })
-
-        Row() {
-          Text('期望薪资 ' + this.request.applicantSalary)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.WARNING)
-            .fontWeight(FontWeight.Medium)
-
-          Blank()
-
-          Text(APPLICATION_STATUS_LABELS[this.request.status])
-            .fontSize(AppFontSize.XS)
-            .fontColor(this.statusColor())
-        }
-        .width('100%')
-        .margin({ top: AppSpacing.XS })
-
-        Row() {
-          Text('投递职位：' + this.request.jobTitle)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.TEXT_MUTED)
-          Blank()
-          Text(this.formatDate(this.request.createTime))
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.TEXT_MUTED)
-        }
-        .width('100%')
-        .margin({ top: AppSpacing.XXS })
-
-        if (this.request.status === 1 && this.request.interviewTime) {
-          Row() {
-            Text('面试安排：' + this.request.interviewTime + ' ' + this.request.interviewLocation)
-              .fontSize(AppFontSize.XS)
-              .fontColor(AppColors.PRIMARY)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .width('100%')
-          .margin({ top: AppSpacing.XS })
-        }
-
-        if (this.request.status === 4 && this.request.rejectReason) {
-          Row() {
-            Text('淘汰原因：' + this.request.rejectReason)
-              .fontSize(AppFontSize.XS)
-              .fontColor(AppColors.DANGER)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .width('100%')
-          .margin({ top: AppSpacing.XS })
-        }
-
-        if (this.request.status === 0) {
-          Row() {
-            Button({ type: ButtonType.Capsule }) {
-              Text('面试')
-                .fontSize(AppFontSize.XS)
-                .fontColor('#FFFFFF')
-            }
-              .height(AppSpacing.BUTTON_HEIGHT_MINI)
-              .backgroundColor(AppColors.PRIMARY)
-              .onClick(() => {
-                this.onInterview?.(this.request)
-              })
-              .stateStyles({
-                pressed: {
-                  .scale({ x: 0.97, y: 0.97 })
-                  .opacity(0.9)
-                  .backgroundColor(AppColors.PRIMARY_HOVER)
-                },
-                normal: {
-                  .scale({ x: 1, y: 1 })
-                  .opacity(1)
-                  .backgroundColor(AppColors.PRIMARY)
-                }
-              })
-              .animation({
-                duration: 200
-              })
-
-            this.statusAction('待定', AppColors.WARNING, () => {
-              this.onSimpleStatus?.(this.request, 2)
-            })
-            Blank().width(AppSpacing.SM)
-
-            Button({ type: ButtonType.Capsule }) {
-              Text('不合适')
-                .fontSize(AppFontSize.XS)
-                .fontColor(AppColors.DANGER)
-            }
-              .height(AppSpacing.BUTTON_HEIGHT_MINI)
-              .backgroundColor(AppColors.BG_CARD)
-              .border({ width: 1, color: AppColors.DANGER })
-              .onClick(() => {
-                this.onReject?.(this.request)
-              })
-              .stateStyles({
-                pressed: {
-                  .scale({ x: 0.97, y: 0.97 })
-                  .opacity(0.9)
-                },
-                normal: {
-                  .scale({ x: 1, y: 1 })
-                  .opacity(1)
-                }
-              })
-              .animation({
-                duration: 200
-              })
-          }
-          .width('100%')
-          .margin({ top: AppSpacing.SM })
-          .justifyContent(FlexAlign.End)
-        }
-        if (this.request.status === 1 || this.request.status === 2) {
-          Row() {
-            if (this.request.status === 2) {
-              this.statusAction('安排面试', AppColors.PRIMARY, () => {
-                this.onInterview?.(this.request)
-              })
-            }
-            this.statusAction('录用', AppColors.SUCCESS, () => {
-              this.onSimpleStatus?.(this.request, 3)
-            })
-            if (this.request.status === 1) {
-              this.statusAction('待定', AppColors.WARNING, () => {
-                this.onSimpleStatus?.(this.request, 2)
-              })
-            }
-            this.statusAction('不合适', AppColors.DANGER, () => {
-              this.onReject?.(this.request)
-            })
-          }
-          .width('100%')
-          .margin({ top: AppSpacing.SM })
-          .justifyContent(FlexAlign.End)
-        }
-        if (this.request.status === 3) {
-          Row() {
-            this.statusAction('完成结算', AppColors.SUCCESS, () => {
-              this.onComplete?.(this.request)
-            })
-          }
-          .width('100%')
-          .margin({ top: AppSpacing.SM })
-          .justifyContent(FlexAlign.End)
-        }
-      }
-      .width('100%')
-      .margin({ top: AppSpacing.SM })
-    }
-  }
-
-  @Builder
-  statusAction(label: string, color: ResourceColor, onClick: () => void): void {
-    Button({ type: ButtonType.Capsule }) {
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(color === AppColors.PRIMARY || color === AppColors.SUCCESS ? '#FFFFFF' : color)
-    }
-      .height(AppSpacing.BUTTON_HEIGHT_MINI)
-      .backgroundColor(color === AppColors.PRIMARY || color === AppColors.SUCCESS ? color : AppColors.BG_CARD)
-      .border({ width: 1, color: color })
-      .margin({ left: AppSpacing.XS })
-      .onClick(onClick)
-      .stateStyles({
-        pressed: {
-          .scale({ x: 0.97, y: 0.97 })
-          .opacity(0.9)
-        },
-        normal: {
-          .scale({ x: 1, y: 1 })
-          .opacity(1)
-        }
-      })
-      .animation({ duration: 180 })
-  }
+interface ApplicationStatusUpdate {
+  status?: number
+  interviewTime?: string
+  interviewLocation?: string
+  rejectReason?: string
+  hrNote?: string
 }
 
 @Entry
 @Component
 struct RecruiterRequestsPage {
-  @State requestList: RecruiterRequestVO[] = []
-  @State isLoading: boolean = true
+  // 职位相关
+  @State jobs: RecruiterJobVO[] = []
+  @State selectedJobIndex: number = -1
+
+  // 投递数据
+  @State applications: RecruiterApplicationVO[] = []
+  @State poolApplications: RecruiterApplicationVO[] = []
+  @State interviewApplications: RecruiterApplicationVO[] = []
+
+  // 页面状态
+  @State isLoadingJobs: boolean = true
+  @State isLoadingApps: boolean = false
   @State errorText: string = ''
-  @State filterStatus: number = -1
+
+  // Tab 状态
+  @State activeTab: 'pool' | 'interview' = 'pool'
+  @State activeTabIndex: number = 0
+
+  // 简历池内状态筛选（兼容首页 filterStatus 传入 0/2/3 的场景）
+  @State poolStatusFilter: number = -1
+
+  // 当前正在操作的投递记录（供弹窗回调使用）
+  private currentApplication?: RecruiterApplicationVO
 
   aboutToAppear(): void {
-    this.loadRequests()
+    this.parseRouteParams()
+    this.loadJobs()
   }
 
   onPageShow(): void {
-    // 从子页面返回时刷新一次数据
-    this.loadRequests()
-
-    const params = this.getUIContext().getRouter().getParams() as Record<string, string | number>
-    if (!params) {
-      return
-    }
-    const rawStatus = params['filterStatus']
-    let targetStatus: number = -1
-    if (typeof rawStatus === 'number') {
-      targetStatus = rawStatus
-    } else if (typeof rawStatus === 'string') {
-      targetStatus = parseInt(rawStatus)
-    }
-    if (!isNaN(targetStatus)) {
-      console.info('[RecruiterRequestsPage] onPageShow param filterStatus=', targetStatus)
-      this.filterStatus = targetStatus
+    // 从子页面返回时刷新当前职位投递列表
+    if (this.selectedJobIndex >= 0 && this.jobs.length > 0) {
+      this.loadApplications()
     }
   }
 
-  loadRequests(): void {
-    this.isLoading = true
+  // 解析路由参数：filterStatus=1 打开面试安排 Tab，其余保留在简历池并按状态筛选
+  private parseRouteParams(): void {
+    try {
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string | number> | null
+      if (!params) {
+        return
+      }
+      const rawStatus = params['filterStatus']
+      let targetStatus: number = -1
+      if (typeof rawStatus === 'number') {
+        targetStatus = rawStatus
+      } else if (typeof rawStatus === 'string') {
+        targetStatus = parseInt(rawStatus)
+      }
+      if (Number.isNaN(targetStatus)) {
+        return
+      }
+      if (targetStatus === 1) {
+        this.activeTab = 'interview'
+        this.activeTabIndex = 1
+      } else if (targetStatus >= 0) {
+        this.poolStatusFilter = targetStatus
+      }
+    } catch (err) {
+      console.error('[RecruiterRequestsPage] parseRouteParams error:', String(err))
+    }
+  }
+
+  // 加载企业职位列表
+  private loadJobs(): void {
+    this.isLoadingJobs = true
     this.errorText = ''
-    RecruiterService.getIncomingRequests().then((list: RecruiterRequestVO[]) => {
-      const sorted = (list ?? []).sort((a: RecruiterRequestVO, b: RecruiterRequestVO): number =>
-        this.parseTime(b.createTime) - this.parseTime(a.createTime)
-      )
-      console.info('[RecruiterRequestsPage] loadRequests got', sorted.length, 'requests, filterStatus=', this.filterStatus)
-      this.requestList = sorted
-      this.isLoading = false
-    }).catch((err: Error) => {
-      console.error('[RecruiterRequestsPage] loadRequests error:', err.message)
-      this.requestList = []
-      this.isLoading = false
-      this.errorText = '请求记录加载失败，请检查网络后重试'
+    RecruiterService.getMyJobs().then((list: RecruiterJobVO[]) => {
+      this.jobs = list ?? []
+      if (this.jobs.length > 0) {
+        this.selectedJobIndex = 0
+        this.loadApplications()
+      } else {
+        this.isLoadingJobs = false
+      }
+    }).catch(() => {
+      this.jobs = []
+      this.isLoadingJobs = false
+      this.errorText = '职位列表加载失败，请检查网络后重试'
     })
   }
 
-  private parseTime(timeText?: string): number {
-    if (!timeText) {
+  // 加载选中职位的投递记录
+  private loadApplications(): void {
+    if (this.selectedJobIndex < 0 || this.selectedJobIndex >= this.jobs.length) {
+      this.isLoadingApps = false
+      return
+    }
+    this.isLoadingApps = true
+    this.errorText = ''
+    const jobId = this.jobs[this.selectedJobIndex].id
+    RecruiterService.getJobApplications(jobId).then((list: RecruiterApplicationVO[]) => {
+      this.applications = list ?? []
+      this.updateDerivedLists()
+      this.isLoadingApps = false
+    }).catch(() => {
+      this.applications = []
+      this.poolApplications = []
+      this.interviewApplications = []
+      this.isLoadingApps = false
+      this.errorText = '投递记录加载失败，请检查网络后重试'
+    })
+  }
+
+  // 根据当前 Tab 和筛选条件拆分列表
+  private updateDerivedLists(): void {
+    // 简历池：排除面试安排、已淘汰、已完成
+    let pool = this.applications.filter((item: RecruiterApplicationVO) => ![1, 4, 5].includes(item.status))
+    if (this.poolStatusFilter !== -1) {
+      pool = pool.filter((item: RecruiterApplicationVO) => item.status === this.poolStatusFilter)
+    }
+    this.poolApplications = pool
+    this.interviewApplications = this.applications.filter((item: RecruiterApplicationVO) => item.status === 1)
+  }
+
+  // 下来选项数据
+  private getSelectOptions(): SelectOption[] {
+    if (this.jobs.length === 0) {
+      return [{ value: '暂无职位' }]
+    }
+    return this.jobs.map((job: RecruiterJobVO): SelectOption => {
+      return {
+        value: job.title + '（' + (job.applicationCount ?? 0) + ' 人投递）'
+      }
+    })
+  }
+
+  private getSelectValue(): string {
+    if (this.selectedJobIndex >= 0 && this.selectedJobIndex < this.jobs.length) {
+      const job: RecruiterJobVO = this.jobs[this.selectedJobIndex]
+      return job.title + '（' + (job.applicationCount ?? 0) + ' 人投递）'
+    }
+    return '请选择职位'
+  }
+
+  private handleJobSelected(index: number): void {
+    if (index < 0 || index >= this.jobs.length || index === this.selectedJobIndex) {
+      return
+    }
+    this.selectedJobIndex = index
+    this.loadApplications()
+  }
+
+  // 解析简历快照
+  private parseResumeSnapshot(snapshot?: string): ResumeSnapshot {
+    if (!snapshot) {
+      return {}
+    }
+    try {
+      return JSON.parse(snapshot) as ResumeSnapshot
+    } catch {
+      return {}
+    }
+  }
+
+  private getAge(birthDate?: string): number {
+    if (!birthDate || birthDate.length < 4) {
       return 0
     }
-    const ts = new Date(timeText).getTime()
-    return Number.isNaN(ts) ? 0 : ts
+    const year = Number(birthDate.substring(0, 4))
+    const currentYear = new Date().getFullYear()
+    return year >= 1900 && year <= currentYear ? currentYear - year : 0
   }
 
-  get filteredList(): RecruiterRequestVO[] {
-    const filterStatus = this.filterStatus
-    const requestList = this.requestList ?? []
-    console.info('[RecruiterRequestsPage] filteredList filterStatus=', filterStatus, 'requestList.length=', requestList.length)
-    if (filterStatus === -1) {
-      return requestList
+  // 打开简历详情页
+  private openResume(app: RecruiterApplicationVO): void {
+    const snapshot = this.parseResumeSnapshot(app.resumeSnapshot)
+    const resumeData: ResumeCardData = {
+      id: String(app.applicantId),
+      name: app.applicantName || snapshot.realName || '匿名求职者',
+      age: this.getAge(snapshot.birthDate),
+      avatar: app.applicantAvatar || '',
+      education: snapshot.education || '',
+      school: snapshot.school || '',
+      major: '',
+      experience: snapshot.experience || '',
+      skills: snapshot.skills || '',
+      region: '',
+      type: '',
+      category: '',
+      expectedSalary: '',
+      description: '',
+      attachmentUrl: app.attachmentUrl || snapshot.attachmentUrl || '',
+      applicationId: app.id,
+      applicationStatus: app.status,
+      jobTitle: this.selectedJobIndex >= 0 ? this.jobs[this.selectedJobIndex].title : '',
+      createTime: app.createTime
     }
-    const result: RecruiterRequestVO[] = []
-    for (const req of requestList) {
-      if (req.status === filterStatus) {
-        result.push(req)
-      }
-    }
-    console.info('[RecruiterRequestsPage] filteredList result.length=', result.length)
-    return result
+    this.getUIContext().getRouter().pushUrl({
+      url: 'pages/ResumeDetailPage',
+      params: { resumeData: JSON.stringify(resumeData) }
+    })
   }
 
-  handleInterview(req: RecruiterRequestVO): void {
-    let dialog = new CustomDialogController({
+  // 通知铃铛点击回调：定位职位并打开简历详情
+  private async handleNotificationClick(applicationId: number): Promise<void> {
+    const app = await RecruiterService.getApplicationById(applicationId)
+    if (!app) {
+      this.getUIContext().getPromptAction().showToast({ message: '投递记录不存在或已删除' })
+      return
+    }
+    const jobIndex = this.jobs.findIndex((job: RecruiterJobVO) => job.id === app.taskId)
+    if (jobIndex >= 0 && jobIndex !== this.selectedJobIndex) {
+      this.selectedJobIndex = jobIndex
+      this.activeTab = app.status === 1 ? 'interview' : 'pool'
+      this.activeTabIndex = app.status === 1 ? 1 : 0
+      this.loadApplications()
+    }
+    this.openResume(app)
+  }
+
+  // 操作：邀请/安排面试
+  private handleInterview(app: RecruiterApplicationVO): void {
+    this.currentApplication = app
+    const dialog = new CustomDialogController({
       builder: InterviewDialog({
-        requestName: req.applicantName,
+        applicantName: app.applicantName,
         onConfirm: (time: string, location: string) => {
-          if (!time.trim() || !location.trim()) {
-            this.getUIContext().getPromptAction().showToast({ message: '请填写面试时间和地点' })
-            return
-          }
-          RecruiterService.processRequest(req.id, {
+          this.updateApplicationStatus(app, {
             status: 1,
             interviewTime: time,
             interviewLocation: location
-          }).then((success: boolean) => {
-            if (!success) {
-              this.getUIContext().getPromptAction().showToast({ message: '面试安排失败，请刷新后重试' })
-              return
-            }
-            dialog.close()
-            req.status = 1
-            req.interviewTime = time
-            req.interviewLocation = location
-            this.requestList = [...this.requestList]
-            this.getUIContext().getPromptAction().showToast({ message: '面试安排已保存' })
-          }).catch(() => {
-            this.getUIContext().getPromptAction().showToast({ message: '面试安排失败，请稍后重试' })
-          })
-        },
-        onCancel: () => {
-          dialog.close()
+          }, '面试邀请已发送')
         }
       }),
       autoCancel: true,
@@ -708,35 +269,18 @@ struct RecruiterRequestsPage {
     dialog.open()
   }
 
-  handleReject(req: RecruiterRequestVO): void {
-    let dialog = new CustomDialogController({
+  // 操作：淘汰
+  private handleReject(app: RecruiterApplicationVO): void {
+    this.currentApplication = app
+    const dialog = new CustomDialogController({
       builder: RejectDialog({
-        requestName: req.applicantName,
-        onConfirm: (reason: string, note: string): void => {
-          if (!ApplicationNotePolicy.isValid(reason) || !ApplicationNotePolicy.isValid(note)) {
-            this.getUIContext().getPromptAction().showToast({ message: '请填写淘汰原因和内部备注' })
-            return
-          }
-          RecruiterService.processRequest(req.id, {
+        applicantName: app.applicantName,
+        onConfirm: (reason: string, note: string) => {
+          this.updateApplicationStatus(app, {
             status: 4,
             rejectReason: reason,
             hrNote: note
-          }).then((success: boolean) => {
-            if (!success) {
-              this.getUIContext().getPromptAction().showToast({ message: '操作失败，请刷新后重试' })
-              return
-            }
-            dialog.close()
-            req.status = 4
-            req.rejectReason = reason
-            this.requestList = [...this.requestList]
-            this.getUIContext().getPromptAction().showToast({ message: '候选人状态已更新' })
-          }).catch(() => {
-            this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
-          })
-        },
-        onCancel: () => {
-          dialog.close()
+          }, '已发送淘汰通知')
         }
       }),
       autoCancel: true,
@@ -745,127 +289,199 @@ struct RecruiterRequestsPage {
     dialog.open()
   }
 
-  confirmSimpleStatus(req: RecruiterRequestVO, status: number, label: string): void {
-    this.getUIContext().showAlertDialog({
-      message: '确定将 ' + req.applicantName + ' 标记为' + label + '吗？',
-      confirm: {
-        value: '确定',
-        action: (): void => { this.updateSimpleStatus(req, status) }
-      },
-      cancel: (): void => {}
+  // 操作：完成结算
+  private handleComplete(app: RecruiterApplicationVO): void {
+    this.currentApplication = app
+    const dialog = new CustomDialogController({
+      builder: CompleteDialog({
+        applicantName: app.applicantName,
+        onConfirm: (note: string) => {
+          if (!app || app.id <= 0) {
+            return
+          }
+          RecruiterService.completeApplication(app.id, note).then((ok: boolean) => {
+            if (ok) {
+              app.status = 5
+              this.updateDerivedLists()
+              this.getUIContext().getPromptAction().showToast({ message: '结算已完成' })
+            } else {
+              this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
+            }
+          }).catch(() => {
+            this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
+          })
+        }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom
+    })
+    dialog.open()
+  }
+
+  // 简单状态变更（录用、待定）
+  private handleMarkStatus(app: RecruiterApplicationVO, targetStatus: number, label: string): void {
+    const promptAction = this.getUIContext().getPromptAction()
+    promptAction.showDialog({
+      message: '确定将 ' + (app.applicantName || '该候选人') + ' 标记为「' + label + '」吗？',
+      buttons: [
+        { text: '取消', color: '#999999' },
+        { text: '确认', color: '#1762FB' }
+      ]
+    }).then((result) => {
+      if (result.index === 1) {
+        this.updateApplicationStatus(app, { status: targetStatus }, '操作成功')
+      }
+    }).catch(() => {
+      // 取消时静默处理
     })
   }
 
-  updateSimpleStatus(req: RecruiterRequestVO, status: number): void {
-    RecruiterService.processRequest(req.id, {
-      status: status
-    }).then((success: boolean) => {
-      if (!success) {
+  // 统一更新投递状态并刷新列表
+  private updateApplicationStatus(
+    app: RecruiterApplicationVO,
+    data: ApplicationStatusUpdate,
+    successMessage: string
+  ): void {
+    if (!app || app.id <= 0) {
+      return
+    }
+    RecruiterService.updateApplicationStatus(app.id, {
+      status: data.status ?? app.status,
+      interviewTime: data.interviewTime,
+      interviewLocation: data.interviewLocation,
+      rejectReason: data.rejectReason,
+      hrNote: data.hrNote
+    }).then((ok: boolean) => {
+      if (ok) {
+        if (data.status !== undefined) {
+          app.status = data.status
+        }
+        if (data.interviewTime !== undefined) {
+          app.interviewTime = data.interviewTime
+        }
+        if (data.interviewLocation !== undefined) {
+          app.interviewLocation = data.interviewLocation
+        }
+        if (data.rejectReason !== undefined) {
+          app.rejectReason = data.rejectReason
+        }
+        this.updateDerivedLists()
+        this.getUIContext().getPromptAction().showToast({ message: successMessage })
+      } else {
         this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
-        return
       }
-      req.status = status
-      this.requestList = [...this.requestList]
-      this.getUIContext().getPromptAction().showToast({ message: '操作成功' })
     }).catch(() => {
       this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
     })
   }
 
-  confirmComplete(req: RecruiterRequestVO): void {
-    let dialog = new CustomDialogController({
-      builder: CompleteDialog({
-        requestName: req.applicantName,
-        onConfirm: (note: string): void => {
-          if (!ApplicationNotePolicy.isValid(note)) {
-            this.getUIContext().getPromptAction().showToast({ message: '请填写结算备注' })
-            return
-          }
-          dialog.close()
-          RecruiterService.completeApplication(req.id, note).then((success: boolean) => {
-            if (!success) {
-              this.getUIContext().getPromptAction().showToast({ message: '结算失败，请稍后重试' })
-              return
-            }
-            req.status = 5
-            this.requestList = [...this.requestList]
-            this.getUIContext().getPromptAction().showToast({ message: '结算已完成' })
-          }).catch(() => {
-            this.getUIContext().getPromptAction().showToast({ message: '结算失败，请稍后重试' })
-          })
-        },
-        onCancel: (): void => { dialog.close() }
-      }),
-      autoCancel: true,
-      alignment: DialogAlignment.Bottom
-    })
-    dialog.open()
-  }
-  openResume(req: RecruiterRequestVO): void {
-    this.getUIContext().getRouter().pushUrl({
-      url: 'pages/ResumeDetailPage',
-      params: {
-        resumeData: JSON.stringify({
-          id: String(req.applicantId),
-          name: req.applicantName,
-          age: req.applicantAge,
-          avatar: req.applicantAvatar,
-          education: req.applicantEducation,
-          school: req.applicantSchool,
-          major: req.applicantMajor,
-          experience: req.applicantExperience,
-          skills: req.applicantSkills,
-          region: req.applicantRegion,
-          type: req.applicantType,
-          category: '',
-          expectedSalary: req.applicantSalary,
-          description: '',
-          attachmentUrl: req.attachmentUrl,
-          applicationId: req.id,
-          applicationStatus: req.status,
-          jobTitle: req.jobTitle,
-          createTime: req.createTime
-        })
-      }
-    })
-  }
   build() {
     Column() {
-      NavBar({
-        title: '请求处理',
-        showBack: true,
-        onBack: () => this.getUIContext().getRouter().back()
-      })
+      // 顶部标题栏
+      this.header()
 
-      Scroll() {
-        Row() {
-          this.filterTab('全部', -1)
-          this.filterTab('待处理', 0)
-          this.filterTab('待面试', 1)
-          this.filterTab('待定', 2)
-          this.filterTab('已录用', 3)
-          this.filterTab('已淘汰', 4)
-          this.filterTab('已完成', 5)
+      // Tabs：简历池 / 面试安排
+      Tabs({ index: this.activeTabIndex, barPosition: BarPosition.Start }) {
+        TabContent() {
+          this.poolContent()
         }
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-      }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
-      .width('100%')
-      .backgroundColor(AppColors.BG_CARD)
-      .padding({ top: AppSpacing.SM, bottom: AppSpacing.SM })
+        .tabBar('简历池')
 
-      if (this.isLoading) {
+        TabContent() {
+          this.interviewContent()
+        }
+        .tabBar('面试安排')
+      }
+      .barHeight(44)
+      .animationDuration(200)
+      .onChange((index: number) => {
+        this.activeTabIndex = index
+        this.activeTab = index === 0 ? 'pool' : 'interview'
+      })
+      .layoutWeight(1)
+      .width('100%')
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(AppColors.BG_PAGE)
+  }
+
+  @Builder
+  header(): void {
+    Column() {
+      Row() {
+        Button({ type: ButtonType.Circle }) {
+          SymbolGlyph($r('sys.symbol.chevron_left'))
+            .fontSize(AppFontSize.ICON_MD)
+            .fontColor([AppColors.TEXT_PRIMARY])
+        }
+          .width(40)
+          .height(40)
+          .backgroundColor(Color.Transparent)
+          .onClick(() => {
+            this.getUIContext().getRouter().back()
+          })
+          .stateStyles({
+            pressed: {
+              .backgroundColor(AppColors.INPUT_BG)
+            }
+          })
+          .animation({ duration: 150 })
+
+        Text('投递管理')
+          .fontSize(AppFontSize.XL)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        // 职位选择器
+        if (!this.isLoadingJobs && this.jobs.length > 0) {
+          Select(this.getSelectOptions())
+            .selected(this.selectedJobIndex >= 0 ? this.selectedJobIndex : 0)
+            .value(this.getSelectValue())
+            .fontColor(AppColors.TEXT_PRIMARY)
+            .backgroundColor(AppColors.BG_CARD)
+            .borderRadius(AppRadius.SM)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+            .onSelect((index: number) => { this.handleJobSelected(index) })
+            .margin({ right: AppSpacing.SM })
+        }
+
+        // 新投递通知铃铛
+        NotificationBell({
+          onNavigateToApplication: (applicationId: number): void => {
+            void this.handleNotificationClick(applicationId)
+          }
+        })
+      }
+      .width('100%')
+      .height(AppSpacing.BUTTON_HEIGHT_MD)
+      .padding({ left: AppSpacing.SM, right: AppSpacing.MD })
+      .backgroundColor(AppColors.BG_CARD)
+      .alignItems(VerticalAlign.Center)
+    }
+  }
+
+  @Builder
+  poolContent(): void {
+    Column() {
+      // 简历池内状态筛选标签（兼容首页传入 filterStatus）
+      this.filterTabs()
+
+      if (this.isLoadingJobs || this.isLoadingApps) {
         Column() {
           LoadingProgress()
             .width(AppSpacing.ICON_MD)
             .height(AppSpacing.ICON_MD)
             .color(AppColors.PRIMARY)
-          Text('正在加载请求记录')
+          Text('加载中...')
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.TEXT_MUTED)
             .margin({ top: AppSpacing.SM })
         }
+        .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
@@ -874,73 +490,164 @@ struct RecruiterRequestsPage {
           ErrorView({
             message: this.errorText,
             retryText: '重新加载',
-            onRetry: () => { this.loadRequests() }
+            onRetry: () => { this.loadJobs() }
           })
             .width('100%')
         }
+        .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-      } else if (!this.filteredList || this.filteredList.length === 0) {
+      } else if (this.jobs.length === 0) {
         Column() {
-          EmptyView({ message: '暂无应聘记录' })
+          EmptyView({ message: '暂无职位，请先发布职位' })
             .width('100%')
         }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.poolApplications.length === 0) {
+        Column() {
+          EmptyView({ message: '简历池暂无候选人' })
+            .width('100%')
+        }
+        .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else {
-        Scroll() {
-          Column() {
-            ForEach(this.filteredList, (req: RecruiterRequestVO) => {
-              RequestCard({
-                request: req,
-                onInterview: (r: RecruiterRequestVO) => { this.handleInterview(r) },
-                onReject: (r: RecruiterRequestVO) => { this.handleReject(r) },
-                onSimpleStatus: (r: RecruiterRequestVO, status: number) => { this.confirmSimpleStatus(r, status, status === 3 ? '已录用' : '待定') },
-                onComplete: (r: RecruiterRequestVO) => { this.confirmComplete(r) },
-                onViewResume: (r: RecruiterRequestVO) => { this.openResume(r) }
+        List() {
+          ForEach(this.poolApplications, (app: RecruiterApplicationVO) => {
+            ListItem() {
+              PoolApplicationCard({
+                app: app,
+                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) },
+                onInterview: (item: RecruiterApplicationVO): void => { this.handleInterview(item) },
+                onReject: (item: RecruiterApplicationVO): void => { this.handleReject(item) },
+                onComplete: (item: RecruiterApplicationVO): void => { this.handleComplete(item) },
+                onMarkStatus: (item: RecruiterApplicationVO, targetStatus: number, label: string): void => {
+                  this.handleMarkStatus(item, targetStatus, label)
+                }
               })
-              .transition(TransitionEffect.asymmetric(
-                TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
-                TransitionEffect.opacity(1)
-              ))
-            }, (req: RecruiterRequestVO) => req.id.toString())
-          }
-          .padding(AppSpacing.MD)
-          .width('100%')
+                .margin({ bottom: AppSpacing.MD })
+            }
+          }, (app: RecruiterApplicationVO): string => app.id.toString())
         }
-        .layoutWeight(1)
         .width('100%')
+        .layoutWeight(1)
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
+        .scrollBar(BarState.Off)
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(AppColors.BG_PAGE)
+  }
+
+  @Builder
+  interviewContent(): void {
+    Column() {
+      if (this.isLoadingJobs || this.isLoadingApps) {
+        Column() {
+          LoadingProgress()
+            .width(AppSpacing.ICON_MD)
+            .height(AppSpacing.ICON_MD)
+            .color(AppColors.PRIMARY)
+          Text('加载中...')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.SM })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.errorText) {
+        Column() {
+          ErrorView({
+            message: this.errorText,
+            retryText: '重新加载',
+            onRetry: () => { this.loadJobs() }
+          })
+            .width('100%')
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.interviewApplications.length === 0) {
+        Column() {
+          EmptyView({ message: '暂无面试安排' })
+            .width('100%')
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else {
+        List() {
+          ForEach(this.interviewApplications, (app: RecruiterApplicationVO) => {
+            ListItem() {
+              PoolApplicationCard({
+                app: app,
+                showInterviewDetail: true,
+                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) },
+                onInterview: (item: RecruiterApplicationVO): void => { this.handleInterview(item) },
+                onReject: (item: RecruiterApplicationVO): void => { this.handleReject(item) },
+                onComplete: (item: RecruiterApplicationVO): void => { this.handleComplete(item) },
+                onMarkStatus: (item: RecruiterApplicationVO, targetStatus: number, label: string): void => {
+                  this.handleMarkStatus(item, targetStatus, label)
+                }
+              })
+                .margin({ bottom: AppSpacing.MD })
+            }
+          }, (app: RecruiterApplicationVO): string => app.id.toString())
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD })
+        .scrollBar(BarState.Off)
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  filterTabs(): void {
+    Scroll() {
+      Row({ space: AppSpacing.SM }) {
+        this.filterTab('全部', -1)
+        this.filterTab('已投递', 0)
+        this.filterTab('待定', 2)
+        this.filterTab('已录用', 3)
+      }
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.SM, bottom: AppSpacing.SM })
+    }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .width('100%')
+    .backgroundColor(AppColors.BG_CARD)
   }
 
   @Builder
   filterTab(label: string, status: number): void {
     Button(label, { type: ButtonType.Capsule })
-      .height(34)
-      .fontSize(AppFontSize.SM)
-      .fontColor(this.filterStatus === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
-      .backgroundColor(this.filterStatus === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
-      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-      .margin({ right: AppSpacing.SM })
+      .height(28)
+      .fontSize(AppFontSize.XS)
+      .fontColor(this.poolStatusFilter === status ? '#FFFFFF' : AppColors.TEXT_SECONDARY)
+      .backgroundColor(this.poolStatusFilter === status ? AppColors.PRIMARY : AppColors.INPUT_BG)
+      .padding({ left: AppSpacing.LG, right: AppSpacing.LG, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
       .onClick(() => {
-        this.filterStatus = status
+        this.poolStatusFilter = status
+        this.updateDerivedLists()
       })
       .stateStyles({
         pressed: {
           .scale({ x: 0.97, y: 0.97 })
-          .opacity(0.88)
-        },
-        normal: {
-          .scale({ x: 1, y: 1 })
-          .opacity(1)
+          .opacity(0.9)
         }
       })
-      .animation({ duration: 180 })
+      .animation({ duration: 150 })
   }
 }

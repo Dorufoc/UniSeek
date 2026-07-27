@@ -387,28 +387,33 @@ public class ChatServiceImpl implements ChatService {
             throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
         }
 
-        // 1) 先按会话 PK 查找，检查是否为直接会话（task_application_id IS NULL）
-        ChatSession session = chatSessionMapper.selectById(applicationId);
-        if (session != null && session.getTaskApplicationId() == null) {
-            if (role == 1 && !session.getEmployerId().equals(userId) ||
-                role == 0 && !session.getSeekerId().equals(userId)) {
-                throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
-            }
+        // 1) 优先按投递记录 ID 查找，避免两个主键空间发生数值重叠时取错会话。
+        Long sessionIdByApplication = chatSessionMapper.selectIdByApplicationId(applicationId);
+        ChatSession session = sessionIdByApplication == null
+                ? null : chatSessionMapper.selectById(sessionIdByApplication);
+        if (session != null) {
+            validateApplicationAccess(session, applicationId, userId, role);
             return session;
         }
 
-        // 2) 按投递记录 ID 查找（投递会话）
-        if (session == null || session.getTaskApplicationId() != null) {
-            Long sid = chatSessionMapper.selectIdByApplicationId(applicationId);
-            if (sid == null) {
-                throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
-            }
-            session = chatSessionMapper.selectById(sid);
-            if (session == null) {
-                throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
-            }
+        // 2) 没有关联投递记录时，applicationId 实际上是直接会话主键。
+        session = chatSessionMapper.selectById(applicationId);
+        if (session != null && session.getTaskApplicationId() == null) {
+            validateParticipant(session, userId, role);
+            return session;
         }
 
+        throw new BusinessException(ApiResult.NOT_FOUND, "会话不存在");
+    }
+
+    private void validateParticipant(ChatSession session, Long userId, Integer role) {
+        if (role == 1 && !session.getEmployerId().equals(userId) ||
+            role == 0 && !session.getSeekerId().equals(userId)) {
+            throw new BusinessException(ApiResult.FORBIDDEN, "无权访问该会话");
+        }
+    }
+
+    private void validateApplicationAccess(ChatSession session, Long applicationId, Long userId, Integer role) {
         // 职位投递会话权限校验
         TaskApplication application = taskApplicationMapper.selectById(applicationId);
         if (application == null) {
@@ -432,7 +437,6 @@ public class ChatServiceImpl implements ChatService {
             }
         }
 
-        return session;
     }
 
     /**

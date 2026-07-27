@@ -123,6 +123,34 @@ export interface RecruiterRequestVO {
   attachmentUrl: string
 }
 
+// 系统通知消息（与后端 notification 表对齐）
+export interface NotificationVO {
+  id: number
+  receiverId: number
+  senderId: number
+  senderName?: string
+  title: string
+  content: string
+  type: number
+  isRead: number
+  bizId: number
+  createTime: string
+}
+
+// 通知未读数汇总
+export interface UnreadCountVO {
+  totalUnread?: number
+  total?: number
+}
+
+// 投递记录可操作按钮配置
+export interface ApplicationActionConfig {
+  targetStatus: number
+  label: string
+  variant: 'primary' | 'success' | 'warning' | 'danger'
+  requiresDialog?: 'interview' | 'reject' | 'complete'
+}
+
 export const JOB_STATUS_MAP: number[] = [0, 1, 2, 3, 4]
 export const JOB_STATUS_LABELS: Record<number, string> = {
   0: '待审核',
