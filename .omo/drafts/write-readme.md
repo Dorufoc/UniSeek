@@ -32,7 +32,7 @@ approach: 基于对项目全量文件（后端Java、前端Vue/ArkTS、数据库
 - **角色体系**: 4级角色 0=求职者 / 1=HR / 9=管理员 / 99=超级管理员 (AGENTS.md:87-92)
 - **核心功能**: 职位CRUD、投递状态机（6状态流转）、简历快照、即时通讯、实名认证、运营统计看板、操作审计日志 (UniSeek全平台业务逻辑设计V2.md)
 - **前端路由**: 20+页面，含路由守卫（auth/recruiter/admin三级权限）(router/index.ts:174-212)
-- **Mock账号**: 超级管理员 18688886666/admin (README.md:76-82)
+- **Mock账号**: 超级管理员 19999999999/admin (README.md:76-82)
 
 ## Decisions (with rationale)
 1. **采用成品级README结构**: 参考Vue/React/Apache等顶级开源项目标准，包含项目概览→技术栈→架构图→快速开始→API→数据库→贡献指南全链路

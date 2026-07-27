@@ -10,11 +10,18 @@ import com.uniseek.dao.RealNameAuthMapper;
 import com.uniseek.dao.UserMapper;
 import com.uniseek.entity.RealNameAuth;
 import com.uniseek.entity.User;
+import com.uniseek.entity.OperationLog;
+import com.uniseek.service.OperationLogService;
 import com.uniseek.util.JwtUtil;
 import com.uniseek.util.PasswordUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -34,6 +41,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private OperationLogService operationLogService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -93,6 +105,38 @@ public class AuthServiceImpl implements AuthService {
         // 8. 插入用户
         userMapper.insert(user);
 
+        // 8b. 手动记录注册日志（register 接口无 JWT Token，AOP 无法获取操作人）
+        try {
+            OperationLog logEntity = new OperationLog();
+            logEntity.setOperatorId(user.getId());
+            logEntity.setOperationType("REGISTER");
+            logEntity.setTargetType("USER");
+            logEntity.setTargetId(user.getId());
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("userId", user.getId());
+            detail.put("role", user.getRole());
+            logEntity.setDetail(objectMapper.writeValueAsString(detail));
+            logEntity.setCreateTime(LocalDateTime.now());
+            // 获取客户端 IP
+            try {
+                ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attrs != null) {
+                    HttpServletRequest req = attrs.getRequest();
+                    String ip = req.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = req.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = req.getRemoteAddr();
+                    }
+                    logEntity.setIpAddress(ip);
+                }
+            } catch (Exception ignored) {}
+            operationLogService.saveLog(logEntity);
+        } catch (Exception ignored) {
+            // 日志记录失败不影响主流程
+        }
+
         // 9. 生成 Token
         String token = jwtUtil.generateToken(user.getId(), user.getRole(), user.getPhone());
 
@@ -135,10 +179,42 @@ public class AuthServiceImpl implements AuthService {
         user.setLastLoginTime(LocalDateTime.now());
         userMapper.updateById(user);
 
-        // 6. 生成 Token
+        // 6. 记录登录操作日志（含正确操作人）
+        try {
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("userId", user.getId());
+            detail.put("role", user.getRole());
+            OperationLog logEntity = new OperationLog();
+            logEntity.setOperatorId(user.getId());
+            logEntity.setOperationType("LOGIN");
+            logEntity.setTargetType("USER");
+            logEntity.setTargetId(user.getId());
+            logEntity.setDetail(objectMapper.writeValueAsString(detail));
+            logEntity.setCreateTime(LocalDateTime.now());
+            // 获取客户端 IP
+            try {
+                ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attrs != null) {
+                    HttpServletRequest req = attrs.getRequest();
+                    String ip = req.getHeader("X-Forwarded-For");
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = req.getHeader("X-Real-IP");
+                    }
+                    if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                        ip = req.getRemoteAddr();
+                    }
+                    logEntity.setIpAddress(ip);
+                }
+            } catch (Exception ignored) {}
+            operationLogService.saveLog(logEntity);
+        } catch (Exception ignored) {
+            // 日志记录失败不影响主流程
+        }
+
+        // 7. 生成 Token
         String token = jwtUtil.generateToken(user.getId(), user.getRole(), user.getPhone());
 
-        // 7. 构建 UserVO（脱敏）
+        // 8. 构建 UserVO（脱敏）
         UserVO userVO = buildUserVO(user);
 
         // 8. 返回结果
@@ -150,8 +226,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout(Long userId) {
-        // 记录退出日志（当前由 Controller 层面处理）
-        // 此处仅做业务层占位，后续可扩展日志记录逻辑
+        // 退出操作不再记录日志
     }
 
     @Override

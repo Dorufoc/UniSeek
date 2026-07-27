@@ -1,7 +1,7 @@
 # Navicat SQL dumps
 *.sql
 !uniseek_schema.sql
-!uniseek_mock_data.sql
+ uniseek_mock_data.sql
 !uniseek_mock_data_large.sql
 !uniseek_favorite.sql
 
@@ -18,3 +18,4 @@ node_modules/
 # Vite dependency cache
 uniseek_vue/node_modules/.vite/
 uniseek_java/upload/images/*
+

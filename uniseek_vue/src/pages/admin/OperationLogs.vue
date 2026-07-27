@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import {
   listOperationLogs,
   type OperationLogRecord,
@@ -20,57 +20,35 @@ const params = reactive({
 })
 
 const operationTypes = [
-  'USER_REGISTER',
-  'USER_LOGIN',
+  'REGISTER',
+  'LOGIN',
+  'CHANGE_PASSWORD',
+  'REAL_NAME_AUTH',
+  'PUBLISH_RESUME',
   'ENTERPRISE_SUBMIT',
-  'ENTERPRISE_AUDIT',
   'TASK_PUBLISH',
-  'TASK_AUDIT',
   'TASK_RESUBMIT',
   'TASK_OFFLINE',
   'APPLICATION_DELIVER',
-  'APPLICATION_HIRE',
-  'APPLICATION_REJECT',
-
-  'REAL_NAME_AUTH',
-  'ADMIN_SET_ROLE',
-  'REGISTER',
-  'LOGIN',
-  'LOGOUT',
-  'CHANGE_PASSWORD',
-  'UPDATE_PHONE',
-  'UPDATE_EMAIL',
-  'SAVE_RESUME',
-  'UPLOAD_RESUME',
   'APPLICATION_INTERVIEW',
-  'APPLICATION_PENDING'
+  'APPLICATION_HIRE',
+  'APPLICATION_REJECT'
 ]
 
 const operationTypeMap: Record<string, string> = {
-  USER_REGISTER: '用户注册',
-  USER_LOGIN: '用户登录',
+  REGISTER: '注册',
+  LOGIN: '登录',
+  CHANGE_PASSWORD: '修改密码',
+  REAL_NAME_AUTH: '实名认证',
+  PUBLISH_RESUME: '发布简历',
   ENTERPRISE_SUBMIT: '企业资质提交',
-  ENTERPRISE_AUDIT: '企业资质审核',
   TASK_PUBLISH: '职位发布',
-  TASK_AUDIT: '职位审核',
   TASK_RESUBMIT: '重新提交审核',
   TASK_OFFLINE: '职位下架',
   APPLICATION_DELIVER: '求职者投递',
-  APPLICATION_HIRE: '录用求职者',
-  APPLICATION_REJECT: '淘汰求职者',
-
-  REAL_NAME_AUTH: '实名认证',
-  ADMIN_SET_ROLE: '管理员设权',
-  REGISTER: '注册',
-  LOGIN: '登录',
-  LOGOUT: '登出',
-  CHANGE_PASSWORD: '修改密码',
-  UPDATE_PHONE: '更新手机号',
-  UPDATE_EMAIL: '更新邮箱',
-  SAVE_RESUME: '保存简历',
-  UPLOAD_RESUME: '上传简历',
   APPLICATION_INTERVIEW: '邀约面试',
-  APPLICATION_PENDING: '待处理'
+  APPLICATION_HIRE: '录用求职者',
+  APPLICATION_REJECT: '淘汰求职者'
 }
 
 const fetchData = async () => {
@@ -127,8 +105,15 @@ const formatDetail = (detail: string) => {
   }
 }
 
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   fetchData()
+  refreshTimer = setInterval(fetchData, 30000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
 })
 </script>
 
@@ -185,7 +170,7 @@ onMounted(() => {
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="id" label="ID" width="120" />
         <el-table-column prop="createTime" label="操作时间" width="160" />
         <el-table-column prop="operatorName" label="操作人" width="120" show-overflow-tooltip>
           <template #default="{ row }">
@@ -198,7 +183,6 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="targetType" label="目标类型" width="110" show-overflow-tooltip />
-        <el-table-column prop="targetId" label="目标ID" width="80" align="center" />
         <el-table-column prop="ipAddress" label="IP 地址" width="140" show-overflow-tooltip />
         <el-table-column label="操作详情" min-width="180">
           <template #default="{ row }">

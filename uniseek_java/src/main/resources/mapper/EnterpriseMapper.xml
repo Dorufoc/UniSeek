@@ -12,6 +12,7 @@
         <result column="industry" property="industry"/>
         <result column="region_id" property="regionId"/>
         <result column="description" property="description"/>
+        <result column="reject_reason" property="rejectReason"/>
         <result column="audit_status" property="auditStatus"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>

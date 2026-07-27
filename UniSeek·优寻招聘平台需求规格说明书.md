@@ -1,11 +1,11 @@
-# 兼职招聘平台需求规格说明书
+# 平台需求规格说明书
 
 | 文档名称 | UniSeek·优寻招聘平台需求规格说明书 |
 |---|---|
 | 项目名称 | UniSeek·优寻招聘平台 |
 | 项目组名 | UniSeek |
-| 版本号 | V1.3 |
-| 编写日期 | 2026-07-14 |
+| 版本号 | V1.4 |
+| 编写日期 | 2026-07-28 |
 
 ---
 
@@ -409,7 +409,7 @@ public class RealNameAuthService {
 
 #### 3.4.1 功能概述
 
-为平台运营人员提供企业资质审核、职位内容审核、用户投诉处理、平台数据统计看板等功能，保障平台信息真实性和运营健康度。
+为平台运营人员提供企业资质审核、职位内容审核、用户投诉处理、平台数据统计看板、操作日志审计等功能，保障平台信息真实性和运营健康度。
 
 #### 3.4.2 用例描述
 
@@ -440,6 +440,15 @@ public class RealNameAuthService {
 |---|---|
 | 参与者 | 运营管理员 |
 | 基本流程 | 1. 管理员进入"投诉管理"页面<br>2. 列表展示所有投诉记录（投诉人、被投诉对象、投诉类型、投诉内容、处理状态）<br>3. 查看投诉详情，可查看关联的职位/企业/用户信息<br>4. 审核后进行处理：<br>   - 标记为"处理中"（状态 1）<br>   - 填写处理结果后标记为"已结案"（状态 2）<br>5. 处理完成后系统发送处理结果通知给投诉人 |
+
+**UC-ADMIN-05：操作日志审计**
+
+| 项目 | 内容 |
+|---|---|
+| 参与者 | 运营管理员 |
+| 基本流程 | 1. 管理员进入操作日志页面<br>2. 查看所有关键业务操作的审计日志列表<br>3. 可按操作类型、操作人、时间范围等维度筛选<br>4. 每 30 秒自动刷新最新日志<br>5. 点击展开可查看操作详情（JSON 格式） |
+| 日志覆盖范围 | 注册（REGISTER）、登录（LOGIN）、修改密码（CHANGE_PASSWORD）、实名认证（REAL_NAME_AUTH）、发布简历（PUBLISH_RESUME）、职位重新提交审核（TASK_RESUBMIT）、求职者投递（APPLICATION_DELIVER）、邀约面试（APPLICATION_INTERVIEW）、录用（APPLICATION_HIRE）、淘汰（APPLICATION_REJECT）、企业资质提交（ENTERPRISE_SUBMIT）、职位发布（TASK_PUBLISH）、职位下架（TASK_OFFLINE） |
+| 实现方式 | 采用 AOP 切面注解 + Service 手动记录的混合模式：CHANGE_PASSWORD、REAL_NAME_AUTH、PUBLISH_RESUME、TASK_RESUBMIT 通过 @OperationLog 注解由 AOP 切面自动记录；REGISTER、LOGIN 以及投递相关操作由业务 Service 层手动调 OperationLogService 记录 |
 
 ---
 
@@ -552,16 +561,54 @@ public class RealNameAuthService {
 
 #### 3.7.1 功能概述
 
-所有关键业务操作（登录、注册、投递、录用、审核、投诉处理等）自动记录操作日志到 `operation_log` 表，用于安全审计与问题追溯。
+所有关键业务操作（注册、登录、投递、录用、审核、职位发布、实名认证等）自动记录操作日志到 `operation_log` 表，用于安全审计与问题追溯。
 
-#### 3.7.2 审计规则
+#### 3.7.2 实现架构
+
+操作日志采用 **AOP 切面注解 + Service 手动记录** 的混合模式：
+
+| 记录方式 | 覆盖操作 | 说明 |
+|---|---|---|
+| AOP 切面（@OperationLog 注解） | 修改密码、实名认证、发布简历、职位重新提交审核（共4种） | 在 Controller 方法上标注注解，由 OperationLogAspect 通过 Around 切面自动采集方法参数、操作人、客户端 IP 后写入 |
+| Service 手动记录 | 注册、登录、求职者投递、邀约面试、录用、淘汰（共6种） | 在 Service 实现类中直接调 OperationLogService.saveLog() 手动构建并写入 |
+
+**AOP 切面工作流程：**
+1. `@OperationLog` 注解标注在 Controller 方法上，指定操作类型、目标类型、目标 ID 表达式（SpEL）
+2. `OperationLogAspect` 使用 `@Around` 拦截目标方法执行
+3. 方法执行完成后，采集方法参数序列化为 JSON 作为 `detail`、从 `UserContext` 获取操作人 ID、从请求中提取客户端 IP
+4. 调用 `OperationLogService.saveLog()` 写入数据库
+5. 切面异常不影响主业务流程（异常被捕获吞掉）
+
+#### 3.7.3 操作类型定义
+
+| 操作类型 | 中文含义 | 记录方式 | 触发场景 |
+|---|---|---|---|
+| REGISTER | 注册 | Service 手动 | 用户完成注册 |
+| LOGIN | 登录 | Service 手动 | 用户成功登录 |
+| CHANGE_PASSWORD | 修改密码 | AOP 注解 | 用户修改登录密码 |
+| REAL_NAME_AUTH | 实名认证 | AOP 注解 | 用户完成身份证实名认证 |
+| PUBLISH_RESUME | 发布简历 | AOP 注解 | 求职者发布/更新在线简历 |
+| TASK_RESUBMIT | 重新提交审核 | AOP 注解 | HR 修改被驳回的职位后重新提交 |
+| APPLICATION_DELIVER | 求职者投递 | Service 手动 | 求职者投递职位 |
+| APPLICATION_INTERVIEW | 邀约面试 | Service 手动 | HR 标记投递为"待面试" |
+| APPLICATION_HIRE | 录用 | Service 手动 | HR 标记投递为"已录用" |
+| APPLICATION_REJECT | 淘汰 | Service 手动 | HR 标记投递为"已淘汰" |
+| ENTERPRISE_SUBMIT | 企业资质提交 | Service 手动（待补充） | HR 提交或重新提交企业资质 |
+| TASK_PUBLISH | 职位发布 | Service 手动（待补充） | HR 发布新职位 |
+| TASK_OFFLINE | 职位下架 | Service 手动（待补充） | HR 或管理员下架职位 |
+
+> **注**：`ENTERPRISE_SUBMIT`、`TASK_PUBLISH`、`TASK_OFFLINE` 等类型曾在早期通过 `@OperationLog` 注解记录，后续调整中注解已被移除，当前日志覆盖范围以实际代码为准。
+
+#### 3.7.4 审计规则
 
 | 维度 | 说明 |
 |---|---|
-| 记录范围 | 所有涉及数据变更的关键操作：用户注册/登录、职位发布/审核/下架、投递/录用/淘汰、企业资质审核、投诉处理等 |
-| 记录内容 | 操作人、操作类型、目标类型与ID、操作详情（JSON）、请求IP、操作时间 |
-| 存储策略 | 日志写入后不可修改，仅支持查询 |
-| 查询权限 | 仅运营管理员可查看审计日志，支持按操作人、操作类型、时间范围筛选 |
+| 记录内容 | 操作人 ID、操作类型、目标类型与 ID、操作详情（JSON）、请求 IP、操作时间 |
+| 存储策略 | 日志写入后不可修改，仅支持查询（只追加存储） |
+| 查询权限 | 仅运营管理员可查看审计日志 |
+| 筛选维度 | 支持按操作类型、操作人 ID、目标类型与 ID、时间范围等筛选 |
+| 查询排序 | 按操作时间降序排列 |
+| 前端特性 | 管理页面每 30 秒自动轮询刷新，支持分页（10/20/50 条每页），操作详情可展开查看格式化 JSON |
 
 ---
 
@@ -931,6 +978,7 @@ HR 与求职者基于投递记录的一对一会话，消息隔离在会话内�
 - 普通索引：`idx_operator`（`operator_id`）
 - 复合索引：`idx_target`（`target_type`, `target_id`）
 - 普通索引：`idx_create_time`（`create_time`）
+- 复合索引：`idx_type_time`（`operation_type`, `create_time`）—— 支持按类型各取最新一条日志的窗口函数查询
 
 #### 5.2.14 real_name_auth（实名认证表）
 
@@ -1295,7 +1343,8 @@ Authorization: Bearer <token>
 ## 附录 B：变更记录
 
 | 版本号 | 变更日期 | 变更内容 | 变更人 |
-|---|---|---|---|---|
+|---|---|---|---|---|---|
+| V1.4 | 2026-07-28 | 操作日志架构更新为 AOP 注解 + Service 手动混合模式；精简操作类型为 13 种核心类型；新增 UC-ADMIN-05 操作日志审计用例；升级活跃动态查询为窗口函数（ROW_NUMBER + PARTITION BY）；管理员日志查询新增操作人昵称填充；更新 §3.7 操作审计日志模块；更新 §5.2.13 索引建议 | 宋展鹏 |
 | V1.3 | 2026-07-14 | complaint 表 target_type 去掉 0职位（统一改为1企业/2用户）；enterprise 表新增 region_id（企业所在地区）；task 表新增 tag（职位标签）；UC-EMPLOYER-01 增加选择企业所在地区步骤；UC-EMPLOYER-02 增加填写职位标签步骤 | UniSeek 项目组 |
 | V1.2 | 2026-07-13 | user 表新增 email 字段（必填，找回密码和通知用）；注册流程增加邮箱输入与校验；注册流程图增加邮箱录入；注册 API 增加 email 参数 | UniSeek 项目组 |
 | V1.1 | 2026-07-13 | 与 SQL Schema V1.0 对齐：去掉表名 t_ 前缀；新增 region/chat_session/complaint/operation_log 表；task 增加 region_id、job_type 字段；notification 增加 sender_id 字段；chat_message 改为 session_id 关联并增加 message_type；resume 去掉 real_name（从实名认证获取）；统计字段同步 SQL；更新 ER 关系图；新增投诉处理、审计日志、地区数据服务功能模块 | UniSeek 项目组 |

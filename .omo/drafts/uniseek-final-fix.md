@@ -22,7 +22,7 @@ approach: 4-wave parallel — SQL清理修复 → Java依赖/注解修复 → �
 | DB-CATEGORY | category 子分类数据补充完整 | active | uniseek.sql:30 条 vs uniseek_schema.sql:62 条 |
 | DB-COMPLAINT | complaint target_type 注释统一（DB/Java/Doc） | active | 三处分别为 1-企业2-用户 / 0-职位1-企业2-用户 |
 | DB-MOCK-SALT | Mock 数据统一盐值改为每用户独立随机盐值 | active | uniseek_mock_data.sql 全部用同一盐值 |
-| DB-MOCK-ADMIN | Mock 数据超级管理员账号与文档一致 | active | 文档说 18688886666/admin，Mock 中是 13999999999 |
+| DB-MOCK-ADMIN | Mock 数据超级管理员账号与文档一致 | active | 文档说 19999999999/admin，Mock 中是 13999999999 |
 | DB-REGION-VERIFY | 地区数据完整性验证（3432条） | active | uniseek_schema.sql:448-449 声明 |
 | JAVA-POM | pom.xml 补充 validation/test/maven-plugin 依赖 | active | pom.xml 缺少 3 个关键依赖 |
 | JAVA-OPLOG-PKG | 统一 @OperationLog 注解包路径 | active | EnterpriseController vs ResumeController 不同包 |
@@ -40,14 +40,14 @@ approach: 4-wave parallel — SQL清理修复 → Java依赖/注解修复 → �
 | DOC-BIZ-API-PATH | 业务逻辑文档 API 路径与代码对齐 | active | 文档 /register /info /update vs 代码无后缀 |
 | DOC-README | README.md 补写完整项目说明 | active | README.md 缺少目录、账号、启动说明 |
 | DOC-ROLE | 三份文档统一角色定义 + 超管 99 | active | 需求/API/业务逻辑文档 |
-| DOC-SUPER-ADMIN-ACCT | 统一超级管理员账号信息 | active | 文档18688886666 vs Mock 13999999999 |
+| DOC-SUPER-ADMIN-ACCT | 统一超级管理员账号信息 | active | 文档19999999999 vs Mock 13999999999 |
 | SEC-OPLOG-MASK | 操作日志敏感字段脱敏文档说明 | active | uniseeklv.sql 含明文密码/手机号 |
 | SEC-DELETE-PII | 从版本库中删除含 PII 的 uniseeklv.sql | active | 该文件含真实用户信息 |
 
 ## Open assumptions (announced defaults)
 | assumption | adopted default | rationale | reversible? |
 |-----------|----------------|-----------|-------------|
-| 超级管理员账号 | 采用文档统一值 18688886666/admin，删除 Mock 中不一致的 13999999999 | 文档在前，Mock 在后，统一以文档为准 | 是（可通过 SQL 修改） |
+| 超级管理员账号 | 采用文档统一值 19999999999/admin，删除 Mock 中不一致的 13999999999 | 文档在前，Mock 在后，统一以文档为准 | 是（可通过 SQL 修改） |
 | @OperationLog 正确包路径 | 使用 `com.uniseek.operationlog.annotation.OperationLog` | ResumeController 使用此路径且编译通过，EnterpriseController 的 `common.annotation` 可能不存在 | 是 |
 | pom.xml 依赖版本 | validation 使用 Boot 2.2.2 传递版本（不指定），maven-plugin 使用当前 Boot 对应版本 | Spring Boot parent 已管理版本 | 是 |
 | 操作日志脱敏方式 | 仅在文档中补充说明，不修改现有代码结构 | 修改日志存储逻辑影响审计完整性，需单独评审 | 是 |
@@ -61,7 +61,7 @@ approach: 4-wave parallel — SQL清理修复 → Java依赖/注解修复 → �
 - C-06: `UniSeek全平台业务逻辑设计V2.md:57,67,77` 写的 API 路径为 `/register`、`/info`、`/update`，但实际 `EnterpriseController.java:31,45,60` 为无后缀路径
 - C-07: `api.md` 缺少通知(/api/messages)、聊天、投诉模块的接口文档
 - C-08: `api.md:731-743` Region 树形结构示例含不存在的市级节点(110100)
-- C-09: `兼职招聘平台需求规格说明书.md:25` 说超级管理员手机号 `18688886666` 密码 `admin`，但 uniseek_mock_data.sql 中无此记录
+- C-09: `兼职招聘平台需求规格说明书.md:25` 说超级管理员手机号 `19999999999` 密码 `admin`，但 uniseek_mock_data.sql 中无此记录
 - C-10: `Complaint.java:23` target_type 注释与 SQL schema 不一致
 - C-11: `uniseek.sql` 中 enterprise 表缺少 region_id 列和 fk_enterprise_region 外键
 - M-01: `TaskServiceImpl.java:209` 硬编码 `role==2`（应为 `role>=9`）
@@ -71,7 +71,7 @@ approach: 4-wave parallel — SQL清理修复 → Java依赖/注解修复 → �
 - X-02: `README.md` 内容为占位符，缺少启动说明、管理员账号、目录结构
 
 ## Decisions (with rationale)
-1. **统一超级管理员账号**：以业务逻辑设计文档为准，手机号 `18688886666` 密码 `admin`。Mock 数据中现有不一致账号(13999999999)替换为此账号。
+1. **统一超级管理员账号**：以业务逻辑设计文档为准，手机号 `19999999999` 密码 `admin`。Mock 数据中现有不一致账号(13999999999)替换为此账号。
 2. **删除废弃 SQL 文件**：uniseek.sql 和 uniseeklv.sql 是 Navicat 工具导出产物，结构不完整且含 PII，不应入版本库。删除后加入 .gitignore。
 3. **@OperationLog 包路径统一**：使用 `com.uniseek.operationlog.annotation.OperationLog`（因为这是 ResumeController 编译通过的路径），修正 EnterpriseController 的 import。
 4. **补充 pom.xml 兼顾向后兼容**：仅添加缺失依赖，不升级任何现有依赖版本。

@@ -24,7 +24,7 @@ mybatis-plus:
     banner: false
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
 
 jwt:
   secret: UniSeek-JWT-Secret-Key-2026

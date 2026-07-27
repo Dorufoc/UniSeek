@@ -184,7 +184,7 @@ Your next move: 确认审查结果，然后 `/start-work` 执行计划。Full ex
      - 管理员用户（user_id=1 role=9, user_id=26 role=99）：密码 `"admin"`，哈希 = `MD5("admin" + 随机盐)`
   2. 生成方式：运行 Node.js 脚本（算法同 `PasswordUtil.encryptPassword`），每用户独立 16 字节随机 salt（32 hex 字符）
   3. 将 `uniseek_mock_data.sql` 中 `user` 表的全部 INSERT 替换为新生成的内容
-  4. ID 顺序自增 1~26，超级管理员 phone=`18688886666`，role=99
+  4. ID 顺序自增 1~26，超级管理员 phone=`19999999999`，role=99
   
   **Must NOT:** 不修改其他表的数据，不修改 user 表字段结构。
   **Parallelization:** Wave 1c | Blocked by: — | Blocks: —
@@ -342,7 +342,7 @@ Your next move: 确认审查结果，然后 `/start-work` 执行计划。Full ex
   - 技术栈：Java 1.8 / Spring Boot 2.2.2 / Vue 3 / ArkTS 6.1.1 / MySQL 8
   - 目录结构说明（三模块 + SQL 脚本）
   - 快速开始：数据库初始化 → 后端启动 → 前端启动
-  - **Mock 测试账号**：所有非管理员用户密码 `123456`；管理员(role=9)密码 `admin`；超级管理员(role=99)手机号 `18688886666` 密码 `admin`
+  - **Mock 测试账号**：所有非管理员用户密码 `123456`；管理员(role=9)密码 `admin`；超级管理员(role=99)手机号 `19999999999` 密码 `admin`
   - 角色说明表（0 求职者 / 1 企业 HR / 9 管理员 / 99 超级管理员）
   - 开发规范说明（参考 AGENTS.md）
   **Must NOT:** 不包含 emoji，不超过 200 行。
@@ -389,7 +389,7 @@ Your next move: 确认审查结果，然后 `/start-work` 执行计划。Full ex
 - [x] F6. **文档编号检查**: `^### 6\.` 仅 Region 模块（6.1/6.2/6.3）✅
 - [x] F7. **注释一致性检查**: TaskVO/SQL 一致；Complaint 为 1-企业,2-用户 ✅
 - [x] F8. **代码质量检查**: 无编译警告，RoleConstant/OperationType 常量完整 ✅
-- [x] F9. **超级管理员验证**: user 26 phone=18688886666, role=99 ✅
+- [x] F9. **超级管理员验证**: user 26 phone=19999999999, role=99 ✅
 - [x] F10. **API 模块完整性**: api.md 含 §11/§12/§14 消息/聊天/投诉模块 ✅
 - [x] F11. **README 可读性**: 完整项目说明，含 Mock 测试账号表 ✅
 - [x] F12. **.gitignore 存在性**: 根目录 .gitignore 含 Navicat dump 规则 ✅
@@ -413,7 +413,7 @@ Your next move: 确认审查结果，然后 `/start-work` 执行计划。Full ex
 7. ✅ TaskVO 三处枚举注释与 SQL/API 一致
 8. ✅ Complaint 注释统一为 1-企业,2-用户（不含 0-职位）
 9. ✅ Mock 数据 26 用户盐值全部不同，密码正确
-10. ✅ 管理员（role=9）密码为 "admin"，超级管理员 phone=18688886666 密码为 "admin"
+10. ✅ 管理员（role=9）密码为 "admin"，超级管理员 phone=19999999999 密码为 "admin"
 11. ✅ 普通用户（role=0,1）密码为 "123456"
 12. ✅ `api.md` 无错误章节编号，data 类型正确，Region 示例正确
 13. ✅ `api.md` 包含通知/聊天/投诉模块接口文档

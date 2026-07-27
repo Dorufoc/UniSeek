@@ -23,6 +23,7 @@ export interface EnterpriseInfo {
   regionId: number | null
   description: string
   auditStatus: number
+  rejectReason: string | null
   auditTime: string | null
   createTime: string
   updateTime: string

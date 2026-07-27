@@ -150,6 +150,7 @@ CREATE TABLE `enterprise` (
     `industry`        VARCHAR(50)  DEFAULT NULL             COMMENT '所属行业',
     `region_id`       BIGINT(20)   DEFAULT NULL             COMMENT '企业所在地区ID',
     `description`     TEXT         DEFAULT NULL             COMMENT '公司简介',
+    `reject_reason`   VARCHAR(500) DEFAULT NULL             COMMENT '驳回原因',
     `audit_status`    TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '资质审核状态：0-待审, 1-已认证, 2-已驳回（锁定）',
     `audit_time`      DATETIME     DEFAULT NULL             COMMENT '企业认证通过时间（audit_status变更为1的时间）',
     `create_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP            COMMENT '创建时间',

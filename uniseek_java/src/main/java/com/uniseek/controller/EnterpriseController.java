@@ -32,7 +32,6 @@ public class EnterpriseController {
      * @return 企业资质记录
      */
     @PostMapping
-    @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public ApiResult<Enterprise> submit(@Valid @RequestBody EnterpriseRequest request) {
         Long userId = UserContext.getUserId();
         Enterprise enterprise = enterpriseService.submit(userId, request);
@@ -100,7 +99,6 @@ public class EnterpriseController {
      * @return 更新后的企业资质记录
      */
     @PutMapping
-    @OperationLog(operationType = "ENTERPRISE_SUBMIT", targetType = "ENTERPRISE")
     public ApiResult<Enterprise> update(@Valid @RequestBody EnterpriseRequest request) {
         Long userId = UserContext.getUserId();
         Enterprise enterprise = enterpriseService.update(userId, request);
