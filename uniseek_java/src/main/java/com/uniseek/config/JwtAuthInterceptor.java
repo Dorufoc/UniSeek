@@ -26,7 +26,8 @@ public class JwtAuthInterceptor extends HandlerInterceptorAdapter {
             "/api/auth/register",
             "/api/auth/login",
             "/api/region/",
-            "/api/files/"
+            "/api/files/",
+            "/api/v1/telemetry"
     );
 
     @Override
