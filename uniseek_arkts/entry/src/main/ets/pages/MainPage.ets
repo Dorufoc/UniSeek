@@ -26,7 +26,6 @@ struct MainPage {
 
   aboutToDisappear(): void {
     ChatWebSocketService.getInstance().removeOnUnreadCountChanged(this.unreadCountCallback)
-    ChatWebSocketService.getInstance().disconnect()
   }
 
   onPageShow(): void {

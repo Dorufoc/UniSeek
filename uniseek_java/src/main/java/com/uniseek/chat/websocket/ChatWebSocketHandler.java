@@ -409,10 +409,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
      */
     private ChatSession getChatSessionByApplicationId(Long applicationId) {
         Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
-        if (sessionId == null) {
-            return null;
+        if (sessionId != null) {
+            return chatSessionMapper.selectById(sessionId);
         }
-        return chatSessionMapper.selectById(sessionId);
+        ChatSession directSession = chatSessionMapper.selectById(applicationId);
+        if (directSession != null && directSession.getTaskApplicationId() == null) {
+            return directSession;
+        }
+        return null;
     }
 
     /**

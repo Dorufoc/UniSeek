@@ -130,10 +130,8 @@ export class ChatWebSocketService {
         if (err) {
           return;
         }
-        const msgObj = value as Record<string, Object>;
-        const rawData = msgObj['data'];
-        const dataStr: string = typeof rawData === 'string' ? rawData : '';
-        if (dataStr) {
+        const dataStr: string = this.extractMessageText(value);
+        if (dataStr.length > 0) {
           this.handleMessage(dataStr);
         }
       });
@@ -238,6 +236,18 @@ export class ChatWebSocketService {
       this.refreshUnreadCount();
     }
     // ERROR 类型消息忽略处理
+  }
+
+  private extractMessageText(value: Object): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    const messageObject = value as Record<string, Object>;
+    const rawData = messageObject['data'];
+    if (typeof rawData === 'string') {
+      return rawData;
+    }
+    return JSON.stringify(value);
   }
 
   /** 启动 30 秒 PING 保活定时器 */

@@ -1,3 +1,5 @@
+import { ApplicationActionConfig } from '../services/RecruiterTypes'
+
 /** 企业认证资料的提交方式。 */
 export class EnterpriseSubmissionPolicy {
   static resolveMethod(hasEnterprise: boolean): string {
@@ -46,6 +48,45 @@ export class ApplicationNotePolicy {
   }
 }
 
+/** 招聘方处理投递时的可选操作（与 Vue ResumePool 对齐）。 */
+export class ApplicationActionPolicy {
+  /**
+   * 根据当前状态返回可执行操作。
+   * 0 已投递 -> 邀请面试 / 待定 / 淘汰
+   * 1 待面试 -> 录用 / 待定 / 淘汰
+   * 2 待定   -> 安排面试 / 录用 / 淘汰
+   * 3 已录用 -> 完成结算
+   */
+  static getActions(status: number): ApplicationActionConfig[] {
+    switch (status) {
+      case 0:
+        return [
+          { targetStatus: 1, label: '邀请面试', variant: 'primary', requiresDialog: 'interview' },
+          { targetStatus: 2, label: '待定', variant: 'warning' },
+          { targetStatus: 4, label: '淘汰', variant: 'danger', requiresDialog: 'reject' }
+        ]
+      case 1:
+        return [
+          { targetStatus: 3, label: '录用', variant: 'success' },
+          { targetStatus: 2, label: '待定', variant: 'warning' },
+          { targetStatus: 4, label: '淘汰', variant: 'danger', requiresDialog: 'reject' }
+        ]
+      case 2:
+        return [
+          { targetStatus: 1, label: '安排面试', variant: 'primary', requiresDialog: 'interview' },
+          { targetStatus: 3, label: '录用', variant: 'success' },
+          { targetStatus: 4, label: '淘汰', variant: 'danger', requiresDialog: 'reject' }
+        ]
+      case 3:
+        return [
+          { targetStatus: 5, label: '完成结算', variant: 'success', requiresDialog: 'complete' }
+        ]
+      default:
+        return []
+    }
+  }
+}
+
 /** 通用分页继续加载判断。 */
 export class PageLoadPolicy {
   static hasNext(page: number, totalPages: number): boolean {
@@ -53,12 +94,9 @@ export class PageLoadPolicy {
   }
 }
 
-/** WebSocket 新消息追加策略，防止自己发送的消息和重复推送。 */
+/** WebSocket 新消息追加策略，仅按服务端消息 ID 去重。 */
 export class ChatMessagePolicy {
   static shouldAppend(messageId: number, senderId: number, currentUserId: number, existingIds: number[]): boolean {
-    if (senderId === currentUserId) {
-      return false
-    }
     return !existingIds.includes(messageId)
   }
 }
