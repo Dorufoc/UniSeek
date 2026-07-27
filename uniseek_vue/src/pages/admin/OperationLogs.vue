@@ -43,8 +43,7 @@ const operationTypes = [
   'SAVE_RESUME',
   'UPLOAD_RESUME',
   'APPLICATION_INTERVIEW',
-  'APPLICATION_PENDING',
-  'APPLICATION_COMPLETE'
+  'APPLICATION_PENDING'
 ]
 
 const operationTypeMap: Record<string, string> = {
@@ -71,8 +70,7 @@ const operationTypeMap: Record<string, string> = {
   SAVE_RESUME: '保存简历',
   UPLOAD_RESUME: '上传简历',
   APPLICATION_INTERVIEW: '邀约面试',
-  APPLICATION_PENDING: '待处理',
-  APPLICATION_COMPLETE: '投递结算'
+  APPLICATION_PENDING: '待处理'
 }
 
 const fetchData = async () => {

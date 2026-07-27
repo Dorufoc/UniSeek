@@ -399,33 +399,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (rows == 0) {
             throw new BusinessException("结算确认失败，请刷新后重试");
         }
-
-        // 4. 记录结算完成日志
-        Map<String, Object> detail = new HashMap<>();
-        detail.put("applicationId", application.getId());
-        detail.put("taskId", application.getTaskId());
-        detail.put("applicantId", application.getApplicantId());
-        detail.put("fromStatus", 3);
-        detail.put("toStatus", 5);
-        if (StringUtils.hasText(request.getHrNote())) {
-            detail.put("hrNote", request.getHrNote());
-        }
-
-        String detailJson;
-        try {
-            detailJson = objectMapper.writeValueAsString(detail);
-        } catch (Exception e) {
-            detailJson = "{}";
-        }
-
-        OperationLog operationLog = new OperationLog();
-        operationLog.setOperatorId(UserContext.getUserId());
-        operationLog.setOperationType(OperationType.APPLICATION_COMPLETE);
-        operationLog.setTargetType("TASK_APPLICATION");
-        operationLog.setTargetId(application.getId());
-        operationLog.setDetail(detailJson);
-        operationLog.setCreateTime(LocalDateTime.now());
-        operationLogService.saveLog(operationLog);
     }
 
     @Override

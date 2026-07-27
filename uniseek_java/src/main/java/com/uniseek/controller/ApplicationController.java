@@ -109,7 +109,6 @@ public class ApplicationController {
      * @return 操作结果
      */
     @PutMapping("/applications/{id}/complete")
-    @OperationLog(operationType = "APPLICATION_COMPLETE", targetType = "APPLICATION", targetIdExpression = "#id")
     public ApiResult<Void> complete(@PathVariable Long id,
                                     @Valid @RequestBody CompleteRequest request) {
         applicationService.complete(id, request);

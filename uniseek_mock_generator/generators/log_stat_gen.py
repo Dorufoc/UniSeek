@@ -47,7 +47,7 @@ END_DT = datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
 SPAN_SECONDS = int((END_DT - START_DT).total_seconds())
 
 # 目标记录数
-TARGET_LOG_COUNT = 24700
+TARGET_LOG_COUNT = 23700
 TARGET_DAILY_COUNT = 365
 
 # ---- 操作类型分布（共 15 种，对应后端 OperationType.java 常量） ----
@@ -60,7 +60,6 @@ OPERATION_DISTRIBUTION = [
     ("APPLICATION_INTERVIEW","APPLICATION", 2000,  "8% - 邀请面试"),
     ("APPLICATION_HIRE",     "APPLICATION", 1500,  "6% - 录用"),
     ("APPLICATION_REJECT",   "APPLICATION", 2000,  "8% - 淘汰"),
-    ("APPLICATION_COMPLETE", "APPLICATION", 1000,  "4% - 完成兼职"),
     ("APPLICATION_PENDING",  "APPLICATION",  800,  "3.2% - 待入职"),
     ("TASK_PUBLISH",        "TASK",        1500,  "6% - 发布岗位"),
     ("TASK_AUDIT",          "TASK",        1200,  "4.8% - 审核岗位"),
@@ -241,14 +240,6 @@ def _generate_detail(op_type: str, target_id: int, related_info: dict = None) ->
             "reason": related_info.get("reason", ""),
             "fromStatus": related_info.get("from_status", 1),
             "toStatus": related_info.get("to_status", 4),
-        }, ensure_ascii=False)
-
-    elif op_type == "APPLICATION_COMPLETE":
-        # 完成兼职操作参数：id, fromStatus, toStatus
-        return json.dumps({
-            "id": target_id,
-            "fromStatus": related_info.get("from_status", 3),
-            "toStatus": related_info.get("to_status", 5),
         }, ensure_ascii=False)
 
     elif op_type == "REAL_NAME_AUTH":
@@ -597,38 +588,6 @@ def generate_operation_logs(
                 "reason": random.choice(REJECT_REASON_POOL),
                 "from_status": 1,
                 "to_status": 4,
-            }),
-            create_time=log_time,
-        )
-
-    # =========================================================================
-    # 7. APPLICATION_COMPLETE（1,000 条 — 4%）
-    #    对应兼职完成操作，从 status=5（已完成）中选取
-    # =========================================================================
-    complete_apps = [a for a in application_info_list if a.get("status") == 5]
-    complete_samples = _pick_random_items(complete_apps, 1000, allow_duplicates=len(complete_apps) < 1000)
-    for app in complete_samples:
-        operator_id = app.get("hr_id") or random.choice(hr_ids)
-        app_id = app["app_id"]
-
-        app_create_time = app.get("create_time")
-        if app_create_time:
-            try:
-                app_dt = datetime.datetime.strptime(app_create_time, "%Y-%m-%d %H:%M:%S")
-                log_time = _random_datetime_between(app_dt, END_DT)
-            except (ValueError, TypeError):
-                log_time = _random_datetime()
-        else:
-            log_time = _random_datetime()
-
-        _write_log(
-            operator_id=operator_id,
-            op_type="APPLICATION_COMPLETE",
-            target_type="APPLICATION",
-            target_id=app_id,
-            detail=_generate_detail("APPLICATION_COMPLETE", app_id, {
-                "from_status": 3,
-                "to_status": 5,
             }),
             create_time=log_time,
         )
