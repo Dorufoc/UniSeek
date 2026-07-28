@@ -1,7 +1,7 @@
 # Navicat SQL dumps
 *.sql
 !uniseek_schema.sql
-!uniseek_mock_data.sql
+ uniseek_mock_data.sql
 !uniseek_mock_data_large.sql
 !uniseek_favorite.sql
 
