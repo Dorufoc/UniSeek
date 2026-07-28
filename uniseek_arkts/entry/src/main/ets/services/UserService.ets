@@ -1,5 +1,6 @@
 import { ApiClient } from './ApiClient';
 import { UserVO } from './AuthService';
+import { UserSession } from './UserSession';
 
 const KEY_CACHE_USER_STATS = 'cached_user_stats'
 
@@ -13,22 +14,26 @@ export interface UserProfileUpdate {
 
 /** 用户资料与统计接口。 */
 export class UserService {
-  private static saveCachedStats(stats: UserStats): void {
+  private static statsCacheKey(userId: number): string {
+    return KEY_CACHE_USER_STATS + '_' + userId
+  }
+
+  private static saveCachedStats(userId: number, stats: UserStats): void {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return
     }
-    pref.putSync(KEY_CACHE_USER_STATS, JSON.stringify(stats))
+    pref.putSync(UserService.statsCacheKey(userId), JSON.stringify(stats))
     pref.flushSync()
   }
 
-  private static getCachedStats(): UserStats | null {
+  private static getCachedStats(userId: number): UserStats | null {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return null
     }
     try {
-      const raw: string = pref.getSync(KEY_CACHE_USER_STATS, '') as string
+      const raw: string = pref.getSync(UserService.statsCacheKey(userId), '') as string
       if (!raw) {
         return null
       }
@@ -59,12 +64,13 @@ export class UserService {
   }
 
   static async getStats(): Promise<UserStats> {
+    const userId = UserSession.userId
     try {
       const stats = await ApiClient.get<UserStats>('/api/user/stats')
-      UserService.saveCachedStats(stats)
+      UserService.saveCachedStats(userId, stats)
       return stats
     } catch {
-      return UserService.getCachedStats() || {
+      return UserService.getCachedStats(userId) || {
         applications: 0,
         interviews: 0,
         favorites: 0,

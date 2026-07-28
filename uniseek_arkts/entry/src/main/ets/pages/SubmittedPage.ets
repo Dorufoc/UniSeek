@@ -3,6 +3,7 @@ import { TaskVO, mapTaskToJobData } from '../services/ChatTypes'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
 import { NavBar } from '../common/NavBar'
 import { ChoiceOption } from '../components/filter/ChoiceChips'
+import { StandardCard } from '../common/StandardCard'
 
 // 投递记录状态筛选选项：-1 表示全部，其余对应 application status
 const FILTER_OPTIONS: ChoiceOption[] = [
@@ -27,7 +28,11 @@ struct ApplicationCard {
   onOpenTask?: () => void
 
   build() {
-    Column() {
+    StandardCard({
+      onClickAction: () => { this.onToggle?.() },
+      accessibilityLabel: (this.task?.title || ('职位 #' + this.app.taskId)) + ' 投递记录'
+    }) {
+      Column() {
       Row() {
         Column() {
           Text(this.task?.title || ('职位 #' + this.app.taskId))
@@ -60,9 +65,6 @@ struct ApplicationCard {
         .alignItems(HorizontalAlign.End)
       }
       .width('100%')
-      .onClick(() => {
-        this.onToggle?.()
-      })
 
       if (this.expanded) {
         Divider()
@@ -107,18 +109,9 @@ struct ApplicationCard {
             this.onOpenTask?.()
           })
       }
-    }
-    .width('100%')
-    .padding(AppSpacing.MD)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.LG)
-    .margin({ top: AppSpacing.SM })
-    .stateStyles({
-      pressed: {
-        .backgroundColor(AppColors.SELECTED_BG)
       }
-    })
-    .animation({ duration: 180 })
+      .width('100%')
+    }
   }
 }
 
