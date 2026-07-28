@@ -1,11 +1,10 @@
 import { ApiClient, ApiEmpty } from './ApiClient';
 import { ServerConfig } from './ServerConfig'
 import { ChatSessionVO, ChatMessageVO } from './ChatTypes';
-import { http } from '@kit.NetworkKit';
 import { fileIo } from '@kit.CoreFileKit';
-import { util } from '@kit.ArkTS';
-import { BusinessError, request } from '@kit.BasicServicesKit';
+import { request } from '@kit.BasicServicesKit';
 import { filePreview } from '@kit.PreviewKit';
+import { FileTransferPolicy, UploadResponse } from './FileTransferPolicy';
 
 export interface SendMessageRequest {
   messageType: number
@@ -66,89 +65,67 @@ export class ChatService {
     return ChatService.uploadToServer(uri, '/api/upload/file')
   }
 
-  /** 通用文件上传：读取本地文件，以 multipart/form-data 形式上传 */
+  /** 上传简历附件到简历专用接口，返回文件 URL。 */
+  static async uploadResumeAttachment(uri: string): Promise<string> {
+    return ChatService.uploadToServer(uri, '/api/resume/upload-attachment')
+  }
+
+  /** 通用文件上传：复制到应用缓存目录后使用系统 multipart 上传。 */
   private static async uploadToServer(uri: string, serverPath: string): Promise<string> {
-    // 读取文件内容
-    const file = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
-    const stat = fileIo.statSync(uri)
-    const fileBuf = new ArrayBuffer(stat.size)
-    fileIo.readSync(file.fd, fileBuf)
-    fileIo.closeSync(file)
-
-    // 解析文件名和 Content-Type
-    const rawFileName = uri.substring(uri.lastIndexOf('/') + 1).split('?')[0]
-    const defaultExtension = serverPath.endsWith('/image') ? 'jpg' : 'pdf'
-    const hasExtension = rawFileName.lastIndexOf('.') > 0
-    const fileName = hasExtension ? rawFileName : (rawFileName || 'upload-' + new Date().getTime()) + '.' + defaultExtension
-    const ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
-    let contentType: string = 'application/octet-stream'
-    if (ext === 'jpg' || ext === 'jpeg') {
-      contentType = 'image/jpeg'
-    } else if (ext === 'png') {
-      contentType = 'image/png'
-    } else if (ext === 'gif') {
-      contentType = 'image/gif'
-    } else if (ext === 'webp') {
-      contentType = 'image/webp'
-    } else if (ext === 'pdf') {
-      contentType = 'application/pdf'
+    if (!uri || uri.trim().length === 0) {
+      throw new Error('文件地址为空')
     }
+    const context = getContext()
+    const fallbackName: string = serverPath.endsWith('/image') ? 'upload.jpg' : 'upload.pdf'
+    const fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
+    const sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
+    fileIo.closeSync(sourceFile)
+    const cachePath: string = context.cacheDir + '/uniseek-' + new Date().getTime() + '-' + fileName
+    fileIo.copyFileSync(uri, cachePath)
 
-    // 构造 multipart/form-data 的 header 和 footer
-    const boundary = '----UniSeekBoundary' + new Date().getTime()
-    const headerStr = '--' + boundary + '\r\n' +
-      'Content-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n' +
-      'Content-Type: ' + contentType + '\r\n\r\n'
-    const footerStr = '\r\n--' + boundary + '--\r\n'
-
-    // 将字符串转为 Uint8Array
-    const encoder = new util.TextEncoder()
-    const headerBytes = encoder.encodeInto(headerStr)
-    const footerBytes = encoder.encodeInto(footerStr)
-
-    // 拼接完整请求体
-    const totalSize = headerBytes.byteLength + fileBuf.byteLength + footerBytes.byteLength
-    const fullBody = new ArrayBuffer(totalSize)
-    const fullView = new Uint8Array(fullBody)
-    fullView.set(new Uint8Array(headerBytes.buffer), 0)
-    fullView.set(new Uint8Array(fileBuf), headerBytes.byteLength)
-    fullView.set(new Uint8Array(footerBytes.buffer), headerBytes.byteLength + fileBuf.byteLength)
-
-    return new Promise<string>((resolve: Function, reject: Function) => {
-      const httpRequest = http.createHttp()
-      httpRequest.request(ApiClient.BASE_URL + serverPath, {
-        method: http.RequestMethod.POST,
-        header: {
-          'Content-Type': 'multipart/form-data; boundary=' + boundary,
-          'Authorization': 'Bearer ' + ApiClient.getToken()
-        },
-        extraData: fullBody,
-        connectTimeout: 30000,
-        readTimeout: 60000
-      }).then((resp: http.HttpResponse) => {
-        httpRequest.destroy()
-        const raw = resp.result as string
-        if (!raw) {
-          reject(new Error('上传响应为空'))
+    const uploadConfig: request.UploadConfig = {
+      url: ApiClient.BASE_URL + serverPath,
+      header: {
+        'Authorization': 'Bearer ' + ApiClient.getToken()
+      },
+      method: 'POST',
+      files: [{
+        filename: fileName,
+        name: 'file',
+        uri: cachePath,
+        type: FileTransferPolicy.getMimeType(fileName)
+      }],
+      data: []
+    }
+    const uploadTask = await request.uploadFile(context, uploadConfig)
+    return new Promise<string>((resolve, reject) => {
+      uploadTask.on('complete', (states: Array<request.TaskState>): void => {
+        if (states.length === 0 || states[0].responseCode < 200 || states[0].responseCode >= 300) {
+          reject(new Error('文件上传失败'))
           return
         }
-        let json: Record<string, Object>
+        const raw: string = states[0].message
         try {
-          json = JSON.parse(raw) as Record<string, Object>
+          const response: UploadResponse = JSON.parse(raw) as UploadResponse
+          const url: string = FileTransferPolicy.readUploadUrl(response)
+          if (!url) {
+            reject(new Error(response.message || '上传响应无文件地址'))
+            return
+          }
+          resolve(url)
         } catch {
           reject(new Error('上传响应解析失败'))
-          return
         }
-        if (Number(json['code']) === 200) {
-          const data = json['data'] as Record<string, Object>
-          resolve(data['url'] as string)
-        } else {
-          reject(new Error(String(json['message'] || '上传失败')))
-        }
-      }).catch((err: BusinessError) => {
-        httpRequest.destroy()
-        reject(new Error('上传失败: ' + err.message))
       })
+      uploadTask.on('fail', (states: Array<request.TaskState>): void => {
+        const message: string = states.length > 0 ? states[0].message : '文件上传失败'
+        reject(new Error(message || '文件上传失败'))
+      })
+    }).finally(() => {
+      try {
+        fileIo.unlinkSync(cachePath)
+      } catch {
+      }
     })
   }
 
@@ -156,9 +133,14 @@ export class ChatService {
   static async previewAttachment(url: string): Promise<void> {
     const hostContext = getContext()
     const localPath = await ChatService.downloadAttachment(url)
+    const previewable: boolean = await filePreview.canPreview(hostContext, localPath)
+    if (!previewable) {
+      throw new Error('当前设备不支持预览该附件')
+    }
+    const fileName: string = FileTransferPolicy.extractFileName(url, '简历附件.pdf')
     await filePreview.openPreview(hostContext, {
       uri: localPath,
-      mimeType: 'application/pdf',
+      mimeType: FileTransferPolicy.getPreviewMimeType(fileName),
       title: '简历附件'
     })
   }
@@ -167,8 +149,7 @@ export class ChatService {
   static async downloadAttachment(url: string): Promise<string> {
     const hostContext = getContext()
     const resolvedUrl: string = ServerConfig.toHttpUrl(ApiClient.BASE_URL, url)
-    const namePart = resolvedUrl.substring(resolvedUrl.lastIndexOf('/') + 1).split('?')[0]
-    const fileName = namePart || ('resume-' + new Date().getTime() + '.pdf')
+    const fileName: string = FileTransferPolicy.extractFileName(resolvedUrl, 'resume-' + new Date().getTime() + '.pdf')
     const filePath = hostContext.filesDir + '/' + fileName
     const task = await request.downloadFile(hostContext, {
       url: resolvedUrl,
@@ -179,7 +160,16 @@ export class ChatService {
     })
     return new Promise<string>((resolve, reject) => {
       task.on('complete', () => {
-        resolve(filePath)
+        try {
+          const stat = fileIo.statSync(filePath)
+          if (stat.size <= 0) {
+            reject(new Error('附件下载内容为空'))
+            return
+          }
+          resolve(filePath)
+        } catch {
+          reject(new Error('附件下载文件不存在'))
+        }
       })
       task.on('fail', (code: number) => {
         reject(new Error('附件下载失败：' + code))

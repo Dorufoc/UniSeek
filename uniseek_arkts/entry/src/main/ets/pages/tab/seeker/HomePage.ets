@@ -298,7 +298,8 @@ export struct HomePage {
       height: SheetSize.LARGE,
       dragBar: true,
       showClose: true,
-      backgroundColor: AppColors.BG_CARD
+      backgroundColor: AppColors.BG_CARD,
+      keyboardAvoidMode: SheetKeyboardAvoidMode.RESIZE_ONLY
     })
   }
 }

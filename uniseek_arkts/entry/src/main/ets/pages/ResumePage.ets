@@ -622,7 +622,10 @@ struct ResumePage {
 
   selectFile(): void {
     const documentPicker = new picker.DocumentViewPicker(getContext())
-    documentPicker.select({ maxSelectNumber: 1 } as picker.DocumentSelectOptions).then((uris: string[]) => {
+     const options: picker.DocumentSelectOptions = new picker.DocumentSelectOptions()
+     options.maxSelectNumber = 1
+     options.fileSuffixFilters = ['PDF文档|.pdf']
+     documentPicker.select(options).then((uris: string[]) => {
       if (uris.length === 0) {
         return
       }
@@ -641,7 +644,7 @@ struct ResumePage {
       }
       this.attachmentName = fileName
       this.uploading = true
-      ChatService.uploadFile(uri).then((url: string) => {
+       ChatService.uploadResumeAttachment(uri).then((url: string) => {
         this.attachmentUrl = url
         this.getUIContext().getPromptAction().showToast({ message: '简历上传成功' })
       }).catch(() => {

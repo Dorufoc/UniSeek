@@ -9,10 +9,13 @@ import { UserSession } from '../services/UserSession';
 import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { picker } from '@kit.CoreFileKit';
+import { fileIo } from '@kit.CoreFileKit';
 import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 import { ChatMessagePolicy } from '../common/BusinessPolicies';
+import { UploadPolicy } from '../common/FormValidators';
+import { FileTransferPolicy } from '../services/FileTransferPolicy';
 import { ErrorView } from '../components/ErrorView';
 import { ChatMessageList, ChatMessageListController } from '../components/chat/ChatMessageList';
 import { MessageInputBar, INPUT_BAR_HEIGHT } from '../components/chat/MessageInputBar';
@@ -328,7 +331,23 @@ struct ChatDetailPage {
         this.isSendingResume = false
         return
       }
-      ChatService.uploadFile(uris[0]).then((url: string) => {
+       const uri: string = uris[0]
+       const fileName: string = FileTransferPolicy.extractFileName(uri, '简历.pdf')
+       let fileSize: number = 0
+       try {
+         fileSize = Number(fileIo.statSync(uri).size)
+       } catch {
+         this.getUIContext().getPromptAction().showToast({ message: '无法读取所选文件' })
+         this.isSendingResume = false
+         return
+       }
+       const validationError: string = UploadPolicy.validateResume(fileName, fileSize)
+       if (validationError) {
+         this.getUIContext().getPromptAction().showToast({ message: validationError })
+         this.isSendingResume = false
+         return
+       }
+       ChatService.uploadFile(uri).then((url: string) => {
         if (!url) {
           this.getUIContext().getPromptAction().showToast({ message: '文件上传失败' })
           this.isSendingResume = false

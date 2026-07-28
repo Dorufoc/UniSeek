@@ -2,6 +2,7 @@ import { describe, expect, it } from '@ohos/hypium'
 import { ApplicationNotePolicy, ChatMessagePolicy, EnterpriseSubmissionPolicy, PageLoadPolicy, ResumeCompletionPolicy, TalentFilterPolicy } from '../main/ets/common/BusinessPolicies'
 import { InputValidator, UploadPolicy } from '../main/ets/common/FormValidators'
 import { ServerConfig } from '../main/ets/services/ServerConfig'
+import { FileTransferPolicy, UploadResponse } from '../main/ets/services/FileTransferPolicy'
 
 export default function auditPoliciesTest(): void {
   describe('审计问题修复策略', (): void => {
@@ -13,6 +14,30 @@ export default function auditPoliciesTest(): void {
     it('附件地址会解析为当前后端的完整地址', 0, (): void => {
       expect(ServerConfig.toHttpUrl('https://api.example.com/', '/uploads/resume.pdf')).assertEqual('https://api.example.com/uploads/resume.pdf')
       expect(ServerConfig.toHttpUrl('http://127.0.0.1:8080', 'https://cdn.example.com/resume.pdf')).assertEqual('https://cdn.example.com/resume.pdf')
+    })
+
+    it('文件传输链路解析Picker文件名和PDF类型', 0, (): void => {
+      expect(FileTransferPolicy.extractFileName('file://docs/%E7%AE%80%E5%8E%86.pdf?open=true', '简历.pdf'))
+        .assertEqual('简历.pdf')
+      expect(FileTransferPolicy.extractFileName('datashare://document/12345', '简历.pdf'))
+        .assertEqual('简历.pdf')
+      expect(FileTransferPolicy.getMimeType('resume.PDF')).assertEqual('application/pdf')
+    })
+
+    it('文件传输链路严格解析上传响应和相对地址', 0, (): void => {
+      const response: UploadResponse = {
+        code: 200,
+        message: '上传成功',
+        data: { url: '/api/files/files/resume.pdf' }
+      }
+      expect(FileTransferPolicy.readUploadUrl(response)).assertEqual('/api/files/files/resume.pdf')
+      expect(FileTransferPolicy.readUploadUrl({
+        code: 200,
+        message: '上传成功',
+        data: { url: '' }
+      })).assertEqual('')
+      expect(FileTransferPolicy.resolveUrl('http://127.0.0.1:8080', '/api/files/files/resume.pdf'))
+        .assertEqual('http://127.0.0.1:8080/api/files/files/resume.pdf')
     })
 
     it('企业资料存在时使用更新接口', 0, (): void => {
