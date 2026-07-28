@@ -5,6 +5,7 @@ import { searchTasks, getAllTags, type TaskVO } from '@/api/task'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getRegionTree, type RegionVO } from '@/api/region'
 import { useAppStore } from '@/stores/app'
+import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -138,8 +139,14 @@ const isSalaryEmpty = computed(() => {
 })
 
 const onSalaryChange = () => {
-  filter.salaryMin = salaryMinInput.value
-  filter.salaryMax = salaryMaxInput.value
+  const min = salaryMinInput.value
+  const max = salaryMaxInput.value
+  if (min != null && max != null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+    ElMessage.warning('最低薪资不能高于最高薪资')
+    return
+  }
+  filter.salaryMin = min
+  filter.salaryMax = max
   page.value = 1
   loadTasks()
 }
