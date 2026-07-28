@@ -324,6 +324,37 @@ export struct FilterSheet {
   }
 
   @Builder
+  SelectedTagChips() {
+    if (this.filterTags.length > 0) {
+      Flex({ wrap: FlexWrap.Wrap, direction: FlexDirection.Row, justifyContent: FlexAlign.Start }) {
+        ForEach(this.filterTags, (item: string) => {
+          Row() {
+            Text(item)
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.PRIMARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+            Text('×')
+              .fontSize(AppFontSize.SM)
+              .fontColor(AppColors.TEXT_MUTED)
+              .margin({ left: AppSpacing.XS })
+              .onClick(() => {
+                this.removeTag(item)
+              })
+          }
+          .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: AppSpacing.XXS, bottom: AppSpacing.XXS })
+          .backgroundColor(AppColors.SELECTED_BG)
+          .borderRadius(AppRadius.MD)
+          .margin({ right: AppSpacing.SM, bottom: AppSpacing.SM })
+        }, (item: string): string => item)
+      }
+      .width('100%')
+      .margin({ top: AppSpacing.SM })
+    }
+  }
+
+  @Builder
   SalaryUnitChips() {
     Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
       ForEach(SALARY_UNIT_OPTIONS, (option: SalaryUnitOption) => {
@@ -553,9 +584,7 @@ export struct FilterSheet {
           Column() {
             this.TagInputRow()
             this.TagSuggestions()
-            this.SelectedChips(this.filterTags, (item: string) => {
-              this.removeTag(item)
-            })
+            this.SelectedTagChips()
           }
         }
         .width('100%')
