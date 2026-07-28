@@ -1,4 +1,5 @@
 import { ApiClient } from './ApiClient';
+import { RegionPathBuilder } from '../common/RegionPathBuilder';
 
 // 原始树形接口（API 返回格式）
 export interface RegionNode {
@@ -512,6 +513,21 @@ export class DataService {
       await DataService.getRegionTree()
     }
     return DataService.findRegionNameById(DataService.regionTree || [], regionId)
+  }
+
+  /**
+   * 根据地区 ID 反查完整省市区路径。
+   * 支持省/市/区县任意层级 ID；直辖市相邻层级同名自动折叠。
+   */
+  static async getRegionFullPathById(regionId: number | null | undefined): Promise<string | null> {
+    if (regionId == null) {
+      return null
+    }
+    if (!DataService.regionTree) {
+      await DataService.getRegionTree()
+    }
+    const fullPath: string = RegionPathBuilder.buildPathById(DataService.regionTree || [], regionId)
+    return fullPath.length > 0 ? fullPath : null
   }
 
   private static findRegionNameById(nodes: RegionNode[], regionId: number): string | null {

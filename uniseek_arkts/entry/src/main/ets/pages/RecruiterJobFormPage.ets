@@ -66,6 +66,7 @@ struct RecruiterDeadlinePickerDialog {
           this.selectedDate = new Date(year, month - 1, day, this.selectedDate.getHours(), this.selectedDate.getMinutes())
         })
         .width('100%')
+        .height(180)
 
       TimePicker({ selected: this.selectedDate })
         .onChange((value: TimePickerResult): void => {
@@ -74,6 +75,7 @@ struct RecruiterDeadlinePickerDialog {
           this.selectedDate = new Date(this.selectedDate.getFullYear(), this.selectedDate.getMonth(), this.selectedDate.getDate(), hour, minute)
         })
         .width('100%')
+        .height(150)
 
       Row({ space: AppSpacing.SM }) {
         Button('取消', { type: ButtonType.Normal })
@@ -102,7 +104,7 @@ struct RecruiterDeadlinePickerDialog {
     }
     .padding(AppSpacing.LG)
     .width('100%')
-    .height('62%')
+    .height('72%')
     .backgroundColor(AppColors.BG_CARD)
     .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
   }

@@ -6,6 +6,7 @@ import auditPoliciesTest from './AuditPolicies.test'
 import chatUtilsTest from './chat/ChatUtils.test';
 import chatComponentsTest from './chat/ChatComponents.test';
 import chatWebSocketPolicyTest from './chat/ChatWebSocketPolicy.test';
+import regionPathBuilderTest from './RegionPathBuilder.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -16,4 +17,5 @@ export default function testsuite() {
   chatUtilsTest();
   chatComponentsTest();
   chatWebSocketPolicyTest();
+  regionPathBuilderTest();
 }

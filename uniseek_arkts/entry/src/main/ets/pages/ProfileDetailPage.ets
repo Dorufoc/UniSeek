@@ -102,6 +102,8 @@ struct ProfileDetailPage {
     this.email = user.email || ''
     this.avatarUri = user.avatarUrl || ''
     AuthService.applyUserInfo(user.id, user.role, this.username, this.avatarUri)
+    // 昵称和头像更改后，立即同步到完整用户缓存，确保返回个人中心能立即展示最新资料
+    AuthService.saveCachedCurrentUser(user)
   }
 
   getErrorMessage(error: Error): string {

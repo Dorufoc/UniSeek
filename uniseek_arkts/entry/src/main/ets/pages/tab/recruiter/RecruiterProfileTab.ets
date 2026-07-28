@@ -43,17 +43,22 @@ export struct RecruiterProfileTab {
   }
 
   aboutToAppear(): void {
-    this.loadCachedProfile()
-    this.reloadProfile(true)
+    this.refreshFromCacheThenNetwork()
   }
 
   onPageShow(): void {
-    // 从子页面返回时主动刷新一次数据
-    this.reloadProfile(false)
+    // 从子页面返回时，先同步缓存再后台刷新，确保资料修改后立即可见
+    this.refreshFromCacheThenNetwork()
   }
 
   private onRefreshTrigger(): void {
-    // Tab 切换到我的页面时触发刷新
+    // Tab 切换到我的页面时，先同步缓存再后台刷新
+    this.refreshFromCacheThenNetwork()
+  }
+
+  /** 先展示本地缓存，再发起后台网络刷新，避免返回个人中心时等待网络导致头像/昵称不更新。 */
+  private refreshFromCacheThenNetwork(): void {
+    this.loadCachedProfile()
     this.reloadProfile(false)
   }
 

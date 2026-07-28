@@ -43,7 +43,7 @@ struct CompanyDetailPage {
     try {
       const enterprise = await EnterpriseDiscoveryService.getEnterprise(enterpriseId)
       this.enterprise = enterprise
-      const region = await DataService.getRegionNameById(enterprise.regionId)
+      const region = await DataService.getRegionFullPathById(enterprise.regionId)
       this.regionName = region || ''
       await this.loadJobs(enterpriseId)
     } catch {
@@ -282,7 +282,7 @@ struct CompanyDetailPage {
       Column({ space: AppSpacing.MD }) {
         this.infoRow('所属行业', this.enterprise!.industry || '暂无', $r('sys.symbol.building'))
         if (this.regionName !== '') {
-          this.infoRow('所在地区', this.regionName)
+          this.infoRow('所在地区', this.regionName, undefined, 2)
         }
         this.infoRow('在招职位', this.enterpriseJobs.length + ' 个', $r('sys.symbol.briefcase'))
       }
@@ -291,7 +291,7 @@ struct CompanyDetailPage {
   }
 
   @Builder
-  infoRow(label: string, value: string, icon?: Resource) {
+  infoRow(label: string, value: string, icon?: Resource, maxLines: number = 1) {
     Row({ space: AppSpacing.SM }) {
       if (icon) {
         SymbolGlyph(icon)
@@ -315,7 +315,7 @@ struct CompanyDetailPage {
         .fontSize(AppFontSize.SM)
         .fontColor(AppColors.TEXT_PRIMARY)
         .layoutWeight(1)
-        .maxLines(1)
+        .maxLines(maxLines)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .width('100%')
