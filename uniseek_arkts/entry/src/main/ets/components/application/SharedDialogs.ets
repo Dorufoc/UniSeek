@@ -166,12 +166,6 @@ export struct RejectDialog {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { this.controller?.close() })
       }
       .width('100%')
       .padding({ bottom: AppSpacing.MD })
@@ -229,8 +223,8 @@ export struct RejectDialog {
               this.getUIContext().getPromptAction().showToast({ message: '请填写淘汰原因' })
               return
             }
-            this.onConfirm?.(this.reasonText.trim(), this.noteText.trim())
             this.controller?.close()
+            this.onConfirm?.(this.reasonText.trim(), this.noteText.trim())
           })
           .stateStyles({
             pressed: {
