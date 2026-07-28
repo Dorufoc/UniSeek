@@ -6,6 +6,7 @@ import { Router } from '@kit.ArkUI';
 
 const KEY_CACHE_CURRENT_USER = 'cached_current_user'
 const KEY_CACHE_REAL_NAME_STATUS = 'cached_real_name_status'
+const KEY_CACHE_REAL_NAME_INFO = 'cached_real_name_info'
 
 // 请求体接口
 export interface LoginRequest {
@@ -64,8 +65,11 @@ export interface RealNameInfo {
 }
 
 export interface RealNameStatus {
-  status: number
-  realName: string
+  isAuth: boolean
+  realName: string | null
+  idCard: string | null
+  birthDate: string | null
+  gender: number
 }
 
 export interface UserVO {
@@ -138,6 +142,33 @@ export class AuthService {
         return null
       }
       return JSON.parse(raw) as RealNameStatus
+    } catch {
+      return null
+    }
+  }
+
+  /** 将完整实名信息持久化到本地，含身份证号。 */
+  static saveCachedRealNameInfo(info: RealNameInfo): void {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return
+    }
+    pref.putSync(KEY_CACHE_REAL_NAME_INFO, JSON.stringify(info))
+    pref.flushSync()
+  }
+
+  /** 读取本地缓存的完整实名信息。 */
+  static getCachedRealNameInfo(): RealNameInfo | null {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return null
+    }
+    try {
+      const raw: string = pref.getSync(KEY_CACHE_REAL_NAME_INFO, '') as string
+      if (!raw) {
+        return null
+      }
+      return JSON.parse(raw) as RealNameInfo
     } catch {
       return null
     }
@@ -225,7 +256,9 @@ export class AuthService {
 
   static async getRealNameStatus(): Promise<RealNameStatus> {
     const status = await ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
-    AuthService.saveCachedRealNameStatus(status)
+    if (status.isAuth) {
+      AuthService.saveCachedRealNameStatus(status)
+    }
     return status
   }
 

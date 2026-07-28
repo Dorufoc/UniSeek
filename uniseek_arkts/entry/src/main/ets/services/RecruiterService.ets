@@ -119,7 +119,19 @@ export class RecruiterService {
     let totalPages: number = 1
     do {
       const result = await ApiClient.get<PageResult<RecruiterApplicationVO>>('/api/tasks/' + taskId + '/applications', [['page', String(page)], ['pageSize', '20']])
-      const pageRecords = result?.records ?? []
+      const pageRecords = (result?.records ?? []).map((app: RecruiterApplicationVO) => {
+        if (!app.applicantName && app.resumeSnapshot) {
+          try {
+            const snapshot = JSON.parse(app.resumeSnapshot) as ResumeSnapshot
+            if (snapshot.realName) {
+              app.applicantName = snapshot.realName
+            }
+          } catch {
+            // JSON 解析失败则跳过
+          }
+        }
+        return app
+      })
       records.push(...pageRecords)
       totalPages = result?.totalPages ?? 0
       page++
@@ -179,7 +191,12 @@ export class RecruiterService {
     const allRequests: RecruiterRequestVO[] = []
 
     for (const job of jobs) {
-      const apps = await RecruiterService.getJobApplications(job.id)
+      let apps: RecruiterApplicationVO[] = []
+      try {
+        apps = await RecruiterService.getJobApplications(job.id)
+      } catch {
+        continue
+      }
       for (const app of apps) {
         const resume = RecruiterService.parseResumeSnapshot(app.resumeSnapshot)
         allRequests.push({

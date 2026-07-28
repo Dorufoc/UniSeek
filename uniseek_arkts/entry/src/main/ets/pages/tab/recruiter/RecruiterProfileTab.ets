@@ -64,7 +64,7 @@ export struct RecruiterProfileTab {
     }
     const cachedAuth = AuthService.getCachedRealNameStatus()
     if (cachedAuth) {
-      this.isVerified = cachedAuth.status === 1
+      this.isVerified = cachedAuth.isAuth
     }
     const cachedEnterprise = RecruiterService.getCachedEnterpriseInfo()
     if (cachedEnterprise) {
@@ -114,9 +114,11 @@ export struct RecruiterProfileTab {
   private async loadAuthStatus(): Promise<void> {
     try {
       const auth = await AuthService.getRealNameStatus()
-      this.isVerified = auth.status === 1
+      if (auth.isAuth) {
+        this.isVerified = true
+      }
     } catch {
-      // 保留本地缓存的实名认证状态，避免离线时显示为未认证
+      // 保留本地缓存的实名认证状态
     }
   }
 
