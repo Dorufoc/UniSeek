@@ -327,9 +327,6 @@ public class ApplicationServiceImpl implements ApplicationService {
             case 1:
                 operationType = OperationType.APPLICATION_INTERVIEW;
                 break;
-            case 2:
-                operationType = OperationType.APPLICATION_PENDING;
-                break;
             case 3:
                 operationType = OperationType.APPLICATION_HIRE;
                 break;

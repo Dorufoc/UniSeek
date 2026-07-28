@@ -58,7 +58,7 @@ public interface EnterpriseService {
      * @return 分页企业列表
      */
     PageResult<Enterprise> listPublished(int page, int pageSize, String keyword, String industry, Long regionId,
-                                         String sortBy, String sortOrder);
+                                         Long subCategoryId, String sortBy, String sortOrder);
 
     /**
      * 获取热门企业列表（按投递数、在招岗位数、总名额综合评分排序）

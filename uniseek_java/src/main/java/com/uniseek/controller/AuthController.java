@@ -33,7 +33,6 @@ public class AuthController {
      * 用户注册
      * POST /api/auth/register（无需鉴权）
      */
-    @OperationLog(operationType = "REGISTER", targetType = "USER")
     @PostMapping("/register")
     public ApiResult<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
         Map<String, Object> data = authService.register(request);
@@ -44,7 +43,6 @@ public class AuthController {
      * 用户登录
      * POST /api/auth/login（无需鉴权）
      */
-    @OperationLog(operationType = "LOGIN", targetType = "USER")
     @PostMapping("/login")
     public ApiResult<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
         Map<String, Object> data = authService.login(request);
@@ -55,7 +53,6 @@ public class AuthController {
      * 退出登录
      * POST /api/auth/logout（需要鉴权）
      */
-    @OperationLog(operationType = "LOGOUT", targetType = "USER")
     @PostMapping("/logout")
     public ApiResult<Void> logout() {
         Long userId = UserContext.getUserId();
@@ -115,7 +112,6 @@ public class AuthController {
      * 修改手机号
      * PUT /api/auth/phone（需要鉴权）
      */
-    @OperationLog(operationType = "UPDATE_PHONE", targetType = "USER")
     @PutMapping("/phone")
     public ApiResult<Void> updatePhone(@Valid @RequestBody UpdatePhoneRequest request) {
         Long userId = UserContext.getUserId();
@@ -127,7 +123,6 @@ public class AuthController {
      * 修改邮箱
      * PUT /api/auth/email（需要鉴权）
      */
-    @OperationLog(operationType = "UPDATE_EMAIL", targetType = "USER")
     @PutMapping("/email")
     public ApiResult<Void> updateEmail(@Valid @RequestBody UpdateEmailRequest request) {
         Long userId = UserContext.getUserId();

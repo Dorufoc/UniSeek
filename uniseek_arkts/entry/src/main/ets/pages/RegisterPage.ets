@@ -289,7 +289,7 @@ struct RegisterPage {
       return
     }
     if (!InputValidator.isStrongPassword(this.password)) {
-      this.getUIContext().getPromptAction().showToast({ message: '密码需为 8 到 20 位，且同时包含字母和数字', duration: 2000 })
+      this.getUIContext().getPromptAction().showToast({ message: '密码长度需为 6 到 20 位', duration: 2000 })
       return
     }
     if (!this.confirmPassword.trim()) {

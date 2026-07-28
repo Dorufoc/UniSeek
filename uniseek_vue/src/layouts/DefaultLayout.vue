@@ -57,6 +57,9 @@ const checkEnterpriseCert = async () => {
       certStatusText.value = '您的企业资质认证正在审核中，请耐心等待。审核通过后方可使用招聘功能。'
     } else if (info.auditStatus === 2) {
       certStatusText.value = '您的企业资质认证已被驳回，请修改后重新提交。'
+      if (info.rejectReason) {
+        certStatusText.value += '\n驳回原因：' + info.rejectReason
+      }
     }
     certDialogVisible.value = true
   } catch {
@@ -397,6 +400,7 @@ watch(() => route.path, checkEnterpriseCert)
   font-size: 14px;
   color: #555;
   line-height: 1.6;
+  white-space: pre-line;
 }
 .cert-dialog-actions {
   display: flex;

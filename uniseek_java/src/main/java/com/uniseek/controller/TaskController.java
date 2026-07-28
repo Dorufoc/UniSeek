@@ -67,7 +67,6 @@ public class TaskController {
      * @return 创建的职位
      */
     @PostMapping("/tasks")
-    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK")
     public ApiResult<Task> create(@Valid @RequestBody TaskRequest request) {
         Long userId = UserContext.getUserId();
         Long enterpriseId = getEnterpriseIdByUserId(userId);
@@ -84,7 +83,6 @@ public class TaskController {
      * @return 更新后的职位
      */
     @PutMapping("/tasks/{id}")
-    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK", targetIdExpression = "#id")
     public ApiResult<Task> update(@PathVariable Long id,
                                    @Valid @RequestBody TaskRequest request) {
         Long userId = UserContext.getUserId();
@@ -102,7 +100,6 @@ public class TaskController {
      * @return 操作结果
      */
     @PutMapping("/tasks/{id}/status")
-    @OperationLog(operationType = "TASK_OFFLINE", targetType = "TASK", targetIdExpression = "#id")
     public ApiResult<Void> updateStatus(@PathVariable Long id,
                                          @RequestParam Integer targetStatus) {
         Long userId = UserContext.getUserId();
@@ -138,7 +135,6 @@ public class TaskController {
      * @return 职位列表
      */
     @GetMapping("/enterprise/tasks")
-    @OperationLog(operationType = "TASK_PUBLISH", targetType = "TASK")
     public ApiResult<PageResult<TaskVO>> getEnterpriseTasks() {
         Long userId = UserContext.getUserId();
         Long enterpriseId = getEnterpriseIdByUserId(userId);

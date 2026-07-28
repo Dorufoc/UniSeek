@@ -27,8 +27,9 @@ const displayPages = computed(() => computeDisplayPages(page.value, totalPages.v
 
 // ── 筛选条件 ──
 const keyword = ref('')
-const selectedIndustry = ref<string[]>([])
+const categoryCascaderValue = ref<number[]>([])
 const regionCascaderValue = ref<number[]>([])
+const categoryIdToName = ref<Record<number, string>>({})
 
 // ── 排序 ──
 const sortBy = ref<string>('')
@@ -86,8 +87,12 @@ const buildParams = (): EnterpriseListParams => {
   const params: EnterpriseListParams = { page: page.value, pageSize: PAGE_SIZE }
   const kw = keyword.value.trim()
   if (kw) params.keyword = kw
-  if (selectedIndustry.value.length > 0) {
-    params.industry = selectedIndustry.value[0]
+  const catVal = categoryCascaderValue.value
+  if (catVal.length > 0) {
+    params.industry = categoryIdToName.value[catVal[0]]
+    if (catVal.length > 1) {
+      params.subCategoryId = catVal[catVal.length - 1]
+    }
   }
   const val = regionCascaderValue.value
   if (val.length > 0) {
@@ -134,7 +139,7 @@ const resetAndReload = () => {
 // ── 重置筛选 ──
 const resetFilters = () => {
   keyword.value = ''
-  selectedIndustry.value = []
+  categoryCascaderValue.value = []
   regionCascaderValue.value = []
   resetAndReload()
 }
@@ -148,6 +153,15 @@ const handleSearch = () => {
 const loadCategories = async () => {
   try {
     categoryTree.value = await getCategories()
+    const map: Record<number, string> = {}
+    const walk = (list: CategoryVO[]) => {
+      for (const c of list) {
+        map[c.id] = c.name
+        if (c.children) walk(c.children)
+      }
+    }
+    walk(categoryTree.value)
+    categoryIdToName.value = map
   } catch {
     categoryTree.value = []
   }
@@ -306,9 +320,9 @@ watch(() => route.query.id, (id) => {
         <div class="filter-section">
           <h4 class="filter-title">分类</h4>
           <el-cascader
-            v-model="selectedIndustry"
+            v-model="categoryCascaderValue"
             :options="categoryTree"
-            :props="{ value: 'name', label: 'name', children: 'children', checkStrictly: true, emitPath: true, expandTrigger: 'hover' }"
+            :props="{ value: 'id', label: 'name', children: 'children', checkStrictly: true, emitPath: true, expandTrigger: 'hover' }"
             placeholder="全部行业"
             size="default"
             clearable

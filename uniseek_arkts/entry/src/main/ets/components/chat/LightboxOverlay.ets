@@ -1,6 +1,8 @@
 // LightboxOverlay.ets — 全屏图片预览浮层
 
 import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../../common/AppStyles';
+import { ServerConfig } from '../../services/ServerConfig'
+import { ApiClient } from '../../services/ApiClient'
 
 @Component
 export struct LightboxOverlay {
@@ -20,7 +22,7 @@ export struct LightboxOverlay {
         .transition({ opacity: 0 })
 
       // 预览图片
-      Image(this.imageUrl)
+      Image(ServerConfig.toHttpUrl(ApiClient.BASE_URL, this.imageUrl))
         .objectFit(ImageFit.Contain)
         .constraintSize({ maxWidth: '90%', maxHeight: '90%' })
         .borderRadius(AppRadius.MD)

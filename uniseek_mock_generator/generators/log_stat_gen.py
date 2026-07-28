@@ -47,26 +47,26 @@ END_DT = datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
 SPAN_SECONDS = int((END_DT - START_DT).total_seconds())
 
 # 目标记录数
-TARGET_LOG_COUNT = 23700
+TARGET_LOG_COUNT = 22730
 TARGET_DAILY_COUNT = 365
 
 # ---- 操作类型分布（共 15 种，对应后端 OperationType.java 常量） ----
 # 格式：(operation_type, target_type, count, 描述)
 # 总数 = 25000，LOGIN 占比最高（24%），符合登录高频的业务特征
 OPERATION_DISTRIBUTION = [
-    ("USER_LOGIN",          "USER",        6500,  "26% - 高频登录（含取整补足）"),
-    ("USER_REGISTER",       "USER",        3000,  "12% - 注册"),
-    ("APPLICATION_DELIVER",  "APPLICATION", 3000,  "12% - 投递"),
-    ("APPLICATION_INTERVIEW","APPLICATION", 2000,  "8% - 邀请面试"),
-    ("APPLICATION_HIRE",     "APPLICATION", 1500,  "6% - 录用"),
-    ("APPLICATION_REJECT",   "APPLICATION", 2000,  "8% - 淘汰"),
-    ("APPLICATION_PENDING",  "APPLICATION",  800,  "3.2% - 待入职"),
-    ("TASK_PUBLISH",        "TASK",        1500,  "6% - 发布岗位"),
-    ("TASK_AUDIT",          "TASK",        1200,  "4.8% - 审核岗位"),
-    ("TASK_OFFLINE",        "TASK",         500,  "2% - 下架岗位"),
-    ("ENTERPRISE_SUBMIT",   "ENTERPRISE",   400,  "1.6% - 提交企业认证"),
-    ("ENTERPRISE_AUDIT",    "ENTERPRISE",   300,  "1.2% - 审核企业"),
-    ("REAL_NAME_AUTH",      "USER",        1000,  "4% - 实名认证"),
+    ("LOGIN",               "USER",        6500,  "28.8% - 登录"),
+    ("REGISTER",            "USER",        3000,  "13.3% - 注册"),
+    ("APPLICATION_DELIVER",  "APPLICATION", 3000,  "13.3% - 投递"),
+    ("APPLICATION_INTERVIEW","APPLICATION", 2000,  "8.8% - 邀请面试"),
+    ("APPLICATION_HIRE",     "APPLICATION", 1500,  "6.6% - 录用"),
+    ("APPLICATION_REJECT",   "APPLICATION", 2000,  "8.8% - 淘汰"),
+    ("TASK_PUBLISH",        "TASK",        1500,  "6.6% - 发布岗位"),
+    ("TASK_OFFLINE",        "TASK",         500,  "2.2% - 下架岗位"),
+    ("ENTERPRISE_SUBMIT",   "ENTERPRISE",   400,  "1.8% - 提交企业认证"),
+    ("REAL_NAME_AUTH",      "USER",        1000,  "4.4% - 实名认证"),
+    ("PUBLISH_RESUME",      "RESUME",       800,  "3.5% - 发布简历"),
+    ("CHANGE_PASSWORD",     "USER",         200,  "0.9% - 修改密码"),
+    ("TASK_RESUBMIT",       "TASK",         200,  "0.9% - 重新提交审核"),
 ]
 
 # IP 地址生成常量
@@ -115,18 +115,18 @@ def _format_dt(dt: datetime.datetime) -> str:
 
 
 def _random_datetime() -> datetime.datetime:
-    """在 [START_DT, END_DT] 范围内生成加权随机时间点。
-
-    使用 weighted_random_time() 确保数据分布合理，近期更密集。
-    """
-    return weighted_random_time()
+    """在 [START_DT, END_DT] 范围内生成加权随机时间点。"""
+    return min(weighted_random_time(), END_DT)
 
 
 def _random_datetime_between(
     start: datetime.datetime,
     end: datetime.datetime,
 ) -> datetime.datetime:
-    """在 [start, end] 闭区间内均匀随机生成一个时间点。"""
+    """在 [start, end] 闭区间内均匀随机生成一个时间点，硬上限为 END_DT。"""
+    if start > END_DT:
+        start = END_DT
+    end = min(end, END_DT)
     diff = int((end - start).total_seconds())
     if diff <= 0:
         return start
@@ -151,16 +151,15 @@ def _generate_detail(op_type: str, target_id: int, related_info: dict = None) ->
     if related_info is None:
         related_info = {}
 
-    if op_type == "USER_REGISTER":
+    if op_type == "REGISTER":
         # 注册接口参数：phone, role
         return json.dumps({
             "phone": related_info.get("phone", ""),
             "role": related_info.get("role", 0),
         }, ensure_ascii=False)
 
-    elif op_type == "USER_LOGIN":
-        # 登录接口无额外参数（token 在 request 中）
-        return json.dumps({}, ensure_ascii=False)
+    elif op_type == "LOGIN":
+        return json.dumps({"userId": target_id, "role": related_info.get("role", 0) if related_info else 0}, ensure_ascii=False)
 
     elif op_type == "ENTERPRISE_SUBMIT":
         # 企业提交接口参数：companyName
@@ -168,29 +167,11 @@ def _generate_detail(op_type: str, target_id: int, related_info: dict = None) ->
             "companyName": related_info.get("company_name", ""),
         }, ensure_ascii=False)
 
-    elif op_type == "ENTERPRISE_AUDIT":
-        # 企业审核接口参数：id, auditStatus, fromStatus, toStatus
-        return json.dumps({
-            "id": target_id,
-            "auditStatus": related_info.get("audit_status", 1),
-            "fromStatus": related_info.get("from_status", 0),
-            "toStatus": related_info.get("to_status", 1),
-        }, ensure_ascii=False)
-
     elif op_type == "TASK_PUBLISH":
         # 岗位发布接口参数：title, enterpriseId
         return json.dumps({
             "title": related_info.get("title", ""),
             "enterpriseId": related_info.get("enterprise_id", 0),
-        }, ensure_ascii=False)
-
-    elif op_type == "TASK_AUDIT":
-        # 岗位审核接口参数：id, status, fromStatus, toStatus
-        return json.dumps({
-            "id": target_id,
-            "status": related_info.get("status", 1),
-            "fromStatus": related_info.get("from_status", 0),
-            "toStatus": related_info.get("to_status", 1),
         }, ensure_ascii=False)
 
     elif op_type == "TASK_OFFLINE":
@@ -216,15 +197,6 @@ def _generate_detail(op_type: str, target_id: int, related_info: dict = None) ->
             "fromStatus": related_info.get("from_status", 0),
             "toStatus": related_info.get("to_status", 1),
         }, ensure_ascii=False)
-
-    elif op_type == "APPLICATION_PENDING":
-        # 待入职操作参数：id, fromStatus, toStatus
-        return json.dumps({
-            "id": target_id,
-            "fromStatus": related_info.get("from_status", 1),
-            "toStatus": related_info.get("to_status", 2),
-        }, ensure_ascii=False)
-
     elif op_type == "APPLICATION_HIRE":
         # 录用操作参数：id, fromStatus, toStatus
         return json.dumps({
@@ -249,6 +221,15 @@ def _generate_detail(op_type: str, target_id: int, related_info: dict = None) ->
             "authType": related_info.get("auth_type", "id_card"),
             "status": related_info.get("status", 1),
         }, ensure_ascii=False)
+
+    elif op_type == "PUBLISH_RESUME":
+        return json.dumps({"resumeId": target_id, "published": True}, ensure_ascii=False)
+
+    elif op_type == "CHANGE_PASSWORD":
+        return json.dumps({"userId": target_id}, ensure_ascii=False)
+
+    elif op_type == "TASK_RESUBMIT":
+        return json.dumps({"taskId": target_id, "action": "resubmit"}, ensure_ascii=False)
 
     elif op_type == "COMPLAINT_HANDLE":
         # 投诉处理接口参数：id, fromStatus, toStatus
@@ -409,17 +390,17 @@ def generate_operation_logs(
         return log_id
 
     # =========================================================================
-    # 1. USER_LOGIN（6,500 条 — 26%）
-    #    用户登录是最频繁的操作，随机选择用户，时间广泛分布
-    #    多出的 500 条用于补足取整差额，使总数达到 25,000
+    # 1. LOGIN（6,500 条 — 29.3%）
+    #    用户登录是最频繁的操作
     # =========================================================================
     for _ in range(6500):
+        uid = random.choice(all_user_ids)
         _write_log(
-            operator_id=random.choice(all_user_ids),
-            op_type="USER_LOGIN",
+            operator_id=uid,
+            op_type="LOGIN",
             target_type="USER",
-            target_id=random.choice(all_user_ids),
-            detail=_generate_detail("USER_LOGIN", 0),
+            target_id=uid,
+            detail=_generate_detail("LOGIN", uid),
             create_time=_random_datetime(),
         )
 
@@ -431,10 +412,10 @@ def generate_operation_logs(
     for operator_id in register_users:
         _write_log(
             operator_id=operator_id,
-            op_type="USER_REGISTER",
+            op_type="REGISTER",
             target_type="USER",
             target_id=operator_id,
-            detail=_generate_detail("USER_REGISTER", operator_id, {
+            detail=_generate_detail("REGISTER", operator_id, {
                 "phone": f"1{random.choice(['3','5','7','8','9'])}{random.randint(0,9)}{''.join(str(random.randint(0,9)) for _ in range(8))}",
                 "role": random.choice([0, 1]),
             }),
@@ -593,38 +574,6 @@ def generate_operation_logs(
         )
 
     # =========================================================================
-    # 8. APPLICATION_PENDING（800 条 — 3.2%）
-    #    对应面试通过/待入职状态变更，从 status=2（面试通过）中选取
-    # =========================================================================
-    pending_apps = [a for a in application_info_list if a.get("status") == 2]
-    pending_samples = _pick_random_items(pending_apps, 800, allow_duplicates=len(pending_apps) < 800)
-    for app in pending_samples:
-        operator_id = app.get("hr_id") or random.choice(hr_ids)
-        app_id = app["app_id"]
-
-        app_create_time = app.get("create_time")
-        if app_create_time:
-            try:
-                app_dt = datetime.datetime.strptime(app_create_time, "%Y-%m-%d %H:%M:%S")
-                log_time = _random_datetime_between(app_dt, END_DT)
-            except (ValueError, TypeError):
-                log_time = _random_datetime()
-        else:
-            log_time = _random_datetime()
-
-        _write_log(
-            operator_id=operator_id,
-            op_type="APPLICATION_PENDING",
-            target_type="APPLICATION",
-            target_id=app_id,
-            detail=_generate_detail("APPLICATION_PENDING", app_id, {
-                "from_status": 1,
-                "to_status": 2,
-            }),
-            create_time=log_time,
-        )
-
-    # =========================================================================
     # 9. TASK_PUBLISH（1,500 条 — 6%）
     #    对应 HR 发布岗位，从岗位 ID 列表中选取
     # =========================================================================
@@ -646,25 +595,6 @@ def generate_operation_logs(
             create_time=_random_datetime(),
         )
 
-    # =========================================================================
-    # 10. TASK_AUDIT（1,200 条 — 4.8%）
-    #     对应管理员审核岗位
-    # =========================================================================
-    audit_task_admins = _pick_random_items(admin_ids, 1200, allow_duplicates=True)
-    for operator_id in audit_task_admins:
-        task_id = random.choice(task_ids)
-        _write_log(
-            operator_id=operator_id,
-            op_type="TASK_AUDIT",
-            target_type="TASK",
-            target_id=task_id,
-            detail=_generate_detail("TASK_AUDIT", task_id, {
-                "status": 1,
-                "from_status": 0,
-                "to_status": 1,
-            }),
-            create_time=_random_datetime(),
-        )
 
     # =========================================================================
     # 11. TASK_OFFLINE（500 条 — 2%）
@@ -705,25 +635,6 @@ def generate_operation_logs(
             create_time=_random_datetime(),
         )
 
-    # =========================================================================
-    # 13. ENTERPRISE_AUDIT（300 条 — 1.2%）
-    #     对应管理员审核企业认证
-    # =========================================================================
-    audit_enterprise_admins = _pick_random_items(admin_ids, 300, allow_duplicates=True)
-    for operator_id in audit_enterprise_admins:
-        eid = random.choice(enterprise_ids)
-        _write_log(
-            operator_id=operator_id,
-            op_type="ENTERPRISE_AUDIT",
-            target_type="ENTERPRISE",
-            target_id=eid,
-            detail=_generate_detail("ENTERPRISE_AUDIT", eid, {
-                "audit_status": 1,
-                "from_status": 0,
-                "to_status": 1,
-            }),
-            create_time=_random_datetime(),
-        )
 
     # =========================================================================
     # 14. REAL_NAME_AUTH（1,000 条 — 4%）
@@ -742,6 +653,83 @@ def generate_operation_logs(
             }),
             create_time=_random_datetime(),
         )
+
+    # =========================================================================
+    # 15. PUBLISH_RESUME（800 条 — 3.5%）
+    # =========================================================================
+    publish_users = _pick_random_items(seeker_ids, 800, allow_duplicates=False)
+    for operator_id in publish_users:
+        _write_log(
+            operator_id=operator_id,
+            op_type="PUBLISH_RESUME",
+            target_type="RESUME",
+            target_id=operator_id,
+            detail=_generate_detail("PUBLISH_RESUME", operator_id),
+            create_time=_random_datetime(),
+        )
+
+    # =========================================================================
+    # 16. CHANGE_PASSWORD（200 条 — 0.9%）
+    # =========================================================================
+    pwd_users = _pick_random_items(all_user_ids, 200, allow_duplicates=False)
+    for operator_id in pwd_users:
+        _write_log(
+            operator_id=operator_id,
+            op_type="CHANGE_PASSWORD",
+            target_type="USER",
+            target_id=operator_id,
+            detail=_generate_detail("CHANGE_PASSWORD", operator_id),
+            create_time=_random_datetime(),
+        )
+
+    # =========================================================================
+    # 17. TASK_RESUBMIT（200 条 — 0.9%）
+    # =========================================================================
+    resubmit_tasks = _pick_random_items(task_ids, 200, allow_duplicates=True)
+    for task_id in resubmit_tasks:
+        _write_log(
+            operator_id=random.choice(hr_ids),
+            op_type="TASK_RESUBMIT",
+            target_type="TASK",
+            target_id=task_id,
+            detail=_generate_detail("TASK_RESUBMIT", task_id),
+            create_time=_random_datetime(),
+        )
+
+    # =========================================================================
+    # 18. 兜底：确保每种类型在近 3 天（7/27-7/30）至少各 10 条
+    #     保证大屏 LIMIT 10 不会只有单一类型
+    # =========================================================================
+    RECENT_DAYS = 3
+    RECENT_EACH = 10
+    for op_type, target_type, _, _ in OPERATION_DISTRIBUTION:
+        for _ in range(RECENT_EACH):
+            recent_time = END_DT - datetime.timedelta(
+                days=random.randint(0, RECENT_DAYS - 1),
+                hours=random.randint(0, 23),
+                minutes=random.randint(0, 59),
+            )
+            if op_type in ("LOGIN", "REGISTER", "CHANGE_PASSWORD", "REAL_NAME_AUTH", "PUBLISH_RESUME"):
+                uid = random.choice(all_user_ids)
+                _write_log(operator_id=uid, op_type=op_type, target_type=target_type,
+                           target_id=uid, detail=_generate_detail(op_type, uid), create_time=recent_time)
+            elif op_type.startswith("APPLICATION_"):
+                app = random.choice(application_info_list) if application_info_list else None
+                aid = app["app_id"] if app else random.randint(1, 80000)
+                oid = app.get("hr_id") if app else random.choice(hr_ids) if hr_ids else random.choice(all_user_ids)
+                _write_log(operator_id=oid, op_type=op_type, target_type=target_type,
+                           target_id=aid, detail=_generate_detail(op_type, aid, {"from_status": 0, "to_status": 1}),
+                           create_time=recent_time)
+            elif op_type.startswith("TASK_"):
+                tid = random.choice(task_ids) if task_ids else random.randint(1, 5000)
+                oid = random.choice(hr_ids) if hr_ids else random.choice(all_user_ids)
+                _write_log(operator_id=oid, op_type=op_type, target_type=target_type,
+                           target_id=tid, detail=_generate_detail(op_type, tid), create_time=recent_time)
+            elif op_type == "ENTERPRISE_SUBMIT":
+                eid = random.choice(enterprise_ids) if enterprise_ids else random.randint(1, 400)
+                oid = random.choice(hr_ids) if hr_ids else random.choice(all_user_ids)
+                _write_log(operator_id=oid, op_type=op_type, target_type=target_type,
+                           target_id=eid, detail=_generate_detail(op_type, eid), create_time=recent_time)
 
     # ---- 最终断言验证 ----
     generated = len(operation_log_ids)

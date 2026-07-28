@@ -67,7 +67,7 @@ export struct ProfilePage {
     }
     const cachedAuth = AuthService.getCachedRealNameStatus()
     if (cachedAuth) {
-      this.isVerified = cachedAuth.status === 1
+      this.isVerified = cachedAuth.isAuth
     }
   }
 
@@ -128,7 +128,7 @@ export struct ProfilePage {
   private async loadAuthStatus(): Promise<void> {
     try {
       const auth = await AuthService.getRealNameStatus()
-      this.isVerified = auth.status === 1
+      this.isVerified = auth.isAuth
     } catch {
       // 保留本地缓存的实名认证状态，避免离线时显示为未认证
     }

@@ -20,18 +20,26 @@ struct RealNameAuthPage {
   @State errorMsg: string = ''
   @State authStatus: number = -1
   @State isSubmitting: boolean = false
+  @State cachedIdCard: string = ''
 
   aboutToAppear(): void {
     AuthService.getRealNameStatus()
       .then((info) => {
-        this.authStatus = info.status
-        if (info.status === 1) {
+        this.authStatus = info.isAuth ? 1 : -1
+        if (info.isAuth && info.realName) {
           this.realName = info.realName
+        }
+        if (info.isAuth && info.idCard) {
+          this.cachedIdCard = info.idCard
         }
       })
       .catch(() => {
         this.errorMsg = '认证状态加载失败，请检查网络后重试'
       })
+    const cachedInfo = AuthService.getCachedRealNameInfo()
+    if (cachedInfo && cachedInfo.idCard) {
+      this.cachedIdCard = cachedInfo.idCard
+    }
   }
 
   // 是否已通过认证
@@ -47,6 +55,23 @@ struct RealNameAuthPage {
   // 是否显示表单
   private showForm(): boolean {
     return this.authStatus !== 1 && this.authStatus !== 2
+  }
+
+  private maskName(name: string): string {
+    if (name.length <= 1) {
+      return name
+    }
+    if (name.length === 2) {
+      return name.charAt(0) + '*'
+    }
+    return name.charAt(0) + '*'.repeat(name.length - 2) + name.charAt(name.length - 1)
+  }
+
+  private maskIdCard(card: string): string {
+    if (card.length < 10) {
+      return card
+    }
+    return card.substring(0, 6) + '********' + card.substring(card.length - 4)
   }
 
   // 页面头部：图标 + 标题 + 说明
@@ -118,13 +143,32 @@ struct RealNameAuthPage {
   // 已通过状态卡片
   @Builder
   verifiedCard() {
-    this.statusCard(
-      $r('sys.symbol.checkmark'),
-      this.realName || '已认证用户',
-      '已通过实名认证',
-      AppColors.SUCCESS,
-      AppColors.SUCCESS_BG
-    )
+    Column({ space: AppSpacing.SM }) {
+      this.statusCard(
+        $r('sys.symbol.checkmark'),
+        this.maskName(this.realName) || '已认证用户',
+        '已通过实名认证',
+        AppColors.SUCCESS,
+        AppColors.SUCCESS_BG
+      )
+      if (this.cachedIdCard) {
+        Row({ space: AppSpacing.MD }) {
+          SymbolGlyph($r('sys.symbol.doc_text'))
+            .fontSize(AppFontSize.ICON_LG)
+            .fontColor([AppColors.TEXT_SECONDARY])
+          Text('身份证: ' + this.maskIdCard(this.cachedIdCard))
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_SECONDARY)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor(AppColors.BG_CARD)
+        .borderRadius(AppRadius.LG)
+        .padding(AppSpacing.MD)
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   // 审核中状态卡片
@@ -285,9 +329,18 @@ struct RealNameAuthPage {
 
     this.isSubmitting = true
     try {
-      await AuthService.realNameAuth(this.realName.trim(), this.idCard.trim().toUpperCase())
+      const result = await AuthService.realNameAuth(this.realName.trim(), this.idCard.trim().toUpperCase())
       this.authStatus = 1
       this.realName = this.realName.trim()
+      if (result && result.idCard) {
+        this.cachedIdCard = result.idCard
+      }
+      AuthService.saveCachedRealNameStatus({ isAuth: true, realName: this.realName, idCard: null, birthDate: null, gender: -1 })
+      AuthService.saveCachedRealNameInfo({
+        realName: this.realName,
+        idCard: this.cachedIdCard,
+        authTime: result?.authTime || ''
+      })
       this.idCard = ''
     } catch (e) {
       this.errorMsg = (e as Error).message || '认证失败，请稍后重试'

@@ -155,10 +155,10 @@ onMounted(() => {
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="title" label="职位标题" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="enterpriseName" label="发布企业" width="160" show-overflow-tooltip />
-        <el-table-column label="薪资" width="160">
+        <el-table-column prop="id" label="ID" width="100" />
+        <el-table-column prop="title" label="职位标题" width="180" show-overflow-tooltip />
+        <el-table-column prop="enterpriseName" label="发布企业" width="280" show-overflow-tooltip />
+        <el-table-column label="薪资" width="180">
           <template #default="{ row }">
             {{ row.salaryMin === 0 && row.salaryMax === 0 ? '面议' : row.salaryMin + ' - ' + row.salaryMax + ' 元/' + salaryUnitText(row.salaryUnit) }}
           </template>
@@ -168,7 +168,7 @@ onMounted(() => {
             {{ jobTypeText(row.jobType) }}
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="发布时间" width="160" />
+        <el-table-column prop="createTime" label="发布时间" width="280" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusTag(row.status, row.rejectReason).type as any" size="small">
@@ -176,7 +176,7 @@ onMounted(() => {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" align="center">
+        <el-table-column label="操作" min-width="100" align="center">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 0"

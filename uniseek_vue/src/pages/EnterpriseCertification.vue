@@ -203,6 +203,9 @@ onMounted(async () => {
             {{ ['审核中，请耐心等待','已认证，可发布职位','已被驳回，请修改后重新提交'][enterpriseInfo.auditStatus] }}
           </span>
         </div>
+        <div v-if="enterpriseInfo.auditStatus === 2 && enterpriseInfo.rejectReason" class="reject-reason-bar">
+          驳回原因：{{ enterpriseInfo.rejectReason }}
+        </div>
 
         <h2 class="page-title">企业信息</h2>
         <div class="info-grid">
@@ -323,6 +326,7 @@ onMounted(async () => {
 .status-0 { background: rgba(245,127,23,0.1); color: #f57f17; }
 .status-1 { background: rgba(46,125,50,0.1); color: #2e7d32; }
 .status-2 { background: rgba(231,76,60,0.1); color: #e74c3c; }
+.reject-reason-bar { padding: 10px 16px; margin-bottom: 24px; background: rgba(231,76,60,0.05); border-left: 3px solid #e74c3c; border-radius: 0 6px 6px 0; font-size: 14px; color: #e74c3c; line-height: 1.5; }
 
 .back-btn-top {
   position: absolute;

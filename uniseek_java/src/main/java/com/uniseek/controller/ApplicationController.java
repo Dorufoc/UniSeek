@@ -31,7 +31,6 @@ public class ApplicationController {
      * @return 投递记录
      */
     @PostMapping("/applications")
-    @OperationLog(operationType = "APPLICATION_DELIVER", targetType = "APPLICATION")
     public ApiResult<TaskApplication> apply(@Valid @RequestBody ApplyRequest request) {
         TaskApplication application = applicationService.apply(request);
         return ApiResult.success("投递成功", application);
@@ -93,7 +92,6 @@ public class ApplicationController {
      * @return 操作结果
      */
     @PutMapping("/applications/{id}/status")
-    @OperationLog(operationType = "APPLICATION_HIRE", targetType = "APPLICATION", targetIdExpression = "#id")
     public ApiResult<Void> updateStatus(@PathVariable Long id,
                                         @Valid @RequestBody UpdateStatusRequest request) {
         applicationService.updateStatus(id, request);

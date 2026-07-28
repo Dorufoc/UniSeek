@@ -141,6 +141,7 @@ public class AdminServiceImpl implements AdminService {
                 throw new BusinessException("驳回时必须填写原因");
             }
             enterprise.setAuditStatus(2);
+            enterprise.setRejectReason(rejectReason);
             enterprise.setUpdateTime(now);
             enterpriseMapper.updateById(enterprise);
 
@@ -430,9 +431,8 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<Map<String, Object>> getLatestActivity() {
         List<Map<String, Object>> result = new ArrayList<>();
-        QueryWrapper<OperationLog> wrapper = new QueryWrapper<>();
-        wrapper.orderByDesc("create_time").last("LIMIT 10");
-        List<OperationLog> logs = operationLogMapper.selectList(wrapper);
+        // 使用窗口函数按类型各取最新一条，保证活动 Feed 多样性
+        List<OperationLog> logs = operationLogMapper.selectLatestByType();
 
         for (OperationLog log : logs) {
             Map<String, Object> item = new HashMap<>();
@@ -565,6 +565,8 @@ public class AdminServiceImpl implements AdminService {
                 return userName + " 更新了简历";
             case "UPLOAD_RESUME":
                 return userName + " 上传了附件简历";
+            case "PUBLISH_RESUME":
+                return userName + " 发布了简历";
             case "ENTERPRISE_SUBMIT":
                 return (targetTitle.isEmpty() ? "企业" : targetTitle) + " 提交了资质认证申请";
             case "ENTERPRISE_AUDIT":
@@ -575,6 +577,8 @@ public class AdminServiceImpl implements AdminService {
                 return "职位审核通过：" + (targetTitle.isEmpty() ? "未知岗位" : targetTitle);
             case "TASK_OFFLINE":
                 return "职位已下架：" + (targetTitle.isEmpty() ? "未知岗位" : targetTitle);
+            case "TASK_RESUBMIT":
+                return userName + " 重新提交了审核：" + (targetTitle.isEmpty() ? "职位" : targetTitle);
             case "APPLICATION_DELIVER":
                 return userName + " 投递了 " + (targetTitle.isEmpty() ? "新岗位" : targetTitle);
             case "APPLICATION_INTERVIEW":
@@ -880,6 +884,17 @@ public class AdminServiceImpl implements AdminService {
         }
         wrapper.orderByDesc("create_time");
         IPage<OperationLog> result = operationLogMapper.selectPage(new Page<>(page, pageSize), wrapper);
+
+        // 填充操作人昵称
+        for (OperationLog log : result.getRecords()) {
+            if (log.getOperatorId() != null) {
+                User operator = userMapper.selectById(log.getOperatorId());
+                log.setOperatorName(operator != null ? operator.getNickname() : "系统");
+            } else {
+                log.setOperatorName("系统");
+            }
+        }
+
         return PageResult.of(result);
     }
 

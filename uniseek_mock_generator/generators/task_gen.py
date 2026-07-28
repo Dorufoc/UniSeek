@@ -981,6 +981,7 @@ def generate_tasks(
     hr_enterprise_map: Dict[int, int],
     enterprise_industry_map: Dict[int, str] = None,
     enterprise_audit_map: Dict[int, int] = None,
+    enterprise_sub_category_map: Dict[int, int] = None,
 ) -> Tuple[List[int], Dict[int, int]]:
     """生成岗位数据并写入 SQL 文件。
 
@@ -997,6 +998,7 @@ def generate_tasks(
         hr_enterprise_map: HR 用户 ID → 企业 ID 映射（仅用于参考）
         enterprise_industry_map: 企业 ID → 行业名称映射（用于分类匹配）
         enterprise_audit_map: 企业 ID → 审核状态映射（仅过滤已认证企业）
+        enterprise_sub_category_map: 企业 ID → 子分类 ID 映射（岗位分类优先匹配企业子分类）
 
     Returns:
         (task_ids, task_enterprise_map) 二元组：
@@ -1053,13 +1055,17 @@ def generate_tasks(
         task_enterprise_map[tid] = enterprise_id
 
         # -----------------------------------------------------------------
-        # 2. 选取分类（根据企业行业限制可选的分类范围）
+        # 2. 选取分类（优先匹配企业的子分类，否则根据行业范围加权选择）
         # -----------------------------------------------------------------
-        allowed_parents = None
-        if enterprise_industry_map:
-            industry = enterprise_industry_map.get(enterprise_id)
-            allowed_parents = INDUSTRY_TO_PARENT_IDS.get(industry) if industry else None
-        category_id = _pick_category_id(allowed_parents)
+        sub_cat_id = (enterprise_sub_category_map or {}).get(enterprise_id)
+        if sub_cat_id and random.random() < 0.80:
+            category_id = sub_cat_id
+        else:
+            allowed_parents = None
+            if enterprise_industry_map:
+                industry = enterprise_industry_map.get(enterprise_id)
+                allowed_parents = INDUSTRY_TO_PARENT_IDS.get(industry) if industry else None
+            category_id = _pick_category_id(allowed_parents)
         pool_key = _get_pool_key(category_id)
 
         # -----------------------------------------------------------------

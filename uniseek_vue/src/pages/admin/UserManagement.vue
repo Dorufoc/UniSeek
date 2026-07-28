@@ -146,10 +146,10 @@ onMounted(() => {
       </div>
 
       <el-table :data="tableData" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="phone" label="手机号" width="130" show-overflow-tooltip />
+        <el-table-column prop="id" label="ID" width="100" />
+        <el-table-column prop="phone" label="手机号" width="150" show-overflow-tooltip />
         <el-table-column prop="nickname" label="昵称" width="120" show-overflow-tooltip />
-        <el-table-column label="角色" width="100" align="center">
+        <el-table-column label="角色" min-width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="roleTagType(row.role) as any" size="small">
               {{ roleText(row.role) }}
@@ -164,8 +164,8 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="creditScore" label="信用分" width="80" align="center" />
-        <el-table-column prop="createTime" label="注册时间" width="160" />
-        <el-table-column prop="lastLoginTime" label="最后登录" width="160" />
+        <el-table-column prop="createTime" label="注册时间" width="200" />
+        <el-table-column prop="lastLoginTime" label="最后登录" width="200" />
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">

@@ -35,6 +35,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/auth/login",
                         "/api/region/**",
                         "/api/files/**",
+                        "/api/admin/statistics/summary",
+                        "/api/admin/statistics/latest-activity",
+                        "/api/admin/statistics/categories",
+                        "/api/admin/statistics/hot-tasks",
+                        "/api/admin/statistics/talent-flow",
+                        "/api/admin/statistics/application-funnel",
+                        "/api/admin/statistics/enterprise-summary",
                         "/api/v1/telemetry"
                 );
     }

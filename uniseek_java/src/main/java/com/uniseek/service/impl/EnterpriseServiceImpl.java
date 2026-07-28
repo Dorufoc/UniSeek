@@ -180,7 +180,7 @@ public class EnterpriseServiceImpl implements EnterpriseService {
 
     @Override
     public PageResult<Enterprise> listPublished(int page, int pageSize, String keyword, String industry, Long regionId,
-                                                String sortBy, String sortOrder) {
+                                                Long subCategoryId, String sortBy, String sortOrder) {
         // 收集子级地区ID
         List<Long> regionIds = null;
         if (regionId != null) {
@@ -193,6 +193,7 @@ public class EnterpriseServiceImpl implements EnterpriseService {
                 keyword,
                 industry,
                 regionIds,
+                subCategoryId,
                 sortBy,
                 sortOrder
         );

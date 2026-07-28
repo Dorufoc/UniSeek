@@ -3,7 +3,7 @@
 
 import { ChatService } from '../../../services/ChatService';
 import { ChatSessionVO } from '../../../services/ChatTypes';
-import { ChatWebSocketService } from '../../../services/ChatWebSocketService';
+import { ChatWebSocketService, WsNewMessageData } from '../../../services/ChatWebSocketService';
 import { AppColors, AppFontSize, AppSpacing } from '../../../common/AppStyles';
 import { ChatSessionList } from '../../../components/chat/ChatSessionList';
 
@@ -15,10 +15,10 @@ export struct ChatPage {
   @State errorText: string = ''
 
   aboutToAppear(): void {
-    // 注册新消息回调，收到推送时刷新会话列表
+    // 注册新消息回调，收到推送时实时更新会话列表
     ChatWebSocketService.getInstance().connect()
-    ChatWebSocketService.getInstance().setOnSessionMessageCallback(() => {
-      this.loadSessions()
+    ChatWebSocketService.getInstance().setOnSessionMessageCallback((data: WsNewMessageData) => {
+      this.handleNewMessage(data)
     })
     this.loadSessions()
   }
@@ -36,7 +36,9 @@ export struct ChatPage {
     this.errorText = ''
     try {
       const list: ChatSessionVO[] = await ChatService.getSessions()
-      this.sessions = list || []
+      this.sessions = (list || []).sort((a: ChatSessionVO, b: ChatSessionVO): number =>
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      )
     } catch {
       this.sessions = []
       this.errorText = '会话列表加载失败，请检查网络后重试'
@@ -54,6 +56,45 @@ export struct ChatPage {
       await this.loadSessions()
     } finally {
       this.isRefreshing = false
+    }
+  }
+
+  private handleNewMessage(data: WsNewMessageData): void {
+    const idx: number = this.sessions.findIndex((s: ChatSessionVO): boolean =>
+      s.applicationId === data.applicationId
+    )
+    if (idx >= 0) {
+      let preview: string = data.content
+      if (data.messageType === 1) {
+        preview = '[图片]'
+      } else if (data.messageType === 2) {
+        preview = '[文件]'
+      }
+      const original = this.sessions[idx]
+      const updated: ChatSessionVO = {
+        applicationId: original.applicationId,
+        taskId: original.taskId,
+        taskTitle: original.taskTitle,
+        taskStatus: original.taskStatus,
+        applicationStatus: original.applicationStatus,
+        counterpartId: original.counterpartId,
+        counterpartName: original.counterpartName,
+        counterpartAvatar: original.counterpartAvatar,
+        counterpartCompany: original.counterpartCompany,
+        enterpriseId: original.enterpriseId,
+        canSend: original.canSend,
+        lastMessage: preview,
+        lastMessageTime: data.sendTime,
+        unreadCount: original.unreadCount + 1
+      }
+      const sorted: ChatSessionVO[] = [...this.sessions]
+      sorted[idx] = updated
+      sorted.sort((a: ChatSessionVO, b: ChatSessionVO): number =>
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      )
+      this.sessions = sorted
+    } else {
+      this.loadSessions()
     }
   }
 

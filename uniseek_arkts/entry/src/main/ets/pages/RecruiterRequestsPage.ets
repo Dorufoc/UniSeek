@@ -1,16 +1,13 @@
 // 招聘方简历池 / 面试安排页
-// 完全对标 Vue ResumePool.vue：职位选择、Tabs 切换、新投递通知铃铛、候选人卡片操作、共享弹窗。
+// 职位选择、Tabs 切换、新投递通知铃铛、候选人卡片展示。
 
 import { RecruiterService } from '../services/RecruiterService'
 import { RecruiterApplicationVO, RecruiterJobVO, ResumeCardData } from '../services/RecruiterTypes'
-import { InterviewDialog, RejectDialog, CompleteDialog } from '../components/application/SharedDialogs'
 import { PoolApplicationCard } from '../components/application/PoolApplicationCard'
 import { NotificationBell } from '../components/NotificationBell'
-import { ApplicationActionPolicy } from '../common/BusinessPolicies'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
 import { EmptyView } from '../components/EmptyView'
 import { ErrorView } from '../components/ErrorView'
-import { StandardCard } from '../common/StandardCard'
 
 interface ResumeSnapshot {
   realName?: string
@@ -24,14 +21,6 @@ interface ResumeSnapshot {
 
 interface SelectOption {
   value: string
-}
-
-interface ApplicationStatusUpdate {
-  status?: number
-  interviewTime?: string
-  interviewLocation?: string
-  rejectReason?: string
-  hrNote?: string
 }
 
 @Entry
@@ -57,9 +46,6 @@ struct RecruiterRequestsPage {
 
   // 简历池内状态筛选（兼容首页 filterStatus 传入 0/2/3 的场景）
   @State poolStatusFilter: number = -1
-
-  // 当前正在操作的投递记录（供弹窗回调使用）
-  private currentApplication?: RecruiterApplicationVO
 
   aboutToAppear(): void {
     this.parseRouteParams()
@@ -109,6 +95,7 @@ struct RecruiterRequestsPage {
       this.jobs = list ?? []
       if (this.jobs.length > 0) {
         this.selectedJobIndex = 0
+        this.isLoadingJobs = false
         this.loadApplications()
       } else {
         this.isLoadingJobs = false
@@ -153,14 +140,13 @@ struct RecruiterRequestsPage {
     this.interviewApplications = this.applications.filter((item: RecruiterApplicationVO) => item.status === 1)
   }
 
-  // 下来选项数据
   private getSelectOptions(): SelectOption[] {
     if (this.jobs.length === 0) {
       return [{ value: '暂无职位' }]
     }
     return this.jobs.map((job: RecruiterJobVO): SelectOption => {
       return {
-        value: job.title + '（' + (job.applicationCount ?? 0) + ' 人投递）'
+        value: job.title
       }
     })
   }
@@ -168,7 +154,7 @@ struct RecruiterRequestsPage {
   private getSelectValue(): string {
     if (this.selectedJobIndex >= 0 && this.selectedJobIndex < this.jobs.length) {
       const job: RecruiterJobVO = this.jobs[this.selectedJobIndex]
-      return job.title + '（' + (job.applicationCount ?? 0) + ' 人投递）'
+      return job.title + '（' + this.applications.length + ' 人投递）'
     }
     return '请选择职位'
   }
@@ -249,136 +235,32 @@ struct RecruiterRequestsPage {
     this.openResume(app)
   }
 
-  // 操作：邀请/安排面试
-  private handleInterview(app: RecruiterApplicationVO): void {
-    this.currentApplication = app
-    const dialog = new CustomDialogController({
-      builder: InterviewDialog({
-        applicantName: app.applicantName,
-        onConfirm: (time: string, location: string) => {
-          this.updateApplicationStatus(app, {
-            status: 1,
-            interviewTime: time,
-            interviewLocation: location
-          }, '面试邀请已发送')
-        }
-      }),
-      autoCancel: true,
-      alignment: DialogAlignment.Bottom
-    })
-    dialog.open()
-  }
-
-  // 操作：淘汰
-  private handleReject(app: RecruiterApplicationVO): void {
-    this.currentApplication = app
-    const dialog = new CustomDialogController({
-      builder: RejectDialog({
-        applicantName: app.applicantName,
-        onConfirm: (reason: string, note: string) => {
-          this.updateApplicationStatus(app, {
-            status: 4,
-            rejectReason: reason,
-            hrNote: note
-          }, '已发送淘汰通知')
-        }
-      }),
-      autoCancel: true,
-      alignment: DialogAlignment.Bottom
-    })
-    dialog.open()
-  }
-
-  // 操作：完成结算
-  private handleComplete(app: RecruiterApplicationVO): void {
-    this.currentApplication = app
-    const dialog = new CustomDialogController({
-      builder: CompleteDialog({
-        applicantName: app.applicantName,
-        onConfirm: (note: string) => {
-          if (!app || app.id <= 0) {
-            return
-          }
-          RecruiterService.completeApplication(app.id, note).then((ok: boolean) => {
-            if (ok) {
-              app.status = 5
-              this.updateDerivedLists()
-              this.getUIContext().getPromptAction().showToast({ message: '结算已完成' })
-            } else {
-              this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
-            }
-          }).catch(() => {
-            this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
-          })
-        }
-      }),
-      autoCancel: true,
-      alignment: DialogAlignment.Bottom
-    })
-    dialog.open()
-  }
-
-  // 简单状态变更（录用、待定）
-  private handleMarkStatus(app: RecruiterApplicationVO, targetStatus: number, label: string): void {
-    const promptAction = this.getUIContext().getPromptAction()
-    promptAction.showDialog({
-      message: '确定将 ' + (app.applicantName || '该候选人') + ' 标记为「' + label + '」吗？',
-      buttons: [
-        { text: '取消', color: '#999999' },
-        { text: '确认', color: '#1762FB' }
-      ]
-    }).then((result) => {
-      if (result.index === 1) {
-        this.updateApplicationStatus(app, { status: targetStatus }, '操作成功')
-      }
-    }).catch(() => {
-      // 取消时静默处理
-    })
-  }
-
-  // 统一更新投递状态并刷新列表
-  private updateApplicationStatus(
-    app: RecruiterApplicationVO,
-    data: ApplicationStatusUpdate,
-    successMessage: string
-  ): void {
-    if (!app || app.id <= 0) {
-      return
-    }
-    RecruiterService.updateApplicationStatus(app.id, {
-      status: data.status ?? app.status,
-      interviewTime: data.interviewTime,
-      interviewLocation: data.interviewLocation,
-      rejectReason: data.rejectReason,
-      hrNote: data.hrNote
-    }).then((ok: boolean) => {
-      if (ok) {
-        if (data.status !== undefined) {
-          app.status = data.status
-        }
-        if (data.interviewTime !== undefined) {
-          app.interviewTime = data.interviewTime
-        }
-        if (data.interviewLocation !== undefined) {
-          app.interviewLocation = data.interviewLocation
-        }
-        if (data.rejectReason !== undefined) {
-          app.rejectReason = data.rejectReason
-        }
-        this.updateDerivedLists()
-        this.getUIContext().getPromptAction().showToast({ message: successMessage })
-      } else {
-        this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
-      }
-    }).catch(() => {
-      this.getUIContext().getPromptAction().showToast({ message: '操作失败，请稍后重试' })
-    })
-  }
-
   build() {
     Column() {
       // 顶部标题栏
       this.header()
+
+      // 职位选择器（独立一行，不挤占标题栏）
+      if (!this.isLoadingJobs && this.jobs.length > 0) {
+        Row() {
+          Row() {
+            Select(this.getSelectOptions())
+              .selected(this.selectedJobIndex >= 0 ? this.selectedJobIndex : 0)
+              .value(this.getSelectValue())
+              .fontColor(AppColors.TEXT_PRIMARY)
+              .backgroundColor(AppColors.BG_CARD)
+              .borderRadius(AppRadius.SM)
+              .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+              .layoutWeight(1)
+              .onSelect((index: number) => { this.handleJobSelected(index) })
+          }
+          .layoutWeight(1)
+          .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+          .backgroundColor(AppColors.BG_CARD)
+        }
+        .width('100%')
+        .height(44)
+      }
 
       // Tabs：简历池 / 面试安排
       Tabs({ index: this.activeTabIndex, barPosition: BarPosition.Start }) {
@@ -435,19 +317,6 @@ struct RecruiterRequestsPage {
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        // 职位选择器
-        if (!this.isLoadingJobs && this.jobs.length > 0) {
-          Select(this.getSelectOptions())
-            .selected(this.selectedJobIndex >= 0 ? this.selectedJobIndex : 0)
-            .value(this.getSelectValue())
-            .fontColor(AppColors.TEXT_PRIMARY)
-            .backgroundColor(AppColors.BG_CARD)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-            .onSelect((index: number) => { this.handleJobSelected(index) })
-            .margin({ right: AppSpacing.SM })
-        }
 
         // 新投递通知铃铛
         NotificationBell({
@@ -522,13 +391,8 @@ struct RecruiterRequestsPage {
             ListItem() {
               PoolApplicationCard({
                 app: app,
-                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) },
-                onInterview: (item: RecruiterApplicationVO): void => { this.handleInterview(item) },
-                onReject: (item: RecruiterApplicationVO): void => { this.handleReject(item) },
-                onComplete: (item: RecruiterApplicationVO): void => { this.handleComplete(item) },
-                onMarkStatus: (item: RecruiterApplicationVO, targetStatus: number, label: string): void => {
-                  this.handleMarkStatus(item, targetStatus, label)
-                }
+                jobTitle: this.selectedJobIndex >= 0 ? this.jobs[this.selectedJobIndex].title : '',
+                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) }
               })
                 .margin({ bottom: AppSpacing.MD })
             }
@@ -590,14 +454,8 @@ struct RecruiterRequestsPage {
             ListItem() {
               PoolApplicationCard({
                 app: app,
-                showInterviewDetail: true,
-                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) },
-                onInterview: (item: RecruiterApplicationVO): void => { this.handleInterview(item) },
-                onReject: (item: RecruiterApplicationVO): void => { this.handleReject(item) },
-                onComplete: (item: RecruiterApplicationVO): void => { this.handleComplete(item) },
-                onMarkStatus: (item: RecruiterApplicationVO, targetStatus: number, label: string): void => {
-                  this.handleMarkStatus(item, targetStatus, label)
-                }
+                jobTitle: this.selectedJobIndex >= 0 ? this.jobs[this.selectedJobIndex].title : '',
+                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) }
               })
                 .margin({ bottom: AppSpacing.MD })
             }

@@ -20,7 +20,7 @@ from time_utils import weighted_random_time
 # 企业表列名
 ENTERPRISE_COLUMNS = [
     "id", "user_id", "company_name", "credit_code", "license_img_url",
-    "industry", "region_id", "description", "audit_status",
+    "industry", "sub_category_id", "region_id", "description", "audit_status",
     "audit_time", "create_time", "update_time",
 ]
 
@@ -42,25 +42,6 @@ INDUSTRIES_WEIGHTED: List[Tuple[str, float]] = [
     ("翻译校对", 0.03),
     ("其他", 0.02),
 ]
-
-# 短名称 → datapool 前缀池键名映射
-SHORT_TO_PREFIX_KEY = {
-    "餐饮": "餐饮",
-    "快递物流": "快递物流",
-    "技术支持": "技术支持",
-    "教育培训": "教育培训",
-    "设计创作": "设计创作",
-    "促销导购": "促销导购",
-    "美容美发": "美容美发",
-    "家政保洁": "家政保洁",
-    "话务客服": "话务客服",
-    "家教辅导": "家教辅导",
-    "文案写作": "文案写作",
-    "活动策划": "活动策划",
-    "摄影摄像": "摄影摄像",
-    "翻译校对": "翻译校对",
-    "其他": "其他",
-}
 
 # 短名称 → 数据库行业名称映射（与 category 表顶级分类名完全一致）
 SHORT_TO_DB_INDUSTRY = {
@@ -163,19 +144,21 @@ def _pick_industry() -> Tuple[str, str]:
     return short_name, db_name
 
 
-def _generate_company_name(short_name: str) -> str:
-    """根据行业短名称生成公司名称。
+def _generate_company_name(sub_category_name: str) -> str:
+    """根据子分类名称生成公司名称。
 
-    从对应行业前缀池中随机选取前缀，拼接随机后缀。
+    从对应子分类前缀池中随机选取前缀，拼接随机后缀。
 
     Args:
-        short_name: 行业短名称（如 "餐饮"、"IT"）
+        sub_category_name: 子分类名称（如 "服务员"）
 
     Returns:
-        完整的公司名称（如 "味美滋餐饮管理有限公司"）
+        完整的公司名称（如 "悦来餐饮服务有限公司"）
     """
-    prefix_key = SHORT_TO_PREFIX_KEY[short_name]
-    prefixes = COMPANY_PREFIXES[prefix_key]
+    prefixes = COMPANY_PREFIXES.get(sub_category_name)
+    if not prefixes:
+        all_pools = list(COMPANY_PREFIXES.values())
+        prefixes = random.choice(all_pools)
     prefix = random.choice(prefixes)
     suffix = random.choice(COMPANY_SUFFIXES)
     return prefix + suffix
@@ -319,27 +302,102 @@ def _generate_description(company_name: str, short_industry: str) -> str:
 # 主生成函数
 # =============================================================================
 
+# =============================================================================
+# 子分类映射（category 表 47 个子分类）
+# =============================================================================
+
+# 子分类 ID → (名称, 父分类名, 父分类 ID)
+SUB_CATEGORY_INFO: Dict[int, tuple] = {
+    # 餐饮服务 (parent_id=1)
+    16: ("服务员", "餐饮服务", 1), 17: ("后厨帮工", "餐饮服务", 1),
+    18: ("送餐员", "餐饮服务", 1), 19: ("收银员", "餐饮服务", 1),
+    20: ("咖啡师/调酒师", "餐饮服务", 1),
+    # 家教辅导 (parent_id=2)
+    21: ("小学陪读", "家教辅导", 2), 22: ("初高中辅导", "家教辅导", 2),
+    23: ("艺术培训", "家教辅导", 2), 24: ("外语辅导", "家教辅导", 2),
+    # 快递物流 (parent_id=3)
+    25: ("快递分拣", "快递物流", 3), 26: ("配送员", "快递物流", 3),
+    27: ("仓库管理", "快递物流", 3),
+    # 促销导购 (parent_id=4)
+    31: ("导购员", "促销导购", 4), 32: ("促销员", "促销导购", 4),
+    33: ("地推推广", "促销导购", 4),
+    # 话务客服 (parent_id=5)
+    34: ("电话客服", "话务客服", 5), 35: ("在线客服", "话务客服", 5),
+    36: ("售后客服", "话务客服", 5),
+    # 设计创作 (parent_id=6)
+    28: ("平面设计", "设计创作", 6), 29: ("UI设计", "设计创作", 6),
+    30: ("视频剪辑", "设计创作", 6),
+    # 文案写作 (parent_id=7)
+    37: ("公众号文案", "文案写作", 7), 38: ("新闻稿撰写", "文案写作", 7),
+    39: ("营销文案", "文案写作", 7),
+    # 技术支持 (parent_id=8)
+    40: ("IT运维", "技术支持", 8), 41: ("软件测试", "技术支持", 8),
+    42: ("技术助理", "技术支持", 8),
+    # 翻译校对 (parent_id=9)
+    43: ("英语翻译", "翻译校对", 9), 44: ("日语翻译", "翻译校对", 9),
+    45: ("文件校对", "翻译校对", 9),
+    # 美容美发 (parent_id=10)
+    46: ("美发师", "美容美发", 10), 47: ("美容师", "美容美发", 10),
+    48: ("美甲师", "美容美发", 10),
+    # 家政保洁 (parent_id=11)
+    49: ("家庭保洁", "家政保洁", 11), 50: ("月嫂", "家政保洁", 11),
+    51: ("钟点工", "家政保洁", 11),
+    # 教育培训 (parent_id=12)
+    52: ("课程顾问", "教育培训", 12), 53: ("助教", "教育培训", 12),
+    54: ("教务管理", "教育培训", 12),
+    # 活动策划 (parent_id=13)
+    55: ("活动执行", "活动策划", 13), 56: ("礼仪接待", "活动策划", 13),
+    57: ("展会协助", "活动策划", 13),
+    # 摄影摄像 (parent_id=14)
+    58: ("摄影助理", "摄影摄像", 14), 59: ("后期修图", "摄影摄像", 14),
+    60: ("摄像跟拍", "摄影摄像", 14),
+    # 其他 (parent_id=15)
+    61: ("其他兼职", "其他", 15), 62: ("其他临时工", "其他", 15),
+}
+
+# 父分类名 → 子分类 ID 列表
+PARENT_TO_SUB_IDS: Dict[str, List[int]] = {}
+for cid, (cname, pname, pid) in SUB_CATEGORY_INFO.items():
+    PARENT_TO_SUB_IDS.setdefault(pname, []).append(cid)
+
+
+def _pick_sub_category(short_name: str) -> Tuple[int, str, str]:
+    """根据行业短名称选取子分类。
+
+    Args:
+        short_name: 行业短名称（如 "餐饮"）
+
+    Returns:
+        (sub_category_id, sub_category_name, db_parent_name)
+    """
+    db_industry = SHORT_TO_DB_INDUSTRY[short_name]
+    sub_ids = PARENT_TO_SUB_IDS[db_industry]
+    cid = random.choice(sub_ids)
+    cname = SUB_CATEGORY_INFO[cid][0]
+    return cid, cname, db_industry
+
+
 def generate_enterprises(
     writer: SQLWriter, hr_ids: List[int],
-) -> Tuple[List[int], Dict[int, int], Dict[int, str], Dict[int, int]]:
+) -> Tuple[List[int], Dict[int, int], Dict[int, str], Dict[int, int], Dict[int, str], Dict[int, int]]:
     """生成企业数据并写入 SQL 文件。
 
-    每个 HR 用户对应一条企业记录（一对一关系），
-    共 len(hr_ids) 条记录。
-
-    企业数据包含：名称、信用代码、行业、地区、审核状态、简介等。
+    每个 HR 用户对应一条企业记录（一对一关系），共 len(hr_ids) 条记录。
+    采用两阶段分配：先确保 47 个子分类每类至少 2 家企业，再按权重补充。
 
     Args:
         writer: SQLWriter 实例，用于输出 SQL
         hr_ids: HR 用户 ID 列表（长度 400）
 
     Returns:
-        (enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map) 五元组：
-        - enterprise_ids: 企业 ID 列表，顺序与 hr_ids 一一对应
-        - hr_enterprise_map: HR 用户 ID → 企业 ID 的映射字典
-        - enterprise_industry_map: 企业 ID → 行业名称的映射字典
-        - enterprise_audit_map: 企业 ID → 审核状态（0/1/2）的映射字典
-        - enterprise_name_map: 企业 ID → 公司全称的映射字典
+        (enterprise_ids, hr_enterprise_map, enterprise_industry_map,
+         enterprise_audit_map, enterprise_name_map, enterprise_sub_category_map)
+        - enterprise_ids: 企业 ID 列表
+        - hr_enterprise_map: HR 用户 ID → 企业 ID
+        - enterprise_industry_map: 企业 ID → 行业名称
+        - enterprise_audit_map: 企业 ID → 审核状态
+        - enterprise_name_map: 企业 ID → 公司全称
+        - enterprise_sub_category_map: 企业 ID → 子分类 ID
     """
     total = len(hr_ids)
     used_credit_codes: set = set()
@@ -347,37 +405,69 @@ def generate_enterprises(
     enterprise_industry_map: Dict[int, str] = {}
     enterprise_name_map: Dict[int, str] = {}
     enterprise_audit_map: Dict[int, int] = {}
+    enterprise_sub_category_map: Dict[int, int] = {}
 
     writer.write_comment(f"企业表（{total} 条记录）")
     writer.begin_insert("enterprise", ENTERPRISE_COLUMNS)
 
-    for user_id in hr_ids:
+    # ---- 两阶段分配 ----
+    # 第一阶段：每子分类至少 2 家（47 * 2 = 94）
+    all_sub_ids = list(SUB_CATEGORY_INFO.keys())
+    base_per_sub = 2
+    phase1_enterprises: List[tuple] = []
+    for cid in all_sub_ids:
+        for _ in range(base_per_sub):
+            cname, pname, pid = (
+                SUB_CATEGORY_INFO[cid][0],
+                SUB_CATEGORY_INFO[cid][1],
+                SUB_CATEGORY_INFO[cid][2],
+            )
+            phase1_enterprises.append((cid, cname, pname, pid))
+
+    # 第二阶段：按行业权重分配剩余（400 - 94 = 306）
+    phase2_count = total - len(phase1_enterprises)
+    phase2_short_names: List[str] = []
+    short_names_list = [s for s, _ in INDUSTRIES_WEIGHTED]
+    weights = [w for _, w in INDUSTRIES_WEIGHTED]
+    phase2_short_names = random.choices(short_names_list, weights=weights, k=phase2_count)
+
+    # 合并分配，打乱顺序
+    all_assignments: List[tuple] = list(phase1_enterprises)
+    for short_name in phase2_short_names:
+        db_name = SHORT_TO_DB_INDUSTRY[short_name]
+        sub_ids = PARENT_TO_SUB_IDS[db_name]
+        cid = random.choice(sub_ids)
+        cname = SUB_CATEGORY_INFO[cid][0]
+        pid = SUB_CATEGORY_INFO[cid][2]
+        all_assignments.append((cid, cname, db_name, pid))
+
+    random.shuffle(all_assignments)
+
+    for idx, user_id in enumerate(hr_ids):
+        cid, cname, pname, pid = all_assignments[idx]
         eid = writer.next_id("enterprise")
         enterprise_ids.append(eid)
 
-        # 1. 选取行业
-        short_industry, db_industry = _pick_industry()
-
-        # 2. 生成企业名称
-        company_name = _generate_company_name(short_industry)
+        # 生成企业名称（按子分类取前缀）
+        company_name = _generate_company_name(cname)
         enterprise_name_map[eid] = company_name
 
-        # 3. 生成唯一信用代码
+        # 生成唯一信用代码
         credit_code = _generate_credit_code(used_credit_codes)
 
-        # 4. 许可证图片 URL（示例链接）
+        # 许可证图片 URL
         license_img_url = f"https://cdn.uniseek.com/license/{credit_code}.jpg"
 
-        # 5. 选取地区
+        # 选取地区
         region_id = _pick_region_id()
 
-        # 6. 生成公司简介
-        description = _generate_description(company_name, short_industry)
+        # 生成公司简介
+        description = _generate_description(company_name, pname)
 
-        # 7. 审核状态（80% 通过、15% 待审、5% 拒绝）
+        # 审核状态（80% 通过、15% 待审、5% 拒绝）
         audit_status, audit_time = _random_audit_status()
 
-        # 8. 创建时间（使用加权分布确保数据分布合理，支持趋势分析）
+        # 创建时间
         create_time = weighted_random_time()
         update_time = create_time
 
@@ -387,7 +477,8 @@ def generate_enterprises(
             company_name,
             credit_code,
             license_img_url,
-            db_industry,
+            pname,
+            cid,            # sub_category_id
             region_id,
             description,
             audit_status,
@@ -396,11 +487,13 @@ def generate_enterprises(
             _format_dt(update_time),
         ])
 
-        enterprise_industry_map[eid] = db_industry
+        enterprise_industry_map[eid] = pname
         enterprise_audit_map[eid] = audit_status
+        enterprise_sub_category_map[eid] = cid
 
-    # 构建 HR 用户 ID → 企业 ID 的映射（用于下游生成器）
+    # 构建 HR 用户 ID → 企业 ID 的映射
     hr_enterprise_map: Dict[int, int] = {
         hr_id: eid for hr_id, eid in zip(hr_ids, enterprise_ids)
     }
-    return enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map
+    return (enterprise_ids, hr_enterprise_map, enterprise_industry_map,
+            enterprise_audit_map, enterprise_name_map, enterprise_sub_category_map)

@@ -51,7 +51,6 @@ public class ResumeController {
      * PUT /api/resume（需要鉴权）
      * 注意：请求体中的 realName 字段将被服务端忽略
      */
-    @OperationLog(operationType = "SAVE_RESUME", targetType = "RESUME")
     @PutMapping
     public ApiResult<Void> saveOrUpdateResume(@RequestBody ResumeRequest request) {
         Long userId = UserContext.getUserId();
@@ -75,7 +74,6 @@ public class ResumeController {
      * 从人才市场下架简历
      * PATCH /api/resume/unpublish
      */
-    @OperationLog(operationType = "UNPUBLISH_RESUME", targetType = "RESUME")
     @PatchMapping("/unpublish")
     public ApiResult<Void> unpublishResume() {
         Long userId = UserContext.getUserId();
@@ -122,7 +120,6 @@ public class ResumeController {
      * @param file 附件简历文件（支持 pdf、doc、docx，最大 10MB）
      * @return 文件访问 URL
      */
-    @OperationLog(operationType = "UPLOAD_RESUME", targetType = "RESUME")
     @PostMapping("/upload-attachment")
     public ApiResult<Map<String, String>> uploadAttachment(@RequestParam("file") MultipartFile file) {
         String url = uploadService.uploadFile(file);

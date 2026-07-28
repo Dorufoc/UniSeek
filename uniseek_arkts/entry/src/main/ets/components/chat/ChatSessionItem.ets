@@ -23,7 +23,7 @@ export struct ChatSessionItem {
   build() {
     Row() {
       // 头像区：右上角叠加未读徽标
-      Stack({ alignContent: Alignment.Center }) {
+      Stack() {
         Avatar({
           url: this.session.counterpartAvatar,
           name: this.session.counterpartName,
@@ -32,8 +32,10 @@ export struct ChatSessionItem {
 
         if (this.session.unreadCount > 0) {
           UnreadBadge({ count: this.session.unreadCount })
-            .align(Alignment.TopEnd)
-            .margin({ top: AppSpacing.XXS, right: AppSpacing.XXS })
+            .position({
+              x: AppChat.AVATAR_SESSION - 20 - AppSpacing.XXS,
+              y: AppSpacing.XXS
+            })
         }
       }
       .width(AppChat.AVATAR_SESSION)

@@ -41,4 +41,8 @@ public class OperationLog {
 
     /** 创建时间 */
     private LocalDateTime createTime;
+
+    /** 操作人昵称（非数据库字段，查询时填充） */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String operatorName;
 }

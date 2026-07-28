@@ -98,7 +98,7 @@ INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `ava
 (25, '13900000116', 'tangyuyan@uniseek.com', '1b0db933c2a418f17fafabd5a127d071', 'e20a9b4906dc9a7f2e27ac68737c43f4', '唐语嫣', NULL, 0, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
 INSERT INTO `user` (`id`, `phone`, `email`, `password`, `salt`, `nickname`, `avatar_url`, `role`, `credit_score`, `status`, `last_login_time`, `create_time`, `update_time`) VALUES
-(26, '18688886666', 'superadmin@uniseek.com', '69cfb7496a55d2baad5d5731b55c2e6f', 'e417419cf2e5194657477ed259440d3e', '超级管理员', NULL, 99, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
+(26, '19999999999', 'superadmin@uniseek.com', '69cfb7496a55d2baad5d5731b55c2e6f', 'e417419cf2e5194657477ed259440d3e', '超级管理员', NULL, 99, 100, 1, DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), NOW());
 
 -- ====================================================================
 -- 2. real_name_auth - 实名认证表（24 条）

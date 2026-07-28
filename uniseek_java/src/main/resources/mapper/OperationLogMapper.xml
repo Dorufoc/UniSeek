@@ -14,4 +14,16 @@
         <result column="create_time" property="createTime"/>
     </resultMap>
 
+    <!-- 按类型各取最新一条日志，保证动静多样性 -->
+    <select id="selectLatestByType" resultMap="BaseResultMap">
+        SELECT id, operator_id, operation_type, target_type, target_id, detail, ip_address, create_time
+        FROM (
+            SELECT id, operator_id, operation_type, target_type, target_id, detail, ip_address, create_time,
+                   ROW_NUMBER() OVER (PARTITION BY operation_type ORDER BY create_time DESC) AS rn
+            FROM operation_log
+        ) t
+        WHERE t.rn = 1
+        ORDER BY t.create_time DESC
+    </select>
+
 </mapper>

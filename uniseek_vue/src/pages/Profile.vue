@@ -334,7 +334,7 @@ const handleMenuClick = (item: string) => {
             </div>
             <div class="stat-item" @click="handleMenuClick('interviews')">
               <span class="stat-num">{{ seekerStats.interviews }}</span>
-              <span class="stat-label">面试邀请</span>
+              <span class="stat-label">通知</span>
             </div>
             <div class="stat-item" @click="handleMenuClick('favorites')">
               <span class="stat-num">{{ seekerStats.favorites }}</span>
