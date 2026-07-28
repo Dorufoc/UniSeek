@@ -9,7 +9,7 @@ export class InputValidator {
   }
 
   static isStrongPassword(value: string): boolean {
-    return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=]{8,20}$/.test(value)
+    return /^[A-Za-z\d!@#$%^&*()_+\-=]{6,20}$/.test(value)
   }
 
   static isNickname(value: string): boolean {

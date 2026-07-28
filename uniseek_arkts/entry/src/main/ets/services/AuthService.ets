@@ -193,6 +193,7 @@ export class AuthService {
   static async login(account: string, password: string): Promise<LoginResult> {
     const result = await ApiClient.post<LoginResult>('/api/auth/login', { account, password } as LoginRequest)
     ApiClient.saveToken(result.token)
+    AuthService.clearCachedRealNameStatus()
     AuthService.applyUserInfo(result.userInfo.id, result.userInfo.role, result.userInfo.nickname, result.userInfo.avatarUrl)
     return result
   }
@@ -208,6 +209,7 @@ export class AuthService {
     }
     ApiClient.clearSession()
     UserSession.clear()
+    AuthService.clearCachedRealNameStatus()
     ChatWebSocketService.getInstance().disconnect()
   }
 
@@ -221,6 +223,7 @@ export class AuthService {
     ApiClient.clearSession()
     UserSession.clear()
     ChatWebSocketService.getInstance().disconnect()
+    AuthService.clearCachedRealNameStatus()
 
     // 2. 清空搜索历史等本地业务缓存
     try {
@@ -254,10 +257,21 @@ export class AuthService {
     return ApiClient.post<RealNameInfo>('/api/auth/real-name', { realName, idCard } as RealNameInfo)
   }
 
+  static clearCachedRealNameStatus(): void {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return
+    }
+    pref.deleteSync(KEY_CACHE_REAL_NAME_STATUS)
+    pref.flushSync()
+  }
+
   static async getRealNameStatus(): Promise<RealNameStatus> {
     const status = await ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
     if (status.isAuth) {
       AuthService.saveCachedRealNameStatus(status)
+    } else {
+      AuthService.clearCachedRealNameStatus()
     }
     return status
   }
