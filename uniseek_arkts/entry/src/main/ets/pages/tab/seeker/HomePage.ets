@@ -94,31 +94,35 @@ export struct HomePage {
         tags: this.selectedTags.length > 0 ? this.selectedTags.join(',') : undefined
       }
 
-      // 构建地区筛选参数：将 selectedRegion 中的名称转换为地区ID
+      // 构建地区筛选参数：将 selectedRegion 中的名称转换为地区ID（支持父级展开所有后代）
       if (this.selectedRegion.length > 0) {
-        const regionIdList: string[] = []
+        const regionIdList: number[] = []
         for (const regionName of this.selectedRegion) {
-          const id = DataService.getRegionIdByName(regionName)
-          if (id !== null) {
-            regionIdList.push(String(id))
+          const ids = DataService.getRegionIdsByPath(regionName)
+          if (ids.length > 0) {
+            regionIdList.push(...ids)
           }
         }
-        if (regionIdList.length > 0) {
-          params.regionIds = regionIdList.join(',')
+        // 去重
+        const uniqueRegionIds = regionIdList.filter((value, index, self) => self.indexOf(value) === index)
+        if (uniqueRegionIds.length > 0) {
+          params.regionIds = uniqueRegionIds.join(',')
         }
       }
 
-      // 构建分类筛选参数：将 selectedType 中的名称转换为分类ID
+      // 构建分类筛选参数：将 selectedType 中的名称转换为分类ID（支持父级展开所有后代）
       if (this.selectedType.length > 0) {
-        const categoryIdList: string[] = []
+        const categoryIdList: number[] = []
         for (const typeName of this.selectedType) {
-          const id = DataService.getCategoryIdByName(typeName)
-          if (id !== null) {
-            categoryIdList.push(String(id))
+          const ids = DataService.getCategoryIdsByPath(typeName)
+          if (ids.length > 0) {
+            categoryIdList.push(...ids)
           }
         }
-        if (categoryIdList.length > 0) {
-          params.categoryIds = categoryIdList.join(',')
+        // 去重
+        const uniqueCategoryIds = categoryIdList.filter((value, index, self) => self.indexOf(value) === index)
+        if (uniqueCategoryIds.length > 0) {
+          params.categoryIds = uniqueCategoryIds.join(',')
         }
       }
 

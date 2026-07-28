@@ -318,6 +318,147 @@ export class DataService {
     return null
   }
 
+  // ==================== 按路径获取节点及所有后代ID的方法 ====================
+
+  /**
+   * 根据完整名称路径查找地区节点，返回该节点及其所有后代节点的ID列表。
+   * 支持格式：
+   * - "吉林省" → 返回吉林省ID及其所有市区县ID
+   * - "吉林省-长春市" → 返回长春市ID及其所有区县ID
+   * - "吉林省-长春市-朝阳区" → 返回朝阳区ID（叶子节点）
+   * - "北京市" → 返回北京市ID及其所有区县ID（直辖市）
+   * - "北京市-朝阳区" → 返回朝阳区ID（直辖市叶子节点）
+   *
+   * 如果路径以"全部"结尾，会自动规范化掉"全部"，返回父节点及所有后代ID。
+   * 如果未找到节点，返回空数组。
+   */
+  static getRegionIdsByPath(fullName: string): number[] {
+    if (!DataService.regionTree) {
+      return []
+    }
+    // 规范化路径：去掉末尾的"全部"
+    const normalizedPath = DataService.normalizePath(fullName)
+    if (normalizedPath.length === 0) {
+      return []
+    }
+
+    // 按路径查找节点
+    const node = DataService.findRegionNodeByPath(DataService.regionTree, normalizedPath, 0)
+    if (node === null) {
+      return []
+    }
+
+    // 收集该节点及所有后代的ID
+    const ids: number[] = []
+    DataService.collectRegionIds(node, ids)
+    return ids
+  }
+
+  /**
+   * 根据完整名称路径查找分类节点，返回该节点及其所有后代节点的ID列表。
+   * 支持格式：
+   * - "餐饮服务" → 返回餐饮服务ID及其所有子分类ID
+   * - "餐饮服务-服务员" → 返回服务员ID（叶子节点）
+   *
+   * 如果路径以"全部"结尾，会自动规范化掉"全部"，返回父节点及所有后代ID。
+   * 如果未找到节点，返回空数组。
+   */
+  static getCategoryIdsByPath(fullName: string): number[] {
+    if (!DataService.categoryTree) {
+      return []
+    }
+    // 规范化路径：去掉末尾的"全部"
+    const normalizedPath = DataService.normalizePath(fullName)
+    if (normalizedPath.length === 0) {
+      return []
+    }
+
+    // 按路径查找节点
+    const node = DataService.findCategoryNodeByPath(DataService.categoryTree, normalizedPath, 0)
+    if (node === null) {
+      return []
+    }
+
+    // 收集该节点及所有后代的ID
+    const ids: number[] = []
+    DataService.collectCategoryIds(node, ids)
+    return ids
+  }
+
+  /**
+   * 规范化路径：去掉末尾的"全部"，返回有效的名称数组。
+   * 例如："吉林省-全部" → ["吉林省"]
+   *       "吉林省-长春市-全部" → ["吉林省", "长春市"]
+   *       "吉林省-长春市-朝阳区" → ["吉林省", "长春市", "朝阳区"]
+   */
+  private static normalizePath(fullName: string): string[] {
+    const names = fullName.split('-')
+    const result: string[] = []
+    for (const name of names) {
+      const trimmed = name.trim()
+      if (trimmed.length > 0 && trimmed !== '全部') {
+        result.push(trimmed)
+      }
+    }
+    return result
+  }
+
+  // 按路径查找地区节点
+  private static findRegionNodeByPath(nodes: RegionNode[], names: string[], depth: number): RegionNode | null {
+    for (const n of nodes) {
+      if (n.name === names[depth]) {
+        if (depth === names.length - 1) {
+          return n
+        }
+        if (n.children && n.children.length > 0) {
+          const found = DataService.findRegionNodeByPath(n.children, names, depth + 1)
+          if (found !== null) {
+            return found
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // 按路径查找分类节点
+  private static findCategoryNodeByPath(nodes: CategoryNode[], names: string[], depth: number): CategoryNode | null {
+    for (const n of nodes) {
+      if (n.name === names[depth]) {
+        if (depth === names.length - 1) {
+          return n
+        }
+        if (n.children && n.children.length > 0) {
+          const found = DataService.findCategoryNodeByPath(n.children, names, depth + 1)
+          if (found !== null) {
+            return found
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  // 收集地区节点及其所有后代的ID
+  private static collectRegionIds(node: RegionNode, ids: number[]): void {
+    ids.push(node.id)
+    if (node.children) {
+      for (const child of node.children) {
+        DataService.collectRegionIds(child, ids)
+      }
+    }
+  }
+
+  // 收集分类节点及其所有后代的ID
+  private static collectCategoryIds(node: CategoryNode, ids: number[]): void {
+    ids.push(node.id)
+    if (node.children) {
+      for (const child of node.children) {
+        DataService.collectCategoryIds(child, ids)
+      }
+    }
+  }
+
   // ==================== ID/名称到完整路径的查找方法 ====================
 
   /**

@@ -243,6 +243,11 @@ struct RecruiterJobFormPage {
         if (selectedValues.length === 0) {
           return
         }
+        // 职位发布表单不允许选择"全部"，必须是具体叶子分类
+        if (selectedValues.indexOf('全部') >= 0) {
+          this.showValidation('请选择具体的职位分类')
+          return
+        }
         const label = selectedValues.join(' / ')
         const option = this.findOption(this.categoryOptions, label)
         if (option) {
@@ -260,6 +265,11 @@ struct RecruiterJobFormPage {
       onAccept: (value: TextPickerResult): void => {
         const selectedValues: string[] = this.pickerValues(value.value)
         if (selectedValues.length === 0) {
+          return
+        }
+        // 职位发布表单不允许选择"全部"，必须是具体区县
+        if (selectedValues.indexOf('全部') >= 0) {
+          this.showValidation('请选择具体的区县')
           return
         }
         const label = selectedValues.join(' / ')

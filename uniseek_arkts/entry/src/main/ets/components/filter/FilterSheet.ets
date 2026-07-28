@@ -180,7 +180,12 @@ export struct FilterSheet {
       onAccept: (value: TextPickerResult): void => {
         const selectedValues = value.value as string[]
         if (selectedValues && selectedValues.length > 0) {
-          const path = selectedValues.join('-')
+          // 规范化路径：去掉"全部"，保留父级路径
+          const normalizedPath = this.normalizeSelectionPath(selectedValues)
+          if (normalizedPath.length === 0) {
+            return
+          }
+          const path = normalizedPath.join('-')
           if (this.filterRegion.indexOf(path) < 0) {
             this.filterRegion = [...this.filterRegion, path]
             this.applyFilters()
@@ -190,24 +195,48 @@ export struct FilterSheet {
     })
   }
 
+  /**
+   * 规范化选择路径：去掉"全部"，保留有效的父级路径。
+   * 例如：["吉林省", "全部"] → ["吉林省"]
+   *       ["吉林省", "长春市", "全部"] → ["吉林省", "长春市"]
+   *       ["吉林省", "长春市", "朝阳区"] → ["吉林省", "长春市", "朝阳区"]
+   */
+  private normalizeSelectionPath(values: string[]): string[] {
+    const result: string[] = []
+    for (const v of values) {
+      if (v === '全部') {
+        break
+      }
+      result.push(v)
+    }
+    return result
+  }
+
   private buildRegionRange(): TextCascadePickerRangeContent[] {
     return DataService.getProvinces().map((province: Province): TextCascadePickerRangeContent => {
       if (province.isMunicipality) {
         // 直辖市：省 -> 区县两级
         const city = province.cities[0]
-        const districts = city ? city.districts.map((d: District) => this.cascadeItem(d.name)) : []
+        // 为直辖市添加"全部"选项，表示选择该直辖市所有区县
+        const districts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+        if (city) {
+          for (const d of city.districts) {
+            districts.push(this.cascadeItem(d.name))
+          }
+        }
         return this.cascadeItem(province.name, districts)
       }
       // 普通省份：省 -> 市 -> 区县三级
-      return this.cascadeItem(
-        province.name,
-        province.cities.map((city: City): TextCascadePickerRangeContent =>
-          this.cascadeItem(
-            city.name,
-            city.districts.map((d: District) => this.cascadeItem(d.name))
-          )
-        )
-      )
+      const cities: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+      for (const city of province.cities) {
+        // 为每个市添加"全部"选项，表示选择该市所有区县
+        const districts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+        for (const d of city.districts) {
+          districts.push(this.cascadeItem(d.name))
+        }
+        cities.push(this.cascadeItem(city.name, districts))
+      }
+      return this.cascadeItem(province.name, cities)
     })
   }
 
@@ -228,7 +257,12 @@ export struct FilterSheet {
       onAccept: (value: TextPickerResult): void => {
         const selectedValues = value.value as string[]
         if (selectedValues && selectedValues.length > 0) {
-          const path = selectedValues.join('-')
+          // 规范化路径：去掉"全部"，保留父级路径
+          const normalizedPath = this.normalizeSelectionPath(selectedValues)
+          if (normalizedPath.length === 0) {
+            return
+          }
+          const path = normalizedPath.join('-')
           if (this.filterType.indexOf(path) < 0) {
             this.filterType = [...this.filterType, path]
             this.applyFilters()
@@ -240,9 +274,13 @@ export struct FilterSheet {
 
   private buildCategoryRange(): TextCascadePickerRangeContent[] {
     return DataService.getFields().map((field: Field): TextCascadePickerRangeContent => {
-      const children = field.occupations.length > 0
-        ? field.occupations.map((o: Occupation) => this.cascadeItem(o.name))
-        : []
+      // 为每个大类添加"全部"选项，表示选择该大类所有子类
+      const children: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+      if (field.occupations.length > 0) {
+        for (const o of field.occupations) {
+          children.push(this.cascadeItem(o.name))
+        }
+      }
       return this.cascadeItem(field.name, children)
     })
   }
