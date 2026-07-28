@@ -21,7 +21,19 @@ from time_utils import weighted_random_time
 ENTERPRISE_COLUMNS = [
     "id", "user_id", "company_name", "credit_code", "license_img_url",
     "industry", "sub_category_id", "region_id", "description", "audit_status",
-    "audit_time", "create_time", "update_time",
+    "audit_time", "reject_reason", "create_time", "update_time",
+]
+
+# 企业认证驳回原因池
+REJECT_REASONS = [
+    "营业执照不清晰，请重新上传",
+    "统一社会信用代码与工商登记不符",
+    "企业信息填写不完整，请补充",
+    "营业执照已过期，请更新",
+    "企业名称与营业执照不一致",
+    "经营范围与申请行业不匹配",
+    "未提供有效的营业执照扫描件",
+    "企业资质材料不齐全，请补充后重新提交",
 ]
 
 # 行业加权分布（短名称，用于选择前缀池）
@@ -63,7 +75,7 @@ SHORT_TO_DB_INDUSTRY = {
 }
 
 # 信用代码基（9 位：登记机关代码 + 行政区划 + 组织类别）
-CREDIT_CODE_BASE = "91440101M"
+CREDIT_CODE_BASE = "914401016"
 
 # 时间范围
 END_DT = datetime.datetime.strptime(END_DATE, "%Y-%m-%d")
@@ -175,7 +187,7 @@ def _generate_credit_code(used_codes: set) -> str:
     Returns:
         18 位唯一信用代码字符串
     """
-    chars = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789"
+    chars = "0123456789"
     while True:
         suffix = "".join(random.choice(chars) for _ in range(9))
         code = CREDIT_CODE_BASE + suffix
@@ -196,26 +208,26 @@ def _pick_region_id() -> int:
     return random.choice(ALL_REGION_IDS)
 
 
-def _random_audit_status() -> Tuple[int, datetime.datetime]:
-    """随机生成审核状态和审核时间。
+def _random_audit_status() -> Tuple[int, datetime.datetime, str]:
+    """随机生成审核状态、审核时间和驳回原因。
 
     分布：
-    - 80% 已认证（status=1），附带随机审核时间
-    - 15% 待审核（status=0），审核时间为 NULL
-    - 5% 已拒绝（status=2），审核时间为 NULL
+    - 80% 已认证（status=1），附带随机审核时间，驳回原因为 None
+    - 15% 待审核（status=0），审核时间和驳回原因为 None
+    - 5% 已驳回（status=2），审核时间为 None，驳回原因随机选取
 
     Returns:
-        (状态码, 审核时间或 None)
+        (状态码, 审核时间或 None, 驳回原因或 None)
     """
     r = random.random()
     if r < 0.80:
         status = 1
         audit_time = _random_datetime_between(START_DT, END_DT)
-        return status, audit_time
+        return status, audit_time, None
     elif r < 0.95:
-        return 0, None
+        return 0, None, None
     else:
-        return 2, None
+        return 2, None, random.choice(REJECT_REASONS)
 
 
 def _random_datetime_between(
@@ -464,8 +476,8 @@ def generate_enterprises(
         # 生成公司简介
         description = _generate_description(company_name, pname)
 
-        # 审核状态（80% 通过、15% 待审、5% 拒绝）
-        audit_status, audit_time = _random_audit_status()
+        # 审核状态（80% 通过、15% 待审、5% 驳回）
+        audit_status, audit_time, reject_reason = _random_audit_status()
 
         # 创建时间
         create_time = weighted_random_time()
@@ -483,6 +495,7 @@ def generate_enterprises(
             description,
             audit_status,
             _format_dt(audit_time),
+            reject_reason,
             _format_dt(create_time),
             _format_dt(update_time),
         ])

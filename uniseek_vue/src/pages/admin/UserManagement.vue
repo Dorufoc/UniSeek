@@ -164,8 +164,8 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="creditScore" label="信用分" width="80" align="center" />
-        <el-table-column prop="createTime" label="注册时间" width="200" />
-        <el-table-column prop="lastLoginTime" label="最后登录" width="200" />
+        <el-table-column prop="createTime" label="注册时间" width="180" />
+        <el-table-column prop="lastLoginTime" label="最后登录" width="180" />
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
