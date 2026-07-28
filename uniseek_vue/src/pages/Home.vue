@@ -40,10 +40,14 @@ const handleSearch = () => {
 }
 
 const quickSearch = (kw: string) => {
-  keyword.value = kw
-  appStore.setSearchKeyword(kw)
   if (searchType.value === 'company') {
     router.push(`/company?q=${encodeURIComponent(kw)}`)
+    return
+  }
+  // 热门职位搜索词实际为分类名称，点击后按分类筛选
+  const cat = categoryTree.value.find(c => c.name === kw)
+  if (cat) {
+    router.push({ path: '/jobs', query: { categoryId: cat.id } })
   } else {
     router.push('/jobs')
   }

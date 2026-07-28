@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { loginByPassword, register } from '@/api/auth'
-import { Phone, Message, Lock, User, ChatDotRound, Wallet, Search } from '@element-plus/icons-vue'
+import { Phone, Message, Lock, User, Wallet, Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -304,23 +304,7 @@ const switchTab = (tab: 'login' | 'register') => {
           </div>
         </template>
 
-        <!-- 第三方登录入口（预留） -->
-        <div class="other-login">
-          <div class="divider">
-            <span>其他方式登录</span>
-          </div>
-          <div class="social-btns">
-            <button class="social-btn" title="微信登录">
-              <el-icon :size="22"><ChatDotRound /></el-icon>
-            </button>
-            <button class="social-btn" title="支付宝登录">
-              <el-icon :size="22"><Wallet /></el-icon>
-            </button>
-            <button class="social-btn" title="邮箱登录">
-              <el-icon :size="22"><Message /></el-icon>
-            </button>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -522,58 +506,6 @@ const switchTab = (tab: 'login' | 'register') => {
 
 .submit-btn.loading {
   opacity: 0.7;
-}
-
-.other-login {
-  margin-top: auto;
-  padding-top: 24px;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.divider span {
-  font-size: 13px;
-  color: #999;
-  white-space: nowrap;
-}
-
-.social-btns {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-}
-
-.social-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.social-btn:hover {
-  border-color: #1762FB;
-  color: #1762FB;
-  background: rgba(23, 98, 251, 0.1);
 }
 
 @media (max-width: 768px) {

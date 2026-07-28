@@ -344,6 +344,18 @@ const expandedSection = ref('')
 const toggleSection = (key: string) => {
   expandedSection.value = expandedSection.value === key ? '' : key
 }
+
+// 点击左侧导航：编辑模式滚动到对应区块，预览模式展开/收起
+const handleNavClick = (key: string) => {
+  if (isEditing.value) {
+    const el = document.getElementById(`section-${key}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  } else {
+    toggleSection(key)
+  }
+}
 </script>
 
 <template>
@@ -383,31 +395,31 @@ const toggleSection = (key: string) => {
         <div class="sidebar-nav">
           <button
             :class="['nav-item', { active: expandedSection === 'basic' }]"
-            @click="toggleSection('basic')"
+            @click="handleNavClick('basic')"
           >
             基本信息
           </button>
           <button
             :class="['nav-item', { active: expandedSection === 'edu' }]"
-            @click="toggleSection('edu')"
+            @click="handleNavClick('edu')"
           >
             教育背景
           </button>
           <button
             :class="['nav-item', { active: expandedSection === 'skills' }]"
-            @click="toggleSection('skills')"
+            @click="handleNavClick('skills')"
           >
             技能标签
           </button>
           <button
             :class="['nav-item', { active: expandedSection === 'exp' }]"
-            @click="toggleSection('exp')"
+            @click="handleNavClick('exp')"
           >
             工作经历
           </button>
           <button
             :class="['nav-item', { active: expandedSection === 'attach' }]"
-            @click="toggleSection('attach')"
+            @click="handleNavClick('attach')"
           >
             附件简历
           </button>
@@ -441,7 +453,7 @@ const toggleSection = (key: string) => {
           <!-- 预览模式 -->
           <template v-if="!isEditing">
             <!-- 基本信息 -->
-            <div class="section-card" :class="{ expanded: expandedSection === 'basic' }">
+            <div id="section-basic" class="section-card" :class="{ expanded: expandedSection === 'basic' }">
               <div class="section-header" @click="toggleSection('basic')">
                 <h3>基本信息</h3>
                 <span class="section-toggle">{{ expandedSection === 'basic' ? '收起' : '展开' }}</span>
@@ -467,7 +479,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 教育背景 -->
-            <div class="section-card" :class="{ expanded: expandedSection === 'edu' }">
+            <div id="section-edu" class="section-card" :class="{ expanded: expandedSection === 'edu' }">
               <div class="section-header" @click="toggleSection('edu')">
                 <h3>教育背景</h3>
                 <span class="section-toggle">{{ expandedSection === 'edu' ? '收起' : '展开' }}</span>
@@ -489,7 +501,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 技能标签 -->
-            <div class="section-card" :class="{ expanded: expandedSection === 'skills' }">
+            <div id="section-skills" class="section-card" :class="{ expanded: expandedSection === 'skills' }">
               <div class="section-header" @click="toggleSection('skills')">
                 <h3>技能标签</h3>
                 <span class="section-toggle">{{ expandedSection === 'skills' ? '收起' : '展开' }}</span>
@@ -503,7 +515,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 工作/实践经历 -->
-            <div class="section-card" :class="{ expanded: expandedSection === 'exp' }">
+            <div id="section-exp" class="section-card" :class="{ expanded: expandedSection === 'exp' }">
               <div class="section-header" @click="toggleSection('exp')">
                 <h3>工作/实践经历</h3>
                 <span class="section-toggle">{{ expandedSection === 'exp' ? '收起' : '展开' }}</span>
@@ -517,7 +529,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 附件简历 -->
-            <div class="section-card" :class="{ expanded: expandedSection === 'attach' }">
+            <div id="section-attach" class="section-card" :class="{ expanded: expandedSection === 'attach' }">
               <div class="section-header" @click="toggleSection('attach')">
                 <h3>附件简历</h3>
                 <span class="section-toggle">{{ expandedSection === 'attach' ? '收起' : '展开' }}</span>
@@ -534,7 +546,7 @@ const toggleSection = (key: string) => {
           <!-- 编辑模式 -->
           <template v-else>
             <!-- 基本信息编辑 -->
-            <div class="section-card edit-card">
+            <div id="section-basic" class="section-card edit-card">
               <h3 class="edit-section-title">基本信息</h3>
               <div class="edit-form">
                 <div class="form-row">
@@ -608,7 +620,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 教育背景编辑 -->
-            <div class="section-card edit-card">
+            <div id="section-edu" class="section-card edit-card">
               <h3 class="edit-section-title">教育背景</h3>
               <div class="edit-form">
                 <div class="form-row">
@@ -648,7 +660,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 技能标签编辑 -->
-            <div class="section-card edit-card">
+            <div id="section-skills" class="section-card edit-card">
               <h3 class="edit-section-title">技能标签</h3>
               <div class="edit-form">
                 <div class="skill-input-row">
@@ -678,7 +690,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 工作/实践经历编辑 -->
-            <div class="section-card edit-card">
+            <div id="section-exp" class="section-card edit-card">
               <h3 class="edit-section-title">工作/实践经历</h3>
               <div class="edit-form">
                 <textarea
@@ -692,7 +704,7 @@ const toggleSection = (key: string) => {
             </div>
 
             <!-- 附件简历编辑 -->
-            <div class="section-card edit-card">
+            <div id="section-attach" class="section-card edit-card">
               <h3 class="edit-section-title">附件简历</h3>
               <div class="edit-form">
                 <div v-if="resumeForm.attachmentUrl" class="attachment-item">
@@ -760,6 +772,9 @@ const toggleSection = (key: string) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: sticky;
+  top: 24px;
+  align-self: flex-start;
 }
 
 .sidebar-avatar {
