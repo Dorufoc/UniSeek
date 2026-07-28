@@ -59,7 +59,7 @@ export default function auditPoliciesTest(): void {
       expect(TalentFilterPolicy.normalize('未知')).assertEqual('全部')
     })
 
-    it('淘汰和结算说明不接受空白内容', 0, (): void => {
+    it('淘汰说明不接受空白内容', 0, (): void => {
       expect(ApplicationNotePolicy.isValid('候选人经验与岗位要求不匹配')).assertTrue()
       expect(ApplicationNotePolicy.isValid('  ')).assertFalse()
     })

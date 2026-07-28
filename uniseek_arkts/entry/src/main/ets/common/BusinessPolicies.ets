@@ -55,7 +55,7 @@ export class ApplicationActionPolicy {
    * 0 已投递 -> 邀请面试 / 待定 / 淘汰
    * 1 待面试 -> 录用 / 待定 / 淘汰
    * 2 待定   -> 安排面试 / 录用 / 淘汰
-   * 3 已录用 -> 完成结算
+   * 3 已录用 -> 终态，不再继续流转
    */
   static getActions(status: number): ApplicationActionConfig[] {
     switch (status) {
@@ -76,10 +76,6 @@ export class ApplicationActionPolicy {
           { targetStatus: 1, label: '安排面试', variant: 'primary', requiresDialog: 'interview' },
           { targetStatus: 3, label: '录用', variant: 'success' },
           { targetStatus: 4, label: '淘汰', variant: 'danger', requiresDialog: 'reject' }
-        ]
-      case 3:
-        return [
-          { targetStatus: 5, label: '完成结算', variant: 'success', requiresDialog: 'complete' }
         ]
       default:
         return []

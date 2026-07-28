@@ -1,5 +1,4 @@
-// 招聘方处理投递时共用的 CustomDialog：
-// 面试邀请、淘汰、完成结算。
+// 招聘方处理投递时共用的 CustomDialog：面试邀请、淘汰。
 // 供 RecruiterRequestsPage 与 ApplicationStatusBar 复用。
 
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../common/AppStyles'
@@ -235,77 +234,6 @@ export struct RejectDialog {
           .animation({ duration: 180 })
       }
       .width('100%')
-    }
-    .padding(AppSpacing.LG)
-    .width('100%')
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
-  }
-}
-
-/**
- * 完成结算弹窗。
- * HR 备注选填。
- */
-@CustomDialog
-export struct CompleteDialog {
-  controller?: CustomDialogController
-  applicantName?: string = ''
-  onConfirm?: (note: string) => void
-
-  @State noteText: string = ''
-
-  build() {
-    Column() {
-      Row() {
-        Text('完成结算')
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { this.controller?.close() })
-      }
-      .width('100%')
-      .padding({ bottom: AppSpacing.MD })
-
-      Text('为 ' + (this.applicantName || '该候选人') + ' 记录结算说明')
-        .fontSize(AppFontSize.SM)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-        .margin({ bottom: AppSpacing.MD })
-
-      TextArea({ placeholder: '结算备注（选填）', text: this.noteText })
-        .onChange((value: string) => { this.noteText = value })
-        .width('100%')
-        .height(96)
-        .backgroundColor(AppColors.INPUT_BG)
-        .borderRadius(AppRadius.SM)
-        .padding(AppSpacing.SM)
-        .margin({ bottom: AppSpacing.LG })
-
-      Button('确认完成', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .fontSize(AppFontSize.MD)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .backgroundColor(AppColors.SUCCESS)
-        .onClick(() => {
-          this.onConfirm?.(this.noteText.trim())
-          this.controller?.close()
-        })
-        .stateStyles({
-          pressed: {
-            .scale({ x: 0.98, y: 0.98 })
-            .opacity(0.9)
-          }
-        })
-        .animation({ duration: 180 })
     }
     .padding(AppSpacing.LG)
     .width('100%')

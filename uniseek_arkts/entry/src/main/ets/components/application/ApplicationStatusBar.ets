@@ -1,12 +1,12 @@
 // 投递状态操作栏：用于简历详情页、聊天详情页底部。
-// 复用 SharedDialogs 中的面试/淘汰/结算弹窗，操作映射与 Vue ResumePool 完全一致。
+// 复用 SharedDialogs 中的面试和淘汰弹窗。
 
 import { RecruiterService } from '../../services/RecruiterService'
 import { APPLICATION_STATUS_LABELS, ApplicationActionConfig, RecruiterUpdateStatusRequest } from '../../services/RecruiterTypes'
 import { UserSession } from '../../services/UserSession'
 import { ApplicationActionPolicy } from '../../common/BusinessPolicies'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../common/AppStyles'
-import { InterviewDialog, RejectDialog, CompleteDialog } from './SharedDialogs'
+import { InterviewDialog, RejectDialog } from './SharedDialogs'
 
 @Component
 export struct ApplicationStatusBar {
@@ -52,11 +52,6 @@ export struct ApplicationStatusBar {
       this.openRejectDialog()
       return
     }
-    if (action.requiresDialog === 'complete') {
-      this.openCompleteDialog()
-      return
-    }
-
     const promptAction = this.getUIContext().getPromptAction()
     promptAction.showDialog({
       message: '确认将状态改为「' + APPLICATION_STATUS_LABELS[action.targetStatus] + '」？',
@@ -107,20 +102,6 @@ export struct ApplicationStatusBar {
     dialog.open()
   }
 
-  private openCompleteDialog(): void {
-    const dialog = new CustomDialogController({
-      builder: CompleteDialog({
-        applicantName: this.applicantName,
-        onConfirm: (note: string): void => {
-          void this.completeApplication(note)
-        }
-      }),
-      alignment: DialogAlignment.Center,
-      autoCancel: true
-    })
-    dialog.open()
-  }
-
   private async updateStatus(target: number, extra: Partial<RecruiterUpdateStatusRequest> = {}): Promise<void> {
     if (this.applicationId <= 0 || this.isLoading) {
       return
@@ -138,26 +119,6 @@ export struct ApplicationStatusBar {
       if (ok) {
         promptAction.showToast({ message: '操作成功' })
         this.onStatusChanged?.(target)
-      } else {
-        promptAction.showToast({ message: '操作失败，请重试' })
-      }
-    } catch {
-      promptAction.showToast({ message: '操作失败，请重试' })
-    }
-    this.isLoading = false
-  }
-
-  private async completeApplication(note: string): Promise<void> {
-    if (this.applicationId <= 0 || this.isLoading) {
-      return
-    }
-    this.isLoading = true
-    const promptAction = this.getUIContext().getPromptAction()
-    try {
-      const ok = await RecruiterService.completeApplication(this.applicationId, note)
-      if (ok) {
-        promptAction.showToast({ message: '结算完成' })
-        this.onStatusChanged?.(5)
       } else {
         promptAction.showToast({ message: '操作失败，请重试' })
       }

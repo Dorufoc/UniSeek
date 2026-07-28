@@ -148,7 +148,7 @@ export interface ApplicationActionConfig {
   targetStatus: number
   label: string
   variant: 'primary' | 'success' | 'warning' | 'danger'
-  requiresDialog?: 'interview' | 'reject' | 'complete'
+  requiresDialog?: 'interview' | 'reject'
 }
 
 export const JOB_STATUS_MAP: number[] = [0, 1, 2, 3, 4]
@@ -165,8 +165,7 @@ export const APPLICATION_STATUS_LABELS: Record<number, string> = {
   1: '待面试',
   2: '待定',
   3: '已录用',
-  4: '已淘汰',
-  5: '已完成'
+  4: '已淘汰'
 }
 
 export const AUDIT_STATUS_LABELS: Record<number, string> = {

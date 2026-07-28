@@ -131,7 +131,7 @@ struct RecruiterRequestsPage {
 
   // 根据当前 Tab 和筛选条件拆分列表
   private updateDerivedLists(): void {
-    // 简历池：排除面试安排、已淘汰、已完成
+    // 简历池：排除面试安排和已淘汰
     let pool = this.applications.filter((item: RecruiterApplicationVO) => ![1, 4, 5].includes(item.status))
     if (this.poolStatusFilter !== -1) {
       pool = pool.filter((item: RecruiterApplicationVO) => item.status === this.poolStatusFilter)

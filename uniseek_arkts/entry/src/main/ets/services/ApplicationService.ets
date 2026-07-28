@@ -47,8 +47,7 @@ export class ApplicationService {
       1: '待面试',
       2: '待定',
       3: '已录用',
-      4: '已淘汰',
-      5: '已完成'
+      4: '已淘汰'
     }
     return labels[status] || '未知状态'
   }
@@ -59,8 +58,7 @@ export class ApplicationService {
       1: AppColors.WARNING,
       2: AppColors.TEXT_SECONDARY,
       3: AppColors.SUCCESS,
-      4: AppColors.DANGER,
-      5: AppColors.INFO
+      4: AppColors.DANGER
     }
     return colors[status] || AppColors.TEXT_SECONDARY
   }

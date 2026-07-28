@@ -15,10 +15,6 @@ import { EnterpriseSubmissionPolicy } from '../common/BusinessPolicies'
 
 const KEY_CACHE_ENTERPRISE_INFO = 'cached_enterprise_info'
 
-interface CompleteApplicationRequest {
-  hrNote: string
-}
-
 interface ResumeSnapshot {
   realName?: string
   birthDate?: string
@@ -229,16 +225,6 @@ export class RecruiterService {
 
   static async processRequest(requestId: number, data: RecruiterUpdateStatusRequest): Promise<boolean> {
     return RecruiterService.updateApplicationStatus(requestId, data)
-  }
-
-  static async completeApplication(applicationId: number, hrNote: string = ''): Promise<boolean> {
-    try {
-      const data: CompleteApplicationRequest = { hrNote: hrNote }
-      await ApiClient.put<ApiEmpty>('/api/applications/' + applicationId + '/complete', data)
-      return true
-    } catch {
-      return false
-    }
   }
 
   private static parseResumeSnapshot(snapshot?: string): ResumeSnapshot {

@@ -11,8 +11,7 @@ const FILTER_OPTIONS: ChoiceOption[] = [
   { value: 1, label: '待面试' },
   { value: 2, label: '待定' },
   { value: 3, label: '已录用' },
-  { value: 4, label: '已淘汰' },
-  { value: 5, label: '已完成' }
+  { value: 4, label: '已淘汰' }
 ]
 
 @Component
