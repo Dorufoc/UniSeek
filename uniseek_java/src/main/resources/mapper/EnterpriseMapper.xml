@@ -10,6 +10,7 @@
         <result column="credit_code" property="creditCode"/>
         <result column="license_img_url" property="licenseImgUrl"/>
         <result column="industry" property="industry"/>
+        <result column="sub_category_id" property="subCategoryId"/>
         <result column="region_id" property="regionId"/>
         <result column="description" property="description"/>
         <result column="reject_reason" property="rejectReason"/>
@@ -69,6 +70,9 @@
             <foreach item="rid" collection="regionIds" open="(" separator="," close=")">
                 #{rid}
             </foreach>
+        </if>
+        <if test="subCategoryId != null">
+            AND e.sub_category_id = #{subCategoryId}
         </if>
         <choose>
             <when test="sortBy == 'jobCount'">

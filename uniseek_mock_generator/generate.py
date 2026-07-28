@@ -80,7 +80,7 @@ def main():
         # Step 3: 生成企业数据
         # =====================================================================
         print("Step 3/6: 生成企业数据...")
-        enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map = \
+        enterprise_ids, hr_enterprise_map, enterprise_industry_map, enterprise_audit_map, enterprise_name_map, enterprise_sub_category_map = \
             generate_enterprises(writer, hr_ids)
         print(f"  -> {len(enterprise_ids)} 个企业")
 
@@ -98,6 +98,7 @@ def main():
         task_ids, task_enterprise_map, task_title_map = generate_tasks(
             writer, enterprise_ids, hr_enterprise_map,
             enterprise_industry_map, enterprise_audit_map,
+            enterprise_sub_category_map,
         )
         print(f"  -> {len(task_ids)} 个岗位")
 

@@ -62,9 +62,10 @@ public class EnterpriseController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String industry,
             @RequestParam(required = false) Long regionId,
+            @RequestParam(required = false) Long subCategoryId,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortOrder) {
-        PageResult<Enterprise> result = enterpriseService.listPublished(page, pageSize, keyword, industry, regionId, sortBy, sortOrder);
+        PageResult<Enterprise> result = enterpriseService.listPublished(page, pageSize, keyword, industry, regionId, subCategoryId, sortBy, sortOrder);
         return ApiResult.success(result);
     }
 

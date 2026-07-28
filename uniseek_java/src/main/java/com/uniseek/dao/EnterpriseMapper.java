@@ -34,6 +34,7 @@ public interface EnterpriseMapper extends BaseMapper<Enterprise> {
             @Param("keyword") String keyword,
             @Param("industry") String industry,
             @Param("regionIds") List<Long> regionIds,
+            @Param("subCategoryId") Long subCategoryId,
             @Param("sortBy") String sortBy,
             @Param("sortOrder") String sortOrder
     );

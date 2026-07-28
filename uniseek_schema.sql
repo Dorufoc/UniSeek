@@ -148,6 +148,7 @@ CREATE TABLE `enterprise` (
     `credit_code`     VARCHAR(18)  NOT NULL                 COMMENT '统一社会信用代码',
     `license_img_url` VARCHAR(255) DEFAULT NULL             COMMENT '营业执照图片URL',
     `industry`        VARCHAR(50)  DEFAULT NULL             COMMENT '所属行业',
+    `sub_category_id` BIGINT(20)   DEFAULT NULL             COMMENT '子分类ID（关联category表）',
     `region_id`       BIGINT(20)   DEFAULT NULL             COMMENT '企业所在地区ID',
     `description`     TEXT         DEFAULT NULL             COMMENT '公司简介',
     `reject_reason`   VARCHAR(500) DEFAULT NULL             COMMENT '驳回原因',
@@ -158,6 +159,7 @@ CREATE TABLE `enterprise` (
     PRIMARY KEY (`id`),
     KEY `idx_user_id` (`user_id`),
     KEY `idx_credit_code` (`credit_code`),
+    KEY `idx_sub_category_id` (`sub_category_id`),
     KEY `idx_audit_status` (`audit_status`),
     CONSTRAINT `fk_enterprise_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT,
     CONSTRAINT `fk_enterprise_region` FOREIGN KEY (`region_id`) REFERENCES `region` (`id`) ON DELETE SET NULL

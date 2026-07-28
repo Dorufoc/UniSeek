@@ -20,6 +20,7 @@ export interface EnterpriseInfo {
   creditCode: string
   licenseImgUrl: string
   industry: string
+  subCategoryId: number | null
   regionId: number | null
   description: string
   auditStatus: number
@@ -54,6 +55,7 @@ export interface EnterpriseListParams {
   keyword?: string
   industry?: string
   regionId?: number
+  subCategoryId?: number
   sortBy?: string
   sortOrder?: string
 }

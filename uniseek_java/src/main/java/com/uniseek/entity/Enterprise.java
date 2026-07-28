@@ -33,6 +33,10 @@ public class Enterprise {
     /** 所属行业 */
     private String industry;
 
+    /** 子分类ID（关联 category 表） */
+    @TableField("sub_category_id")
+    private Long subCategoryId;
+
     /** 企业所在地区ID */
     @TableField("region_id")
     private Long regionId;
