@@ -3,11 +3,9 @@ import { NavBar } from '../common/NavBar';
 import { CategoryNode, DataService, RegionNode } from '../services/DataService';
 import { RecruiterService } from '../services/RecruiterService';
 import { RecruiterJobRequest } from '../services/RecruiterTypes';
-import { SelectorSheet, SelectorOption } from '../components/filter/SelectorSheet';
+import { SelectorOption } from '../components/filter/SelectorSheet';
 import { SelectorField } from '../components/filter/SelectorField';
 import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips';
-import { FilterSheetHeader } from '../components/filter/FilterSheetHeader';
-import { SelectorOptionItem } from '../components/filter/SelectorOptionItem';
 
 const SALARY_UNIT_OPTIONS: ChoiceOption[] = [
   { value: 0, label: '日薪' },
@@ -20,6 +18,95 @@ const JOB_TYPE_OPTIONS: ChoiceOption[] = [
   { value: 2, label: '兼职' },
   { value: 3, label: '实习' }
 ]
+
+@CustomDialog
+struct RecruiterDeadlinePickerDialog {
+  controller?: CustomDialogController
+  currentDate: string = ''
+  onConfirm?: (value: string) => void
+  onCancel?: () => void
+
+  @State selectedDate: Date = new Date()
+
+  aboutToAppear(): void {
+    if (this.currentDate.trim().length >= 10) {
+      const parsed = new Date(this.currentDate.replace(' ', 'T'))
+      if (parsed.getTime() > 0) {
+        this.selectedDate = parsed
+      }
+    }
+  }
+
+  private twoDigits(value: number): string {
+    return value < 10 ? '0' + String(value) : String(value)
+  }
+
+  private formatDate(value: Date): string {
+    return String(value.getFullYear()) + '-' + this.twoDigits(value.getMonth() + 1) + '-' + this.twoDigits(value.getDate())
+  }
+
+  build() {
+    Column({ space: AppSpacing.MD }) {
+      Text('选择报名截止时间')
+        .fontSize(AppFontSize.LG)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(AppColors.TEXT_PRIMARY)
+        .width('100%')
+
+      DatePicker({
+        start: new Date('2020-01-01'),
+        end: new Date('2100-12-31'),
+        selected: this.selectedDate
+      })
+        .lunar(false)
+        .onChange((value: DatePickerResult): void => {
+          const year: number = value.year === undefined ? this.selectedDate.getFullYear() : value.year
+          const month: number = value.month === undefined ? this.selectedDate.getMonth() + 1 : value.month
+          const day: number = value.day === undefined ? this.selectedDate.getDate() : value.day
+          this.selectedDate = new Date(year, month - 1, day, this.selectedDate.getHours(), this.selectedDate.getMinutes())
+        })
+        .width('100%')
+
+      TimePicker({ selected: this.selectedDate })
+        .onChange((value: TimePickerResult): void => {
+          const hour: number = value.hour === undefined ? this.selectedDate.getHours() : value.hour
+          const minute: number = value.minute === undefined ? this.selectedDate.getMinutes() : value.minute
+          this.selectedDate = new Date(this.selectedDate.getFullYear(), this.selectedDate.getMonth(), this.selectedDate.getDate(), hour, minute)
+        })
+        .width('100%')
+
+      Row({ space: AppSpacing.SM }) {
+        Button('取消', { type: ButtonType.Normal })
+          .layoutWeight(1)
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .backgroundColor(AppColors.INPUT_BG)
+          .onClick((): void => { this.onCancel?.() })
+
+        Button('确定', { type: ButtonType.Capsule })
+          .layoutWeight(1)
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
+          .backgroundColor(AppColors.PRIMARY)
+          .onClick((): void => {
+            const datePart = this.formatDate(this.selectedDate)
+            const hourPart = this.twoDigits(this.selectedDate.getHours())
+            const minutePart = this.twoDigits(this.selectedDate.getMinutes())
+            this.onConfirm?.(datePart + ' ' + hourPart + ':' + minutePart)
+          })
+      }
+      .width('100%')
+    }
+    .padding(AppSpacing.LG)
+    .width('100%')
+    .height('62%')
+    .backgroundColor(AppColors.BG_CARD)
+    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
+  }
+}
 
 @Entry
 @Component
@@ -40,8 +127,6 @@ struct RecruiterJobFormPage {
   @State deadline: string = ''
   @State categoryOptions: SelectorOption[] = []
   @State regionOptions: SelectorOption[] = []
-  @State activeSheet: string = ''
-  @State showSheet: boolean = false
   @State isSubmitting: boolean = false
   @State isLoading: boolean = true
 
@@ -149,26 +234,93 @@ struct RecruiterJobFormPage {
     return fallback || ''
   }
 
-  openSheet(type: string): void {
-    this.activeSheet = type
-    this.showSheet = true
+  openCategoryPicker(): void {
+    this.getUIContext().showTextPickerDialog({
+      range: this.buildCategoryRange(),
+      selected: [0, 0],
+      onAccept: (value: TextPickerResult): void => {
+        const selectedValues: string[] = this.pickerValues(value.value)
+        if (selectedValues.length === 0) {
+          return
+        }
+        const label = selectedValues.join(' / ')
+        const option = this.findOption(this.categoryOptions, label)
+        if (option) {
+          this.categoryId = Number(option.id)
+          this.categoryLabel = option.label
+        }
+      }
+    })
   }
 
-  closeSheet(): void {
-    this.showSheet = false
-    this.activeSheet = ''
+  openRegionPicker(): void {
+    this.getUIContext().showTextPickerDialog({
+      range: this.buildRegionRange(),
+      selected: [0, 0, 0],
+      onAccept: (value: TextPickerResult): void => {
+        const selectedValues: string[] = this.pickerValues(value.value)
+        if (selectedValues.length === 0) {
+          return
+        }
+        const label = selectedValues.join(' / ')
+        const option = this.findOption(this.regionOptions, label)
+        if (option) {
+          this.regionId = Number(option.id)
+          this.regionLabel = option.label
+        }
+      }
+    })
   }
 
-  selectCategory(option: SelectorOption): void {
-    this.categoryId = Number(option.id)
-    this.categoryLabel = option.label
-    this.closeSheet()
+  openDeadlinePicker(): void {
+    const dialog = new CustomDialogController({
+      builder: RecruiterDeadlinePickerDialog({
+        currentDate: this.deadline,
+        onConfirm: (value: string): void => {
+          dialog.close()
+          this.deadline = value
+        },
+        onCancel: (): void => {
+          dialog.close()
+        }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom
+    })
+    dialog.open()
   }
 
-  selectRegion(option: SelectorOption): void {
-    this.regionId = Number(option.id)
-    this.regionLabel = option.label
-    this.closeSheet()
+  findOption(options: SelectorOption[], label: string): SelectorOption | undefined {
+    for (const option of options) {
+      if (option.label === label || option.label.endsWith(label)) {
+        return option
+      }
+    }
+    return undefined
+  }
+
+  pickerValues(value: string | string[]): string[] {
+    if (Array.isArray(value)) {
+      return value
+    }
+    return [value]
+  }
+
+  buildCategoryRange(): TextCascadePickerRangeContent[] {
+    return DataService.getFields().map((field): TextCascadePickerRangeContent => {
+      const children = field.occupations.map((occupation): TextCascadePickerRangeContent => ({ text: occupation.name }))
+      return { text: field.name, children: children }
+    })
+  }
+
+  buildRegionRange(): TextCascadePickerRangeContent[] {
+    return DataService.getProvinces().map((province): TextCascadePickerRangeContent => {
+      const cities = province.cities.map((city): TextCascadePickerRangeContent => ({
+        text: city.name,
+        children: city.districts.map((district): TextCascadePickerRangeContent => ({ text: district.name }))
+      }))
+      return { text: province.name, children: cities }
+    })
   }
 
   showValidation(message: string): void {
@@ -258,13 +410,13 @@ struct RecruiterJobFormPage {
               label: '职位分类',
               value: this.categoryLabel,
               placeholder: '请选择职位分类',
-              onFieldClick: (): void => { this.openSheet('category') }
+               onFieldClick: (): void => { this.openCategoryPicker() }
             })
             SelectorField({
               label: '工作地区',
               value: this.regionLabel,
               placeholder: '请选择省 / 市 / 区',
-              onFieldClick: (): void => { this.openSheet('region') }
+               onFieldClick: (): void => { this.openRegionPicker() }
             })
 
             Column() {
@@ -324,7 +476,7 @@ struct RecruiterJobFormPage {
               label: '报名截止时间',
               value: this.deadline,
               placeholder: '请选择截止时间',
-              onFieldClick: (): void => { this.openSheet('deadline') }
+               onFieldClick: (): void => { this.openDeadlinePicker() }
             })
 
             Button(this.isSubmitting ? '提交中...' : (this.editJobId > 0 ? '保存修改' : '立即发布'), { type: ButtonType.Capsule })
@@ -350,87 +502,6 @@ struct RecruiterJobFormPage {
     .width('100%')
     .height('100%')
     .backgroundColor(AppColors.BG_PAGE)
-    .bindSheet($$this.showSheet, this.activeSheetContent(), {
-      height: SheetSize.LARGE,
-      dragBar: true,
-      showClose: true,
-      backgroundColor: AppColors.BG_CARD
-    })
-  }
-
-  @Builder
-  activeSheetContent() {
-    if (this.activeSheet === 'category') {
-      this.categorySheet()
-    } else if (this.activeSheet === 'region') {
-      this.regionSheet()
-    } else if (this.activeSheet === 'deadline') {
-      this.deadlineSheet()
-    }
-  }
-
-  @Builder
-  categorySheet() {
-    SelectorSheet({
-      title: '选择职位分类',
-      options: this.categoryOptions,
-      selectedId: this.categoryId,
-      emptyMessage: '暂无职位分类',
-      onSelect: (option: SelectorOption): void => { this.selectCategory(option) }
-    })
-  }
-
-  @Builder
-  regionSheet() {
-    SelectorSheet({
-      title: '选择工作地区',
-      options: this.regionOptions,
-      selectedId: this.regionId,
-      emptyMessage: '暂无地区数据',
-      onSelect: (option: SelectorOption): void => { this.selectRegion(option) }
-    })
-  }
-
-  @Builder
-  deadlineSheet() {
-    Column() {
-      FilterSheetHeader({
-        title: '选择报名截止时间',
-        showReset: false
-      })
-
-      DatePicker({
-        start: new Date('2020-01-01'),
-        end: new Date('2100-12-31'),
-        selected: this.deadlinePickerDate()
-      })
-        .width('100%')
-        .onChange((value: DatePickerResult): void => {
-          const year: number = value.year === undefined ? new Date().getFullYear() : value.year
-          const month: number = value.month === undefined ? 1 : value.month
-          const day: number = value.day === undefined ? 1 : value.day
-          const timePart: string = this.deadline.length >= 16 ? this.deadline.substring(11, 16) : '00:00'
-          this.deadline = String(year) + '-' + this.twoDigits(month) + '-' + this.twoDigits(day) + ' ' + timePart
-        })
-      TimePicker({ selected: this.deadlinePickerDate() })
-        .width('100%')
-        .onChange((value: TimePickerResult): void => {
-          const hour: number = value.hour === undefined ? 0 : value.hour
-          const minute: number = value.minute === undefined ? 0 : value.minute
-          const datePart: string = this.deadline.length >= 10 ? this.deadline.substring(0, 10) : this.todayDatePart()
-          this.deadline = datePart + ' ' + this.twoDigits(hour) + ':' + this.twoDigits(minute)
-        })
-      Button('完成', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.INPUT_HEIGHT)
-        .fontSize(AppFontSize.MD)
-        .fontColor('#FFFFFF')
-        .backgroundColor(AppColors.PRIMARY)
-        .margin({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.XL })
-        .onClick((): void => { this.closeSheet() })
-    }
-    .width('100%')
-    .padding({ top: AppSpacing.XS, bottom: AppSpacing.XL })
   }
 
   deadlinePickerDate(): Date {
