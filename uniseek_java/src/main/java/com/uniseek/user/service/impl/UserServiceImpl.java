@@ -1,7 +1,6 @@
 package com.uniseek.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.uniseek.auth.dto.UserVO;
 import com.uniseek.common.ApiResult;
@@ -9,9 +8,11 @@ import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.EnterpriseMapper;
 import com.uniseek.dao.FavoriteMapper;
 import com.uniseek.dao.TaskApplicationMapper;
+import com.uniseek.dao.TaskMapper;
 import com.uniseek.dao.UserMapper;
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.Favorite;
+import com.uniseek.entity.Task;
 import com.uniseek.entity.TaskApplication;
 import com.uniseek.entity.User;
 import com.uniseek.user.service.UserService;
@@ -20,7 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,6 +44,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private FavoriteMapper favoriteMapper;
+
+    @Autowired
+    private TaskMapper taskMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -109,49 +116,79 @@ public class UserServiceImpl implements UserService {
     public Map<String, Object> getUserStats(Long userId, Integer role) {
         Map<String, Object> stats = new HashMap<>();
 
-        if (role != null && role == 0) {
-            // 求职者：投递数、面试邀请数
-            QueryWrapper<TaskApplication> appWrapper = new QueryWrapper<>();
-            appWrapper.eq("applicant_id", userId);
-            int applications = taskApplicationMapper.selectCount(appWrapper);
+        if (role == null) {
+            return stats;
+        }
+
+        if (role == 0) {
+            // 求职者统计：投递总数、面试邀请数（status=1）、收藏总数
+            int applications = taskApplicationMapper.selectCount(
+                    new LambdaQueryWrapper<TaskApplication>().eq(TaskApplication::getApplicantId, userId));
             stats.put("applications", applications);
 
-            QueryWrapper<TaskApplication> interviewWrapper = new QueryWrapper<>();
-            interviewWrapper.eq("applicant_id", userId).eq("status", 1);
-            int interviews = taskApplicationMapper.selectCount(interviewWrapper);
+            int interviews = taskApplicationMapper.selectCount(
+                    new LambdaQueryWrapper<TaskApplication>()
+                            .eq(TaskApplication::getApplicantId, userId)
+                            .eq(TaskApplication::getStatus, 1));
             stats.put("interviews", interviews);
 
-            QueryWrapper<Favorite> favWrapper = new QueryWrapper<>();
-            favWrapper.eq("user_id", userId);
-            int favorites = favoriteMapper.selectCount(favWrapper);
+            int favorites = favoriteMapper.selectCount(
+                    new LambdaQueryWrapper<Favorite>().eq(Favorite::getUserId, userId));
             stats.put("favorites", favorites);
 
-        } else if (role != null && role == 1) {
-            // 招聘者：通过企业 ID 查询投递数据
-            QueryWrapper<Enterprise> entWrapper = new QueryWrapper<>();
-            entWrapper.eq("user_id", userId);
-            entWrapper.orderByDesc("create_time");
-            entWrapper.last("LIMIT 1");
-            Enterprise enterprise = enterpriseMapper.selectOne(entWrapper);
+        } else if (role == 1) {
+            // 招聘者统计：取当前用户最新一条企业认证，统计该企业发布职位的收到投递总数和已录取数（status=3）
+            Enterprise enterprise = enterpriseMapper.selectOne(
+                    new LambdaQueryWrapper<Enterprise>()
+                            .eq(Enterprise::getUserId, userId)
+                            .orderByDesc(Enterprise::getCreateTime)
+                            .last("LIMIT 1"));
 
-            if (enterprise != null) {
-                QueryWrapper<TaskApplication> receivedWrapper = new QueryWrapper<>();
-                receivedWrapper.inSql("task_id", "SELECT id FROM task WHERE enterprise_id = " + enterprise.getId());
-                int receivedResumes = taskApplicationMapper.selectCount(receivedWrapper);
-                stats.put("receivedResumes", receivedResumes);
-
-                QueryWrapper<TaskApplication> hiredWrapper = new QueryWrapper<>();
-                hiredWrapper.inSql("task_id", "SELECT id FROM task WHERE enterprise_id = " + enterprise.getId())
-                        .eq("status", 3);
-                int hired = taskApplicationMapper.selectCount(hiredWrapper);
-                stats.put("hired", hired);
-            } else {
+            if (enterprise == null) {
                 stats.put("receivedResumes", 0);
                 stats.put("hired", 0);
+                return stats;
             }
+
+            List<Long> taskIds = queryTaskIdsByEnterpriseId(enterprise.getId());
+            if (taskIds.isEmpty()) {
+                stats.put("receivedResumes", 0);
+                stats.put("hired", 0);
+                return stats;
+            }
+
+            int receivedResumes = taskApplicationMapper.selectCount(
+                    new LambdaQueryWrapper<TaskApplication>().in(TaskApplication::getTaskId, taskIds));
+            stats.put("receivedResumes", receivedResumes);
+
+            int hired = taskApplicationMapper.selectCount(
+                    new LambdaQueryWrapper<TaskApplication>()
+                            .in(TaskApplication::getTaskId, taskIds)
+                            .eq(TaskApplication::getStatus, 3));
+            stats.put("hired", hired);
         }
 
         return stats;
+    }
+
+    /**
+     * 查询指定企业发布的所有职位 ID，用于招聘者统计的参数化 IN 查询。
+     */
+    private List<Long> queryTaskIdsByEnterpriseId(Long enterpriseId) {
+        if (enterpriseId == null) {
+            return Collections.emptyList();
+        }
+        List<Task> tasks = taskMapper.selectList(
+                new LambdaQueryWrapper<Task>()
+                        .eq(Task::getEnterpriseId, enterpriseId)
+                        .select(Task::getId));
+        List<Long> taskIds = new ArrayList<>(tasks.size());
+        for (Task task : tasks) {
+            if (task.getId() != null) {
+                taskIds.add(task.getId());
+            }
+        }
+        return taskIds;
     }
 
     private UserVO buildUserVO(User user) {

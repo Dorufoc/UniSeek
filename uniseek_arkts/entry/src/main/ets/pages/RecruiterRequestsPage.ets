@@ -3,7 +3,7 @@
 
 import { RecruiterService } from '../services/RecruiterService'
 import { RecruiterApplicationVO, RecruiterJobVO, ResumeCardData } from '../services/RecruiterTypes'
-import { PoolApplicationCard } from '../components/application/PoolApplicationCard'
+import { PoolApplicationCard, PoolApplicationCardCallbacks } from '../components/application/PoolApplicationCard'
 import { NotificationBell } from '../components/NotificationBell'
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../common/AppStyles'
 import { EmptyView } from '../components/EmptyView'
@@ -392,7 +392,7 @@ struct RecruiterRequestsPage {
               PoolApplicationCard({
                 app: app,
                 jobTitle: this.selectedJobIndex >= 0 ? this.jobs[this.selectedJobIndex].title : '',
-                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) }
+                callbacks: { onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) } }
               })
                 .margin({ bottom: AppSpacing.MD })
             }
@@ -455,7 +455,7 @@ struct RecruiterRequestsPage {
               PoolApplicationCard({
                 app: app,
                 jobTitle: this.selectedJobIndex >= 0 ? this.jobs[this.selectedJobIndex].title : '',
-                onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) }
+                callbacks: { onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) } }
               })
                 .margin({ bottom: AppSpacing.MD })
             }

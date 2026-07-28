@@ -67,8 +67,15 @@ export class UserService {
     const userId = UserSession.userId
     try {
       const stats = await ApiClient.get<UserStats>('/api/user/stats')
-      UserService.saveCachedStats(userId, stats)
-      return stats
+      const normalized: UserStats = {
+        applications: UserService.parseStatValue(stats.applications),
+        interviews: UserService.parseStatValue(stats.interviews),
+        favorites: UserService.parseStatValue(stats.favorites),
+        receivedResumes: UserService.parseStatValue(stats.receivedResumes),
+        hired: UserService.parseStatValue(stats.hired)
+      }
+      UserService.saveCachedStats(userId, normalized)
+      return normalized
     } catch {
       return UserService.getCachedStats(userId) || {
         applications: 0,
@@ -78,6 +85,24 @@ export class UserService {
         hired: 0
       }
     }
+  }
+
+  /**
+   * 将后端返回的统计字段统一解析为非负整数，兼容 number / string / null / undefined。
+   * 网络成功时该解析结果会覆盖本地缓存，确保显示真实数据。
+   */
+  private static parseStatValue(value: number | string | null | undefined): number {
+    if (value === null || value === undefined) {
+      return 0
+    }
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
+    }
+    if (typeof value === 'string') {
+      const parsed: number = Number.parseInt(value, 10)
+      return Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
+    }
+    return 0
   }
 }
 

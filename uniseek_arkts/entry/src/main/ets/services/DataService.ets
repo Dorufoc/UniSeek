@@ -396,7 +396,8 @@ export class DataService {
     const result: string[] = []
     for (const name of names) {
       const trimmed = name.trim()
-      if (trimmed.length > 0 && trimmed !== '全部') {
+      if (trimmed.length > 0 && trimmed !== '全部' && trimmed !== '全部市'
+        && trimmed !== '全部区县' && trimmed !== '全部旗县' && trimmed !== '全部子类') {
         result.push(trimmed)
       }
     }

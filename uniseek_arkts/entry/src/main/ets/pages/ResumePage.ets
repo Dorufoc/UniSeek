@@ -1,11 +1,13 @@
 import { SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
 import { picker, fileIo } from '@kit.CoreFileKit';
 import { ChatService } from '../services/ChatService';
-import { ResumeService, ResumeRequest } from '../services/ResumeService';
+import { ResumeService, ResumeRequest, ResumeData } from '../services/ResumeService';
+import { AuthService, RealNameStatus } from '../services/AuthService';
 import { AppColors, AppSpacing, AppRadius, AppFontSize, PrimaryButton, StandardInput } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 import { ResumeCompletionPolicy } from '../common/BusinessPolicies';
 import { UploadPolicy } from '../common/FormValidators';
+import { ResumeEditPolicy, ResumeEditState, ResumeEditAuthData } from '../common/ResumeEditPolicy';
 
 const EDUCATION_LEVELS: string[] = ['初中及以下', '中专/中技', '高中', '大专', '本科', '硕士', '博士']
 const FULLTIME_OPTIONS: string[] = ['全日制', '非全日制']
@@ -223,6 +225,17 @@ struct ResumePage {
   @State errorMsg: string = ''
   @State showSuccess: boolean = false
 
+  // 实名认证状态
+  @State realNameAuth: ResumeEditAuthData | null = null
+  @State genderLocked: boolean = false
+  @State birthDateLocked: boolean = false
+
+  // 自动保存状态
+  @State isInitializing: boolean = true
+  @State hasPendingChange: boolean = false
+  private autoSaveTimer: number = -1
+  private readonly AUTO_SAVE_DELAY_MS: number = 1500
+
   @State genderOptions: SegmentButtonOptions = SegmentButtonOptions.capsule({
     buttons: [{ text: '男' }, { text: '女' }],
     multiply: false,
@@ -236,28 +249,163 @@ struct ResumePage {
     this.loadResume()
   }
 
+  aboutToDisappear(): void {
+    // 页面离开时清理定时器并尝试保存未完成的变更
+    if (this.autoSaveTimer !== -1) {
+      clearTimeout(this.autoSaveTimer)
+      this.autoSaveTimer = -1
+    }
+    // 尽力保存未完成的变更（同步方式，避免异步在页面销毁后执行）
+    if (this.hasPendingChange && !this.saving && !this.isInitializing) {
+      const data: ResumeRequest = this.buildResumeRequest()
+      ResumeService.saveResume(data).catch(() => {
+        // 页面已销毁，忽略错误
+      })
+    }
+  }
+
   loadResume(): void {
     this.isLoadingResume = true
     this.loadError = ''
-    ResumeService.getMyResume().then((saved) => {
-      if (saved) {
-        this.name = saved.realName || ''
-        this.gender = saved.gender
-        this.genderIndexes = saved.gender === 0 || saved.gender === 1 ? [saved.gender] : []
-        this.birthDate = saved.birthDate || ''
-        this.school = saved.school || ''
-        this.education = saved.education || ''
-        this.skills = saved.skills || ''
-        this.experience = saved.experience || ''
-        this.graduationDate = saved.graduationDate || ''
-        this.attachmentUrl = saved.attachmentUrl || ''
-        this.attachmentName = saved.attachmentUrl ? saved.attachmentUrl.split('/').pop() || '' : ''
+    this.isInitializing = true
+
+    // 并行加载简历和实名认证状态
+    // 没有简历记录时接口可能返回错误码，按空简历继续展示实名信息
+    const resumePromise: Promise<ResumeData | null> = ResumeService.getMyResume().catch((): ResumeData | null => {
+      return null
+    })
+    const authPromise: Promise<RealNameStatus> = AuthService.getRealNameStatus().catch((): RealNameStatus => {
+      // 网络异常时使用最近一次实名缓存，避免姓名和实名出生日期突然消失
+      const cached: RealNameStatus | null = AuthService.getCachedRealNameStatus()
+      if (cached !== null) {
+        return cached
       }
+      return { isAuth: false, realName: null, idCard: null, birthDate: null, gender: -1 }
+    })
+
+    Promise.all([resumePromise, authPromise]).then((results: [ResumeData | null, RealNameStatus]) => {
+      const saved: ResumeData | null = results[0]
+      const authStatus: RealNameStatus = results[1]
+
+      // 构建实名认证数据
+      const authData: ResumeEditAuthData = {
+        isAuth: authStatus.isAuth,
+        realName: authStatus.realName,
+        birthDate: authStatus.birthDate,
+        gender: authStatus.gender
+      }
+      this.realNameAuth = authData
+      this.genderLocked = ResumeEditPolicy.isGenderLocked(authData)
+      this.birthDateLocked = ResumeEditPolicy.isBirthDateLocked(authData)
+
+      // 构建初始状态
+      const initialState: ResumeEditState = {
+        name: saved ? (saved.realName || '') : '',
+        gender: saved ? saved.gender : -1,
+        birthDate: saved ? ResumeEditPolicy.normalizeDate(saved.birthDate || '') : '',
+        education: saved ? (saved.education || '') : '',
+        school: saved ? (saved.school || '') : '',
+        graduationDate: saved ? ResumeEditPolicy.normalizeDate(saved.graduationDate || '') : '',
+        skills: saved ? (saved.skills || '') : '',
+        experience: saved ? (saved.experience || '') : '',
+        attachmentUrl: saved ? (saved.attachmentUrl || '') : ''
+      }
+
+      // 合并实名认证数据
+      const merged: ResumeEditState = ResumeEditPolicy.mergeAuthData(initialState, authData)
+
+      // 更新 UI 状态
+      this.name = merged.name
+      this.gender = merged.gender
+      this.genderIndexes = merged.gender === 0 || merged.gender === 1 ? [merged.gender] : []
+      this.birthDate = merged.birthDate
+      this.school = merged.school
+      this.education = merged.education
+      this.skills = merged.skills
+      this.experience = merged.experience
+      this.graduationDate = merged.graduationDate
+      this.attachmentUrl = merged.attachmentUrl
+      this.attachmentName = merged.attachmentUrl ? merged.attachmentUrl.split('/').pop() || '' : ''
     }).catch(() => {
       this.loadError = '简历加载失败，请重新加载'
     }).finally(() => {
       this.isLoadingResume = false
+      this.isInitializing = false
     })
+  }
+
+  // 构建完整的简历保存请求（包含所有可保存字段）
+  buildResumeRequest(): ResumeRequest {
+    return ResumeEditPolicy.buildRequest({
+      name: this.name,
+      gender: this.gender,
+      birthDate: this.birthDate,
+      education: this.education,
+      school: this.school,
+      graduationDate: this.graduationDate,
+      skills: this.skills,
+      experience: this.experience,
+      attachmentUrl: this.attachmentUrl
+    })
+  }
+
+  // 触发防抖自动保存
+  scheduleAutoSave(): void {
+    // 先记录变更，保存进行中也不能丢失用户的新输入
+    this.hasPendingChange = true
+    // 检查是否允许自动保存
+    if (!ResumeEditPolicy.canAutoSave(this.isInitializing, this.saving)) {
+      return
+    }
+
+    // 清除之前的定时器
+    if (this.autoSaveTimer !== -1) {
+      clearTimeout(this.autoSaveTimer)
+    }
+
+    // 设置新的定时器
+    this.autoSaveTimer = setTimeout((): void => {
+      this.autoSaveTimer = -1
+      this.doAutoSave()
+    }, this.AUTO_SAVE_DELAY_MS)
+  }
+
+  // 执行自动保存
+  async doAutoSave(): Promise<void> {
+    // 再次检查状态（定时器触发时状态可能已变化）
+    if (!ResumeEditPolicy.canAutoSave(this.isInitializing, this.saving) || !this.hasPendingChange) {
+      return
+    }
+
+    this.hasPendingChange = false
+    this.saving = true
+    this.errorMsg = ''
+    this.showSuccess = false
+
+    try {
+      const data: ResumeRequest = this.buildResumeRequest()
+      await ResumeService.saveResume(data)
+      this.showSuccess = true
+      // 2 秒后隐藏成功提示
+      setTimeout((): void => {
+        this.showSuccess = false
+      }, 2000)
+    } catch (e) {
+      this.errorMsg = '自动保存失败，请检查网络'
+    } finally {
+      this.saving = false
+      // 如果保存期间有新变更，继续触发保存
+      if (this.hasPendingChange) {
+        this.scheduleAutoSave()
+      }
+    }
+  }
+
+  // 附件上传成功后触发保存
+  onAttachmentUploaded(url: string): void {
+    this.attachmentUrl = url
+    this.attachmentName = url ? url.split('/').pop() || '' : ''
+    this.scheduleAutoSave()
   }
 
   completionRate(): number {
@@ -457,15 +605,16 @@ struct ResumePage {
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
             .onClick((): void => { void ChatService.previewAttachment(this.attachmentUrl) })
-          Button('删除', { type: ButtonType.Capsule })
-            .height(AppSpacing.BUTTON_HEIGHT_SM)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.DANGER)
-            .backgroundColor(AppColors.ERROR_BG)
-            .onClick((): void => {
-              this.attachmentUrl = ''
-              this.attachmentName = ''
-            })
+           Button('删除', { type: ButtonType.Capsule })
+             .height(AppSpacing.BUTTON_HEIGHT_SM)
+             .fontSize(AppFontSize.XS)
+             .fontColor(AppColors.DANGER)
+             .backgroundColor(AppColors.ERROR_BG)
+             .onClick((): void => {
+               this.attachmentUrl = ''
+               this.attachmentName = ''
+               this.scheduleAutoSave()
+             })
         }
         .width('100%')
       }
@@ -514,12 +663,21 @@ struct ResumePage {
                 SegmentButton({
                   options: this.genderOptions,
                   selectedIndexes: $genderIndexes,
-                  onItemClicked: (index: number): void => { this.gender = index }
+                  onItemClicked: this.genderLocked ? undefined : (index: number): void => {
+                    this.gender = index
+                    this.genderIndexes = [index]
+                    this.scheduleAutoSave()
+                  }
                 })
                   .width('100%')
+                  .opacity(this.genderLocked ? 0.6 : 1)
               }
               .width('100%')
-              this.selectorField('出生日期', this.birthDate, '请选择出生日期', () => { this.showBirthDatePicker() })
+              this.selectorField('出生日期', this.birthDate, '请选择出生日期', () => {
+                if (!this.birthDateLocked) {
+                  this.showBirthDatePicker()
+                }
+              })
             }
             .width('100%')
             .backgroundColor(AppColors.BG_CARD)
@@ -529,10 +687,19 @@ struct ResumePage {
             // 教育经历
             Column({ space: AppSpacing.MD }) {
               this.sectionHeader('教育经历')
-              StandardInput({
-                value: $school,
-                placeholder: '请输入毕业院校'
-              })
+              TextInput({ placeholder: '请输入毕业院校', text: this.school })
+                .height(AppSpacing.INPUT_HEIGHT_STANDARD)
+                .backgroundColor(AppColors.INPUT_BG)
+                .borderRadius(AppRadius.PILL)
+                .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+                .fontSize(AppFontSize.MD)
+                .fontColor(AppColors.TEXT_PRIMARY)
+                .placeholderColor(AppColors.TEXT_MUTED)
+                .width('100%')
+                .onChange((value: string) => {
+                  this.school = value
+                  this.scheduleAutoSave()
+                })
               this.selectorField('学历', this.educationLabel(), '请选择学历', () => { this.showEducationPicker() })
               this.selectorField('毕业日期', this.graduationDate, '请选择毕业日期', () => { this.showGraduationDatePicker() })
             }
@@ -545,7 +712,10 @@ struct ResumePage {
             Column({ space: AppSpacing.MD }) {
               this.sectionHeader('个人优势')
               TextArea({ placeholder: '描述你的技能特长，如沟通能力强、熟练使用 Office 等', text: this.skills })
-                .onChange((value: string) => { this.skills = value })
+                .onChange((value: string) => {
+                  this.skills = value
+                  this.scheduleAutoSave()
+                })
                 .width('100%')
                 .height(100)
                 .backgroundColor(AppColors.INPUT_BG)
@@ -565,7 +735,10 @@ struct ResumePage {
             Column({ space: AppSpacing.MD }) {
               this.sectionHeader('实践经历')
               TextArea({ placeholder: '描述你的校园经历、实习经历或项目经验', text: this.experience })
-                .onChange((value: string) => { this.experience = value })
+                .onChange((value: string) => {
+                  this.experience = value
+                  this.scheduleAutoSave()
+                })
                 .width('100%')
                 .height(120)
                 .backgroundColor(AppColors.INPUT_BG)
@@ -645,10 +818,11 @@ struct ResumePage {
       this.attachmentName = fileName
       this.uploading = true
        ChatService.uploadResumeAttachment(uri).then((url: string) => {
-        this.attachmentUrl = url
+        this.onAttachmentUploaded(url)
         this.getUIContext().getPromptAction().showToast({ message: '简历上传成功' })
       }).catch(() => {
         this.attachmentUrl = ''
+        this.attachmentName = ''
         this.getUIContext().getPromptAction().showToast({ message: '简历上传失败，请重试' })
       }).finally(() => {
         this.uploading = false
@@ -666,6 +840,7 @@ struct ResumePage {
         onConfirm: (education: string, isFullTime: boolean) => {
           this.education = education
           this.isFullTime = isFullTime
+          this.scheduleAutoSave()
           dialog.close()
         },
         onCancel: () => {
@@ -690,10 +865,15 @@ struct ResumePage {
         endDate: endDate,
         onConfirm: (date: string) => {
           if (target === 'birthDate') {
+            // 实名用户出生日期只读，不应触发此回调
+            if (this.birthDateLocked) {
+              return
+            }
             this.birthDate = date
           } else {
             this.graduationDate = date
           }
+          this.scheduleAutoSave()
           dialog.close()
         },
         onCancel: () => {
@@ -715,19 +895,17 @@ struct ResumePage {
   }
 
   async handleSave(): Promise<void> {
+    // 清除自动保存定时器
+    if (this.autoSaveTimer !== -1) {
+      clearTimeout(this.autoSaveTimer)
+      this.autoSaveTimer = -1
+    }
+    this.hasPendingChange = false
+
     this.saving = true
     this.errorMsg = ''
     this.showSuccess = false
-    const data: ResumeRequest = {
-      gender: this.gender >= 0 ? this.gender : undefined,
-      birthDate: this.birthDate || undefined,
-      school: this.school || undefined,
-      education: this.education || undefined,
-      graduationDate: this.graduationDate || undefined,
-      skills: this.skills || undefined,
-      experience: this.experience || undefined,
-      attachmentUrl: this.attachmentUrl || undefined
-    }
+    const data: ResumeRequest = this.buildResumeRequest()
     try {
       await ResumeService.saveResume(data)
       this.showSuccess = true
@@ -738,6 +916,9 @@ struct ResumePage {
       this.errorMsg = (e as Error).message || '保存失败，请重试'
     } finally {
       this.saving = false
+      if (this.hasPendingChange) {
+        this.scheduleAutoSave()
+      }
     }
   }
 }

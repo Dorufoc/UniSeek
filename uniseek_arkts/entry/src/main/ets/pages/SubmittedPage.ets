@@ -5,6 +5,12 @@ import { NavBar } from '../common/NavBar'
 import { ChoiceOption } from '../components/filter/ChoiceChips'
 import { StandardCard } from '../common/StandardCard'
 
+/** 投递卡片对外暴露的点击回调。 */
+interface ApplicationCardCallbacks {
+  onToggle: () => void
+  onOpenTask: () => void
+}
+
 // 投递记录状态筛选选项：-1 表示全部，其余对应 application status
 const FILTER_OPTIONS: ChoiceOption[] = [
   { value: -1, label: '全部' },
@@ -16,19 +22,18 @@ const FILTER_OPTIONS: ChoiceOption[] = [
 
 @Component
 struct ApplicationCard {
-  app: ApplicationData = {
+  @Prop app: ApplicationData = {
     id: 0, taskId: 0, applicantId: 0, resumeSnapshot: '', attachmentUrl: '',
     status: 0, interviewTime: '', interviewLocation: '', rejectReason: '',
     hrNote: '', createTime: '', updateTime: ''
   }
-  task: TaskVO | null = null
-  expanded: boolean = false
-  onToggle?: () => void
-  onOpenTask?: () => void
+  @Prop task: TaskVO | null = null
+  @Prop expanded: boolean = false
+  @Prop callbacks: ApplicationCardCallbacks = { onToggle: () => {}, onOpenTask: () => {} }
 
   build() {
     StandardCard({
-      onClickAction: () => { this.onToggle?.() },
+      onClickAction: () => { this.callbacks.onToggle() },
       accessibilityLabel: (this.task?.title || ('职位 #' + this.app.taskId)) + ' 投递记录'
     }) {
       Column() {
@@ -105,7 +110,7 @@ struct ApplicationCard {
           .backgroundColor(AppColors.PRIMARY)
           .margin({ top: AppSpacing.MD })
           .onClick(() => {
-            this.onOpenTask?.()
+            this.callbacks.onOpenTask()
           })
       }
       }
@@ -286,8 +291,10 @@ struct SubmittedPage {
                 app: app,
                 task: this.taskMap[app.taskId] || null,
                 expanded: this.expandedId === app.id,
-                onToggle: () => { this.toggleApplication(app.id) },
-                onOpenTask: () => { this.openTask(this.taskMap[app.taskId] || null) }
+                callbacks: {
+                  onToggle: () => { this.toggleApplication(app.id) },
+                  onOpenTask: () => { this.openTask(this.taskMap[app.taskId] || null) }
+                }
               })
             }
           }, (app: ApplicationData) => String(app.id))

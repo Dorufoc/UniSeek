@@ -5,6 +5,7 @@ import applicationTabPolicyTest from './ApplicationTabPolicy.test'
 import auditPoliciesTest from './AuditPolicies.test'
 import chatUtilsTest from './chat/ChatUtils.test';
 import chatComponentsTest from './chat/ChatComponents.test';
+import chatWebSocketPolicyTest from './chat/ChatWebSocketPolicy.test';
 
 export default function testsuite() {
   localUnitTest();
@@ -14,4 +15,5 @@ export default function testsuite() {
   auditPoliciesTest()
   chatUtilsTest();
   chatComponentsTest();
+  chatWebSocketPolicyTest();
 }

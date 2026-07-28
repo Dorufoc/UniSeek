@@ -4,7 +4,7 @@
 
 import { ChatService } from '../services/ChatService';
 import { ChatMessageVO, ChatSessionVO } from '../services/ChatTypes';
-import { ChatWebSocketService, WsNewMessageData } from '../services/ChatWebSocketService';
+import { ChatWebSocketService, WsChatDetailEvent } from '../services/ChatWebSocketService';
 import { UserSession } from '../services/UserSession';
 import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
@@ -14,6 +14,7 @@ import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
 import { ChatMessagePolicy } from '../common/BusinessPolicies';
+import { mapWsNewMessageToChatMessageVO } from '../common/ChatProtocolMappers';
 import { UploadPolicy } from '../common/FormValidators';
 import { FileTransferPolicy } from '../services/FileTransferPolicy';
 import { ErrorView } from '../components/ErrorView';
@@ -56,6 +57,9 @@ struct ChatDetailPage {
   // 进入页面前的键盘避让模式，用于离开页面时恢复
   private keyboardAvoidModeBackup: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET
 
+  // 本页 WebSocket 监听器的唯一标识，避免页面切换时覆盖或误删其他监听者
+  private readonly pageListenerId: string = 'chat_detail_' + Date.now().toString()
+
   // ==================== 生命周期 ====================
 
   aboutToAppear(): void {
@@ -70,35 +74,26 @@ struct ChatDetailPage {
     this.loadSessionInfo()
     this.loadMessages()
 
-    // 连接 WebSocket 并注册新消息回调
+    // 连接 WebSocket 并按 listenerId 注册详情事件监听
     ChatWebSocketService.getInstance().connect()
-    ChatWebSocketService.getInstance().setOnDetailMessageCallback((data: WsNewMessageData) => {
-      const existingIds: number[] = this.messages.map((message: ChatMessageVO): number => message.id)
-      if (data.applicationId === this.applicationId &&
-        ChatMessagePolicy.shouldAppend(data.messageId, data.senderId, UserSession.userId, existingIds)) {
-        const newMsg: ChatMessageVO = {
-          id: data.messageId,
-          senderId: data.senderId,
-          messageType: data.messageType,
-          content: data.content,
-          isRead: data.isRead,
-          sendTime: data.sendTime,
-          senderName: data.senderName,
-          senderAvatar: data.senderAvatar
-        }
-        this.appendMessageIfNeeded(newMsg)
-      }
+    ChatWebSocketService.getInstance().addDetailMessageListener(this.pageListenerId, (event: WsChatDetailEvent) => {
+      this.onDetailMessageEvent(event)
     })
   }
 
   aboutToDisappear(): void {
-    ChatWebSocketService.getInstance().removeOnDetailMessageCallback()
+    // 移除本页监听器，防止页面离开后回调仍被触发或影响其他页面
+    ChatWebSocketService.getInstance().removeDetailMessageListener(this.pageListenerId)
     this.getUIContext().setKeyboardAvoidMode(this.keyboardAvoidModeBackup)
   }
 
   onPageShow(): void {
-    this.loadMessages()
-    this.loadSessionInfo()
+    // 页面重新显示时确保连接并重新订阅：场景包括从后台切回、其他页面返回、连接重建后
+    ChatWebSocketService.getInstance().connect()
+    ChatWebSocketService.getInstance().addDetailMessageListener(this.pageListenerId, (event: WsChatDetailEvent) => {
+      this.onDetailMessageEvent(event)
+    })
+    this.silentSync()
   }
 
   // 滚动消息列表到底部
@@ -125,6 +120,46 @@ struct ChatDetailPage {
     }
     merged.sort((left: ChatMessageVO, right: ChatMessageVO): number => left.id - right.id)
     return merged
+  }
+
+  // 处理 WebSocket 详情页事件：NEW_MESSAGE 去重追加并同步 canSend，SEND_ACK 仅保证不重复追加
+  private onDetailMessageEvent(event: WsChatDetailEvent): void {
+    if (event.type === 'SEND_ACK') {
+      // 自己发送成功的消息已在 sendMessage 回调中追加，ACK 不再重复追加
+      return
+    }
+
+    const data = event.data
+    if (data.applicationId !== this.applicationId) {
+      return
+    }
+    // 只追加对方消息；自己发送的消息由 sendMessage 成功回调处理，避免重复与状态错乱
+    if (data.senderId === UserSession.userId) {
+      return
+    }
+    const existingIds: number[] = this.messages.map((message: ChatMessageVO): number => message.id)
+    if (ChatMessagePolicy.shouldAppend(data.messageId, data.senderId, UserSession.userId, existingIds)) {
+      const newMsg: ChatMessageVO = mapWsNewMessageToChatMessageVO(data)
+      this.appendMessageIfNeeded(newMsg)
+      this.loadSessionInfo()
+      this.markSessionRead()
+    }
+  }
+
+  // 页面重新显示或重新订阅时执行的静默同步：不展示 loading，合并消息避免重复覆盖
+  private silentSync(): void {
+    if (this.applicationId <= 0) {
+      return
+    }
+    this.loadSessionInfo()
+    ChatService.getMessages(this.applicationId).then((msgs: ChatMessageVO[]) => {
+      if (msgs.length < 20) {
+        this.hasMore = false
+      }
+      this.messages = this.mergeLoadedMessages(msgs.reverse())
+    }).catch(() => {
+      // 静默同步失败不打扰用户
+    })
   }
 
   // ==================== 数据加载 ====================

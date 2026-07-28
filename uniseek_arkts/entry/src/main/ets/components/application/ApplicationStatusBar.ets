@@ -69,7 +69,8 @@ export struct ApplicationStatusBar {
   }
 
   private openInterviewDialog(): void {
-    const dialog = new CustomDialogController({
+    let dialog: CustomDialogController
+    dialog = new CustomDialogController({
       builder: InterviewDialog({
         applicantName: this.applicantName,
         onConfirm: (time: string, location: string): void => {
@@ -77,6 +78,10 @@ export struct ApplicationStatusBar {
             interviewTime: time,
             interviewLocation: location
           })
+          dialog.close()
+        },
+        onCancel: (): void => {
+          dialog.close()
         }
       }),
       alignment: DialogAlignment.Center,

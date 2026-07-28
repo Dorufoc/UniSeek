@@ -146,9 +146,9 @@ struct SearchResultsPage {
     this.salaryMax = selection.salaryMax
     this.selectedSalaryUnit = selection.salaryUnit
     this.includeNegotiable = selection.includeNegotiable
-    this.selectedRegion = selection.region
-    this.selectedType = selection.type
-    this.selectedTags = selection.tags
+    this.selectedRegion = [...selection.region]
+    this.selectedType = [...selection.type]
+    this.selectedTags = [...selection.tags]
     this.showFilterSheet = false
     void this.loadResults(true)
   }

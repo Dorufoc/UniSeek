@@ -3,6 +3,7 @@ import { ApplicationNotePolicy, ChatMessagePolicy, EnterpriseSubmissionPolicy, P
 import { InputValidator, UploadPolicy } from '../main/ets/common/FormValidators'
 import { ServerConfig } from '../main/ets/services/ServerConfig'
 import { FileTransferPolicy, UploadResponse } from '../main/ets/services/FileTransferPolicy'
+import { ResumeEditPolicy, ResumeEditState } from '../main/ets/common/ResumeEditPolicy'
 
 export default function auditPoliciesTest(): void {
   describe('审计问题修复策略', (): void => {
@@ -51,7 +52,7 @@ export default function auditPoliciesTest(): void {
       expect(InputValidator.isEmail('user@example.com')).assertTrue()
       expect(InputValidator.isEmail('user@')).assertFalse()
       expect(InputValidator.isStrongPassword('Abc12345')).assertTrue()
-      expect(InputValidator.isStrongPassword('12345678')).assertFalse()
+      expect(InputValidator.isStrongPassword('密码123456')).assertFalse()
       expect(InputValidator.isNickname('求职者小林')).assertTrue()
       expect(InputValidator.isNickname(' ')).assertFalse()
     })
@@ -68,7 +69,7 @@ export default function auditPoliciesTest(): void {
       expect(UploadPolicy.validateResume('个人简历.pdf', 10 * 1024 * 1024 + 1)).assertEqual('文件大小不能超过 10MB')
       expect(UploadPolicy.validateLicense('营业执照.png', 5 * 1024 * 1024)).assertEqual('')
       expect(UploadPolicy.validateLicense('营业执照.pdf', 1024)).assertEqual('请选择 JPG、PNG、GIF 或 WebP 图片')
-      expect(UploadPolicy.validateLicense('营业执照.jpg', 5 * 1024 * 1024 + 1)).assertEqual('图片大小不能超过 5MB')
+      expect(UploadPolicy.validateLicense('营业执照.jpg', 10 * 1024 * 1024 + 1)).assertEqual('图片大小不能超过 10MB')
     })
 
     it('简历完整度与发布条件保持一致', 0, (): void => {
@@ -87,6 +88,40 @@ export default function auditPoliciesTest(): void {
     it('淘汰说明不接受空白内容', 0, (): void => {
       expect(ApplicationNotePolicy.isValid('候选人经验与岗位要求不匹配')).assertTrue()
       expect(ApplicationNotePolicy.isValid('  ')).assertFalse()
+    })
+
+    it('实名认证信息覆盖姓名、性别和出生日期', 0, (): void => {
+      const state: ResumeEditState = {
+        name: '', gender: -1, birthDate: '', education: '本科', school: '某大学',
+        graduationDate: '2024-06-30', skills: 'ArkTS', experience: '项目经验', attachmentUrl: ''
+      }
+      const merged = ResumeEditPolicy.mergeAuthData(state, {
+        isAuth: true, realName: '张三', gender: 0, birthDate: '20000101'
+      })
+      expect(merged.name).assertEqual('张三')
+      expect(merged.gender).assertEqual(0)
+      expect(merged.birthDate).assertEqual('2000-01-01')
+    })
+
+    it('保存请求包含完整简历字段且不包含实名姓名', 0, (): void => {
+      const request = ResumeEditPolicy.buildRequest({
+        name: '张三', gender: 1, birthDate: '2000-01-01', education: '硕士', school: '某大学',
+        graduationDate: '2025-06-30', skills: 'ArkTS', experience: '项目经验', attachmentUrl: '/files/a.pdf'
+      })
+      expect(request.gender).assertEqual(1)
+      expect(request.birthDate).assertEqual('2000-01-01')
+      expect(request.education).assertEqual('硕士')
+      expect(request.school).assertEqual('某大学')
+      expect(request.graduationDate).assertEqual('2025-06-30')
+      expect(request.skills).assertEqual('ArkTS')
+      expect(request.experience).assertEqual('项目经验')
+      expect(request.attachmentUrl).assertEqual('/files/a.pdf')
+    })
+
+    it('初始化或保存中不触发自动保存', 0, (): void => {
+      expect(ResumeEditPolicy.canAutoSave(true, false)).assertFalse()
+      expect(ResumeEditPolicy.canAutoSave(false, true)).assertFalse()
+      expect(ResumeEditPolicy.canAutoSave(false, false)).assertTrue()
     })
 
     it('分页加载只在还有下一页时继续请求', 0, (): void => {

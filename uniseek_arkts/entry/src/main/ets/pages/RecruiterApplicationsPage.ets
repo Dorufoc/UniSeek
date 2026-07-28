@@ -21,6 +21,11 @@ interface ApplicationResumeSnapshot {
   attachmentUrl: string
 }
 
+/** 投递卡片对外暴露的点击回调。 */
+interface ApplicationCardCallbacks {
+  onViewResume: (app: RecruiterApplicationVO) => void
+}
+
 @Entry
 @Component
 struct RecruiterApplicationsPage {
@@ -162,7 +167,10 @@ struct RecruiterApplicationsPage {
         Scroll() {
           Column() {
             ForEach(this.filteredList, (app: RecruiterApplicationVO) => {
-              ApplicationCard({ app: app, onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) } })
+              ApplicationCard({
+                app: app,
+                callbacks: { onViewResume: (item: RecruiterApplicationVO): void => { this.openResume(item) } }
+              })
               .transition(TransitionEffect.asymmetric(
                 TransitionEffect.opacity(0).combine(TransitionEffect.translate({ y: 20 })),
                 TransitionEffect.opacity(1)
@@ -221,16 +229,16 @@ struct RecruiterApplicationsPage {
 
 @Component
 struct ApplicationCard {
-  app: RecruiterApplicationVO = {
+  @Prop app: RecruiterApplicationVO = {
     id: 0, taskId: 0, applicantId: 0, applicantName: '',
     applicantAvatar: '', status: 0, interviewTime: '',
     interviewLocation: '', rejectReason: '', createTime: ''
   }
-  onViewResume?: (app: RecruiterApplicationVO) => void
+  @Prop callbacks: ApplicationCardCallbacks = { onViewResume: () => {} }
 
   build() {
     StandardCard({
-      onClickAction: () => { this.onViewResume?.(this.app) }
+      onClickAction: () => { this.callbacks.onViewResume(this.app) }
     }) {
       Column() {
         Row() {

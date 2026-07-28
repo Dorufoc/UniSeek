@@ -12,6 +12,7 @@ export struct InterviewDialog {
   controller?: CustomDialogController
   applicantName?: string = ''
   onConfirm?: (time: string, location: string) => void
+  onCancel?: () => void
 
   @State timeText: string = ''
   @State locationText: string = ''
@@ -101,7 +102,7 @@ export struct InterviewDialog {
           .fontColor(AppColors.TEXT_SECONDARY)
           .backgroundColor(AppColors.INPUT_BG)
           .layoutWeight(1)
-          .onClick(() => { this.controller?.close() })
+          .onClick(() => { this.onCancel?.() })
           .stateStyles({
             pressed: {
               .scale({ x: 0.98, y: 0.98 })
@@ -125,7 +126,6 @@ export struct InterviewDialog {
               return
             }
             this.onConfirm?.(this.timeText.trim(), this.locationText.trim())
-            this.controller?.close()
           })
           .stateStyles({
             pressed: {

@@ -7,20 +7,34 @@ import webSocket from '@ohos.net.webSocket';
 import { ApiClient } from './ApiClient';
 import { ServerConfig } from './ServerConfig';
 import { ChatService } from './ChatService';
+import { WsNewMessageData } from './ChatTypes';
 import { BusinessError } from '@kit.BasicServicesKit';
 
-/** WebSocket 推送的新消息数据类型 */
-export interface WsNewMessageData {
+export { WsNewMessageData };
+
+/** WebSocket 推送的 SEND_ACK 数据类型 */
+export interface WsSendAckData {
   messageId: number;
   applicationId: number;
-  senderId: number;
-  senderName: string;
-  senderAvatar: string;
-  content: string;
   messageType: number;
+  content: string;
   sendTime: string;
-  isRead: number;
 }
+
+/** 聊天详情页监听到的 NEW_MESSAGE 事件 */
+export interface WsNewMessageEvent {
+  type: 'NEW_MESSAGE';
+  data: WsNewMessageData;
+}
+
+/** 聊天详情页监听到的 SEND_ACK 事件 */
+export interface WsSendAckEvent {
+  type: 'SEND_ACK';
+  data: WsSendAckData;
+}
+
+/** 聊天详情页监听器可接收的事件联合类型 */
+export type WsChatDetailEvent = WsNewMessageEvent | WsSendAckEvent;
 
 /** WebSocket 协议消息（内部使用） */
 interface WsProtocolMessage {
@@ -45,8 +59,8 @@ export class ChatWebSocketService {
   private readonly reconnectDelay: number = 5000;
   private readonly pingInterval: number = 30000;
   private connected: boolean = false;
-  private onSessionMessageCallback: ((data: WsNewMessageData) => void) | null = null;
-  private onDetailMessageCallback: ((data: WsNewMessageData) => void) | null = null;
+  private sessionListeners: Map<string, ((data: WsNewMessageData) => void)> = new Map();
+  private detailListeners: Map<string, ((event: WsChatDetailEvent) => void)> = new Map();
   private onUnreadCountChangedCallbacks: ((count: number) => void)[] = [];
 
   static getInstance(): ChatWebSocketService {
@@ -56,24 +70,56 @@ export class ChatWebSocketService {
     return ChatWebSocketService.instance;
   }
 
-  /** 设置会话列表的新消息回调。 */
+  /** 设置会话列表的新消息回调（兼容旧版，内部映射到 listenerId='legacy'）。 */
   setOnSessionMessageCallback(callback: ((data: WsNewMessageData) => void) | null): void {
-    this.onSessionMessageCallback = callback;
+    if (callback) {
+      this.sessionListeners.set('legacy', callback);
+    } else {
+      this.sessionListeners.delete('legacy');
+    }
   }
 
-  /** 移除会话列表的新消息回调。 */
+  /** 移除会话列表的新消息回调（兼容旧版）。 */
   removeOnSessionMessageCallback(): void {
-    this.onSessionMessageCallback = null;
+    this.sessionListeners.delete('legacy');
   }
 
-  /** 设置聊天详情的新消息回调。 */
+  /** 按 listenerId 注册会话列表的新消息回调。 */
+  addSessionMessageListener(listenerId: string, callback: (data: WsNewMessageData) => void): void {
+    this.sessionListeners.set(listenerId, callback);
+  }
+
+  /** 按 listenerId 移除会话列表的新消息回调。 */
+  removeSessionMessageListener(listenerId: string): void {
+    this.sessionListeners.delete(listenerId);
+  }
+
+  /** 设置聊天详情的新消息回调（兼容旧版，内部映射到 listenerId='legacy'，仅接收 NEW_MESSAGE）。 */
   setOnDetailMessageCallback(callback: ((data: WsNewMessageData) => void) | null): void {
-    this.onDetailMessageCallback = callback;
+    if (callback) {
+      this.detailListeners.set('legacy', (event: WsChatDetailEvent) => {
+        if (event.type === 'NEW_MESSAGE') {
+          callback(event.data);
+        }
+      });
+    } else {
+      this.detailListeners.delete('legacy');
+    }
   }
 
-  /** 移除聊天详情的新消息回调。 */
+  /** 移除聊天详情的新消息回调（兼容旧版）。 */
   removeOnDetailMessageCallback(): void {
-    this.onDetailMessageCallback = null;
+    this.detailListeners.delete('legacy');
+  }
+
+  /** 按 listenerId 注册聊天详情消息事件回调（可接收 NEW_MESSAGE / SEND_ACK）。 */
+  addDetailMessageListener(listenerId: string, callback: (event: WsChatDetailEvent) => void): void {
+    this.detailListeners.set(listenerId, callback);
+  }
+
+  /** 按 listenerId 移除聊天详情消息事件回调。 */
+  removeDetailMessageListener(listenerId: string): void {
+    this.detailListeners.delete(listenerId);
   }
 
   /**
@@ -161,8 +207,8 @@ export class ChatWebSocketService {
   disconnect(): void {
     this.cancelReconnect();
     this.stopPing();
-    this.onSessionMessageCallback = null;
-    this.onDetailMessageCallback = null;
+    this.sessionListeners.clear();
+    this.detailListeners.clear();
     if (this.ws) {
       try {
         this.ws.close().catch(() => {});
@@ -223,14 +269,24 @@ export class ChatWebSocketService {
 
     if (msg.type === 'NEW_MESSAGE') {
       const messageData: WsNewMessageData = msg.data as WsNewMessageData;
-      if (this.onSessionMessageCallback) {
-        this.onSessionMessageCallback(messageData);
+      // 分发到所有会话列表监听器
+      for (const callback of this.sessionListeners.values()) {
+        callback(messageData);
       }
-      if (this.onDetailMessageCallback) {
-        this.onDetailMessageCallback(messageData);
+      const newMessageEvent: WsNewMessageEvent = { type: 'NEW_MESSAGE', data: messageData };
+      // 分发到所有聊天详情监听器
+      for (const callback of this.detailListeners.values()) {
+        callback(newMessageEvent);
       }
       // 新消息会改变未读数，重新拉取会话列表计算总数
       this.refreshUnreadCount();
+    } else if (msg.type === 'SEND_ACK') {
+      const ackData: WsSendAckData = msg.data as WsSendAckData;
+      const ackEvent: WsSendAckEvent = { type: 'SEND_ACK', data: ackData };
+      // SEND_ACK 仅推送给发送方所在的详情页监听器，用于保证不重复追加
+      for (const callback of this.detailListeners.values()) {
+        callback(ackEvent);
+      }
     } else if (msg.type === 'MESSAGE_READ') {
       // 对方已读回执也可能影响未读数
       this.refreshUnreadCount();

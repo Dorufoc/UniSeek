@@ -273,13 +273,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public RealNameAuthVO realNameAuth(Long userId, RealNameAuthRequest request) {
-        // 1. 查询该用户是否已认证
+        // 1. 查询该用户已有的实名认证记录
         RealNameAuth existingAuth = realNameAuthMapper.selectOne(
                 new LambdaQueryWrapper<RealNameAuth>()
-                        .eq(RealNameAuth::getUserId, userId)
-                        .eq(RealNameAuth::getStatus, 1));
+                        .eq(RealNameAuth::getUserId, userId));
 
-        if (existingAuth != null) {
+        if (existingAuth != null && existingAuth.getStatus() != null && existingAuth.getStatus() == 1) {
             throw new BusinessException(ApiResult.CONFLICT, "您已完成实名认证，无需重复认证");
         }
 
@@ -295,16 +294,28 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("未满16周岁，无法完成实名认证");
         }
 
-        // 4. 插入实名认证记录
-        RealNameAuth auth = new RealNameAuth();
+        // 4. 防止身份证号被其他用户重复使用
+        RealNameAuth idCardAuth = realNameAuthMapper.selectOne(
+                new LambdaQueryWrapper<RealNameAuth>()
+                        .eq(RealNameAuth::getIdCard, idCard));
+        if (idCardAuth != null && !userId.equals(idCardAuth.getUserId())) {
+            throw new BusinessException(ApiResult.CONFLICT, "该身份证号已被其他用户使用");
+        }
+
+        // 5. 已有未认证记录时更新，避免触发 user_id 唯一索引
+        RealNameAuth auth = existingAuth == null ? new RealNameAuth() : existingAuth;
         auth.setUserId(userId);
         auth.setRealName(request.getRealName().trim());
         auth.setIdCard(idCard);
         auth.setStatus(1);
         auth.setAuthTime(LocalDateTime.now());
-        auth.setCreateTime(LocalDateTime.now());
         auth.setUpdateTime(LocalDateTime.now());
-        realNameAuthMapper.insert(auth);
+        if (existingAuth == null) {
+            auth.setCreateTime(LocalDateTime.now());
+            realNameAuthMapper.insert(auth);
+        } else {
+            realNameAuthMapper.updateById(auth);
+        }
 
         // 5. 构建返回值（身份证号脱敏）
         RealNameAuthVO vo = new RealNameAuthVO();

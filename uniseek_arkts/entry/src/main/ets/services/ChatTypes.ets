@@ -167,6 +167,19 @@ export interface ChatMessageVO {
   senderAvatar: string
 }
 
+/** WebSocket 推送的新消息数据类型（纯数据，避免依赖系统 API） */
+export interface WsNewMessageData {
+  messageId: number
+  applicationId: number
+  senderId: number
+  senderName: string
+  senderAvatar: string
+  content: string
+  messageType: number
+  sendTime: string
+  isRead: number
+}
+
 export interface TaskSearchParams {
   keyword?: string
   categoryId?: number

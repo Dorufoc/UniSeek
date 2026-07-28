@@ -2,6 +2,11 @@ import { RecruiterApplicationVO, APPLICATION_STATUS_LABELS } from '../../service
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../common/AppStyles'
 import { StandardCard } from '../../common/StandardCard'
 
+/** 简历池卡片对外暴露的点击回调。 */
+export interface PoolApplicationCardCallbacks {
+  onViewResume: (app: RecruiterApplicationVO) => void
+}
+
 @Component
 export struct PoolApplicationCard {
   @Prop app: RecruiterApplicationVO = {
@@ -9,7 +14,7 @@ export struct PoolApplicationCard {
     status: 0, interviewTime: '', interviewLocation: '', rejectReason: '', createTime: ''
   }
   @Prop jobTitle: string = ''
-  onViewResume?: (app: RecruiterApplicationVO) => void
+  @Prop callbacks: PoolApplicationCardCallbacks = { onViewResume: () => {} }
 
   private formatRequestTime(timeText?: string): string {
     if (!timeText) {
@@ -56,7 +61,7 @@ export struct PoolApplicationCard {
 
   build() {
     StandardCard({
-      onClickAction: () => { this.onViewResume?.(this.app) },
+      onClickAction: () => { this.callbacks.onViewResume(this.app) },
       accessibilityLabel: (this.app.applicantName || '匿名求职者') + ' 的简历'
     }) {
       Row({ space: AppSpacing.SM }) {

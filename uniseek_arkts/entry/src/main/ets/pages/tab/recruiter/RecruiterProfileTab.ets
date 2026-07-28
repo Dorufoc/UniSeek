@@ -21,6 +21,7 @@ interface RecruiterMenuItem {
 export struct RecruiterProfileTab {
   private isLoading: boolean = false
   private isReloading: boolean = false
+  private pendingRefresh: boolean = false
   // 由 RecruiterHomePage 在切换到我的 Tab 或从子页面返回时触发刷新
   @Prop @Watch('onRefreshTrigger') refreshTrigger: number = 0
 
@@ -73,11 +74,14 @@ export struct RecruiterProfileTab {
   }
 
   private async reloadProfile(showLoading: boolean): Promise<void> {
-    // 防止并发请求覆盖结果
+    // 避免并发请求覆盖结果，但记录 pending 状态：页面返回或 Tab 切换时若请求仍在进行，
+    // 等上一轮完成后会自动再刷新一次，防止刷新被静默跳过。
     if (this.isReloading) {
+      this.pendingRefresh = true
       return
     }
     this.isReloading = true
+    this.pendingRefresh = false
     this.loadErrorText = ''
     this.isLoading = showLoading
     try {
@@ -90,6 +94,10 @@ export struct RecruiterProfileTab {
     } finally {
       this.isLoading = false
       this.isReloading = false
+      if (this.pendingRefresh) {
+        this.pendingRefresh = false
+        this.reloadProfile(false)
+      }
     }
   }
 
@@ -116,7 +124,11 @@ export struct RecruiterProfileTab {
       const auth = await AuthService.getRealNameStatus()
       this.isVerified = auth.isAuth
     } catch {
-      // 保留本地缓存的实名认证状态
+      // 网络请求失败时回退到本地缓存的实名认证状态
+      const cachedAuth = AuthService.getCachedRealNameStatus()
+      if (cachedAuth) {
+        this.isVerified = cachedAuth.isAuth
+      }
     }
   }
 

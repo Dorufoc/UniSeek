@@ -90,9 +90,17 @@ export class PageLoadPolicy {
   }
 }
 
-/** WebSocket 新消息追加策略，仅按服务端消息 ID 去重。 */
+/** WebSocket 新消息追加策略：按服务端消息 ID 去重，并忽略自己发送的消息。 */
 export class ChatMessagePolicy {
   static shouldAppend(messageId: number, senderId: number, currentUserId: number, existingIds: number[]): boolean {
-    return !existingIds.includes(messageId)
+    // 已存在的消息不重复追加
+    if (existingIds.includes(messageId)) {
+      return false
+    }
+    // 自己发送的消息已在 sendMessage 成功回调中处理，避免重复追加
+    if (senderId === currentUserId) {
+      return false
+    }
+    return true
   }
 }

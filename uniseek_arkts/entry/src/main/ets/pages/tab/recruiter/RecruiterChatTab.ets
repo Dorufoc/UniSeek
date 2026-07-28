@@ -14,17 +14,20 @@ export struct RecruiterChatTab {
   @State isRefreshing: boolean = false
   @State errorText: string = ''
 
+  // 本组件 WebSocket 监听器的唯一标识，避免与求职者消息列表互相覆盖
+  private readonly pageListenerId: string = 'chat_list_recruiter_' + Date.now().toString()
+
   aboutToAppear(): void {
     // 注册新消息回调，收到推送时实时更新会话列表
     ChatWebSocketService.getInstance().connect()
-    ChatWebSocketService.getInstance().setOnSessionMessageCallback((data: WsNewMessageData) => {
+    ChatWebSocketService.getInstance().addSessionMessageListener(this.pageListenerId, (data: WsNewMessageData) => {
       this.handleNewMessage(data)
     })
     this.loadSessions()
   }
 
   aboutToDisappear(): void {
-    ChatWebSocketService.getInstance().removeOnSessionMessageCallback()
+    ChatWebSocketService.getInstance().removeSessionMessageListener(this.pageListenerId)
   }
 
   onPageShow(): void {

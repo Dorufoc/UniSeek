@@ -204,12 +204,17 @@ export struct FilterSheet {
   private normalizeSelectionPath(values: string[]): string[] {
     const result: string[] = []
     for (const v of values) {
-      if (v === '全部') {
+      if (this.isAllOption(v)) {
+        result.push(v)
         break
       }
       result.push(v)
     }
     return result
+  }
+
+  private isAllOption(value: string): boolean {
+    return value === '全部' || value === '全部市' || value === '全部区县' || value === '全部旗县' || value === '全部子类'
   }
 
   private buildRegionRange(): TextCascadePickerRangeContent[] {
@@ -218,7 +223,7 @@ export struct FilterSheet {
         // 直辖市：省 -> 区县两级
         const city = province.cities[0]
         // 为直辖市添加"全部"选项，表示选择该直辖市所有区县
-        const districts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+        const districts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部区县')]
         if (city) {
           for (const d of city.districts) {
             districts.push(this.cascadeItem(d.name))
@@ -227,10 +232,12 @@ export struct FilterSheet {
         return this.cascadeItem(province.name, districts)
       }
       // 普通省份：省 -> 市 -> 区县三级
-      const cities: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+      // “全部”也提供第三级占位，确保可以明确选择省内全部市、全部区县。
+      const allDistricts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部区县')]
+      const cities: TextCascadePickerRangeContent[] = [this.cascadeItem('全部市', allDistricts)]
       for (const city of province.cities) {
         // 为每个市添加"全部"选项，表示选择该市所有区县
-        const districts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+        const districts: TextCascadePickerRangeContent[] = [this.cascadeItem('全部区县')]
         for (const d of city.districts) {
           districts.push(this.cascadeItem(d.name))
         }
@@ -275,7 +282,7 @@ export struct FilterSheet {
   private buildCategoryRange(): TextCascadePickerRangeContent[] {
     return DataService.getFields().map((field: Field): TextCascadePickerRangeContent => {
       // 为每个大类添加"全部"选项，表示选择该大类所有子类
-      const children: TextCascadePickerRangeContent[] = [this.cascadeItem('全部')]
+      const children: TextCascadePickerRangeContent[] = [this.cascadeItem('全部子类')]
       if (field.occupations.length > 0) {
         for (const o of field.occupations) {
           children.push(this.cascadeItem(o.name))
@@ -298,8 +305,13 @@ export struct FilterSheet {
     if (items.length === 0) {
       return ''
     }
-    // 取第一条路径的末级名称，避免按钮过长
-    const first = items[0].split('-').pop() || items[0]
+    // 将父级范围选择显示为明确的“全部市/全部区县/全部子类”。
+    const firstPath = items[0].split('-')
+    const last = firstPath[firstPath.length - 1] || items[0]
+    let first = last
+    if (this.isAllOption(last) && firstPath.length > 1) {
+      first = firstPath[firstPath.length - 2] + '（' + last + '）'
+    }
     if (items.length === 1) {
       return first
     }
@@ -359,6 +371,16 @@ export struct FilterSheet {
       .width('100%')
       .margin({ top: AppSpacing.SM })
     }
+  }
+
+  @Builder
+  RegionChips() {
+    this.SelectedChips(this.filterRegion, (item: string) => { this.removeRegion(item) })
+  }
+
+  @Builder
+  TypeChips() {
+    this.SelectedChips(this.filterType, (item: string) => { this.removeCategory(item) })
   }
 
   @Builder
@@ -593,9 +615,7 @@ export struct FilterSheet {
           this.SectionHeader('工作区域')
           Column() {
             this.RegionSelectorRow()
-            this.SelectedChips(this.filterRegion, (item: string) => {
-              this.removeRegion(item)
-            })
+            this.RegionChips()
           }
 
           Divider()
@@ -607,9 +627,7 @@ export struct FilterSheet {
           this.SectionHeader('职位类型')
           Column() {
             this.CategorySelectorRow()
-            this.SelectedChips(this.filterType, (item: string) => {
-              this.removeCategory(item)
-            })
+            this.TypeChips()
           }
 
           Divider()
