@@ -54,12 +54,6 @@ export struct InterviewDialog {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { this.controller?.close() })
       }
       .width('100%')
       .padding({ bottom: AppSpacing.MD })
@@ -101,28 +95,48 @@ export struct InterviewDialog {
         .borderRadius(AppRadius.SM)
         .margin({ bottom: AppSpacing.LG })
 
-      Button('确认发送', { type: ButtonType.Capsule })
-        .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
-        .fontSize(AppFontSize.MD)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#FFFFFF')
-        .backgroundColor(AppColors.PRIMARY)
-        .onClick(() => {
-          if (!this.timeText.trim() || !this.locationText.trim()) {
-            this.getUIContext().getPromptAction().showToast({ message: '请填写面试时间和地点' })
-            return
-          }
-          this.onConfirm?.(this.timeText.trim(), this.locationText.trim())
-          this.controller?.close()
-        })
-        .stateStyles({
-          pressed: {
-            .scale({ x: 0.98, y: 0.98 })
-            .opacity(0.9)
-          }
-        })
-        .animation({ duration: 180 })
+      Row() {
+        Button('取消', { type: ButtonType.Capsule })
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontColor(AppColors.TEXT_SECONDARY)
+          .backgroundColor(AppColors.INPUT_BG)
+          .layoutWeight(1)
+          .onClick(() => { this.controller?.close() })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.98, y: 0.98 })
+              .opacity(0.9)
+            }
+          })
+          .animation({ duration: 180 })
+
+        Blank().width(AppSpacing.MD)
+
+        Button('确认发送', { type: ButtonType.Capsule })
+          .height(AppSpacing.BUTTON_HEIGHT)
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#FFFFFF')
+          .backgroundColor(AppColors.PRIMARY)
+          .layoutWeight(1)
+          .onClick(() => {
+            if (!this.timeText.trim() || !this.locationText.trim()) {
+              this.getUIContext().getPromptAction().showToast({ message: '请填写面试时间和地点' })
+              return
+            }
+            this.onConfirm?.(this.timeText.trim(), this.locationText.trim())
+            this.controller?.close()
+          })
+          .stateStyles({
+            pressed: {
+              .scale({ x: 0.98, y: 0.98 })
+              .opacity(0.9)
+            }
+          })
+          .animation({ duration: 180 })
+      }
+      .width('100%')
     }
     .padding(AppSpacing.LG)
     .width('100%')
@@ -152,12 +166,6 @@ export struct RejectDialog {
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.TEXT_PRIMARY)
           .layoutWeight(1)
-        Button('取消', { type: ButtonType.Normal })
-          .height(AppSpacing.BUTTON_HEIGHT_MINI)
-          .fontSize(AppFontSize.MD)
-          .fontColor(AppColors.TEXT_MUTED)
-          .backgroundColor(Color.Transparent)
-          .onClick(() => { this.controller?.close() })
       }
       .width('100%')
       .padding({ bottom: AppSpacing.MD })
@@ -215,8 +223,8 @@ export struct RejectDialog {
               this.getUIContext().getPromptAction().showToast({ message: '请填写淘汰原因' })
               return
             }
-            this.onConfirm?.(this.reasonText.trim(), this.noteText.trim())
             this.controller?.close()
+            this.onConfirm?.(this.reasonText.trim(), this.noteText.trim())
           })
           .stateStyles({
             pressed: {

@@ -1,0 +1,28 @@
+static_library("uniseek_app") {
+    sources = [
+        "src/uniseek_app.c",
+        "src/uniseek_display.c",
+        "src/uniseek_http.c",
+        "src/uniseek_logic.c",
+        "src/uniseek_rgb.c",
+        "src/uniseek_sensor.c",
+        "src/uniseek_state.c",
+        "src/uniseek_wifi.c",
+        "../c2_lcd/src/lcd.c",
+    ]
+
+    include_dirs = [
+        "include",
+        "../c2_lcd/include",
+        "//utils/native/lite/include",
+        "//base/iot_hardware/peripheral/interfaces/kits",
+        "//device/rockchip/rk2206/adapter/include",
+        "//device/rockchip/rk2206/sdk_liteos/board/include",
+        "//device/rockchip/rk2206/sdk_liteos/board/include/lwip",
+        "//third_party/musl/porting/liteos_m/kernel/include",
+        "//kernel/liteos_m/kernel/include",
+        "//third_party/lwip/src/include",
+    ]
+
+    deps = [ "//device/rockchip/hardware:hardware" ]
+}
