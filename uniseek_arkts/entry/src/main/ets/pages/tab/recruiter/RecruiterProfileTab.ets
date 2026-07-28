@@ -114,9 +114,7 @@ export struct RecruiterProfileTab {
   private async loadAuthStatus(): Promise<void> {
     try {
       const auth = await AuthService.getRealNameStatus()
-      if (auth.isAuth) {
-        this.isVerified = true
-      }
+      this.isVerified = auth.isAuth
     } catch {
       // 保留本地缓存的实名认证状态
     }

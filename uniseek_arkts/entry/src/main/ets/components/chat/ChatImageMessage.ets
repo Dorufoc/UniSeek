@@ -1,6 +1,8 @@
 // ChatImageMessage.ets — 聊天图片消息气泡组件
 
 import { AppColors, AppRadius, AppChat } from '../../common/AppStyles';
+import { ServerConfig } from '../../services/ServerConfig'
+import { ApiClient } from '../../services/ApiClient'
 
 @Component
 export struct ChatImageMessage {
@@ -8,7 +10,7 @@ export struct ChatImageMessage {
   onImageClick?: () => void;
 
   build() {
-    Image(this.url)
+    Image(ServerConfig.toHttpUrl(ApiClient.BASE_URL, this.url))
       .constraintSize({ maxHeight: AppChat.BUBBLE_IMAGE_MAX_HEIGHT })
       .width('100%')
       .borderRadius(AppChat.BUBBLE_IMAGE_RADIUS)
