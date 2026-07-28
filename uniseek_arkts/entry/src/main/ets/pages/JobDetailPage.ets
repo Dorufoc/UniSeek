@@ -128,7 +128,7 @@ struct JobDetailPage {
     if (this.hasApplied) { this.error = '您已投递过该职位'; return; }
     try {
       const rn = await AuthService.getRealNameStatus();
-      if (rn.status !== 1) {
+      if (!rn.isAuth) {
         AlertDialog.show({
           title: '实名认证提示',
           message: '投递职位前需要先完成实名认证，是否前往认证？',
