@@ -2,7 +2,7 @@ import { AppAnimation, AppColors, AppFilter, AppFontSize, AppRadius, AppSpacing 
 import { NavBar } from '../common/NavBar';
 import { CategoryNode, DataService, RegionNode } from '../services/DataService';
 import { RecruiterService } from '../services/RecruiterService';
-import { RecruiterJobRequest } from '../services/RecruiterTypes';
+import { formatDeadlineForApi, RecruiterJobRequest } from '../services/RecruiterTypes';
 import { SelectorOption } from '../components/filter/SelectorSheet';
 import { SelectorField } from '../components/filter/SelectorField';
 import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips';
@@ -380,18 +380,22 @@ struct RecruiterJobFormPage {
       totalQuota: quota,
       address: this.address.trim(),
       tag: this.parseTags(),
-      deadline: this.deadline.trim()
+      deadline: formatDeadlineForApi(this.deadline)
     }
     this.isSubmitting = true
-    const success = this.editJobId > 0
-      ? await RecruiterService.updateJob(this.editJobId, data)
-      : await RecruiterService.createJob(data)
-    this.isSubmitting = false
-    if (!success) {
-      this.showValidation('提交失败，请检查网络后重试')
-      return
+    try {
+      if (this.editJobId > 0) {
+        await RecruiterService.updateJob(this.editJobId, data)
+      } else {
+        await RecruiterService.createJob(data)
+      }
+      this.isSubmitting = false
+      this.getUIContext().getRouter().back()
+    } catch (err) {
+      this.isSubmitting = false
+      const message = err instanceof Error ? err.message : '提交失败，请稍后再试'
+      this.showValidation(message)
     }
-    this.getUIContext().getRouter().back()
   }
 
   build() {

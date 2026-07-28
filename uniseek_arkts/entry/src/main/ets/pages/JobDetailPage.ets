@@ -132,8 +132,9 @@ struct JobDetailPage {
         AlertDialog.show({
           title: '实名认证提示',
           message: '投递职位前需要先完成实名认证，是否前往认证？',
-          primaryButton: { value: '前往认证', action: (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/RealNameAuthPage' }); } },
-          cancel: (): void => {}
+          primaryButton: { value: '取消', action: (): void => {} },
+          secondaryButton: { value: '前往认证', action: (): void => { this.getUIContext().getRouter().pushUrl({ url: 'pages/RealNameAuthPage' }); } },
+          autoCancel: true
         });
         return;
       }

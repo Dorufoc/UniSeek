@@ -327,23 +327,38 @@ struct RealNameAuthPage {
       return
     }
 
+    const submittedName: string = this.realName.trim()
+    const submittedCard: string = this.idCard.trim().toUpperCase()
     this.isSubmitting = true
+    this.errorMsg = ''
     try {
-      const result = await AuthService.realNameAuth(this.realName.trim(), this.idCard.trim().toUpperCase())
-      this.authStatus = 1
-      this.realName = this.realName.trim()
-      if (result && result.idCard) {
-        this.cachedIdCard = result.idCard
+      const result = await AuthService.realNameAuth(submittedName, submittedCard)
+      // 提交成功后立即拉回 Java 端权威实名状态，避免前端本地构造状态导致 My/Profile 页显示不一致
+      try {
+        const status = await AuthService.getRealNameStatus()
+        this.authStatus = status.isAuth ? 1 : -1
+        if (status.isAuth && status.realName) {
+          this.realName = status.realName
+        }
+        if (status.isAuth && status.idCard) {
+          this.cachedIdCard = status.idCard
+        }
+      } catch {
+        this.errorMsg = '认证结果同步失败，请稍后下拉刷新'
       }
-      AuthService.saveCachedRealNameStatus({ isAuth: true, realName: this.realName, idCard: null, birthDate: null, gender: -1 })
+      const cachedCard: string = this.cachedIdCard.length > 0 ? this.cachedIdCard : result.idCard
       AuthService.saveCachedRealNameInfo({
-        realName: this.realName,
-        idCard: this.cachedIdCard,
-        authTime: result?.authTime || ''
+        realName: this.realName.length > 0 ? this.realName : submittedName,
+        idCard: cachedCard,
+        authTime: result.authTime
       })
       this.idCard = ''
     } catch (e) {
-      this.errorMsg = (e as Error).message || '认证失败，请稍后重试'
+      let message: string = '认证失败，请稍后重试'
+      if (e instanceof Error) {
+        message = e.message
+      }
+      this.errorMsg = message
     }
     this.isSubmitting = false
   }

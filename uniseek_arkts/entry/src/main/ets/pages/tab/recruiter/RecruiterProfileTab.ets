@@ -3,6 +3,7 @@ import { AuthService, UserVO } from '../../../services/AuthService';
 import { UserService, UserStats } from '../../../services/UserService';
 import { ChatService } from '../../../services/ChatService';
 import { ApiClient } from '../../../services/ApiClient';
+import { UserSession } from '../../../services/UserSession';
 import { RecruiterService } from '../../../services/RecruiterService';
 import { RecruiterEnterpriseVO } from '../../../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
@@ -62,15 +63,20 @@ export struct RecruiterProfileTab {
     this.reloadProfile(false)
   }
 
-  /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。 */
+  /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。
+   * 仅当缓存用户 ID 与当前登录用户一致时才使用缓存，防止切换账号后显示旧账号信息。
+   */
   private loadCachedProfile(): void {
     const cachedUser = AuthService.getCachedCurrentUser()
-    if (cachedUser) {
+    if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
     }
-    const cachedAuth = AuthService.getCachedRealNameStatus()
-    if (cachedAuth) {
-      this.isVerified = cachedAuth.isAuth
+    // 仅当已恢复当前用户会话时才使用账号隔离的实名缓存，防止未登录态误用旧数据
+    if (UserSession.userId > 0) {
+      const cachedAuth = AuthService.getCachedRealNameStatus()
+      if (cachedAuth) {
+        this.isVerified = cachedAuth.isAuth
+      }
     }
     const cachedEnterprise = RecruiterService.getCachedEnterpriseInfo()
     if (cachedEnterprise) {

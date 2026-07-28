@@ -153,6 +153,7 @@ export struct RejectDialog {
   controller?: CustomDialogController
   applicantName?: string = ''
   onConfirm?: (reason: string, note: string) => void
+  onCancel?: () => void
 
   @State reasonText: string = ''
   @State noteText: string = ''
@@ -199,7 +200,10 @@ export struct RejectDialog {
           .fontColor(AppColors.TEXT_SECONDARY)
           .backgroundColor(AppColors.INPUT_BG)
           .layoutWeight(1)
-          .onClick(() => { this.controller?.close() })
+          .onClick(() => {
+            this.controller?.close()
+            this.onCancel?.()
+          })
           .stateStyles({
             pressed: {
               .scale({ x: 0.98, y: 0.98 })

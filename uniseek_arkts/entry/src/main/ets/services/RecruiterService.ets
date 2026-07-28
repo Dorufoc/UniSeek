@@ -66,22 +66,18 @@ export class RecruiterService {
     return records
   }
 
-  static async createJob(data: RecruiterJobRequest): Promise<boolean> {
-    try {
-      await ApiClient.post<ApiEmpty>('/api/tasks', data)
-      return true
-    } catch {
-      return false
-    }
+  /**
+   * 发布职位。失败时直接抛出 ApiClient 原始 Error，由调用方回显后端业务/鉴权/网络错误。
+   */
+  static async createJob(data: RecruiterJobRequest): Promise<void> {
+    await ApiClient.post<ApiEmpty>('/api/tasks', data)
   }
 
-  static async updateJob(jobId: number, data: RecruiterJobRequest): Promise<boolean> {
-    try {
-      await ApiClient.put<ApiEmpty>('/api/tasks/' + jobId, data)
-      return true
-    } catch {
-      return false
-    }
+  /**
+   * 更新职位。失败时直接抛出 ApiClient 原始 Error，由调用方回显后端业务/鉴权/网络错误。
+   */
+  static async updateJob(jobId: number, data: RecruiterJobRequest): Promise<void> {
+    await ApiClient.put<ApiEmpty>('/api/tasks/' + jobId, data)
   }
 
   static async updateJobStatus(jobId: number, targetStatus: number): Promise<boolean> {

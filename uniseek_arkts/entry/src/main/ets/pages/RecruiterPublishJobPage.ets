@@ -263,7 +263,12 @@ struct RecruiterPublishJobPage {
               .enabled(this.auditStatus === 1)
               .onClick(() => {
                 if (this.auditStatus !== 1) {
-                  this.getUIContext().showAlertDialog({ message: '企业资质审核未通过，暂无法发布职位', confirm: { value: '确定', action: () => {} } })
+                   this.getUIContext().showAlertDialog({
+                     message: '企业资质审核未通过，暂无法发布职位',
+                     primaryButton: { value: '取消', action: (): void => {} },
+                     secondaryButton: { value: '确定', action: (): void => {} },
+                     autoCancel: true
+                   })
                   return
                 }
                 this.getUIContext().getRouter().pushUrl({ url: 'pages/RecruiterJobFormPage' })
@@ -551,7 +556,8 @@ struct RecruiterPublishJobPage {
     const action = targetStatus === 1 ? '上架' : '下架'
     this.getUIContext().showAlertDialog({
       message: '确定要' + action + '“' + job.title + '”吗？',
-      confirm: {
+      primaryButton: { value: '取消', action: (): void => {} },
+      secondaryButton: {
         value: '确定',
         action: (): void => {
           RecruiterService.updateJobStatus(job.id, targetStatus).then((success: boolean) => {
@@ -565,14 +571,15 @@ struct RecruiterPublishJobPage {
           })
         }
       },
-      cancel: (): void => {}
+      autoCancel: true
     })
   }
 
   confirmResubmit(job: RecruiterJobVO): void {
     this.getUIContext().showAlertDialog({
       message: '确定重新提交“' + job.title + '”审核吗？',
-      confirm: {
+      primaryButton: { value: '取消', action: (): void => {} },
+      secondaryButton: {
         value: '重新提交',
         action: (): void => {
           RecruiterService.resubmitJob(job.id).then((success: boolean) => {
@@ -586,7 +593,7 @@ struct RecruiterPublishJobPage {
           })
         }
       },
-      cancel: (): void => {}
+      autoCancel: true
     })
   }
   deleteJob(jobId: number): void {

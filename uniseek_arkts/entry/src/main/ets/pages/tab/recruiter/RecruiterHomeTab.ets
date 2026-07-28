@@ -260,7 +260,9 @@ export struct RecruiterHomeTab {
     if (item.requiresAudit && !this.canPublishJob()) {
       this.getUIContext().showAlertDialog({
         message: '企业资质审核通过后才能使用该功能',
-        confirm: { value: '确定', action: (): void => {} }
+        primaryButton: { value: '取消', action: (): void => {} },
+        secondaryButton: { value: '确定', action: (): void => {} },
+        autoCancel: true
       })
       return
     }

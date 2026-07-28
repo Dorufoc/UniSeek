@@ -44,7 +44,7 @@ struct ProfileDetailPage {
         {
           value: '取消',
           buttonStyle: ButtonStyleMode.TEXTUAL,
-          action: () => { }
+          action: () => { this.editDialogController.close() }
         },
         {
           value: '保存',
@@ -65,7 +65,7 @@ struct ProfileDetailPage {
         {
           value: '取消',
           buttonStyle: ButtonStyleMode.TEXTUAL,
-          action: () => { }
+          action: () => { this.passwordDialogController.close() }
         },
         {
           value: '确认修改',
@@ -330,6 +330,7 @@ struct ProfileDetailPage {
     this.errorText = ''
     try {
       await AuthService.changePassword(oldPassword, newPassword, confirmPassword)
+      this.passwordDialogController.close()
       this.getUIContext().getPromptAction().showToast({ message: '密码修改成功，请重新登录', duration: 2200 })
       AuthService.logoutAndRedirect(this.getUIContext().getRouter())
     } catch (error) {

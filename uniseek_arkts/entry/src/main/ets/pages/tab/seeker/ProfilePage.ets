@@ -71,9 +71,12 @@ export struct ProfilePage {
     if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
     }
-    const cachedAuth = AuthService.getCachedRealNameStatus()
-    if (cachedAuth) {
-      this.isVerified = cachedAuth.isAuth
+    // 仅当已恢复当前用户会话时才使用账号隔离的实名缓存，防止未登录态误用旧数据
+    if (UserSession.userId > 0) {
+      const cachedAuth = AuthService.getCachedRealNameStatus()
+      if (cachedAuth) {
+        this.isVerified = cachedAuth.isAuth
+      }
     }
   }
 

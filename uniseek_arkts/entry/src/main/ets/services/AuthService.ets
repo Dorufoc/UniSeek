@@ -5,6 +5,9 @@ import { preferences } from '@kit.ArkData';
 import { Router } from '@kit.ArkUI';
 
 const KEY_CACHE_CURRENT_USER = 'cached_current_user'
+const KEY_CACHE_REAL_NAME_STATUS_PREFIX = 'cached_real_name_status'
+const KEY_CACHE_REAL_NAME_INFO_PREFIX = 'cached_real_name_info'
+// 兼容旧版本全局缓存键，用于清理兜底
 const KEY_CACHE_REAL_NAME_STATUS = 'cached_real_name_status'
 const KEY_CACHE_REAL_NAME_INFO = 'cached_real_name_info'
 
@@ -120,24 +123,44 @@ export class AuthService {
     }
   }
 
-  /** 将实名认证状态持久化到本地。 */
+  /** 获取当前登录用户ID，内存会话优先，无内存时回退到持久化会话。 */
+  private static currentUserId(): number {
+    if (UserSession.userId > 0) {
+      return UserSession.userId
+    }
+    const stored = ApiClient.getStoredSession()
+    if (stored && stored.userId > 0) {
+      return stored.userId
+    }
+    return 0
+  }
+
+  private static realNameStatusKey(): string {
+    return KEY_CACHE_REAL_NAME_STATUS_PREFIX + '_' + AuthService.currentUserId().toString()
+  }
+
+  private static realNameInfoKey(): string {
+    return KEY_CACHE_REAL_NAME_INFO_PREFIX + '_' + AuthService.currentUserId().toString()
+  }
+
+  /** 将实名认证状态持久化到本地，按当前账号隔离存储。 */
   static saveCachedRealNameStatus(status: RealNameStatus): void {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return
     }
-    pref.putSync(KEY_CACHE_REAL_NAME_STATUS, JSON.stringify(status))
+    pref.putSync(AuthService.realNameStatusKey(), JSON.stringify(status))
     pref.flushSync()
   }
 
-  /** 读取本地缓存的实名认证状态。 */
+  /** 读取本地缓存的实名认证状态，仅返回当前账号的缓存。 */
   static getCachedRealNameStatus(): RealNameStatus | null {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return null
     }
     try {
-      const raw: string = pref.getSync(KEY_CACHE_REAL_NAME_STATUS, '') as string
+      const raw: string = pref.getSync(AuthService.realNameStatusKey(), '') as string
       if (!raw) {
         return null
       }
@@ -147,24 +170,24 @@ export class AuthService {
     }
   }
 
-  /** 将完整实名信息持久化到本地，含身份证号。 */
+  /** 将完整实名信息持久化到本地，按当前账号隔离存储。 */
   static saveCachedRealNameInfo(info: RealNameInfo): void {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return
     }
-    pref.putSync(KEY_CACHE_REAL_NAME_INFO, JSON.stringify(info))
+    pref.putSync(AuthService.realNameInfoKey(), JSON.stringify(info))
     pref.flushSync()
   }
 
-  /** 读取本地缓存的完整实名信息。 */
+  /** 读取本地缓存的完整实名信息，仅返回当前账号的缓存。 */
   static getCachedRealNameInfo(): RealNameInfo | null {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return null
     }
     try {
-      const raw: string = pref.getSync(KEY_CACHE_REAL_NAME_INFO, '') as string
+      const raw: string = pref.getSync(AuthService.realNameInfoKey(), '') as string
       if (!raw) {
         return null
       }
@@ -207,9 +230,10 @@ export class AuthService {
       await ApiClient.post<ApiEmpty>('/api/auth/logout')
     } catch {
     }
+    // 先按当前账号清理实名缓存，再清空会话，避免会话清空后无法定位账号导致缓存残留
+    AuthService.clearCachedRealNameStatus()
     ApiClient.clearSession()
     UserSession.clear()
-    AuthService.clearCachedRealNameStatus()
     ChatWebSocketService.getInstance().disconnect()
   }
 
@@ -219,11 +243,11 @@ export class AuthService {
    * 远程退出接口仅在联网时尽力通知服务端，不会阻塞界面返回。
    */
   static logoutAndRedirect(router: Router): void {
-    // 1. 先立即清空本地会话、角色缓存与 WebSocket 连接
+    // 1. 先按当前账号清理实名缓存，再立即清空本地会话、角色缓存与 WebSocket 连接
+    AuthService.clearCachedRealNameStatus()
     ApiClient.clearSession()
     UserSession.clear()
     ChatWebSocketService.getInstance().disconnect()
-    AuthService.clearCachedRealNameStatus()
 
     // 2. 清空搜索历史等本地业务缓存
     try {
@@ -262,7 +286,14 @@ export class AuthService {
     if (!pref) {
       return
     }
+    const userId = AuthService.currentUserId()
+    if (userId > 0) {
+      pref.deleteSync(KEY_CACHE_REAL_NAME_STATUS_PREFIX + '_' + userId.toString())
+      pref.deleteSync(KEY_CACHE_REAL_NAME_INFO_PREFIX + '_' + userId.toString())
+    }
+    // 兼容旧版本全局缓存键，兜底清理避免切换账号后旧数据残留
     pref.deleteSync(KEY_CACHE_REAL_NAME_STATUS)
+    pref.deleteSync(KEY_CACHE_REAL_NAME_INFO)
     pref.flushSync()
   }
 

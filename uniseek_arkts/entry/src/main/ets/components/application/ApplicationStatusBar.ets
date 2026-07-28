@@ -95,10 +95,14 @@ export struct ApplicationStatusBar {
       builder: RejectDialog({
         applicantName: this.applicantName,
         onConfirm: (reason: string, note: string): void => {
+          dialog.close()
           void this.updateStatus(4, {
             rejectReason: reason,
             hrNote: note
           })
+        },
+        onCancel: (): void => {
+          dialog.close()
         }
       }),
       alignment: DialogAlignment.Center,

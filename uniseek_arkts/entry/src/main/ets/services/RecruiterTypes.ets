@@ -185,3 +185,41 @@ export const JOB_TYPE_LABELS: Record<number, string> = {
   2: '兼职',
   3: '实习'
 }
+
+/**
+ * 将页面展示的报名截止时间（YYYY-MM-DD HH:mm）转换为后端 LocalDateTime 可解析的 ISO-8601 格式。
+ * 仅补充秒数，不改变日期与时间值。
+ *
+ * @param displayDeadline 用户界面上的截止时间字符串
+ * @returns ISO-8601 格式字符串，例如 2026-07-28T18:00:00；空值返回空字符串
+ */
+export function formatDeadlineForApi(displayDeadline: string): string {
+  const trimmed: string = displayDeadline.trim()
+  if (trimmed.length === 0) {
+    return ''
+  }
+
+  let iso: string = trimmed
+  if (iso.indexOf('T') < 0) {
+    const spaceIndex: number = iso.indexOf(' ')
+    if (spaceIndex >= 0 && spaceIndex < iso.length) {
+      iso = iso.substring(0, spaceIndex) + 'T' + iso.substring(spaceIndex + 1)
+    }
+  }
+
+  const timePartStart: number = iso.indexOf('T')
+  if (timePartStart >= 0 && timePartStart < iso.length) {
+    const timePart: string = iso.substring(timePartStart + 1)
+    let colonCount: number = 0
+    for (let i = 0; i < timePart.length; i++) {
+      if (timePart.charAt(i) === ':') {
+        colonCount++
+      }
+    }
+    if (colonCount === 1) {
+      iso = iso + ':00'
+    }
+  }
+
+  return iso
+}
