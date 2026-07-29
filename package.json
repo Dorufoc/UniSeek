@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "docx": "^9.7.1",
-    "image-size": "^2.0.2",
-    "vite": "^8.1.4"
-  }
-}
