@@ -68,8 +68,9 @@ export default function auditPoliciesTest(): void {
       expect(UploadPolicy.validateResume('个人简历.doc', 1024)).assertEqual('仅支持 PDF 格式')
       expect(UploadPolicy.validateResume('个人简历.pdf', 10 * 1024 * 1024 + 1)).assertEqual('文件大小不能超过 10MB')
       expect(UploadPolicy.validateLicense('营业执照.png', 5 * 1024 * 1024)).assertEqual('')
-      expect(UploadPolicy.validateLicense('营业执照.pdf', 1024)).assertEqual('请选择 JPG、PNG、GIF 或 WebP 图片')
-      expect(UploadPolicy.validateLicense('营业执照.jpg', 10 * 1024 * 1024 + 1)).assertEqual('图片大小不能超过 10MB')
+      expect(UploadPolicy.validateLicense('营业执照.gif', 1024)).assertEqual('请选择 JPG、JPEG、PNG 或 WebP 图片')
+      expect(UploadPolicy.validateLicense('营业执照.pdf', 1024)).assertEqual('请选择 JPG、JPEG、PNG 或 WebP 图片')
+      expect(UploadPolicy.validateLicense('营业执照.jpg', 5 * 1024 * 1024 + 1)).assertEqual('图片大小不能超过 5MB')
     })
 
     it('简历完整度与发布条件保持一致', 0, (): void => {

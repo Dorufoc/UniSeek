@@ -84,7 +84,7 @@ const contactTalent = async (talent: ResumeData) => {
   contactingId.value = talent.id!
   try {
     const sessionId = await createDirectSession(talent.userId)
-    router.push(`/messages?chat=${sessionId}`)
+    router.push(`/messages?chat=${sessionId}&sessionType=direct`)
   } catch {
     ElMessage.error('创建会话失败，请重试')
   } finally {

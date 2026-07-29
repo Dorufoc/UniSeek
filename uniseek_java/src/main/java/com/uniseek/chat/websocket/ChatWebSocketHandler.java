@@ -2,6 +2,7 @@ package com.uniseek.chat.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.uniseek.chat.ChatSessionType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.ChatSessionMapper;
@@ -189,6 +190,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
 
         Long applicationId = data.has("applicationId") ? data.get("applicationId").asLong() : null;
+        String sessionType = data.has("sessionType") ? data.get("sessionType").asText() : null;
         Integer messageType = data.has("messageType") ? data.get("messageType").asInt() : 0;
         String content = data.has("content") ? data.get("content").asText("") : "";
 
@@ -207,10 +209,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             SendMessageRequest request = new SendMessageRequest();
             request.setMessageType(messageType);
             request.setContent(content);
-            ChatMessageVO msgVo = chatService.sendMessage(applicationId, userId, role, request);
+            ChatMessageVO msgVo = chatService.sendMessage(applicationId, userId, role, request, sessionType);
 
-            // 2. 查询会话确定接收方
-            ChatSession chatSession = getChatSessionByApplicationId(applicationId);
+            // 2. 查询会话确定接收方（遵循 sessionType 解析规则）
+            ChatSession chatSession = resolveChatSession(applicationId, sessionType);
             if (chatSession == null) {
                 sendMessage(session, buildError(4103, "会话不存在"));
                 return;
@@ -227,6 +229,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             Map<String, Object> newMsgData = new HashMap<>();
             newMsgData.put("messageId", msgVo.getId());
             newMsgData.put("applicationId", applicationId);
+            newMsgData.put("sessionType", sessionType == null ? ChatSessionType.APPLICATION : sessionType);
             newMsgData.put("senderId", userId);
             newMsgData.put("senderName", msgVo.getSenderName());
             newMsgData.put("senderAvatar", msgVo.getSenderAvatar());
@@ -240,6 +243,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             Map<String, Object> ackData = new HashMap<>();
             ackData.put("messageId", msgVo.getId());
             ackData.put("applicationId", applicationId);
+            ackData.put("sessionType", sessionType == null ? ChatSessionType.APPLICATION : sessionType);
             ackData.put("messageType", messageType);
             ackData.put("content", content);
             ackData.put("sendTime", msgVo.getSendTime() != null
@@ -247,11 +251,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             sendMessage(session, buildMessage("SEND_ACK", ackData));
 
         } catch (BusinessException e) {
-            log.warn("发送消息业务异常: userId={}, applicationId={}, msg={}",
-                    userId, applicationId, e.getMessage());
+            log.warn("发送消息业务异常: userId={}, applicationId={}, sessionType={}, msg={}",
+                    userId, applicationId, sessionType, e.getMessage());
             sendMessage(session, buildError(4300, e.getMessage()));
         } catch (Exception e) {
-            log.error("发送消息系统异常: userId={}, applicationId={}", userId, applicationId, e);
+            log.error("发送消息系统异常: userId={}, applicationId={}, sessionType={}",
+                    userId, applicationId, sessionType, e);
             sendMessage(session, buildError(5000, "发送消息失败，请稍后重试"));
         }
     }
@@ -270,6 +275,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
 
         Long applicationId = data.has("applicationId") ? data.get("applicationId").asLong() : null;
+        String sessionType = data.has("sessionType") ? data.get("sessionType").asText() : null;
         Long lastReadMessageId = data.has("lastReadMessageId") ? data.get("lastReadMessageId").asLong() : null;
 
         if (applicationId == null) {
@@ -279,10 +285,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         try {
             // 1. 标记已读
-            chatService.markSessionRead(applicationId, userId);
+            chatService.markSessionRead(applicationId, userId, sessionType);
 
-            // 2. 查询会话确定消息发送方（对方用户）
-            ChatSession chatSession = getChatSessionByApplicationId(applicationId);
+            // 2. 查询会话确定消息发送方（对方用户），遵循 sessionType 解析规则
+            ChatSession chatSession = resolveChatSession(applicationId, sessionType);
             if (chatSession != null) {
                 Long senderId = userId.equals(chatSession.getEmployerId())
                         ? chatSession.getSeekerId()
@@ -291,6 +297,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 // 3. 向消息发送方推送 MESSAGE_READ 事件（通知对方消息已被阅读）
                 Map<String, Object> readData = new HashMap<>();
                 readData.put("applicationId", applicationId);
+                readData.put("sessionType", sessionType == null ? ChatSessionType.APPLICATION : sessionType);
                 readData.put("readerId", userId);
                 if (lastReadMessageId != null) {
                     readData.put("lastReadMessageId", lastReadMessageId);
@@ -298,11 +305,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 broadcastToUser(senderId, buildMessage("MESSAGE_READ", readData));
             }
         } catch (BusinessException e) {
-            log.warn("已读回执业务异常: userId={}, applicationId={}, msg={}",
-                    userId, applicationId, e.getMessage());
+            log.warn("已读回执业务异常: userId={}, applicationId={}, sessionType={}, msg={}",
+                    userId, applicationId, sessionType, e.getMessage());
             sendMessage(session, buildError(4301, e.getMessage()));
         } catch (Exception e) {
-            log.error("已读回执处理异常: userId={}, applicationId={}", userId, applicationId, e);
+            log.error("已读回执处理异常: userId={}, applicationId={}, sessionType={}",
+                    userId, applicationId, sessionType, e);
             sendMessage(session, buildError(5000, "已读回执处理失败"));
         }
     }
@@ -343,10 +351,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     /**
      * 提供给 Controller 使用的公开方法，推送给指定用户 NEW_MESSAGE 事件
      */
-    public void notifyNewMessage(Long receiverId, ChatMessageVO msgVo, Long applicationId) {
+    public void notifyNewMessage(Long receiverId, ChatMessageVO msgVo, Long applicationId, String sessionType) {
         Map<String, Object> data = new HashMap<>();
         data.put("messageId", msgVo.getId());
         data.put("applicationId", applicationId);
+        data.put("sessionType", sessionType == null ? ChatSessionType.APPLICATION : sessionType);
         data.put("senderId", msgVo.getSenderId());
         data.put("senderName", msgVo.getSenderName());
         data.put("senderAvatar", msgVo.getSenderAvatar());
@@ -405,16 +414,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * 根据 applicationId 查询 ChatSession（包含 employerId 和 seekerId）
+     * 根据 sessionId 与 sessionType 解析 ChatSession（包含 employerId 和 seekerId）
      */
-    private ChatSession getChatSessionByApplicationId(Long applicationId) {
-        Long sessionId = chatSessionMapper.selectIdByApplicationId(applicationId);
-        if (sessionId != null) {
+    private ChatSession resolveChatSession(Long sessionId, String sessionType) {
+        // 直接会话：sessionId 即 chat_session.id
+        if (ChatSessionType.isDirect(sessionType)) {
             return chatSessionMapper.selectById(sessionId);
         }
-        ChatSession directSession = chatSessionMapper.selectById(applicationId);
-        if (directSession != null && directSession.getTaskApplicationId() == null) {
-            return directSession;
+        // 投递会话：通过 task_application_id 解析 chat_session.id
+        Long chatSessionId = chatSessionMapper.selectIdByApplicationId(sessionId);
+        if (chatSessionId != null) {
+            return chatSessionMapper.selectById(chatSessionId);
         }
         return null;
     }

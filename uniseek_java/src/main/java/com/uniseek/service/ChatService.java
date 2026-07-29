@@ -23,45 +23,49 @@ public interface ChatService {
     /**
      * 游标分页查询聊天历史消息
      *
-     * @param applicationId 投递记录 ID（会话标识）
+     * @param sessionId     会话标识：投递会话时为 task_application_id，直接会话时为 chat_session.id
      * @param userId        当前用户 ID
      * @param role          当前用户角色
      * @param beforeId      游标 ID（上次加载的最小消息 ID，首次加载传 null）
      * @param pageSize      每页条数
+     * @param sessionType   会话类型：application 投递会话 / direct 直接会话；缺省按 application 兼容旧版
      * @return 消息列表（按发送时间升序排列）
      */
-    List<ChatMessageVO> getMessages(Long applicationId, Long userId, Integer role,
-                                    Long beforeId, int pageSize);
+    List<ChatMessageVO> getMessages(Long sessionId, Long userId, Integer role,
+                                      Long beforeId, int pageSize, String sessionType);
 
     /**
      * 发送消息
      *
-     * @param applicationId 投递记录 ID
+     * @param sessionId     会话标识：投递会话时为 task_application_id，直接会话时为 chat_session.id
      * @param userId        当前用户 ID
      * @param role          当前用户角色
      * @param request       发送消息请求
+     * @param sessionType   会话类型：application 投递会话 / direct 直接会话；缺省按 application 兼容旧版
      * @return 发送的消息 VO
      */
-    ChatMessageVO sendMessage(Long applicationId, Long userId, Integer role,
-                              SendMessageRequest request);
+    ChatMessageVO sendMessage(Long sessionId, Long userId, Integer role,
+                              SendMessageRequest request, String sessionType);
 
     /**
      * 获取会话详情（含职位信息、投递状态、对方信息）
      *
-     * @param applicationId 投递记录 ID
+     * @param sessionId     会话标识：投递会话时为 task_application_id，直接会话时为 chat_session.id
      * @param userId        当前用户 ID
      * @param role          当前用户角色
+     * @param sessionType   会话类型：application 投递会话 / direct 直接会话；缺省按 application 兼容旧版
      * @return 会话 VO
      */
-    ChatSessionVO getSessionDetail(Long applicationId, Long userId, Integer role);
+    ChatSessionVO getSessionDetail(Long sessionId, Long userId, Integer role, String sessionType);
 
     /**
      * 标记会话中对方的消息为已读
      *
-     * @param applicationId 投递记录 ID
+     * @param sessionId     会话标识：投递会话时为 task_application_id，直接会话时为 chat_session.id
      * @param userId        当前用户 ID
+     * @param sessionType   会话类型：application 投递会话 / direct 直接会话；缺省按 application 兼容旧版
      */
-    void markSessionRead(Long applicationId, Long userId);
+    void markSessionRead(Long sessionId, Long userId, String sessionType);
 
     /**
      * 创建聊天会话（由 ApplicationService 在投递成功后调用）

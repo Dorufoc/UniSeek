@@ -1,0 +1,3 @@
+raw: '@RequestParam(defaultValue = "1") int page,\n            @RequestParam(defaultValue = "10") int pageSize,\n            @RequestParam(required = false) String keyword,\n            @RequestParam(required = false) Integer role,\n            @RequestParam(required = false) Integer status'
+stripped: 'int page,\n            int pageSize,\n            String keyword,\n            Integer role,\n            Integer status'
+parts: ['int', 'page,', 'int', 'pageSize,', 'String', 'keyword,', 'Integer', 'role,', 'Integer', 'status']

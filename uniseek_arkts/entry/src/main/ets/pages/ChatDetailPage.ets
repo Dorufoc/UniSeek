@@ -4,19 +4,16 @@
 
 import { ChatService } from '../services/ChatService';
 import { ChatMessageVO, ChatSessionVO } from '../services/ChatTypes';
+import { ResumeService, ResumeData } from '../services/ResumeService';
 import { ChatWebSocketService, WsChatDetailEvent } from '../services/ChatWebSocketService';
 import { UserSession } from '../services/UserSession';
 import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
-import { picker } from '@kit.CoreFileKit';
-import { fileIo } from '@kit.CoreFileKit';
 import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles';
 import { NavBar } from '../common/NavBar';
-import { ChatMessagePolicy } from '../common/BusinessPolicies';
+import { ChatMessagePolicy, ChatSendGuard } from '../common/BusinessPolicies';
 import { mapWsNewMessageToChatMessageVO } from '../common/ChatProtocolMappers';
-import { UploadPolicy } from '../common/FormValidators';
-import { FileTransferPolicy } from '../services/FileTransferPolicy';
 import { ErrorView } from '../components/ErrorView';
 import { ChatMessageList, ChatMessageListController } from '../components/chat/ChatMessageList';
 import { MessageInputBar, INPUT_BAR_HEIGHT } from '../components/chat/MessageInputBar';
@@ -33,6 +30,7 @@ struct ChatDetailPage {
   @State counterpartCompany: string = ''
   @State enterpriseId: number = 0
   @State applicationId: number = 0
+  @State sessionType: string = ''
   @State taskTitle: string = ''
   @State applicationStatus: number = -1
   @State isSending: boolean = false
@@ -50,6 +48,9 @@ struct ChatDetailPage {
   @State isSendingImage: boolean = false    // 是否正在发送图片
   @State isSendingResume: boolean = false   // 是否正在发送简历
   @State isHandlingAttachment: boolean = false // 是否正在处理附件
+
+  // 同步拦截连续点击，避免 UI 状态刷新前并发发起重复请求
+  private readonly sendGuard: ChatSendGuard = new ChatSendGuard()
 
   // 聊天列表控制器：用于主动滚动到底部
   @State chatListController: ChatMessageListController = new ChatMessageListController()
@@ -71,6 +72,10 @@ struct ChatDetailPage {
     this.counterpartName = params['counterpartName'] as string
     this.counterpartAvatar = params['counterpartAvatar'] as string
     this.applicationId = params['applicationId'] as number
+    const rawSessionType: Object | undefined = params['sessionType']
+    if (rawSessionType !== undefined && rawSessionType !== null) {
+      this.sessionType = rawSessionType.toString()
+    }
     this.loadSessionInfo()
     this.loadMessages()
 
@@ -122,6 +127,14 @@ struct ChatDetailPage {
     return merged
   }
 
+  /** 将空会话类型统一视为投递会话，确保直聊与投递会话不会互相串扰。 */
+  private normalizeSessionType(type?: string): string {
+    if (type !== undefined && type !== null && type.trim().length > 0) {
+      return type.trim()
+    }
+    return 'application'
+  }
+
   // 处理 WebSocket 详情页事件：NEW_MESSAGE 去重追加并同步 canSend，SEND_ACK 仅保证不重复追加
   private onDetailMessageEvent(event: WsChatDetailEvent): void {
     if (event.type === 'SEND_ACK') {
@@ -131,6 +144,9 @@ struct ChatDetailPage {
 
     const data = event.data
     if (data.applicationId !== this.applicationId) {
+      return
+    }
+    if (this.normalizeSessionType(data.sessionType) !== this.normalizeSessionType(this.sessionType)) {
       return
     }
     // 只追加对方消息；自己发送的消息由 sendMessage 成功回调处理，避免重复与状态错乱
@@ -152,7 +168,7 @@ struct ChatDetailPage {
       return
     }
     this.loadSessionInfo()
-    ChatService.getMessages(this.applicationId).then((msgs: ChatMessageVO[]) => {
+    ChatService.getMessages(this.applicationId, undefined, 20, this.sessionType).then((msgs: ChatMessageVO[]) => {
       if (msgs.length < 20) {
         this.hasMore = false
       }
@@ -168,7 +184,7 @@ struct ChatDetailPage {
     if (this.applicationId <= 0) {
       return
     }
-    ChatService.getSessionDetail(this.applicationId).then((session: ChatSessionVO) => {
+    ChatService.getSessionDetail(this.applicationId, this.sessionType).then((session: ChatSessionVO) => {
       this.counterpartName = session.counterpartName || this.counterpartName
       this.counterpartAvatar = session.counterpartAvatar || this.counterpartAvatar
       this.counterpartCompany = session.counterpartCompany || ''
@@ -190,7 +206,7 @@ struct ChatDetailPage {
     if (this.applicationId <= 0) {
       return
     }
-    ChatService.markSessionRead(this.applicationId).catch(() => {
+    ChatService.markSessionRead(this.applicationId, this.sessionType).catch(() => {
       // 标记已读失败不影响当前消息列表展示，静默失败
     })
   }
@@ -205,7 +221,7 @@ struct ChatDetailPage {
     this.showActionMenu = false
     this.showLightbox = false
     this.markSessionRead()
-    ChatService.getMessages(this.applicationId).then((msgs: ChatMessageVO[]) => {
+    ChatService.getMessages(this.applicationId, undefined, 20, this.sessionType).then((msgs: ChatMessageVO[]) => {
       // API 返回降序（最新在前），反转后升序（最旧在前），方便后续 prepend
       if (msgs.length < 20) {
         this.hasMore = false
@@ -228,12 +244,14 @@ struct ChatDetailPage {
       return
     }
     this.isHandlingAttachment = true
-    ChatService.previewAttachment(url).then(() => {
-      this.isHandlingAttachment = false
+    this.getUIContext().getRouter().pushUrl({
+      url: 'pages/PdfPreviewPage',
+      params: { attachmentUrl: url }
     }).catch(() => {
       this.isHandlingAttachment = false
-      this.getUIContext().getPromptAction().showToast({ message: '附件预览失败，请重试' })
+      this.getUIContext().getPromptAction().showToast({ message: '附件预览页面打开失败，请重试' })
     })
+    this.isHandlingAttachment = false
   }
 
   downloadAttachment(url: string): void {
@@ -259,7 +277,7 @@ struct ChatDetailPage {
     this.isLoadingMore = true
     // 最旧消息的 ID 作为 beforeId
     const oldestId = this.messages[0].id
-    ChatService.getMessages(this.applicationId, oldestId, 20).then((msgs: ChatMessageVO[]) => {
+    ChatService.getMessages(this.applicationId, oldestId, 20, this.sessionType).then((msgs: ChatMessageVO[]) => {
       if (msgs.length < 20) {
         this.hasMore = false
       }
@@ -285,9 +303,12 @@ struct ChatDetailPage {
       this.getUIContext().getPromptAction().showToast({ message: 'HR 未回复前，您只能发送一条消息' })
       return
     }
+    if (!this.sendGuard.tryAcquire()) {
+      return
+    }
     this.isSending = true
     this.inputText = ''
-    ChatService.sendMessage(this.applicationId, text).then((msg: ChatMessageVO | null) => {
+    ChatService.sendMessage(this.applicationId, text, this.sessionType).then((msg: ChatMessageVO | null) => {
       if (msg) {
         this.appendMessageIfNeeded(msg)
         this.loadSessionInfo()
@@ -296,6 +317,8 @@ struct ChatDetailPage {
       this.isSending = false
     }).catch(() => {
       this.isSending = false
+    }).finally(() => {
+      this.sendGuard.release()
     })
   }
 
@@ -313,6 +336,9 @@ struct ChatDetailPage {
       this.getUIContext().getPromptAction().showToast({ message: 'HR 未回复前，您只能发送一条消息' })
       return
     }
+    if (!this.sendGuard.tryAcquire()) {
+      return
+    }
     this.showActionMenu = false
     this.isSendingImage = true
     const photoSelectOptions = new photoAccessHelper.PhotoSelectOptions()
@@ -322,6 +348,7 @@ struct ChatDetailPage {
     photoPicker.select(photoSelectOptions).then((result: photoAccessHelper.PhotoSelectResult) => {
       if (!result.photoUris || result.photoUris.length === 0) {
         this.isSendingImage = false
+        this.sendGuard.release()
         return
       }
       const imageUri = result.photoUris[0]
@@ -329,28 +356,33 @@ struct ChatDetailPage {
         if (!url) {
           this.getUIContext().getPromptAction().showToast({ message: '图片上传失败' })
           this.isSendingImage = false
+          this.sendGuard.release()
           return
         }
-        ChatService.sendMessageWithType(this.applicationId, 1, url).then((msg: ChatMessageVO) => {
+        ChatService.sendMessageWithType(this.applicationId, 1, url, this.sessionType).then((msg: ChatMessageVO) => {
           this.appendMessageIfNeeded(msg)
           this.isSendingImage = false
           this.loadSessionInfo()
           this.scrollToBottomOfList()
+          this.sendGuard.release()
         }).catch(() => {
           this.getUIContext().getPromptAction().showToast({ message: '图片发送失败' })
           this.isSendingImage = false
+          this.sendGuard.release()
         })
       }).catch(() => {
         this.getUIContext().getPromptAction().showToast({ message: '图片上传失败' })
         this.isSendingImage = false
+        this.sendGuard.release()
       })
     }).catch(() => {
       this.isSendingImage = false
+      this.sendGuard.release()
     })
   }
 
-  // 发送简历附件：选择文件 -> 上传 -> 发送简历消息
-  handleSendResume(): void {
+  // 发送个人资料中已经保存的简历附件。
+  async handleSendResume(): Promise<void> {
     if (this.isSendingResume) {
       return
     }
@@ -358,52 +390,27 @@ struct ChatDetailPage {
       this.getUIContext().getPromptAction().showToast({ message: 'HR 未回复前，您只能发送一条消息' })
       return
     }
+    if (!this.sendGuard.tryAcquire()) {
+      return
+    }
     this.showActionMenu = false
     this.isSendingResume = true
-    const docPicker = new picker.DocumentViewPicker()
-    docPicker.select({ maxSelectNumber: 1 }).then((uris: string[]) => {
-      if (!uris || uris.length === 0) {
-        this.isSendingResume = false
+    try {
+      const resume: ResumeData | null = await ResumeService.getMyResume()
+      if (!resume || !resume.attachmentUrl) {
+        this.getUIContext().getPromptAction().showToast({ message: '请先在个人简历中上传附件简历' })
         return
       }
-       const uri: string = uris[0]
-       const fileName: string = FileTransferPolicy.extractFileName(uri, '简历.pdf')
-       let fileSize: number = 0
-       try {
-         fileSize = Number(fileIo.statSync(uri).size)
-       } catch {
-         this.getUIContext().getPromptAction().showToast({ message: '无法读取所选文件' })
-         this.isSendingResume = false
-         return
-       }
-       const validationError: string = UploadPolicy.validateResume(fileName, fileSize)
-       if (validationError) {
-         this.getUIContext().getPromptAction().showToast({ message: validationError })
-         this.isSendingResume = false
-         return
-       }
-       ChatService.uploadFile(uri).then((url: string) => {
-        if (!url) {
-          this.getUIContext().getPromptAction().showToast({ message: '文件上传失败' })
-          this.isSendingResume = false
-          return
-        }
-        ChatService.sendMessageWithType(this.applicationId, 2, url).then((msg: ChatMessageVO) => {
-          this.appendMessageIfNeeded(msg)
-          this.isSendingResume = false
-          this.loadSessionInfo()
-          this.scrollToBottomOfList()
-        }).catch(() => {
-          this.getUIContext().getPromptAction().showToast({ message: '简历发送失败' })
-          this.isSendingResume = false
-        })
-      }).catch(() => {
-        this.getUIContext().getPromptAction().showToast({ message: '文件上传失败' })
-        this.isSendingResume = false
-      })
-    }).catch(() => {
+      const msg: ChatMessageVO = await ChatService.sendMessageWithType(this.applicationId, 2, '', this.sessionType)
+      this.appendMessageIfNeeded(msg)
+      this.loadSessionInfo()
+      this.scrollToBottomOfList()
+    } catch {
+      this.getUIContext().getPromptAction().showToast({ message: '简历发送失败，请重试' })
+    } finally {
       this.isSendingResume = false
-    })
+      this.sendGuard.release()
+    }
   }
 
   // ==================== 主构建 ====================

@@ -64,13 +64,24 @@ export struct RecruiterHomeTab {
   @State stats: UserStats = { receivedResumes: 0, hired: 0 }
   @State myJobs: RecruiterJobVO[] = []
   @State incomingRequests: RecruiterRequestVO[] = []
+  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
+  private isFirstPageShow: boolean = true
+  // 标识 /api/user/stats 是否已成功返回（未加载或失败时使用本地聚合兜底）
+  private statsLoaded: boolean = false
 
   aboutToAppear(): void {
+    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
+    this.isFirstPageShow = true
     this.loadCachedData()
     void this.loadDashboard()
   }
 
   onPageShow(): void {
+    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
+    if (this.isFirstPageShow) {
+      this.isFirstPageShow = false
+      return
+    }
     // 从子页面返回时刷新一次数据
     void this.loadDashboard()
   }
@@ -123,7 +134,9 @@ export struct RecruiterHomeTab {
   private async loadStats(): Promise<void> {
     try {
       this.stats = await UserService.getStats()
+      this.statsLoaded = !this.stats.fromCache
     } catch {
+      this.statsLoaded = false
       if (this.loadErrorText.length === 0) {
         this.loadErrorText = '招聘统计加载失败'
       }
@@ -156,6 +169,18 @@ export struct RecruiterHomeTab {
 
   private countIncomingRequestsByStatus(status: number): number {
     return this.incomingRequests.filter((req: RecruiterRequestVO): boolean => req.status === status).length
+  }
+
+  /**
+   * 收到简历优先采用 /api/user/stats 真实接口返回的数据；
+   * 当 API 尚未成功返回或失败回退到缓存时使用本地聚合的投递数兜底；
+   * API 真实返回 0 时仍显示 0，不会被本地数量覆盖。
+   */
+  private receivedResumeCount(): number {
+    if (this.statsLoaded) {
+      return this.stats.receivedResumes !== undefined ? this.stats.receivedResumes : 0
+    }
+    return this.incomingRequests.length
   }
 
   private goRequestsWithFilter(status: number): void {
@@ -359,7 +384,7 @@ export struct RecruiterHomeTab {
   @Builder
   statsSection() {
     Grid() {
-      GridItem() { this.statItem(this.incomingRequests.length, '收到简历', -1) }
+      GridItem() { this.statItem(this.receivedResumeCount(), '收到简历', -1) }
       GridItem() { this.statItem(this.countIncomingRequestsByStatus(1), '待面试', 1) }
       GridItem() { this.statItem(this.countIncomingRequestsByStatus(2), '待定', 2) }
       GridItem() { this.statItem(this.activeJobCount(), '在招职位', -1) }

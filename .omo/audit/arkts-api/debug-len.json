@@ -1,0 +1,10 @@
+{
+  "len_query": 1,
+  "query": [
+    {
+      "type": "(defaultValue",
+      "name": "\"1\"",
+      "fields": []
+    }
+  ]
+}

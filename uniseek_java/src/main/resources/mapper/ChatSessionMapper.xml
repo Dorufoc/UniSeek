@@ -30,6 +30,7 @@
         <result column="last_message" property="lastMessage"/>
         <result column="last_message_time" property="lastMessageTime"/>
         <result column="unread_count" property="unreadCount"/>
+        <result column="session_type" property="sessionType"/>
     </resultMap>
 
     <!-- 未读子查询 SQL 片段 -->
@@ -57,7 +58,8 @@
             t.enterprise_id AS enterprise_id,
             cs.last_message,
             cs.last_message_time,
-            COALESCE(uc.unread_count, 0) AS unread_count
+            COALESCE(uc.unread_count, 0) AS unread_count,
+            'application' AS session_type
         FROM chat_session cs
         JOIN task_application ta ON cs.task_application_id = ta.id
         JOIN task t ON ta.task_id = t.id
@@ -83,7 +85,8 @@
             t.enterprise_id AS enterprise_id,
             cs.last_message,
             cs.last_message_time,
-            COALESCE(uc.unread_count, 0) AS unread_count
+            COALESCE(uc.unread_count, 0) AS unread_count,
+            'application' AS session_type
         FROM chat_session cs
         JOIN task_application ta ON cs.task_application_id = ta.id
         JOIN task t ON ta.task_id = t.id
@@ -95,7 +98,7 @@
     </select>
 
     <!-- 查询单条会话详情 -->
-    <select id="selectSessionDetail" resultMap="ChatSessionVOResultMap">
+        <select id="selectSessionDetail" resultMap="ChatSessionVOResultMap">
         SELECT
             cs.task_application_id AS application_id,
             t.id AS task_id,
@@ -163,7 +166,8 @@
             u.avatar_url AS counterpart_avatar,
             cs.last_message,
             cs.last_message_time,
-            COALESCE(uc.unread_count, 0) AS unread_count
+            COALESCE(uc.unread_count, 0) AS unread_count,
+            'direct' AS session_type
         FROM chat_session cs
         JOIN user u ON cs.seeker_id = u.id
         <include refid="unreadSubquery"/>
@@ -185,7 +189,8 @@
             u.avatar_url AS counterpart_avatar,
             cs.last_message,
             cs.last_message_time,
-            COALESCE(uc.unread_count, 0) AS unread_count
+            COALESCE(uc.unread_count, 0) AS unread_count,
+            'direct' AS session_type
         FROM chat_session cs
         JOIN user u ON cs.employer_id = u.id
         <include refid="unreadSubquery"/>

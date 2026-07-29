@@ -1,5 +1,5 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
-import { AuthService, UserVO } from '../../../services/AuthService';
+import { AuthService, UserVO, RealNameStatus } from '../../../services/AuthService';
 import { UserService, UserStats } from '../../../services/UserService';
 import { ChatService } from '../../../services/ChatService';
 import { ApiClient } from '../../../services/ApiClient';
@@ -23,8 +23,10 @@ export struct RecruiterProfileTab {
   private isLoading: boolean = false
   private isReloading: boolean = false
   private pendingRefresh: boolean = false
-  // 由 RecruiterHomePage 在切换到我的 Tab 或从子页面返回时触发刷新
-  @Prop @Watch('onRefreshTrigger') refreshTrigger: number = 0
+  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
+  private isFirstPageShow: boolean = true
+  // 通过 AppStorage 监听页面返回与 Tab 切换事件，刷新个人资料与统计数据
+  @StorageLink('profileRefreshTrigger') @Watch('onRefreshTrigger') profileRefreshTrigger: number = 0
 
   @State nickname: string = ''
   @State phone: string = ''
@@ -44,11 +46,17 @@ export struct RecruiterProfileTab {
   }
 
   aboutToAppear(): void {
+    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
+    this.isFirstPageShow = true
     this.refreshFromCacheThenNetwork()
   }
 
   onPageShow(): void {
-    // 从子页面返回时，先同步缓存再后台刷新，确保资料修改后立即可见
+    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
+    if (this.isFirstPageShow) {
+      this.isFirstPageShow = false
+      return
+    }
     this.refreshFromCacheThenNetwork()
   }
 
@@ -65,22 +73,35 @@ export struct RecruiterProfileTab {
 
   /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。
    * 仅当缓存用户 ID 与当前登录用户一致时才使用缓存，防止切换账号后显示旧账号信息。
+   * 实名认证状态由 loadAuthStatus 独立优先获取，不依赖本地缓存。
    */
   private loadCachedProfile(): void {
     const cachedUser = AuthService.getCachedCurrentUser()
     if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
     }
-    // 仅当已恢复当前用户会话时才使用账号隔离的实名缓存，防止未登录态误用旧数据
-    if (UserSession.userId > 0) {
-      const cachedAuth = AuthService.getCachedRealNameStatus()
-      if (cachedAuth) {
-        this.isVerified = cachedAuth.isAuth
-      }
+    const storedSession = ApiClient.getStoredSession()
+    const effectiveUserId: number = UserSession.userId > 0 ? UserSession.userId : (storedSession ? storedSession.userId : 0)
+    if (effectiveUserId > 0) {
+      this.loadCachedStats(effectiveUserId)
     }
     const cachedEnterprise = RecruiterService.getCachedEnterpriseInfo()
     if (cachedEnterprise) {
       this.enterpriseAuditStatus = cachedEnterprise.auditStatus
+    }
+  }
+
+  /** 优先展示同账号本地统计缓存，网络请求成功后会再次覆盖为真实 API 数据。 */
+  private loadCachedStats(userId: number): void {
+    const cached = UserService.getCachedStats(userId)
+    if (cached) {
+      this.stats = {
+        applications: cached.applications || 0,
+        interviews: cached.interviews || 0,
+        favorites: cached.favorites || 0,
+        receivedResumes: cached.receivedResumes || 0,
+        hired: cached.hired || 0
+      }
     }
   }
 
@@ -96,10 +117,11 @@ export struct RecruiterProfileTab {
     this.loadErrorText = ''
     this.isLoading = showLoading
     try {
+      // 实名认证状态独立优先获取，不依赖 Promise.all，避免被其他请求阻塞或跳过
+      await this.loadAuthStatus()
       await Promise.all([
         this.loadUser(),
         this.loadStats(),
-        this.loadAuthStatus(),
         this.loadEnterprise()
       ])
     } finally {
@@ -132,14 +154,11 @@ export struct RecruiterProfileTab {
 
   private async loadAuthStatus(): Promise<void> {
     try {
-      const auth = await AuthService.getRealNameStatus()
+      // 直接发起 API 调用，绕过 AuthService 缓存与 Promise 去重机制，确保获取最新状态
+      const auth = await ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
       this.isVerified = auth.isAuth
     } catch {
-      // 网络请求失败时回退到本地缓存的实名认证状态
-      const cachedAuth = AuthService.getCachedRealNameStatus()
-      if (cachedAuth) {
-        this.isVerified = cachedAuth.isAuth
-      }
+      this.isVerified = false
     }
   }
 
@@ -521,7 +540,9 @@ export struct RecruiterProfileTab {
           .backgroundColor(AppColors.BG_CARD)
           .stateStyles({ pressed: { .backgroundColor(AppColors.INPUT_BG) } })
           .onClick(() => { this.handleMenuClick(item.key) })
-        }, (item: RecruiterMenuItem): string => item.key)
+        }, (item: RecruiterMenuItem): string => item.key === 'realNameAuth'
+          ? item.key + '_' + this.isVerified.toString()
+          : item.key)
       }
       .width('100%')
       .divider({

@@ -20,6 +20,9 @@ import { EmptyView } from '../components/EmptyView';
 import { SelectorSheet, SelectorOption } from '../components/filter/SelectorSheet';
 import { SelectorField } from '../components/filter/SelectorField';
 import { UploadPolicy } from '../common/FormValidators';
+import { ServerConfig } from '../services/ServerConfig';
+import { ApiClient } from '../services/ApiClient';
+import { FileTransferPolicy } from '../services/FileTransferPolicy';
 import { LicenseUploader } from '../components/enterprise/LicenseUploader';
 
 @Entry
@@ -44,10 +47,16 @@ struct RecruiterPublishJobPage {
   @State showIndustrySheet: boolean = false
   @State showRegionSheet: boolean = false
   @State showEnterpriseForm: boolean = false
+  @State showLicensePreview: boolean = false
+  @State licenseImageError: boolean = false
   @State uploadingLicense: boolean = false
   @State savingEnterprise: boolean = false
+  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
+  private isFirstPageShow: boolean = true
 
   aboutToAppear(): void {
+    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
+    this.isFirstPageShow = true
     this.loadJobs()
     this.loadAuditStatus()
     this.loadEnterpriseInfo()
@@ -55,6 +64,11 @@ struct RecruiterPublishJobPage {
   }
 
   onPageShow(): void {
+    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
+    if (this.isFirstPageShow) {
+      this.isFirstPageShow = false
+      return
+    }
     this.loadJobs()
     this.loadAuditStatus()
     this.loadEnterpriseInfo()
@@ -86,10 +100,15 @@ struct RecruiterPublishJobPage {
       this.regionName = info.regionName || ''
       this.description = info.description || ''
       this.licenseImgUrl = info.licenseImgUrl || ''
-      this.licenseFileName = this.licenseImgUrl.split('/').pop() || ''
+      this.licenseFileName = FileTransferPolicy.extractFileName(this.licenseImgUrl, '')
+      this.licenseImageError = false
     }).catch(() => {
       this.auditErrorText = '企业资质信息加载失败'
     })
+  }
+
+  private resolveLicenseUrl(url: string): string {
+    return ServerConfig.toHttpUrl(ApiClient.BASE_URL, url)
   }
 
   async loadEnterpriseOptions(): Promise<void> {
@@ -144,7 +163,7 @@ struct RecruiterPublishJobPage {
     picker.select({ MIMEType: photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE, maxSelectNumber: 1 }).then((result: photoAccessHelper.PhotoSelectResult) => {
       if (!result.photoUris || result.photoUris.length === 0) return
       const uri: string = result.photoUris[0]
-      const fileName: string = uri.split('/').pop() || '营业执照'
+      const fileName: string = FileTransferPolicy.extractFileName(uri, '营业执照')
       try {
         const stat = fileIo.statSync(uri)
         const message: string = UploadPolicy.validateLicense(fileName, Number(stat.size))
@@ -156,13 +175,18 @@ struct RecruiterPublishJobPage {
         this.getUIContext().getPromptAction().showToast({ message: '无法读取营业执照文件' })
         return
       }
+      this.licenseImageError = false
       this.uploadingLicense = true
       ChatService.uploadImage(uri).then((url: string) => {
         this.licenseImgUrl = url
-        this.licenseFileName = fileName
+        this.licenseFileName = FileTransferPolicy.extractFileName(url, '')
+        this.licenseImageError = false
         this.getUIContext().getPromptAction().showToast({ message: '营业执照上传成功' })
-      }).catch(() => {
-        this.getUIContext().getPromptAction().showToast({ message: '营业执照上传失败，请重试' })
+      }).catch((err: Error) => {
+        this.licenseImgUrl = ''
+        this.licenseFileName = ''
+        this.licenseImageError = false
+        this.getUIContext().getPromptAction().showToast({ message: '营业执照上传失败：' + (err.message || '请重试') })
       }).finally(() => { this.uploadingLicense = false })
     }).catch(() => {})
   }
@@ -309,6 +333,12 @@ struct RecruiterPublishJobPage {
       showClose: true,
       backgroundColor: AppColors.BG_CARD
     })
+    .bindSheet($$this.showLicensePreview, this.licensePreviewSheet(), {
+      height: SheetSize.LARGE,
+      dragBar: true,
+      showClose: true,
+      backgroundColor: AppColors.BG_PAGE
+    })
   }
 
   @Builder
@@ -369,11 +399,21 @@ struct RecruiterPublishJobPage {
           this.infoRow('所属行业', this.enterpriseInfo.industry || '未设置')
           this.infoRow('所在地区', this.enterpriseInfo.regionName || '未设置')
           if (this.enterpriseInfo.licenseImgUrl) {
-            Image(this.enterpriseInfo.licenseImgUrl)
+            Image(this.resolveLicenseUrl(this.enterpriseInfo.licenseImgUrl))
               .width(120)
               .height(80)
               .objectFit(ImageFit.Cover)
               .borderRadius(AppRadius.SM)
+              .alt($r('sys.symbol.picture'))
+              .onError(() => {
+                this.licenseImageError = true
+              })
+          }
+          if (this.licenseImageError) {
+            Text('营业执照图片加载失败')
+              .fontSize(AppFontSize.XS)
+              .fontColor(AppColors.DANGER)
+              .width('100%')
           }
           Text(this.enterpriseInfo.description || '未填写公司简介')
             .fontSize(AppFontSize.SM)
@@ -384,7 +424,12 @@ struct RecruiterPublishJobPage {
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
-            .onClick(() => { this.showEnterpriseForm = true })
+            .onClick(() => {
+              this.getUIContext().getRouter().pushUrl({
+                url: 'pages/RecruiterEnterprisePage',
+                params: { edit: '1' }
+              })
+            })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
@@ -421,7 +466,7 @@ struct RecruiterPublishJobPage {
             uploading: this.uploadingLicense,
             onUpload: () => { this.selectLicenseFile() },
             onRemove: () => { this.licenseImgUrl = '' },
-            onPreview: () => {}
+            onPreview: () => { this.showLicensePreview = true }
           })
           this.textAreaField('公司简介', '公司业务和规模介绍（选填）', this.description, (value: string) => { this.description = value }, 2000)
           Button({ type: ButtonType.Capsule }) {
@@ -549,6 +594,44 @@ struct RecruiterPublishJobPage {
       emptyMessage: '暂无行业数据',
       onSelect: (option: SelectorOption): void => { this.selectEnterpriseIndustry(option) }
     })
+  }
+
+  @Builder
+  licensePreviewSheet() {
+    Column() {
+      Row() {
+        Text('营业执照预览')
+          .fontSize(AppFontSize.MD)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.TEXT_PRIMARY)
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+      .justifyContent(FlexAlign.Center)
+
+      Image(this.resolveLicenseUrl(this.licenseImgUrl))
+        .width('100%')
+        .layoutWeight(1)
+        .objectFit(ImageFit.Contain)
+        .alt($r('sys.symbol.picture'))
+        .onError(() => {
+          this.licenseImageError = true
+        })
+        .margin(AppSpacing.MD)
+
+      if (this.licenseImageError) {
+        Text('图片加载失败，请检查网络或返回重试')
+          .fontSize(AppFontSize.SM)
+          .fontColor(AppColors.DANGER)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: AppSpacing.MD })
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(AppColors.BG_PAGE)
   }
 
   confirmStatusChange(job: RecruiterJobVO): void {

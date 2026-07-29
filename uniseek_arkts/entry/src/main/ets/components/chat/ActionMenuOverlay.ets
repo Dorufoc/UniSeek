@@ -20,7 +20,7 @@ export struct ActionMenuOverlay {
       { label: '发送图片', icon: $r('sys.symbol.picture'), onClick: this.onSendImage }
     ]
     if (this.showSendResume) {
-      actions.push({ label: '发送简历', icon: $r('sys.symbol.doc_text'), onClick: this.onSendResume })
+      actions.push({ label: '发送个人简历', icon: $r('sys.symbol.doc_text'), onClick: this.onSendResume })
     }
     return actions;
   }

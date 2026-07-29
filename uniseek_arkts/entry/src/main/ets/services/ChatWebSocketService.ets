@@ -16,6 +16,7 @@ export { WsNewMessageData };
 export interface WsSendAckData {
   messageId: number;
   applicationId: number;
+  sessionType?: string;
   messageType: number;
   content: string;
   sendTime: string;

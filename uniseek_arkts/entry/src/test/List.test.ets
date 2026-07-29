@@ -7,7 +7,9 @@ import recruiterDeadlineFormatterTest from './RecruiterDeadlineFormatter.test'
 import chatUtilsTest from './chat/ChatUtils.test';
 import chatComponentsTest from './chat/ChatComponents.test';
 import chatWebSocketPolicyTest from './chat/ChatWebSocketPolicy.test';
+import chatSendPolicyTest from './chat/ChatSendPolicy.test';
 import regionPathBuilderTest from './RegionPathBuilder.test'
+import fileTransferPolicyTest from './FileTransferPolicy.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -19,5 +21,7 @@ export default function testsuite() {
   chatUtilsTest();
   chatComponentsTest();
   chatWebSocketPolicyTest();
+  chatSendPolicyTest();
   regionPathBuilderTest();
+  fileTransferPolicyTest();
 }

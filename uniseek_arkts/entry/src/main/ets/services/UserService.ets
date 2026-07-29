@@ -27,7 +27,11 @@ export class UserService {
     pref.flushSync()
   }
 
-  private static getCachedStats(userId: number): UserStats | null {
+  /**
+   * 读取指定用户的本地统计缓存。按账号隔离，仅在同账号时使用，避免切换账号后显示旧数据。
+   * 外部可先调用本方法展示缓存，再调用 getStats 触发网络刷新。
+   */
+  static getCachedStats(userId: number): UserStats | null {
     const pref = ApiClient.getPreferenceStore()
     if (!pref) {
       return null
@@ -72,17 +76,21 @@ export class UserService {
         interviews: UserService.parseStatValue(stats.interviews),
         favorites: UserService.parseStatValue(stats.favorites),
         receivedResumes: UserService.parseStatValue(stats.receivedResumes),
-        hired: UserService.parseStatValue(stats.hired)
+        hired: UserService.parseStatValue(stats.hired),
+        fromCache: false
       }
       UserService.saveCachedStats(userId, normalized)
       return normalized
     } catch {
-      return UserService.getCachedStats(userId) || {
-        applications: 0,
-        interviews: 0,
-        favorites: 0,
-        receivedResumes: 0,
-        hired: 0
+      // 网络失败时回退到本地缓存，并标记为来自缓存，便于页面区分真实 API 与本地兜底
+      const cached = UserService.getCachedStats(userId)
+      return {
+        applications: cached?.applications || 0,
+        interviews: cached?.interviews || 0,
+        favorites: cached?.favorites || 0,
+        receivedResumes: cached?.receivedResumes || 0,
+        hired: cached?.hired || 0,
+        fromCache: true
       }
     }
   }
@@ -113,4 +121,10 @@ export interface UserStats {
   favorites?: number
   receivedResumes?: number
   hired?: number
+  /**
+   * 标记本次数据是否来自本地缓存兜底：
+   * false 表示由 /api/user/stats 真实接口返回；
+   * true 表示网络失败或缓存兜底。
+   */
+  fromCache?: boolean
 }

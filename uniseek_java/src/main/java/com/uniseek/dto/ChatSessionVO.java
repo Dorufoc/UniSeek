@@ -51,4 +51,7 @@ public class ChatSessionVO {
 
     /** 当前用户是否允许继续发送消息（求职者受「HR 未回复前只能发一条」限制） */
     private Boolean canSend;
+
+    /** 会话类型：application 投递会话 / direct 直接会话 */
+    private String sessionType;
 }

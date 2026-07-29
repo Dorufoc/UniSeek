@@ -72,14 +72,12 @@ struct ResumeDetailPage {
   }
 
   /**
-   * 检查当前投递对应的聊天消息记录中，求职者是否发送过简历附件（messageType=2）。
-   * 只有对方发送过附件时，HR 才能在求职者简介页查看/下载该文件。
+   * 合并投递记录中的附件和聊天消息中的附件，任一来源存在即可查看。
    */
   private async checkResumeAttachmentFromChat(): Promise<void> {
     const applicationId = this.resume.applicationId ?? 0
     if (!applicationId) {
-      this.hasSentResumeAttachment = false
-      this.attachmentUrl = ''
+      this.hasSentResumeAttachment = this.attachmentUrl.trim().length > 0
       return
     }
     const currentUserId = UserSession.userId || 0
@@ -112,12 +110,10 @@ struct ResumeDetailPage {
         this.hasSentResumeAttachment = true
         this.attachmentUrl = foundUrl
       } else {
-        this.hasSentResumeAttachment = false
-        this.attachmentUrl = ''
+        this.hasSentResumeAttachment = this.attachmentUrl.trim().length > 0
       }
     } catch {
-      this.hasSentResumeAttachment = false
-      this.attachmentUrl = ''
+      this.hasSentResumeAttachment = this.attachmentUrl.trim().length > 0
     }
   }
 
@@ -236,7 +232,14 @@ struct ResumeDetailPage {
   private attachmentName(): string {
     const url = this.attachmentUrl || ''
     const segment = url.substring(url.lastIndexOf('/') + 1).split('?')[0]
-    return segment || '简历附件'
+    if (!segment) {
+      return '简历附件'
+    }
+    try {
+      return decodeURIComponent(segment)
+    } catch {
+      return segment
+    }
   }
 
   private formatDateTime(timeText?: string): string {
@@ -298,7 +301,8 @@ struct ResumeDetailPage {
         params: {
           applicationId: applicationId,
           counterpartName: this.displayName(),
-          counterpartAvatar: this.resume.avatar
+          counterpartAvatar: this.resume.avatar,
+          sessionType: 'direct'
         }
       })
       this.isContacting = false
@@ -558,7 +562,14 @@ struct ResumeDetailPage {
                 .fontSize(AppFontSize.XS)
                 .fontColor(AppColors.PRIMARY)
                 .backgroundColor(AppColors.SELECTED_BG)
-                .onClick((): void => { void ChatService.previewAttachment(this.attachmentUrl) })
+                 .onClick((): void => {
+                   this.getUIContext().getRouter().pushUrl({
+                     url: 'pages/PdfPreviewPage',
+                     params: { attachmentUrl: this.attachmentUrl }
+                   }).catch(() => {
+                     this.getUIContext().getPromptAction().showToast({ message: '附件预览页面打开失败，请重试' })
+                   })
+                 })
               Button('下载', { type: ButtonType.Capsule })
                 .height(AppSpacing.BUTTON_HEIGHT_MINI)
                 .fontSize(AppFontSize.XS)

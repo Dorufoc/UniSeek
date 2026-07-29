@@ -2,6 +2,8 @@
 // url 有效时显示网络图片；加载失败或 url 为空时显示名字首字母占位圆
 
 import { AppColors, AppChat, AppRadius } from '../../common/AppStyles';
+import { ApiClient } from '../../services/ApiClient';
+import { ServerConfig } from '../../services/ServerConfig';
 
 @Component
 export struct Avatar {
@@ -22,7 +24,7 @@ export struct Avatar {
 
   build() {
     if (this.url && this.url.length > 0 && !this.imageFailed) {
-      Image(this.url)
+      Image(ServerConfig.toHttpUrl(ApiClient.BASE_URL, this.url))
         .width(this.avatarSize)
         .height(this.avatarSize)
         .borderRadius(AppRadius.FULL)

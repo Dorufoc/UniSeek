@@ -129,6 +129,7 @@ struct RecruiterJobFormPage {
   @State deadline: string = ''
   @State categoryOptions: SelectorOption[] = []
   @State regionOptions: SelectorOption[] = []
+  private regionTree: RegionNode[] = []
   @State isSubmitting: boolean = false
   @State isLoading: boolean = true
 
@@ -157,6 +158,7 @@ struct RecruiterJobFormPage {
       const categories = await DataService.getCategoryTree()
       const regions = await DataService.getRegionTree()
       this.categoryOptions = this.flattenCategories(categories, '')
+      this.regionTree = regions
       this.regionOptions = this.flattenRegions(regions, '')
       if (this.editJobId > 0) {
         await this.loadJobForEdit()
@@ -261,11 +263,19 @@ struct RecruiterJobFormPage {
   }
 
   openRegionPicker(): void {
+    if (this.regionTree.length === 0) {
+      return
+    }
+    // 根据当前选中的地区 ID 计算级联路径；未命中时回退到第一个叶子节点
+    let selected = this.findRegionPathIndices(this.regionTree, this.regionId)
+    if (selected.length === 0) {
+      selected = this.findFirstLeafPathIndices(this.regionTree)
+    }
     this.getUIContext().showTextPickerDialog({
       range: this.buildRegionRange(),
-      selected: [0, 0, 0],
+      selected: selected,
       onAccept: (value: TextPickerResult): void => {
-        const selectedValues: string[] = this.pickerValues(value.value)
+        const selectedValues = this.trimTrailingEmpty(this.pickerValues(value.value))
         if (selectedValues.length === 0) {
           return
         }
@@ -326,13 +336,66 @@ struct RecruiterJobFormPage {
   }
 
   buildRegionRange(): TextCascadePickerRangeContent[] {
-    return DataService.getProvinces().map((province): TextCascadePickerRangeContent => {
-      const cities = province.cities.map((city): TextCascadePickerRangeContent => ({
-        text: city.name,
-        children: city.districts.map((district): TextCascadePickerRangeContent => ({ text: district.name }))
-      }))
-      return { text: province.name, children: cities }
+    return this.regionTree.map((node): TextCascadePickerRangeContent => {
+      return this.buildRegionNodeRange(node)
     })
+  }
+
+  // 根据后端返回的地区树构建级联选择器范围，保留原始层级（直辖市为两级，普通地区为三级）
+  private buildRegionNodeRange(node: RegionNode): TextCascadePickerRangeContent {
+    const children: TextCascadePickerRangeContent[] = []
+    if (node.children.length > 0) {
+      for (const child of node.children) {
+        children.push(this.buildRegionNodeRange(child))
+      }
+    }
+    const item: TextCascadePickerRangeContent = { text: node.name }
+    if (children.length > 0) {
+      item.children = children
+    }
+    return item
+  }
+
+  // 根据地区 ID 在树中查找对应的级联下标路径
+  private findRegionPathIndices(nodes: RegionNode[], targetId: number): number[] {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === targetId) {
+        return [i]
+      }
+      if (nodes[i].children.length > 0) {
+        const childPath = this.findRegionPathIndices(nodes[i].children, targetId)
+        if (childPath.length > 0) {
+          return [i].concat(childPath)
+        }
+      }
+    }
+    return []
+  }
+
+  // 取第一个叶子节点的级联下标路径，作为默认选中项
+  private findFirstLeafPathIndices(nodes: RegionNode[]): number[] {
+    if (nodes.length === 0) {
+      return []
+    }
+    const first = nodes[0]
+    if (first.children.length === 0) {
+      return [0]
+    }
+    const childPath = this.findFirstLeafPathIndices(first.children)
+    return childPath.length > 0 ? [0].concat(childPath) : [0]
+  }
+
+  // 去除末尾可能存在的空字符串，兼容不同深度的级联选择结果
+  private trimTrailingEmpty(values: string[]): string[] {
+    let end = values.length
+    while (end > 0 && values[end - 1].trim().length === 0) {
+      end--
+    }
+    const result: string[] = []
+    for (let i = 0; i < end; i++) {
+      result.push(values[i])
+    }
+    return result
   }
 
   showValidation(message: string): void {

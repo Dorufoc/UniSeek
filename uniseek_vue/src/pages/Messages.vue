@@ -54,6 +54,22 @@ const selectedSession = computed(() =>
   sessions.value.find(s => s.applicationId === selectedAppId.value) || null
 )
 
+const currentSessionType = ref<string | undefined>(undefined)
+
+const resolveSessionType = (explicit?: string): string | undefined => {
+  if (explicit) {
+    return explicit
+  }
+  if (selectedSession.value?.sessionType) {
+    return selectedSession.value.sessionType
+  }
+  if (session.value?.applicationId === selectedAppId.value && session.value?.sessionType) {
+    return session.value.sessionType
+  }
+  const queryType = route.query.sessionType
+  return typeof queryType === 'string' ? queryType : undefined
+}
+
 const isBlocked = computed(() => {
   if (isHr.value) return false
   return session.value?.canSend === false
@@ -100,7 +116,7 @@ const loadSessions = async () => {
 
 const loadSession = async (appId: number) => {
   try {
-    session.value = await getChatSession(appId)
+    session.value = await getChatSession(appId, currentSessionType.value)
   } catch {
     session.value = null
   }
@@ -108,7 +124,7 @@ const loadSession = async (appId: number) => {
 
 const loadMessages = async (appId: number, beforeId?: number) => {
   try {
-    const list = await getChatMessages(appId, beforeId)
+    const list = await getChatMessages(appId, beforeId, undefined, currentSessionType.value)
     if (list.length < 20) {
       hasMore.value = false
     }
@@ -131,9 +147,10 @@ const scrollToBottom = () => {
   })
 }
 
-const selectSession = async (appId: number) => {
+const selectSession = async (appId: number, explicitType?: string) => {
   if (selectedAppId.value === appId) return
   selectedAppId.value = appId
+  currentSessionType.value = resolveSessionType(explicitType)
   chatStore.setActiveApplication(appId)
   chatLoading.value = true
   messages.value = []
@@ -142,8 +159,11 @@ const selectSession = async (appId: number) => {
     await Promise.all([
       loadSession(appId),
       loadMessages(appId),
-      markSessionRead(appId)
+      markSessionRead(appId, currentSessionType.value)
     ])
+    if (session.value?.sessionType) {
+      currentSessionType.value = session.value.sessionType
+    }
     const s = sessions.value.find(s => s.applicationId === appId)
     if (s) {
       chatStore.clearSessionUnread(appId)
@@ -170,7 +190,7 @@ const handleSend = async () => {
   if (!selectedAppId.value) return
   sending.value = true
   try {
-    const msg = await sendMessage(selectedAppId.value, { content: text })
+    const msg = await sendMessage(selectedAppId.value, { content: text }, currentSessionType.value)
     messages.value.push(msg)
     inputText.value = ''
     updateSessionInSidebar(msg)
@@ -198,7 +218,7 @@ const handleSendResume = async () => {
       router.push('/resume')
       return
     }
-    const msg = await sendMessage(selectedAppId.value, { messageType: 2, content: resume.attachmentUrl })
+    const msg = await sendMessage(selectedAppId.value, { messageType: 2, content: resume.attachmentUrl }, currentSessionType.value)
     messages.value.push(msg)
     updateSessionInSidebar(msg)
     await refreshCurrentSession()
@@ -217,6 +237,7 @@ const handleSendImage = async () => {
     return
   }
   if (!selectedAppId.value) return
+  const appId = selectedAppId.value
   // 创建隐藏的文件输入框
   const input = document.createElement('input')
   input.type = 'file'
@@ -230,7 +251,7 @@ const handleSendImage = async () => {
         ElMessage.error('图片上传失败')
         return
       }
-      const msg = await sendMessage(selectedAppId.value, { messageType: 1, content: url })
+      const msg = await sendMessage(appId, { messageType: 1, content: url }, currentSessionType.value)
       messages.value.push(msg)
       updateSessionInSidebar(msg)
       await refreshCurrentSession()
@@ -290,7 +311,7 @@ const downloadFileFromMsg = (url: string) => {
 const refreshCurrentSession = async () => {
   if (!selectedAppId.value) return
   try {
-    session.value = await getChatSession(selectedAppId.value)
+    session.value = await getChatSession(selectedAppId.value, currentSessionType.value)
   } catch {
     /* 静默失败 */
   }
@@ -326,7 +347,8 @@ const updateSessionInSidebar = (msg: ChatMessageVO) => {
       lastMessage: preview,
       lastMessageTime: msg.sendTime,
       unreadCount: 0,
-      canSend: session.value.canSend
+      canSend: session.value.canSend,
+      sessionType: session.value.sessionType
     })
   }
 }
@@ -369,7 +391,7 @@ const onWsMessage = (data: WsNewMessageData) => {
     return
   }
   if (data.senderId === currentUserId.value) return
-  markSessionRead(selectedAppId.value)
+  markSessionRead(selectedAppId.value, currentSessionType.value)
   const msg: ChatMessageVO = {
     id: data.messageId,
     senderId: data.senderId,
@@ -389,10 +411,11 @@ onMounted(async () => {
   unsubWs = chatStore.subscribeWs(onWsMessage)
   await loadSessions()
   const chatParam = route.query.chat
+  const typeParam = route.query.sessionType
   if (chatParam) {
     const appId = Number(chatParam)
     if (!isNaN(appId)) {
-      await selectSession(appId)
+      await selectSession(appId, typeof typeParam === 'string' ? typeParam : undefined)
     }
   }
 })
@@ -402,7 +425,8 @@ watch(() => route.query.chat, async (newVal) => {
     const appId = Number(newVal)
     if (!isNaN(appId)) {
       await ensureSessionInList(appId)
-      await selectSession(appId)
+      const typeParam = route.query.sessionType
+      await selectSession(appId, typeof typeParam === 'string' ? typeParam : undefined)
     }
   }
 })
@@ -424,7 +448,7 @@ onUnmounted(() => {
             v-for="sessionItem in sessions"
             :key="sessionItem.applicationId"
             :class="['session-item', { active: selectedAppId === sessionItem.applicationId }]"
-            @click="selectSession(sessionItem.applicationId)"
+            @click="selectSession(sessionItem.applicationId, sessionItem.sessionType)"
           >
             <div class="session-avatar">
               <img v-if="sessionItem.counterpartAvatar" :src="sessionItem.counterpartAvatar" class="avatar-img" />

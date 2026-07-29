@@ -2,14 +2,26 @@
 // 职责：空态展示上传入口 / 已上传态展示缩略图、预览与删除
 
 import { AppColors, AppFontSize, AppRadius, AppSpacing } from '../../common/AppStyles';
+import { ServerConfig } from '../../services/ServerConfig';
+import { ApiClient } from '../../services/ApiClient';
 
 @Component
 export struct LicenseUploader {
-  @Prop url: string = ''
+  @Prop @Watch('onUrlChanged') url: string = ''
   @Prop uploading: boolean = false
+  @State imageError: boolean = false
   onUpload?: () => void
   onRemove?: () => void
   onPreview?: () => void
+
+  private onUrlChanged(): void {
+    // URL 变化后重置图片错误状态，等待新的加载结果
+    this.imageError = false
+  }
+
+  private getDisplayUrl(): string {
+    return ServerConfig.toHttpUrl(ApiClient.BASE_URL, this.url)
+  }
 
   build() {
     Column() {
@@ -20,26 +32,53 @@ export struct LicenseUploader {
 
       if (this.url) {
         Row({ space: AppSpacing.SM }) {
-          Image(this.url)
-            .width(72)
-            .height(54)
-            .objectFit(ImageFit.Cover)
-            .borderRadius(AppRadius.SM)
-            .alt($r('sys.symbol.picture'))
+          Row({ space: AppSpacing.SM }) {
+            Image(this.getDisplayUrl())
+              .width(72)
+              .height(54)
+              .objectFit(ImageFit.Cover)
+              .borderRadius(AppRadius.SM)
+              .alt($r('sys.symbol.picture'))
+              .onError(() => {
+                this.imageError = true
+              })
 
-          Column() {
-            Text('营业执照已上传，点击查看')
-              .fontSize(AppFontSize.SM)
-              .fontColor(AppColors.PRIMARY)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-            Text('支持 JPG、PNG、GIF、WebP 格式，不超过 10MB')
-              .fontSize(AppFontSize.XXS)
-              .fontColor(AppColors.TEXT_MUTED)
-              .margin({ top: AppSpacing.XS })
+            Column() {
+              Text('营业执照已上传，点击查看')
+                .fontSize(AppFontSize.SM)
+                .fontColor(this.imageError ? AppColors.DANGER : AppColors.PRIMARY)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+              if (this.imageError) {
+                Text('图片加载失败，请检查网络或重新上传')
+                  .fontSize(AppFontSize.XXS)
+                  .fontColor(AppColors.DANGER)
+                  .margin({ top: AppSpacing.XS })
+              } else {
+                Text('请上传 JPG、JPEG、PNG 或 WebP 图片，不超过 5MB')
+                  .fontSize(AppFontSize.XXS)
+                  .fontColor(AppColors.TEXT_MUTED)
+                  .margin({ top: AppSpacing.XS })
+              }
+            }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
           }
-          .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
+          .height(AppSpacing.INPUT_HEIGHT)
+          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
+          .backgroundColor(AppColors.SELECTED_BG)
+          .borderRadius(AppRadius.SM)
+          .alignItems(VerticalAlign.Center)
+          .onClick(() => {
+            this.onPreview?.()
+          })
+          .stateStyles({
+            pressed: {
+              .backgroundColor(AppColors.PRIMARY_ALPHA_6)
+            }
+          })
+          .animation({ duration: 150 })
 
           Button('删除', { type: ButtonType.Capsule })
             .height(AppSpacing.BUTTON_HEIGHT_MINI)
@@ -52,21 +91,8 @@ export struct LicenseUploader {
             })
         }
         .width('100%')
-        .height(AppSpacing.INPUT_HEIGHT)
-        .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-        .backgroundColor(AppColors.SELECTED_BG)
-        .borderRadius(AppRadius.SM)
         .margin({ top: AppSpacing.XS })
         .alignItems(VerticalAlign.Center)
-        .onClick(() => {
-          this.onPreview?.()
-        })
-        .stateStyles({
-          pressed: {
-            .backgroundColor(AppColors.PRIMARY_ALPHA_6)
-          }
-        })
-        .animation({ duration: 150 })
       } else {
         Column({ space: AppSpacing.SM }) {
           if (this.uploading) {
@@ -84,7 +110,7 @@ export struct LicenseUploader {
             Text('点击上传营业执照')
               .fontSize(AppFontSize.SM)
               .fontColor(AppColors.TEXT_SECONDARY)
-            Text('支持 JPG、PNG、GIF、WebP 格式，不超过 10MB')
+            Text('请上传 JPG、JPEG、PNG 或 WebP 图片，不超过 5MB')
               .fontSize(AppFontSize.XXS)
               .fontColor(AppColors.TEXT_MUTED)
           }

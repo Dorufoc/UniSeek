@@ -23,6 +23,8 @@ struct RealNameAuthPage {
   @State cachedIdCard: string = ''
 
   aboutToAppear(): void {
+    // 确保个人中心刷新监听键存在默认值
+    AppStorage.setOrCreate<number>('profileRefreshTrigger', 0)
     AuthService.getRealNameStatus()
       .then((info) => {
         this.authStatus = info.isAuth ? 1 : -1
@@ -335,7 +337,7 @@ struct RealNameAuthPage {
       const result = await AuthService.realNameAuth(submittedName, submittedCard)
       // 提交成功后立即拉回 Java 端权威实名状态，避免前端本地构造状态导致 My/Profile 页显示不一致
       try {
-        const status = await AuthService.getRealNameStatus()
+        const status = await AuthService.getRealNameStatus(true)
         this.authStatus = status.isAuth ? 1 : -1
         if (status.isAuth && status.realName) {
           this.realName = status.realName
@@ -343,6 +345,8 @@ struct RealNameAuthPage {
         if (status.isAuth && status.idCard) {
           this.cachedIdCard = status.idCard
         }
+        // 通知个人中心立即刷新实名认证状态
+        AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now())
       } catch {
         this.errorMsg = '认证结果同步失败，请稍后下拉刷新'
       }
