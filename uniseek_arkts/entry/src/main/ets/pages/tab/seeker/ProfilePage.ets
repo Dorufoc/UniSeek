@@ -22,10 +22,9 @@ export struct ProfilePage {
   private isLoading: boolean = false
   private isReloading: boolean = false
   private pendingRefresh: boolean = false
-  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
-  private isFirstPageShow: boolean = true
-  // 通过 AppStorage 监听页面返回与 Tab 切换事件，刷新个人资料与统计数据
-  @StorageLink('profileRefreshTrigger') @Watch('onRefreshProfile') profileRefreshTrigger: number = 0
+  private isStatsLoading: boolean = false
+  private statsPollTimer: number = -1
+  @Prop @Watch('onProfileVisibilityChanged') isProfileVisible: boolean = false
   @State nickname: string = ''
 
 
@@ -46,27 +45,44 @@ export struct ProfilePage {
   @State showAbout: boolean = false
 
   aboutToAppear(): void {
-    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
-    this.isFirstPageShow = true
-    this.refreshFromCacheThenNetwork()
+    this.refreshProfile()
+    if (this.isProfileVisible) {
+      this.startStatsPolling()
+    }
   }
 
-  onPageShow(): void {
-    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
-    if (this.isFirstPageShow) {
-      this.isFirstPageShow = false
+  aboutToDisappear(): void {
+    this.stopStatsPolling()
+  }
+
+  private onProfileVisibilityChanged(): void {
+    if (this.isProfileVisible) {
+      this.loadStats()
+      this.startStatsPolling()
       return
     }
-    this.refreshFromCacheThenNetwork()
+    this.stopStatsPolling()
   }
 
-  private onRefreshProfile(): void {
-    // Tab 切换到我的页面时，先同步缓存再后台刷新
-    this.refreshFromCacheThenNetwork()
+  private startStatsPolling(): void {
+    if (this.statsPollTimer !== -1) {
+      return
+    }
+    this.statsPollTimer = setInterval(() => {
+      this.loadStats()
+    }, 3000)
   }
 
-  /** 先展示本地缓存，再发起后台网络刷新，避免返回个人中心时等待网络导致头像/昵称不更新。 */
-  private refreshFromCacheThenNetwork(): void {
+  private stopStatsPolling(): void {
+    if (this.statsPollTimer === -1) {
+      return
+    }
+    clearInterval(this.statsPollTimer)
+    this.statsPollTimer = -1
+  }
+
+  /** 刷新个人资料与服务端统计数据。 */
+  private refreshProfile(): void {
     this.loadCachedProfile()
     this.reloadProfile(false)
   }
@@ -79,25 +95,6 @@ export struct ProfilePage {
     const cachedUser = AuthService.getCachedCurrentUser()
     if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
-    }
-    const storedSession = ApiClient.getStoredSession()
-    const effectiveUserId: number = UserSession.userId > 0 ? UserSession.userId : (storedSession ? storedSession.userId : 0)
-    if (effectiveUserId > 0) {
-      this.loadCachedStats(effectiveUserId)
-    }
-  }
-
-  /** 优先展示同账号本地统计缓存，网络请求成功后会再次覆盖为真实 API 数据。 */
-  private loadCachedStats(userId: number): void {
-    const cached = UserService.getCachedStats(userId)
-    if (cached) {
-      this.stats = {
-        applications: cached.applications || 0,
-        interviews: cached.interviews || 0,
-        favorites: cached.favorites || 0,
-        receivedResumes: cached.receivedResumes || 0,
-        hired: cached.hired || 0
-      }
     }
   }
 
@@ -149,6 +146,10 @@ export struct ProfilePage {
   }
 
   private async loadStats(): Promise<void> {
+    if (this.isStatsLoading) {
+      return
+    }
+    this.isStatsLoading = true
     try {
       const stats = await UserService.getStats()
       this.stats = {
@@ -160,6 +161,8 @@ export struct ProfilePage {
       }
     } catch {
       this.loadErrorText = '个人统计加载失败'
+    } finally {
+      this.isStatsLoading = false
     }
   }
 

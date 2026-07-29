@@ -27,3 +27,5 @@ uniseek-training-report/uniseek-training-report.html
 ppt/uniseek-intro/images/
 .trae-html-share-packages/ppt/uniseek-intro/uniseek-intro.html.zip
 ppt/uniseek-intro/uniseek-intro.html
+.*/
+node_modules/
