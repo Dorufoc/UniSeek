@@ -23,6 +23,12 @@ export default function fileTransferPolicyTest(): void {
       expect(FileTransferPolicy.extractFileName('', 'fallback.pdf')).assertEqual('fallback.pdf')
     })
 
+    it('识别相册媒体 URI', 0, (): void => {
+      expect(FileTransferPolicy.isMediaUri('file://media/Photo/1/avatar.jpg')).assertTrue()
+      expect(FileTransferPolicy.isMediaUri('datashare://media/Photo/1/avatar.jpg')).assertTrue()
+      expect(FileTransferPolicy.isMediaUri('internal://cache/avatar.jpg')).assertFalse()
+    })
+
     it('识别常见图片 MIME 类型', 0, (): void => {
       expect(FileTransferPolicy.getMimeType('photo.JPG')).assertEqual('image/jpeg')
       expect(FileTransferPolicy.getMimeType('photo.png')).assertEqual('image/png')

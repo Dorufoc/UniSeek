@@ -266,6 +266,13 @@ export struct RecruiterProfileTab {
     }
   }
 
+  private openHiredApplications(): void {
+    this.getUIContext().getRouter().pushUrl({
+      url: 'pages/RecruiterRequestsPage',
+      params: { filterStatus: 3 }
+    })
+  }
+
   private confirmLogout(): void {
     this.getUIContext().getPromptAction().showDialog({
       title: '退出登录',
@@ -431,19 +438,34 @@ export struct RecruiterProfileTab {
 
   @Builder
   statsSection() {
-    StandardCard() {
-      Row() {
-        this.statItem(this.stats.receivedResumes || 0, '收到简历', 'resumePool')
-        this.divider()
-        this.statItem(this.stats.hired || 0, '已录取', 'interviewManage')
+    Row({ space: AppSpacing.MD }) {
+      Column() {
+        StandardCard({
+          onClickAction: () => { this.handleMenuClick('resumePool') },
+          accessibilityLabel: '收到简历'
+        }) {
+          this.statItem(this.stats.receivedResumes || 0, '收到简历')
+        }
       }
       .width('100%')
-      .justifyContent(FlexAlign.SpaceAround)
+      .layoutWeight(1)
+
+      Column() {
+        StandardCard({
+          onClickAction: () => { this.openHiredApplications() },
+          accessibilityLabel: '已录取'
+        }) {
+          this.statItem(this.stats.hired || 0, '已录取')
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
     }
+    .width('100%')
   }
 
   @Builder
-  statItem(value: number, label: string, targetKey: string) {
+  statItem(value: number, label: string) {
     Column({ space: AppSpacing.XS }) {
       Text(value.toString())
         .fontSize(AppFontSize.XXL)
@@ -454,17 +476,7 @@ export struct RecruiterProfileTab {
         .fontColor(AppColors.TEXT_MUTED)
     }
     .alignItems(HorizontalAlign.Center)
-    .layoutWeight(1)
-    .onClick(() => { this.handleMenuClick(targetKey) })
-    .stateStyles({ pressed: { .opacity(0.72) } })
-  }
-
-  @Builder
-  divider() {
-    Column()
-      .width(0.5)
-      .height(AppSpacing.LG)
-      .backgroundColor(AppColors.BORDER)
+    .width('100%')
   }
 
   @Builder

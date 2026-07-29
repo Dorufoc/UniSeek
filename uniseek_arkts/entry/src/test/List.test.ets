@@ -12,6 +12,8 @@ import chatSendPolicyTest from './chat/ChatSendPolicy.test';
 import regionPathBuilderTest from './RegionPathBuilder.test'
 import fileTransferPolicyTest from './FileTransferPolicy.test'
 import enterpriseRegionDisplayTest from './EnterpriseRegionDisplay.test'
+import jobQuotaFormatterTest from './JobQuotaFormatter.test'
+import applicationStatusTest from './ApplicationStatus.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -28,4 +30,6 @@ export default function testsuite() {
   regionPathBuilderTest();
   fileTransferPolicyTest();
   enterpriseRegionDisplayTest();
+  jobQuotaFormatterTest();
+  applicationStatusTest();
 }

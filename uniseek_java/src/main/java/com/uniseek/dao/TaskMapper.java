@@ -47,6 +47,17 @@ public interface TaskMapper extends BaseMapper<Task> {
     List<TaskVO> selectEnterpriseTasks(@Param("enterpriseId") Long enterpriseId);
 
     /**
+     * 查询本企业职位列表（支持多企业 ID）
+     * <p>
+     * 用于招聘者仪表盘，覆盖当前账号全部企业记录下的职位，
+     * 防止企业资质驳回重提后遗漏历史职位数据。
+     *
+     * @param enterpriseIds 企业 ID 列表
+     * @return 职位列表
+     */
+    List<TaskVO> selectEnterpriseTasksByIds(@Param("enterpriseIds") List<Long> enterpriseIds);
+
+    /**
      * 职位大类需求占比（按顶级分类分组，统计招聘中职位数）
      *
      * @param startTime 开始时间（可为 null）

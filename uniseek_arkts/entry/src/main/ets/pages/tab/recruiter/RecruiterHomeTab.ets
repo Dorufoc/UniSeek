@@ -5,7 +5,6 @@ import { ErrorView } from '../../../components/ErrorView'
 import { RecruiterService } from '../../../services/RecruiterService'
 import {
   RecruiterEnterpriseVO,
-  RecruiterJobVO,
   RecruiterRequestVO,
   APPLICATION_STATUS_LABELS,
   AUDIT_STATUS_LABELS
@@ -61,8 +60,8 @@ export struct RecruiterHomeTab {
   @State loadErrorText: string = ''
   @State username: string = ''
   @State enterpriseInfo: RecruiterEnterpriseVO | null = null
-  @State stats: UserStats = { receivedResumes: 0, hired: 0 }
-  @State myJobs: RecruiterJobVO[] = []
+  // 四个计数器使用 UserService.getStats() 实时获取，不依赖 incomingRequests 推导
+  @State stats: UserStats = { receivedResumes: 0, interviews: 0, pending: 0, activeJobs: 0 }
   @State incomingRequests: RecruiterRequestVO[] = []
   // 通过 AppStorage 监听页面返回与首页 Tab 切换，确保统计和待办数据及时更新。
   @StorageLink('recruiterHomeRefreshTrigger') @Watch('onRefreshTrigger') recruiterHomeRefreshTrigger: number = 0
@@ -108,11 +107,11 @@ export struct RecruiterHomeTab {
     this.pendingDashboardRefresh = false
     this.loadErrorText = ''
     try {
+      // 计数器由 loadStats() 通过 UserService.getStats() 实时获取，不依赖 incomingRequests
       await Promise.all([
         this.loadUserInfo(),
         this.loadEnterpriseInfo(),
         this.loadStats(),
-        this.loadMyJobs(),
         this.loadIncomingRequests()
       ])
     } catch {
@@ -151,20 +150,23 @@ export struct RecruiterHomeTab {
 
   private async loadStats(): Promise<void> {
     try {
-      this.stats = await UserService.getStats()
+      const result = await UserService.getStats()
+      this.stats = {
+        receivedResumes: result.receivedResumes ?? 0,
+        interviews: result.interviews ?? 0,
+        pending: result.pending ?? 0,
+        activeJobs: result.activeJobs ?? 0
+      }
+      if (result.fromCache) {
+        console.warn('[RecruiterHomeTab] 统计数据来自本地缓存，可能不是最新')
+        if (this.loadErrorText.length === 0) {
+          this.loadErrorText = '招聘统计暂时无法刷新，当前显示缓存数据'
+        }
+      }
     } catch {
       if (this.loadErrorText.length === 0) {
-        this.loadErrorText = '招聘统计加载失败'
+        this.loadErrorText = '招聘统计加载失败，请检查网络连接'
       }
-    }
-  }
-
-  private async loadMyJobs(): Promise<void> {
-    try {
-      this.myJobs = await RecruiterService.getMyJobs()
-    } catch {
-      // 不影响主流程，仅职位数量显示为 0
-      this.myJobs = []
     }
   }
 
@@ -177,22 +179,6 @@ export struct RecruiterHomeTab {
       }
       this.incomingRequests = []
     }
-  }
-
-  private activeJobCount(): number {
-    return this.myJobs.filter((job: RecruiterJobVO): boolean => job.status === 1).length
-  }
-
-  private countIncomingRequestsByStatus(status: number): number {
-    return this.incomingRequests.filter((req: RecruiterRequestVO): boolean => req.status === status).length
-  }
-
-  /** 收到简历以首页已加载的全部职位投递记录为准，保证与待办列表口径一致。 */
-  private receivedResumeCount(): number {
-    if (this.incomingRequests.length > 0) {
-      return this.incomingRequests.length
-    }
-    return this.stats.receivedResumes !== undefined ? this.stats.receivedResumes : 0
   }
 
   private goRequestsWithFilter(status: number): void {
@@ -396,10 +382,11 @@ export struct RecruiterHomeTab {
   @Builder
   statsSection() {
     Grid() {
-      GridItem() { this.statItem(this.receivedResumeCount(), '收到简历', -1) }
-      GridItem() { this.statItem(this.countIncomingRequestsByStatus(1), '待面试', 1) }
-      GridItem() { this.statItem(this.countIncomingRequestsByStatus(2), '待定', 2) }
-      GridItem() { this.statItem(this.activeJobCount(), '在招职位', -1) }
+      // 四个计数器均直接使用 UserService.getStats() 实时数据，不与 myJobs/incomingRequests 耦合
+      GridItem() { this.statItem(this.stats.receivedResumes ?? 0, '收到简历', -1) }
+      GridItem() { this.statItem(this.stats.interviews ?? 0, '待面试', 1) }
+      GridItem() { this.statItem(this.stats.pending ?? 0, '待定', 2) }
+      GridItem() { this.statItem(this.stats.activeJobs ?? 0, '在招职位', -1) }
     }
     .columnsTemplate('1fr 1fr 1fr 1fr')
     .columnsGap(AppSpacing.SM)

@@ -77,6 +77,8 @@ export class UserService {
         favorites: UserService.parseStatValue(stats.favorites),
         receivedResumes: UserService.parseStatValue(stats.receivedResumes),
         hired: UserService.parseStatValue(stats.hired),
+        pending: UserService.parseStatValue(stats.pending),
+        activeJobs: UserService.parseStatValue(stats.activeJobs),
         fromCache: false
       }
       UserService.saveCachedStats(userId, normalized)
@@ -84,14 +86,20 @@ export class UserService {
     } catch {
       // 网络失败时回退到本地缓存，并标记为来自缓存，便于页面区分真实 API 与本地兜底
       const cached = UserService.getCachedStats(userId)
-      return {
-        applications: cached?.applications || 0,
-        interviews: cached?.interviews || 0,
-        favorites: cached?.favorites || 0,
-        receivedResumes: cached?.receivedResumes || 0,
-        hired: cached?.hired || 0,
-        fromCache: true
+      if (cached) {
+        return {
+          applications: cached.applications ?? 0,
+          interviews: cached.interviews ?? 0,
+          favorites: cached.favorites ?? 0,
+          receivedResumes: cached.receivedResumes ?? 0,
+          hired: cached.hired ?? 0,
+          pending: cached.pending ?? 0,
+          activeJobs: cached.activeJobs ?? 0,
+          fromCache: true
+        }
       }
+      // 无本地缓存可用时向上抛出异常，让调用方感知网络故障，避免静默显示全零
+      throw new Error('无法获取统计数据，请检查网络连接')
     }
   }
 
@@ -121,6 +129,10 @@ export interface UserStats {
   favorites?: number
   receivedResumes?: number
   hired?: number
+  /** 招聘者待定投递数（status=2）。 */
+  pending?: number
+  /** 招聘者在招职位数（status=1）。 */
+  activeJobs?: number
   /**
    * 标记本次数据是否来自本地缓存兜底：
    * false 表示由 /api/user/stats 真实接口返回；

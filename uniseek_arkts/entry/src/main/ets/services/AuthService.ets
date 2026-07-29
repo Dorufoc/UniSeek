@@ -106,6 +106,51 @@ export class AuthService {
     pref.flushSync()
   }
 
+  /**
+   * 单字段缓存合并：更新本地缓存的 UserVO 中指定字段，保留其余字段不变。
+   * 支持 nickname、phone、email、avatarUrl 四个字段。
+   * 同时将 nickname/avatarUrl 同步到 UserSession。
+   * 仅在保存成功后调用，防止失败时更新缓存。
+   */
+  static saveCachedCurrentUserField(field: string, value: string): void {
+    const pref = ApiClient.getPreferenceStore()
+    if (!pref) {
+      return
+    }
+    // 读取现有缓存，若不存在则从 UserSession 回退构建最小可用对象
+    let user: UserVO | null = AuthService.getCachedCurrentUser()
+    if (!user) {
+      user = {
+        id: UserSession.userId,
+        phone: '',
+        email: '',
+        nickname: UserSession.nickname,
+        avatarUrl: UserSession.avatarUrl,
+        role: UserSession.role,
+        status: 0,
+        creditScore: 0,
+        lastLoginTime: '',
+        createTime: ''
+      }
+    }
+    // 根据字段名逐一合并，保留其余字段不变
+    if (field === 'nickname') {
+      user.nickname = value
+      UserSession.nickname = value
+    } else if (field === 'phone') {
+      user.phone = value
+    } else if (field === 'email') {
+      user.email = value
+    } else if (field === 'avatarUrl') {
+      user.avatarUrl = value
+      UserSession.avatarUrl = value
+    } else {
+      return
+    }
+    pref.putSync(KEY_CACHE_CURRENT_USER, JSON.stringify(user))
+    pref.flushSync()
+  }
+
   /** 读取本地缓存的完整用户信息。 */
   static getCachedCurrentUser(): UserVO | null {
     const pref = ApiClient.getPreferenceStore()

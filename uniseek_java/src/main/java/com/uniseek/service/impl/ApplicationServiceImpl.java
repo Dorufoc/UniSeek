@@ -241,11 +241,11 @@ public class ApplicationServiceImpl implements ApplicationService {
                 throw new BusinessException("名额不足或已被其他HR修改，请刷新后重试");
             }
 
-            // 如果扣减后剩余名额为 0，自动下架职位（设置为已下架 4）
+            // 如果扣减后剩余名额为 0，自动标记职位已满员（状态 2）
             if (freshTask.getRemainingQuota() == 0) {
                 Task fullTask = new Task();
                 fullTask.setId(task.getId());
-                fullTask.setStatus(4);
+                fullTask.setStatus(2);
                 fullTask.setVersion(freshTask.getVersion());
                 fullTask.setUpdateTime(LocalDateTime.now());
                 int fullRows = taskMapper.updateById(fullTask);

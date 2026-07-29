@@ -1,6 +1,7 @@
 package com.uniseek.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.uniseek.common.ApiResult;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -220,6 +222,27 @@ public class EnterpriseServiceImpl implements EnterpriseService {
         if (limit <= 0) limit = 12;
         if (limit > 50) limit = 50;
         return enterpriseMapper.selectHotEnterprises(limit);
+    }
+
+    @Override
+    public List<Long> getEnterpriseIdsByUserId(Long userId) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+        List<Enterprise> enterprises = enterpriseMapper.selectList(
+                new QueryWrapper<Enterprise>()
+                        .eq("user_id", userId)
+                        .select("id"));
+        if (enterprises.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> ids = new ArrayList<>(enterprises.size());
+        for (Enterprise e : enterprises) {
+            if (e.getId() != null) {
+                ids.add(e.getId());
+            }
+        }
+        return ids;
     }
 
     @Override

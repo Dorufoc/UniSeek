@@ -5,6 +5,8 @@ import { fileIo } from '@kit.CoreFileKit';
 import { request } from '@kit.BasicServicesKit';
 import { filePreview } from '@kit.PreviewKit';
 import { FileTransferPolicy, UploadResponse } from './FileTransferPolicy';
+import { MediaUriResolver, CacheFileInfo } from './MediaUriResolver';
+import { UploadPolicy } from '../common/FormValidators';
 
 export interface SendMessageRequest {
   messageType: number
@@ -83,26 +85,36 @@ export class ChatService {
     }
     const context = getContext()
     const fallbackName: string = serverPath.endsWith('/image') ? 'upload.jpg' : 'upload.pdf'
-    const fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
-    const cacheName: string = 'uniseek-' + new Date().getTime() + '-' + ChatService.safeCacheFileName(fileName)
-    const cachePath: string = context.cacheDir + '/' + cacheName
+    let fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
+    let cachePath: string = ''
+    let uploadUri: string = ''
 
     // 通过源 URI 与目标缓存文件的 fd 复制内容，避免将 Picker 返回的 URI 直接作为本地路径
-    let sourceFile: fileIo.File | undefined = undefined
-    try {
-      sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
-      fileIo.copyFileSync(sourceFile.fd, cachePath)
-    } catch {
+    if (FileTransferPolicy.isMediaUri(uri)) {
+      const mediaFile: CacheFileInfo = await MediaUriResolver.copyMediaUriToCache(uri)
+      fileName = mediaFile.fileName
+      cachePath = mediaFile.cachePath
+      uploadUri = mediaFile.uploadUri
+    } else {
+      const cacheName: string = 'uniseek-' + new Date().getTime().toString() + '-' + ChatService.safeCacheFileName(fileName)
+      cachePath = context.cacheDir + '/' + cacheName
+      let sourceFile: fileIo.File | undefined = undefined
       try {
-        fileIo.unlinkSync(cachePath)
+        sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
+        fileIo.copyFileSync(sourceFile.fd, cachePath)
       } catch {
-        // 复制失败且缓存文件不存在时无需清理
+        try {
+          fileIo.unlinkSync(cachePath)
+        } catch {
+          // 复制失败且缓存文件不存在时无需清理
+        }
+        throw new Error('无法读取所选文件')
+      } finally {
+        if (sourceFile !== undefined) {
+          fileIo.closeSync(sourceFile)
+        }
       }
-      throw new Error('无法读取所选文件')
-    } finally {
-      if (sourceFile !== undefined) {
-        fileIo.closeSync(sourceFile)
-      }
+      uploadUri = 'internal://cache/' + cacheName
     }
 
     if (serverPath === '/api/resume/upload-attachment') {
@@ -115,6 +127,17 @@ export class ChatService {
         }
         throw new Error('文件大小不能超过 10MB')
       }
+    } else if (serverPath === '/api/upload/image') {
+      const cacheStat = fileIo.statSync(cachePath)
+      const validationMessage: string = UploadPolicy.validateAvatar(fileName, cacheStat.size)
+      if (validationMessage) {
+        try {
+          fileIo.unlinkSync(cachePath)
+        } catch {
+          // 校验失败后的缓存清理失败不改变用户可见的校验结果
+        }
+        throw new Error(validationMessage)
+      }
     }
 
     const uploadConfig: request.UploadConfig = {
@@ -126,48 +149,50 @@ export class ChatService {
       files: [{
         filename: fileName,
         name: 'file',
-        uri: 'internal://cache/' + cacheName,
+        uri: uploadUri,
         type: FileTransferPolicy.getMimeType(fileName)
       }],
       data: []
     }
 
-    const uploadTask = await request.uploadFile(context, uploadConfig)
-    return new Promise<string>((resolve, reject) => {
-      uploadTask.on('complete', (states: Array<request.TaskState>): void => {
-        if (states.length === 0 || states[0].responseCode < 200 || states[0].responseCode >= 300) {
-          reject(new Error('文件上传失败'))
-          return
-        }
-        const raw: string = states[0].message
-        try {
-          const response: UploadResponse = JSON.parse(raw) as UploadResponse
-          // 即使 HTTP responseCode 为 2xx，也按业务 code 判断，优先抛出服务端具体错误信息
-          if (response.code !== 200) {
-            reject(new Error(response.message || '文件上传失败'))
+    try {
+      const uploadTask = await request.uploadFile(context, uploadConfig)
+      return await new Promise<string>((resolve, reject) => {
+        uploadTask.on('complete', (states: Array<request.TaskState>): void => {
+          if (states.length === 0 || states[0].responseCode < 200 || states[0].responseCode >= 300) {
+            reject(new Error('文件上传失败'))
             return
           }
-          const url: string = FileTransferPolicy.readUploadUrl(response)
-          if (!url) {
-            reject(new Error(response.message || '上传响应无文件地址'))
-            return
+          const raw: string = states[0].message
+          try {
+            const response: UploadResponse = JSON.parse(raw) as UploadResponse
+            // 即使 HTTP responseCode 为 2xx，也按业务 code 判断，优先抛出服务端具体错误信息
+            if (response.code !== 200) {
+              reject(new Error(response.message || '文件上传失败'))
+              return
+            }
+            const url: string = FileTransferPolicy.readUploadUrl(response)
+            if (!url) {
+              reject(new Error(response.message || '上传响应无文件地址'))
+              return
+            }
+            resolve(url)
+          } catch {
+            reject(new Error('上传响应解析失败'))
           }
-          resolve(url)
-        } catch {
-          reject(new Error('上传响应解析失败'))
-        }
+        })
+        uploadTask.on('fail', (states: Array<request.TaskState>): void => {
+          const message: string = states.length > 0 ? states[0].message : '文件上传失败'
+          reject(new Error(message || '文件上传失败'))
+        })
       })
-      uploadTask.on('fail', (states: Array<request.TaskState>): void => {
-        const message: string = states.length > 0 ? states[0].message : '文件上传失败'
-        reject(new Error(message || '文件上传失败'))
-      })
-    }).finally(() => {
+    } finally {
       try {
         fileIo.unlinkSync(cachePath)
       } catch (err) {
         // 缓存文件已清理或不存在时忽略，不影响业务结果
       }
-    })
+    }
   }
 
   /** 下载并预览聊天中的简历附件。 */

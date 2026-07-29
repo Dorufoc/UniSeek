@@ -85,4 +85,17 @@ export class UploadPolicy {
     }
     return ''
   }
+
+  static validateAvatar(fileName: string, size: number): string {
+    const lowerName: string = fileName.trim().toLowerCase()
+    const isAvatarImage: boolean = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') ||
+      lowerName.endsWith('.png') || lowerName.endsWith('.webp')
+    if (!isAvatarImage) {
+      return '请选择 JPG、JPEG、PNG 或 WebP 图片'
+    }
+    if (size > UploadPolicy.LICENSE_MAX_SIZE) {
+      return '图片大小不能超过 5MB'
+    }
+    return ''
+  }
 }

@@ -3,6 +3,7 @@
 
 import { JobData } from '../services/ChatTypes';
 import { AppColors, AppFontSize, AppRadius, AppShadow, AppSpacing, AppAnimation } from '../common/AppStyles';
+import { formatRemainingText } from '../utils/JobQuotaFormatter';
 
 @Component
 export struct JobFeedCard {
@@ -21,13 +22,7 @@ export struct JobFeedCard {
   };
 
   private formatRemaining(): string {
-    if (this.job.remainingQuota === undefined || this.job.totalQuota === undefined) {
-      return ''
-    }
-    if (this.job.remainingQuota <= 0) {
-      return '已招满'
-    }
-    return `剩 ${this.job.remainingQuota} / ${this.job.totalQuota} 人`
+    return formatRemainingText(this.job.remainingQuota, this.job.totalQuota)
   }
 
   private formatDeadline(): string {

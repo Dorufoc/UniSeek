@@ -75,4 +75,14 @@ public interface EnterpriseService {
      * @return 企业信息，不存在时返回 null
      */
     Enterprise getById(Long id);
+
+    /**
+     * 获取当前用户的所有企业记录 ID（覆盖已认证、待审核、已驳回的全部记录）
+     * <p>
+     * 用于招聘者仪表盘等场景，防止企业资质驳回重提后只查到最新记录而遗漏历史职位。
+     *
+     * @param userId 当前用户 ID
+     * @return 企业 ID 列表，可能为空
+     */
+    List<Long> getEnterpriseIdsByUserId(Long userId);
 }
