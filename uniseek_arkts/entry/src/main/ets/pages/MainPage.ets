@@ -10,7 +10,6 @@ import { ChatWebSocketService } from '../services/ChatWebSocketService'
 struct MainPage {
   @State currentIndex: number = 0
   @State totalUnreadCount: number = 0
-  @State isMainPageVisible: boolean = true
 
   private unreadCountCallback: (count: number) => void = (count: number) => {
     this.totalUnreadCount = count
@@ -28,13 +27,8 @@ struct MainPage {
   }
 
   onPageShow(): void {
-    this.isMainPageVisible = true
     // 从聊天详情等子页面返回时兜底刷新一次
     ChatWebSocketService.getInstance().refreshUnreadCount()
-  }
-
-  onPageHide(): void {
-    this.isMainPageVisible = false
   }
 
   @Builder tabHome() {
@@ -121,7 +115,7 @@ struct MainPage {
       .tabBar(this.tabChat)
 
       TabContent() {
-        ProfilePage({ isProfileVisible: this.isMainPageVisible && this.currentIndex === 3 })
+        ProfilePage()
       }
       .tabBar(this.tabProfile)
     }

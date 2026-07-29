@@ -1,13 +1,12 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { AuthService, UserVO, RealNameStatus } from '../../../services/AuthService';
-import { UserService, UserStats } from '../../../services/UserService';
+import { UserService } from '../../../services/UserService';
 import { ChatService } from '../../../services/ChatService';
 import { ApiClient } from '../../../services/ApiClient';
 import { UserSession } from '../../../services/UserSession';
 import { RecruiterService } from '../../../services/RecruiterService';
 import { RecruiterEnterpriseVO } from '../../../services/RecruiterTypes';
 import { AppColors, AppSpacing, AppRadius, AppFontSize } from '../../../common/AppStyles';
-import { StandardCard } from '../../../common/StandardCard';
 
 /** 招聘管理菜单项定义。 */
 interface RecruiterMenuItem {
@@ -25,7 +24,7 @@ export struct RecruiterProfileTab {
   private pendingRefresh: boolean = false
   // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
   private isFirstPageShow: boolean = true
-  // 通过 AppStorage 监听页面返回与 Tab 切换事件，刷新个人资料与统计数据
+  // 通过 AppStorage 监听页面返回与 Tab 切换事件，刷新个人资料
   @StorageLink('profileRefreshTrigger') @Watch('onRefreshTrigger') profileRefreshTrigger: number = 0
 
   @State nickname: string = ''
@@ -37,14 +36,6 @@ export struct RecruiterProfileTab {
   @State loadErrorText: string = ''
   @State uploading: boolean = false
   @State showAbout: boolean = false
-  @State stats: UserStats = {
-    applications: 0,
-    interviews: 0,
-    favorites: 0,
-    receivedResumes: 0,
-    hired: 0
-  }
-
   aboutToAppear(): void {
     // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
     this.isFirstPageShow = true
@@ -80,28 +71,9 @@ export struct RecruiterProfileTab {
     if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
     }
-    const storedSession = ApiClient.getStoredSession()
-    const effectiveUserId: number = UserSession.userId > 0 ? UserSession.userId : (storedSession ? storedSession.userId : 0)
-    if (effectiveUserId > 0) {
-      this.loadCachedStats(effectiveUserId)
-    }
     const cachedEnterprise = RecruiterService.getCachedEnterpriseInfo()
     if (cachedEnterprise) {
       this.enterpriseAuditStatus = cachedEnterprise.auditStatus
-    }
-  }
-
-  /** 优先展示同账号本地统计缓存，网络请求成功后会再次覆盖为真实 API 数据。 */
-  private loadCachedStats(userId: number): void {
-    const cached = UserService.getCachedStats(userId)
-    if (cached) {
-      this.stats = {
-        applications: cached.applications || 0,
-        interviews: cached.interviews || 0,
-        favorites: cached.favorites || 0,
-        receivedResumes: cached.receivedResumes || 0,
-        hired: cached.hired || 0
-      }
     }
   }
 
@@ -121,7 +93,6 @@ export struct RecruiterProfileTab {
       await this.loadAuthStatus()
       await Promise.all([
         this.loadUser(),
-        this.loadStats(),
         this.loadEnterprise()
       ])
     } finally {
@@ -159,21 +130,6 @@ export struct RecruiterProfileTab {
       this.isVerified = auth.isAuth
     } catch {
       this.isVerified = false
-    }
-  }
-
-  private async loadStats(): Promise<void> {
-    try {
-      const stats = await UserService.getStats()
-      this.stats = {
-        applications: stats.applications || 0,
-        interviews: stats.interviews || 0,
-        favorites: stats.favorites || 0,
-        receivedResumes: stats.receivedResumes || 0,
-        hired: stats.hired || 0
-      }
-    } catch {
-      this.loadErrorText = '统计加载失败'
     }
   }
 
@@ -266,13 +222,6 @@ export struct RecruiterProfileTab {
     }
   }
 
-  private openHiredApplications(): void {
-    this.getUIContext().getRouter().pushUrl({
-      url: 'pages/RecruiterRequestsPage',
-      params: { filterStatus: 3 }
-    })
-  }
-
   private confirmLogout(): void {
     this.getUIContext().getPromptAction().showDialog({
       title: '退出登录',
@@ -320,7 +269,6 @@ export struct RecruiterProfileTab {
         Column({ space: AppSpacing.LG }) {
           this.userHeader()
           this.errorBanner()
-          this.statsSection()
           this.roleMenuSection()
           this.accountSection()
         }
@@ -434,49 +382,6 @@ export struct RecruiterProfileTab {
       .backgroundColor(AppColors.ERROR_BG)
       .borderRadius(AppRadius.LG)
     }
-  }
-
-  @Builder
-  statsSection() {
-    Row({ space: AppSpacing.MD }) {
-      Column() {
-        StandardCard({
-          onClickAction: () => { this.handleMenuClick('resumePool') },
-          accessibilityLabel: '收到简历'
-        }) {
-          this.statItem(this.stats.receivedResumes || 0, '收到简历')
-        }
-      }
-      .width('100%')
-      .layoutWeight(1)
-
-      Column() {
-        StandardCard({
-          onClickAction: () => { this.openHiredApplications() },
-          accessibilityLabel: '已录取'
-        }) {
-          this.statItem(this.stats.hired || 0, '已录取')
-        }
-      }
-      .width('100%')
-      .layoutWeight(1)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  statItem(value: number, label: string) {
-    Column({ space: AppSpacing.XS }) {
-      Text(value.toString())
-        .fontSize(AppFontSize.XXL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.PRIMARY)
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-    }
-    .alignItems(HorizontalAlign.Center)
-    .width('100%')
   }
 
   @Builder

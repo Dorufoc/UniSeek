@@ -1,6 +1,6 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { AuthService, UserVO, RealNameStatus } from '../../../services/AuthService';
-import { UserService, UserStats } from '../../../services/UserService';
+import { UserService } from '../../../services/UserService';
 import { ChatService } from '../../../services/ChatService';
 import { ApiClient } from '../../../services/ApiClient';
 import { UserSession } from '../../../services/UserSession';
@@ -22,9 +22,6 @@ export struct ProfilePage {
   private isLoading: boolean = false
   private isReloading: boolean = false
   private pendingRefresh: boolean = false
-  private isStatsLoading: boolean = false
-  private statsPollTimer: number = -1
-  @Prop @Watch('onProfileVisibilityChanged') isProfileVisible: boolean = false
   @State nickname: string = ''
 
 
@@ -33,52 +30,12 @@ export struct ProfilePage {
   @State avatarUri: string = ''
   @State role: number = 0
   @State isVerified: boolean = false
-  @State stats: UserStats = {
-    applications: 0,
-    interviews: 0,
-    favorites: 0,
-    receivedResumes: 0,
-    hired: 0
-  }
   @State loadErrorText: string = ''
   @State uploading: boolean = false
   @State showAbout: boolean = false
 
   aboutToAppear(): void {
     this.refreshProfile()
-    if (this.isProfileVisible) {
-      this.startStatsPolling()
-    }
-  }
-
-  aboutToDisappear(): void {
-    this.stopStatsPolling()
-  }
-
-  private onProfileVisibilityChanged(): void {
-    if (this.isProfileVisible) {
-      this.loadStats()
-      this.startStatsPolling()
-      return
-    }
-    this.stopStatsPolling()
-  }
-
-  private startStatsPolling(): void {
-    if (this.statsPollTimer !== -1) {
-      return
-    }
-    this.statsPollTimer = setInterval(() => {
-      this.loadStats()
-    }, 3000)
-  }
-
-  private stopStatsPolling(): void {
-    if (this.statsPollTimer === -1) {
-      return
-    }
-    clearInterval(this.statsPollTimer)
-    this.statsPollTimer = -1
   }
 
   /** 刷新个人资料与服务端统计数据。 */
@@ -112,10 +69,7 @@ export struct ProfilePage {
     try {
       // 实名认证状态独立优先获取，不依赖 Promise.all，避免被其他请求阻塞或跳过
       await this.loadAuthStatus()
-      await Promise.all([
-        this.loadUser(),
-        this.loadStats()
-      ])
+      await this.loadUser()
     } finally {
       this.isLoading = false
       this.isReloading = false
@@ -143,27 +97,6 @@ export struct ProfilePage {
     this.avatarUri = user.avatarUrl || ''
     this.role = user.role
     AuthService.applyUserInfo(user.id, user.role, user.nickname, user.avatarUrl)
-  }
-
-  private async loadStats(): Promise<void> {
-    if (this.isStatsLoading) {
-      return
-    }
-    this.isStatsLoading = true
-    try {
-      const stats = await UserService.getStats()
-      this.stats = {
-        applications: stats.applications || 0,
-        interviews: stats.interviews || 0,
-        favorites: stats.favorites || 0,
-        receivedResumes: stats.receivedResumes || 0,
-        hired: stats.hired || 0
-      }
-    } catch {
-      this.loadErrorText = '个人统计加载失败'
-    } finally {
-      this.isStatsLoading = false
-    }
   }
 
   private async loadAuthStatus(): Promise<void> {
@@ -391,11 +324,11 @@ export struct ProfilePage {
         Column({ space: AppSpacing.LG }) {
           this.userHeader()
           this.errorBanner()
-          this.statsSection()
           this.roleMenuSection()
           this.accountSection()
         }
         .width('100%')
+
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD, top: AppSpacing.MD, bottom: AppSpacing.XL })
       }
       .width('100%')
@@ -415,6 +348,7 @@ export struct ProfilePage {
 
   @Builder
   userHeader() {
+
     Column() {
       Row({ space: AppSpacing.MD }) {
         // 左侧头像
@@ -468,6 +402,7 @@ export struct ProfilePage {
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
+
     .padding(AppSpacing.MD)
     .borderRadius(AppRadius.LG)
     .linearGradient({
@@ -477,6 +412,7 @@ export struct ProfilePage {
     .onClick(() => { this.getUIContext().getRouter().pushUrl({ url: 'pages/ProfileDetailPage' }) })
     .stateStyles({ pressed: { .opacity(0.92) } })
   }
+
 
   @Builder
   errorBanner() {
@@ -498,56 +434,6 @@ export struct ProfilePage {
       .backgroundColor(AppColors.ERROR_BG)
       .borderRadius(AppRadius.LG)
     }
-  }
-
-  @Builder
-  statsSection() {
-    StandardCard() {
-      if (this.role === 1) {
-        Row() {
-          this.statItem(this.stats.receivedResumes || 0, '收到简历', 'resumePool')
-          this.divider()
-          this.statItem(this.stats.hired || 0, '已录取', 'interviewManage')
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.SpaceAround)
-      } else {
-        Row() {
-          this.statItem(this.stats.applications || 0, '已投简历', 'applications')
-          this.divider()
-          this.statItem(this.stats.interviews || 0, '面试邀请', 'interviews')
-          this.divider()
-          this.statItem(this.stats.favorites || 0, '收藏职位', 'favorites')
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.SpaceAround)
-      }
-    }
-  }
-
-  @Builder
-  statItem(value: number, label: string, targetKey: string) {
-    Column({ space: AppSpacing.XS }) {
-      Text(value.toString())
-        .fontSize(AppFontSize.XXL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.PRIMARY)
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-    }
-    .alignItems(HorizontalAlign.Center)
-    .layoutWeight(1)
-    .onClick(() => { this.handleMenuClick(targetKey) })
-    .stateStyles({ pressed: { .opacity(0.72) } })
-  }
-
-  @Builder
-  divider() {
-    Column()
-      .width(0.5)
-      .height(AppSpacing.LG)
-      .backgroundColor(AppColors.BORDER)
   }
 
   @Builder

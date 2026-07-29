@@ -9,7 +9,6 @@ import {
   APPLICATION_STATUS_LABELS,
   AUDIT_STATUS_LABELS
 } from '../../../services/RecruiterTypes'
-import { UserService, UserStats } from '../../../services/UserService'
 import { AuthService, UserVO } from '../../../services/AuthService'
 
 const ACTIVE_APPLICATION_STATUSES: number[] = [0, 1, 2]
@@ -60,10 +59,8 @@ export struct RecruiterHomeTab {
   @State loadErrorText: string = ''
   @State username: string = ''
   @State enterpriseInfo: RecruiterEnterpriseVO | null = null
-  // 四个计数器使用 UserService.getStats() 实时获取，不依赖 incomingRequests 推导
-  @State stats: UserStats = { receivedResumes: 0, interviews: 0, pending: 0, activeJobs: 0 }
   @State incomingRequests: RecruiterRequestVO[] = []
-  // 通过 AppStorage 监听页面返回与首页 Tab 切换，确保统计和待办数据及时更新。
+  // 通过 AppStorage 监听页面返回与首页 Tab 切换，确保待办数据及时更新。
   @StorageLink('recruiterHomeRefreshTrigger') @Watch('onRefreshTrigger') recruiterHomeRefreshTrigger: number = 0
   // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
   private isFirstPageShow: boolean = true
@@ -107,11 +104,9 @@ export struct RecruiterHomeTab {
     this.pendingDashboardRefresh = false
     this.loadErrorText = ''
     try {
-      // 计数器由 loadStats() 通过 UserService.getStats() 实时获取，不依赖 incomingRequests
       await Promise.all([
         this.loadUserInfo(),
         this.loadEnterpriseInfo(),
-        this.loadStats(),
         this.loadIncomingRequests()
       ])
     } catch {
@@ -144,28 +139,6 @@ export struct RecruiterHomeTab {
     } catch {
       if (this.loadErrorText.length === 0) {
         this.loadErrorText = '企业信息加载失败'
-      }
-    }
-  }
-
-  private async loadStats(): Promise<void> {
-    try {
-      const result = await UserService.getStats()
-      this.stats = {
-        receivedResumes: result.receivedResumes ?? 0,
-        interviews: result.interviews ?? 0,
-        pending: result.pending ?? 0,
-        activeJobs: result.activeJobs ?? 0
-      }
-      if (result.fromCache) {
-        console.warn('[RecruiterHomeTab] 统计数据来自本地缓存，可能不是最新')
-        if (this.loadErrorText.length === 0) {
-          this.loadErrorText = '招聘统计暂时无法刷新，当前显示缓存数据'
-        }
-      }
-    } catch {
-      if (this.loadErrorText.length === 0) {
-        this.loadErrorText = '招聘统计加载失败，请检查网络连接'
       }
     }
   }
@@ -347,54 +320,6 @@ export struct RecruiterHomeTab {
   }
 
   @Builder
-  statItem(value: number, label: string, filterStatus: number = -2) {
-    Column() {
-      Text(value.toString())
-        .fontSize(AppFontSize.XL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.PRIMARY)
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-        .margin({ top: AppSpacing.XS })
-    }
-    .alignItems(HorizontalAlign.Center)
-    .width('100%')
-    .height(72)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.LG)
-    .justifyContent(FlexAlign.Center)
-    .shadow(AppShadow.SM)
-    .onClick(() => {
-      if (filterStatus >= -1) {
-        this.goRequestsWithFilter(filterStatus)
-      }
-    })
-    .stateStyles({
-      pressed: {
-        .backgroundColor(AppColors.INPUT_BG)
-        .scale({ x: 0.97, y: 0.97 })
-      }
-    })
-    .animation({ duration: AppAnimation.DURATION_FAST, curve: AppAnimation.CURVE_EMPHASIZED })
-  }
-
-  @Builder
-  statsSection() {
-    Grid() {
-      // 四个计数器均直接使用 UserService.getStats() 实时数据，不与 myJobs/incomingRequests 耦合
-      GridItem() { this.statItem(this.stats.receivedResumes ?? 0, '收到简历', -1) }
-      GridItem() { this.statItem(this.stats.interviews ?? 0, '待面试', 1) }
-      GridItem() { this.statItem(this.stats.pending ?? 0, '待定', 2) }
-      GridItem() { this.statItem(this.stats.activeJobs ?? 0, '在招职位', -1) }
-    }
-    .columnsTemplate('1fr 1fr 1fr 1fr')
-    .columnsGap(AppSpacing.SM)
-    .rowsGap(AppSpacing.SM)
-    .width('100%')
-  }
-
-  @Builder
   quickItem(item: QuickMenuItem) {
     Column() {
       SymbolGlyph(item.icon)
@@ -568,8 +493,6 @@ export struct RecruiterHomeTab {
         ListItem() { this.enterpriseHeader() }
 
         ListItem() { this.quickActions() }
-
-        ListItem() { this.statsSection() }
 
         ListItem() { this.requestsSection() }
 
