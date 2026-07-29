@@ -6,8 +6,10 @@ import {
   formatMessageTime,
   shouldShowTimeLabel,
   getDateSeparatorLabel,
-  getAttachmentName
+  getAttachmentName,
+  getResumeAttachmentContent
 } from '../../main/ets/components/chat/ChatMessageUtils';
+import { ResumeData } from '../../main/ets/services/ResumeService';
 
 export default function chatUtilsTest() {
   describe('ChatMessageUtils', () => {
@@ -106,7 +108,48 @@ export default function chatUtilsTest() {
       expect(result.length <= 30).assertTrue()
       expect(result.indexOf('...') > -1).assertTrue()
     })
+
+    // 简历附件消息内容提取：确保已保存附件的 URL 作为 messageType=2 的 content 发送
+    it('getResumeAttachmentContent keeps saved attachment url', 0, () => {
+      const url: string = '/api/files/resume.pdf'
+      const resume: ResumeData = buildResumeData(url)
+      expect(getResumeAttachmentContent(resume)).assertEqual(url)
+    })
+
+    it('getResumeAttachmentContent trims whitespace', 0, () => {
+      const url: string = '/api/files/resume.pdf'
+      const resume: ResumeData = buildResumeData('  ' + url + '  ')
+      expect(getResumeAttachmentContent(resume)).assertEqual(url)
+    })
+
+    it('getResumeAttachmentContent returns empty when resume is null', 0, () => {
+      expect(getResumeAttachmentContent(null)).assertEqual('')
+    })
+
+    it('getResumeAttachmentContent returns empty when attachmentUrl is missing', 0, () => {
+      const resume: ResumeData = buildResumeData('')
+      expect(getResumeAttachmentContent(resume)).assertEqual('')
+    })
   })
+}
+
+// 辅助：构造测试用的简历数据，仅 attachmentUrl 可变
+function buildResumeData(attachmentUrl: string): ResumeData {
+  const resume: ResumeData = {
+    id: 1,
+    userId: 1,
+    gender: 0,
+    birthDate: '2000-01-01',
+    education: '本科',
+    school: '测试大学',
+    graduationDate: '2024-06-01',
+    skills: '测试',
+    experience: '测试经历',
+    attachmentUrl: attachmentUrl,
+    isPublished: 1,
+    realName: '测试'
+  }
+  return resume
 }
 
 // 辅助：构造与 Date 绝对时间一致的 ISO 字符串，避免时区偏差导致测试不稳定

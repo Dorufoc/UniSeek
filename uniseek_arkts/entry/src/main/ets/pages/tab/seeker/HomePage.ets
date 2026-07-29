@@ -205,8 +205,7 @@ export struct HomePage {
       selectedType: this.selectedType,
       selectedTags: this.selectedTags,
       breakpoint: this.breakpoint,
-      onApply: (selection: FilterSelection) => { this.applyFilterSelection(selection) },
-      onReset: () => { }
+      onApply: (selection: FilterSelection) => { this.applyFilterSelection(selection) }
     })
   }
 

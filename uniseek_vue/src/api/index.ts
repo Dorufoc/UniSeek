@@ -33,8 +33,9 @@ request.interceptors.response.use(
     const data = response.data
     // 后端统一用 HTTP 200 + code 字段区分成功/失败
     // code !== 200 时视为业务错误，弹出提示并拒绝 Promise
+    const silent = (response.config as unknown as Record<string, unknown>)._silent === true
     if (data.code && data.code !== 200) {
-      if (!(response.config as any)._silent) {
+      if (!silent) {
         ElMessage.error(data.message || '请求失败')
       }
       return Promise.reject(data)
@@ -42,6 +43,8 @@ request.interceptors.response.use(
     return data.data
   },
   (error) => {
+    const silent = ((error.config as unknown) as Record<string, unknown> | undefined)?._silent === true
+
     // 401：未授权，清除本地登录态并跳转登录页（防抖：同一时刻只弹一次提示）
     if (error.response?.status === 401) {
       localStorage.removeItem('uniseek_token')
@@ -49,7 +52,9 @@ request.interceptors.response.use(
       localStorage.removeItem('uniseek_role')
       if (!_isHandling401) {
         _isHandling401 = true
-        ElMessage.error('认证令牌无效或已过期，请重新登录')
+        if (!silent) {
+          ElMessage.error('认证令牌无效或已过期，请重新登录')
+        }
         setTimeout(() => {
           _isHandling401 = false
           window.location.href = '/login'
@@ -57,14 +62,16 @@ request.interceptors.response.use(
       }
       return Promise.reject(error)
     }
+
     // 5xx 服务端错误：统一跳转到错误页（避免在错误页自身内再触发跳转）
     const status = error.response?.status
     if (status && status >= 500 && status < 600 && !window.location.pathname.startsWith('/error')) {
       window.location.href = `/error/${status}`
       return Promise.reject(error)
     }
+
     // 其余情况按原逻辑提示
-    if (!error.config?._silent) {
+    if (!silent) {
       const msg = error.response?.data?.message || '网络异常，请稍后重试'
       ElMessage.error(msg)
     }

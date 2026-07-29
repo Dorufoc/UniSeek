@@ -4,12 +4,14 @@ import recruiterResumeFilterTest from './RecruiterResumeFilter.test'
 import applicationTabPolicyTest from './ApplicationTabPolicy.test'
 import auditPoliciesTest from './AuditPolicies.test'
 import recruiterDeadlineFormatterTest from './RecruiterDeadlineFormatter.test'
+import deadlinePickerUtilsTest from './DeadlinePickerUtils.test'
 import chatUtilsTest from './chat/ChatUtils.test';
 import chatComponentsTest from './chat/ChatComponents.test';
 import chatWebSocketPolicyTest from './chat/ChatWebSocketPolicy.test';
 import chatSendPolicyTest from './chat/ChatSendPolicy.test';
 import regionPathBuilderTest from './RegionPathBuilder.test'
 import fileTransferPolicyTest from './FileTransferPolicy.test'
+import enterpriseRegionDisplayTest from './EnterpriseRegionDisplay.test'
 
 export default function testsuite() {
   localUnitTest();
@@ -18,10 +20,12 @@ export default function testsuite() {
   applicationTabPolicyTest()
   auditPoliciesTest()
   recruiterDeadlineFormatterTest()
+  deadlinePickerUtilsTest()
   chatUtilsTest();
   chatComponentsTest();
   chatWebSocketPolicyTest();
   chatSendPolicyTest();
   regionPathBuilderTest();
   fileTransferPolicyTest();
+  enterpriseRegionDisplayTest();
 }

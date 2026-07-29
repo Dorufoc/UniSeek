@@ -144,6 +144,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getScreenSummary, getCategoryDistribution, getHotTasks, getLatestActivity, getTalentFlow, getApplicationFunnel, getEnterpriseSummary } from '@/api/admin'
+import { getLatestTelemetry } from '@/api/telemetry'
 
 // ============== 1. 品牌配色与数据 ==============
 const COLORS = {
@@ -153,12 +154,14 @@ const COLORS = {
   bg: '#051024'
 }
 
-// KPI 数据
+// KPI 数据（前四项为运营统计，后两项为环境遥测）
 const kpiData = ref([
   { label: '平台总用户', value: '-', unit: '人', trend: null },
   { label: '在招活跃岗位', value: '-', unit: '个', trend: null },
   { label: '今日新增投递', value: '-', unit: '次', trend: null },
-  { label: '认证企业数', value: '-', unit: '家', trend: null }
+  { label: '认证企业数', value: '-', unit: '家', trend: null },
+  { label: '环境温度', value: '-', unit: '℃', trend: null },
+  { label: '环境湿度', value: '-', unit: '%RH', trend: null }
 ])
 
 const fetchAllData = async (range?: string) => {
@@ -167,12 +170,12 @@ const fetchAllData = async (range?: string) => {
     // KPI + 趋势图数据
     const summaryRes = await getScreenSummary(range || currentRange.value)
     if (summaryRes.summary) {
-      kpiData.value = [
-        { label: '平台总用户', value: (summaryRes.summary.totalUsers ?? 0).toLocaleString(), unit: '人', trend: null },
-        { label: '在招活跃岗位', value: (summaryRes.summary.publishedTasks ?? 0).toLocaleString(), unit: '个', trend: null },
-        { label: '今日新增投递', value: (summaryRes.latestDeliveries ?? 0).toLocaleString(), unit: '次', trend: null },
-        { label: '认证企业数', value: (summaryRes.summary.totalEnterprises ?? 0).toLocaleString(), unit: '家', trend: null }
-      ]
+      const summary = summaryRes.summary
+      // 仅更新前四项运营统计，保留环境温度/湿度位置不被覆盖
+      kpiData.value[0].value = (summary.totalUsers ?? 0).toLocaleString()
+      kpiData.value[1].value = (summary.publishedTasks ?? 0).toLocaleString()
+      kpiData.value[2].value = (summaryRes.latestDeliveries ?? 0).toLocaleString()
+      kpiData.value[3].value = (summary.totalEnterprises ?? 0).toLocaleString()
     }
     // 供需趋势图数据
     if (summaryRes.dailyList && summaryRes.dailyList.length > 0) {
@@ -841,6 +844,24 @@ const fetchAllData = async (range?: string) => {
   }
 }
 
+// 环境遥测独立刷新
+async function fetchLatestEnv() {
+  if (isUnmounted) return
+  try {
+    const data = await getLatestTelemetry()
+    if (isUnmounted) return
+    if (data.temperature !== undefined) {
+      kpiData.value[4].value = data.temperature.toFixed(1)
+    }
+    if (data.humidity !== undefined) {
+      kpiData.value[5].value = data.humidity.toFixed(1)
+    }
+  } catch (e) {
+    // 失败时保留已有数字或占位，不弹出干扰性错误
+    console.debug('环境遥测刷新失败', e)
+  }
+}
+
 // 动态流数据
 const feedData = ref<Array<{ id: number; name: string; action: string; target: string; time: string }>>([])
 const feedListRef = ref<HTMLElement | null>(null)
@@ -1273,6 +1294,13 @@ onMounted(() => {
     currentRange.value = nextRange
   }, 10000)
 
+  // 环境遥测：首次进入立即获取一次，之后按 LiteOS 10s 周期独立刷新
+  fetchLatestEnv()
+  const envTimer = setInterval(() => {
+    if (isUnmounted) return
+    fetchLatestEnv()
+  }, 10000)
+
   // 首次数据加载后启动 feed 滚动
   startFeedScroll()
 
@@ -1280,6 +1308,7 @@ onMounted(() => {
     isUnmounted = true
     window.removeEventListener('resize', handleResize)
     clearInterval(intervalId)
+    clearInterval(envTimer)
     disposeAllCharts()
     stopFeedScroll()
   })
@@ -1369,11 +1398,12 @@ onMounted(() => {
 }
 .kpi-grid {
   display: flex;
-  gap: 30px;
+  gap: 20px;
+  flex-wrap: nowrap;
 }
 .kpi-card {
   text-align: center;
-  min-width: 120px;
+  min-width: 100px;
 }
 .kpi-label {
   font-size: 13px;

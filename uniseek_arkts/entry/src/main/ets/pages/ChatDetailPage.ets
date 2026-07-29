@@ -5,6 +5,7 @@
 import { ChatService } from '../services/ChatService';
 import { ChatMessageVO, ChatSessionVO } from '../services/ChatTypes';
 import { ResumeService, ResumeData } from '../services/ResumeService';
+import { getResumeAttachmentContent } from '../components/chat/ChatMessageUtils';
 import { ChatWebSocketService, WsChatDetailEvent } from '../services/ChatWebSocketService';
 import { UserSession } from '../services/UserSession';
 import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
@@ -397,11 +398,12 @@ struct ChatDetailPage {
     this.isSendingResume = true
     try {
       const resume: ResumeData | null = await ResumeService.getMyResume()
-      if (!resume || !resume.attachmentUrl) {
+      const content: string = getResumeAttachmentContent(resume)
+      if (content.length === 0) {
         this.getUIContext().getPromptAction().showToast({ message: '请先在个人简历中上传附件简历' })
         return
       }
-      const msg: ChatMessageVO = await ChatService.sendMessageWithType(this.applicationId, 2, '', this.sessionType)
+      const msg: ChatMessageVO = await ChatService.sendMessageWithType(this.applicationId, 2, content, this.sessionType)
       this.appendMessageIfNeeded(msg)
       this.loadSessionInfo()
       this.scrollToBottomOfList()

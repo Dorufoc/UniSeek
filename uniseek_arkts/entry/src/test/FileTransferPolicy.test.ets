@@ -54,5 +54,19 @@ export default function fileTransferPolicyTest(): void {
       }
       expect(FileTransferPolicy.readUploadUrl(response)).assertEqual('')
     })
+
+    it('将应用沙箱路径转换为文件 URI', 0, (): void => {
+      expect(FileTransferPolicy.toFileUri('/data/storage/el2/base/haps/entry/files/resume.pdf'))
+        .assertEqual('file:///data/storage/el2/base/haps/entry/files/resume.pdf')
+    })
+
+    it('已有文件 URI 时不重复添加协议', 0, (): void => {
+      const uri: string = 'file:///data/storage/el2/base/haps/entry/files/resume.pdf'
+      expect(FileTransferPolicy.toFileUri(uri)).assertEqual(uri)
+    })
+
+    it('空路径不能生成文件 URI', 0, (): void => {
+      expect(FileTransferPolicy.toFileUri('')).assertEqual('')
+    })
   })
 }

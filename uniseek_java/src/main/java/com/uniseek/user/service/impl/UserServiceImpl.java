@@ -1,6 +1,7 @@
 package com.uniseek.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.uniseek.auth.dto.UserVO;
 import com.uniseek.common.ApiResult;
@@ -137,20 +138,8 @@ public class UserServiceImpl implements UserService {
             stats.put("favorites", favorites);
 
         } else if (role == 1) {
-            // 招聘者统计：取当前用户最新一条企业认证，统计该企业发布职位的收到投递总数和已录取数（status=3）
-            Enterprise enterprise = enterpriseMapper.selectOne(
-                    new LambdaQueryWrapper<Enterprise>()
-                            .eq(Enterprise::getUserId, userId)
-                            .orderByDesc(Enterprise::getCreateTime)
-                            .last("LIMIT 1"));
-
-            if (enterprise == null) {
-                stats.put("receivedResumes", 0);
-                stats.put("hired", 0);
-                return stats;
-            }
-
-            List<Long> taskIds = queryTaskIdsByEnterpriseId(enterprise.getId());
+            // 招聘者统计覆盖当前账号全部企业记录下的职位，避免企业资质重提后遗漏历史职位的投递数据。
+            List<Long> taskIds = queryTaskIdsByUserId(userId);
             if (taskIds.isEmpty()) {
                 stats.put("receivedResumes", 0);
                 stats.put("hired", 0);
@@ -158,13 +147,13 @@ public class UserServiceImpl implements UserService {
             }
 
             int receivedResumes = taskApplicationMapper.selectCount(
-                    new LambdaQueryWrapper<TaskApplication>().in(TaskApplication::getTaskId, taskIds));
+                    new QueryWrapper<TaskApplication>().in("task_id", taskIds));
             stats.put("receivedResumes", receivedResumes);
 
             int hired = taskApplicationMapper.selectCount(
-                    new LambdaQueryWrapper<TaskApplication>()
-                            .in(TaskApplication::getTaskId, taskIds)
-                            .eq(TaskApplication::getStatus, 3));
+                    new QueryWrapper<TaskApplication>()
+                            .in("task_id", taskIds)
+                            .eq("status", 3));
             stats.put("hired", hired);
         }
 
@@ -172,16 +161,32 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 查询指定企业发布的所有职位 ID，用于招聘者统计的参数化 IN 查询。
+     * 查询指定招聘者全部企业记录下的职位 ID，用于招聘者统计的参数化 IN 查询。
      */
-    private List<Long> queryTaskIdsByEnterpriseId(Long enterpriseId) {
-        if (enterpriseId == null) {
+    private List<Long> queryTaskIdsByUserId(Long userId) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+        List<Enterprise> enterprises = enterpriseMapper.selectList(
+                new QueryWrapper<Enterprise>()
+                        .eq("user_id", userId)
+                        .select("id"));
+        if (enterprises.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> enterpriseIds = new ArrayList<>(enterprises.size());
+        for (Enterprise enterprise : enterprises) {
+            if (enterprise.getId() != null) {
+                enterpriseIds.add(enterprise.getId());
+            }
+        }
+        if (enterpriseIds.isEmpty()) {
             return Collections.emptyList();
         }
         List<Task> tasks = taskMapper.selectList(
-                new LambdaQueryWrapper<Task>()
-                        .eq(Task::getEnterpriseId, enterpriseId)
-                        .select(Task::getId));
+                new QueryWrapper<Task>()
+                        .in("enterprise_id", enterpriseIds)
+                        .select("id"));
         List<Long> taskIds = new ArrayList<>(tasks.size());
         for (Task task : tasks) {
             if (task.getId() != null) {

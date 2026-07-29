@@ -16,6 +16,10 @@ import { ApiClient } from '../services/ApiClient';
 import { FileTransferPolicy } from '../services/FileTransferPolicy';
 import { StatusBanner } from '../components/enterprise/StatusBanner';
 import { LicenseUploader } from '../components/enterprise/LicenseUploader';
+import { resolveEnterpriseRegionName, RegionFallbackOption } from '../common/EnterpriseRegionDisplay';
+
+interface RegionOption extends RegionFallbackOption {
+}
 
 const CREDIT_CODE_REGEX: RegExp = /^[0-9A-HJ-NPQRTUWXY]{18}$/i
 
@@ -23,11 +27,6 @@ enum PageMode {
   VIEW,
   EDIT,
   CREATE
-}
-
-interface RegionOption {
-  id: number
-  label: string
 }
 
 interface IndustryOption {
@@ -54,6 +53,7 @@ struct RecruiterEnterprisePage {
   @State errorText: string = ''
 
   @State regionOptions: RegionOption[] = []
+  private regionTree: RegionNode[] = []
   @State industryOptions: IndustryOption[] = []
   @State showRegionSheet: boolean = false
   @State showIndustrySheet: boolean = false
@@ -108,6 +108,7 @@ struct RecruiterEnterprisePage {
   private async loadRegions(): Promise<void> {
     try {
       const regions: RegionNode[] = await DataService.getRegionTree()
+      this.regionTree = regions
       this.regionOptions = this.flattenRegions(regions, '')
     } catch {
       console.error('[RecruiterEnterprisePage] 地区数据加载失败')
@@ -152,7 +153,7 @@ struct RecruiterEnterprisePage {
     this.creditCode = info.creditCode || ''
     this.industry = info.industry || ''
     this.regionId = info.regionId || 0
-    this.regionName = info.regionName || this.findRegionName(info.regionId)
+    this.regionName = resolveEnterpriseRegionName(info.regionId, this.regionTree, this.regionOptions)
     this.description = info.description || ''
     this.licenseImgUrl = info.licenseImgUrl || ''
     this.licenseImageError = false
@@ -160,14 +161,6 @@ struct RecruiterEnterprisePage {
 
   private resolveLicenseUrl(url: string): string {
     return ServerConfig.toHttpUrl(ApiClient.BASE_URL, url)
-  }
-
-  private findRegionName(regionId: number | undefined): string {
-    if (!regionId) {
-      return ''
-    }
-    const option = this.regionOptions.find((item: RegionOption): boolean => item.id === regionId)
-    return option ? option.label : ''
   }
 
   private clearForm(): void {
@@ -310,7 +303,7 @@ struct RecruiterEnterprisePage {
 
   private selectRegion(option: RegionOption): void {
     this.regionId = option.id
-    this.regionName = option.label
+    this.regionName = resolveEnterpriseRegionName(option.id, this.regionTree, this.regionOptions)
     this.showRegionSheet = false
   }
 
@@ -416,23 +409,89 @@ struct RecruiterEnterprisePage {
   @Builder
   viewContent() {
     if (this.enterpriseInfo) {
-      StandardCard() {
-        StatusBanner({ status: this.enterpriseInfo.auditStatus })
-      }
-
-      StandardCard() {
+      Column({ space: AppSpacing.SM }) {
+        Text('认证状态')
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_SECONDARY)
+          .width('100%')
+          .padding({ left: AppSpacing.XS })
         Column({ space: AppSpacing.MD }) {
-          this.infoRow('公司全称', this.enterpriseInfo.companyName)
-          this.infoRow('统一社会信用代码', this.enterpriseInfo.creditCode)
-          if (this.enterpriseInfo.licenseImgUrl) {
-            this.licenseViewRow()
-          }
-          this.infoRow('所属行业', this.enterpriseInfo.industry || '未设置')
-          this.infoRow('所在地区', this.enterpriseInfo.regionName || '未设置')
-          this.infoRow('公司简介', this.enterpriseInfo.description || '未设置')
+          StatusBanner({ status: this.enterpriseInfo!.auditStatus })
         }
         .width('100%')
+        .backgroundColor(AppColors.BG_CARD)
+        .borderRadius(AppRadius.LG)
+        .padding(AppSpacing.MD)
+        .shadow({ radius: 6, color: AppColors.BORDER_LIGHT, offsetX: 0, offsetY: 2 })
       }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: AppSpacing.SM }) {
+        Text('基本信息')
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_SECONDARY)
+          .width('100%')
+          .padding({ left: AppSpacing.XS })
+        Column({ space: AppSpacing.LG }) {
+          this.infoRow('公司全称', this.enterpriseInfo!.companyName)
+          this.infoRow('统一社会信用代码', this.enterpriseInfo!.creditCode)
+          this.infoRow('所属行业', this.enterpriseInfo!.industry || '未设置')
+          this.infoRow('所在地区', this.regionName || '未设置')
+        }
+        .width('100%')
+        .backgroundColor(AppColors.BG_CARD)
+        .borderRadius(AppRadius.LG)
+        .padding(AppSpacing.MD)
+        .shadow({ radius: 6, color: AppColors.BORDER_LIGHT, offsetX: 0, offsetY: 2 })
+      }
+      .width('100%')
+      .margin({ top: AppSpacing.SM })
+      .alignItems(HorizontalAlign.Start)
+
+      if (this.enterpriseInfo!.licenseImgUrl) {
+        Column({ space: AppSpacing.SM }) {
+          Text('营业执照')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .width('100%')
+            .padding({ left: AppSpacing.XS })
+          Column({ space: AppSpacing.MD }) {
+            this.licenseViewRow()
+          }
+          .width('100%')
+          .backgroundColor(AppColors.BG_CARD)
+          .borderRadius(AppRadius.LG)
+          .padding(AppSpacing.MD)
+          .shadow({ radius: 6, color: AppColors.BORDER_LIGHT, offsetX: 0, offsetY: 2 })
+        }
+        .width('100%')
+        .margin({ top: AppSpacing.SM })
+        .alignItems(HorizontalAlign.Start)
+      }
+
+      Column({ space: AppSpacing.SM }) {
+        Text('公司简介')
+          .fontSize(AppFontSize.XS)
+          .fontColor(AppColors.TEXT_SECONDARY)
+          .width('100%')
+          .padding({ left: AppSpacing.XS })
+        Column({ space: AppSpacing.MD }) {
+          Text(this.enterpriseInfo!.description || '未设置')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_PRIMARY)
+            .width('100%')
+            .wordBreak(WordBreak.BREAK_ALL)
+        }
+        .width('100%')
+        .backgroundColor(AppColors.BG_CARD)
+        .borderRadius(AppRadius.LG)
+        .padding(AppSpacing.MD)
+        .shadow({ radius: 6, color: AppColors.BORDER_LIGHT, offsetX: 0, offsetY: 2 })
+      }
+      .width('100%')
+      .margin({ top: AppSpacing.SM })
+      .alignItems(HorizontalAlign.Start)
 
       Button({ type: ButtonType.Capsule }) {
         Text('编辑企业信息')
@@ -474,42 +533,53 @@ struct RecruiterEnterprisePage {
 
   @Builder
   licenseViewRow() {
-    Column() {
-      Text('营业执照')
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .width('100%')
-      if (this.licenseImageError) {
-        Text('营业执照图片加载失败，请检查网络或重新上传')
+    Row({ space: AppSpacing.SM }) {
+      Image(this.resolveLicenseUrl(this.licenseImgUrl))
+        .width(72)
+        .height(54)
+        .objectFit(ImageFit.Cover)
+        .borderRadius(AppRadius.SM)
+        .alt($r('sys.symbol.picture'))
+        .onError(() => {
+          this.licenseImageError = true
+        })
+
+      Column() {
+        Text('营业执照')
           .fontSize(AppFontSize.SM)
-          .fontColor(AppColors.DANGER)
+          .fontColor(this.licenseImageError ? AppColors.DANGER : AppColors.TEXT_PRIMARY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%')
-          .margin({ top: AppSpacing.XS })
+        if (this.licenseImageError) {
+          Text('加载失败，请检查网络或重新上传')
+            .fontSize(AppFontSize.XXS)
+            .fontColor(AppColors.DANGER)
+            .margin({ top: AppSpacing.XS })
+            .width('100%')
+        } else {
+          Text('已上传')
+            .fontSize(AppFontSize.XXS)
+            .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.XS })
+            .width('100%')
+        }
       }
-      Row({ space: AppSpacing.SM }) {
-        Image(this.resolveLicenseUrl(this.licenseImgUrl))
-          .width(72)
-          .height(54)
-          .objectFit(ImageFit.Cover)
-          .borderRadius(AppRadius.SM)
-          .alt($r('sys.symbol.picture'))
-          .onError(() => {
-            this.licenseImageError = true
-          })
-        Text('点击查看营业执照')
-          .fontSize(AppFontSize.SM)
-          .fontColor(AppColors.PRIMARY)
-          .layoutWeight(1)
-      }
-      .width('100%')
-      .margin({ top: AppSpacing.XS })
-      .alignItems(VerticalAlign.Center)
-      .onClick(() => {
-        this.showLicensePreview = true
-      })
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Button('预览', { type: ButtonType.Capsule })
+        .height(AppSpacing.BUTTON_HEIGHT_MINI)
+        .fontSize(AppFontSize.XS)
+        .fontColor(AppColors.PRIMARY)
+        .backgroundColor(AppColors.SELECTED_BG)
+        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+        .onClick(() => {
+          this.previewLicense()
+        })
     }
     .width('100%')
-    .alignItems(HorizontalAlign.Start)
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder

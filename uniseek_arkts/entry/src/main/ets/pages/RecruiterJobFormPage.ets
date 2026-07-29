@@ -6,6 +6,7 @@ import { formatDeadlineForApi, RecruiterJobRequest } from '../services/Recruiter
 import { SelectorOption } from '../components/filter/SelectorSheet';
 import { SelectorField } from '../components/filter/SelectorField';
 import { ChoiceChips, ChoiceOption } from '../components/filter/ChoiceChips';
+import { applyDatePickerResult, applyTimePickerResult } from '../utils/DeadlinePickerUtils';
 
 const SALARY_UNIT_OPTIONS: ChoiceOption[] = [
   { value: 0, label: '日薪' },
@@ -60,19 +61,14 @@ struct RecruiterDeadlinePickerDialog {
       })
         .lunar(false)
         .onChange((value: DatePickerResult): void => {
-          const year: number = value.year === undefined ? this.selectedDate.getFullYear() : value.year
-          const month: number = value.month === undefined ? this.selectedDate.getMonth() + 1 : value.month
-          const day: number = value.day === undefined ? this.selectedDate.getDate() : value.day
-          this.selectedDate = new Date(year, month - 1, day, this.selectedDate.getHours(), this.selectedDate.getMinutes())
+          this.selectedDate = applyDatePickerResult(this.selectedDate, value)
         })
         .width('100%')
         .height(180)
 
       TimePicker({ selected: this.selectedDate })
         .onChange((value: TimePickerResult): void => {
-          const hour: number = value.hour === undefined ? this.selectedDate.getHours() : value.hour
-          const minute: number = value.minute === undefined ? this.selectedDate.getMinutes() : value.minute
-          this.selectedDate = new Date(this.selectedDate.getFullYear(), this.selectedDate.getMonth(), this.selectedDate.getDate(), hour, minute)
+          this.selectedDate = applyTimePickerResult(this.selectedDate, value)
         })
         .width('100%')
         .height(150)

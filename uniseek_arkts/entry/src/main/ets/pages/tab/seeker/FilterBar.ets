@@ -23,11 +23,11 @@ export struct FilterBar {
       Button({ type: ButtonType.Capsule }) {
         SymbolGlyph($r('sys.symbol.line_3_horizontal'))
           .fontSize(AppFontSize.ICON_MD)
-          .fontColor([AppColors.TEXT_PRIMARY])
+          .fontColor([this.filterActive ? AppColors.PRIMARY : AppColors.TEXT_PRIMARY])
       }
       .width(AppSpacing.BUTTON_HEIGHT)
       .height(AppSpacing.BUTTON_HEIGHT)
-      .backgroundColor(AppColors.INPUT_BG)
+      .backgroundColor(this.filterActive ? AppColors.SELECTED_BG : AppColors.INPUT_BG)
       .margin({ right: AppSpacing.SM })
       .onClick(() => {
         this.onFilterClick?.()

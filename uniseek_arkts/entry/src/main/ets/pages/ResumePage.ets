@@ -1,5 +1,5 @@
 import { SegmentButton, SegmentButtonOptions } from '@kit.ArkUI';
-import { picker, fileIo } from '@kit.CoreFileKit';
+import { picker } from '@kit.CoreFileKit';
 import { ChatService } from '../services/ChatService';
 import { ResumeService, ResumeRequest, ResumeData } from '../services/ResumeService';
 import { AuthService, RealNameStatus } from '../services/AuthService';
@@ -814,34 +814,26 @@ struct ResumePage {
     const documentPicker = new picker.DocumentViewPicker(getContext())
      const options: picker.DocumentSelectOptions = new picker.DocumentSelectOptions()
      options.maxSelectNumber = 1
-     options.fileSuffixFilters = ['PDF文档|.pdf']
+      options.fileSuffixFilters = ['.pdf']
      documentPicker.select(options).then((uris: string[]) => {
       if (uris.length === 0) {
         return
       }
-      const uri = uris[0]
+       const uri: string = uris[0]
        const fileName: string = this.decodeAttachmentName(uri) || '简历.pdf'
-      let errorText: string = ''
-      try {
-        const stat = fileIo.statSync(uri)
-        errorText = UploadPolicy.validateResume(fileName, stat.size)
-      } catch {
-        errorText = '无法读取所选文件'
-      }
+       const errorText: string = UploadPolicy.validateResume(fileName, 0)
       if (errorText) {
         this.getUIContext().getPromptAction().showToast({ message: errorText })
         return
       }
-      this.attachmentName = fileName
-      this.uploading = true
+       this.attachmentName = fileName
+       this.uploading = true
        ChatService.uploadResumeAttachment(uri).then((url: string) => {
-        this.onAttachmentUploaded(url)
-        this.getUIContext().getPromptAction().showToast({ message: '简历上传成功' })
-      }).catch(() => {
-        this.attachmentUrl = ''
-        this.attachmentName = ''
-        this.getUIContext().getPromptAction().showToast({ message: '简历上传失败，请重试' })
-      }).finally(() => {
+         this.onAttachmentUploaded(url)
+         this.getUIContext().getPromptAction().showToast({ message: '简历上传成功' })
+       }).catch(() => {
+         this.getUIContext().getPromptAction().showToast({ message: '简历上传失败，请重试' })
+       }).finally(() => {
         this.uploading = false
       })
     }).catch(() => {

@@ -18,11 +18,7 @@ export struct ChatPage {
   private readonly pageListenerId: string = 'chat_list_seeker_' + Date.now().toString()
 
   aboutToAppear(): void {
-    // 注册新消息回调，收到推送时实时更新会话列表
-    ChatWebSocketService.getInstance().connect()
-    ChatWebSocketService.getInstance().addSessionMessageListener(this.pageListenerId, (data: WsNewMessageData) => {
-      this.handleNewMessage(data)
-    })
+    this.registerSessionListener()
     this.loadSessions()
   }
 
@@ -31,7 +27,16 @@ export struct ChatPage {
   }
 
   onPageShow(): void {
+    this.registerSessionListener()
     this.loadSessions()
+  }
+
+  private registerSessionListener(): void {
+    // 页面重新显示时恢复监听，避免 Tab 页面隐藏后丢失实时消息回调
+    ChatWebSocketService.getInstance().connect()
+    ChatWebSocketService.getInstance().addSessionMessageListener(this.pageListenerId, (data: WsNewMessageData) => {
+      this.handleNewMessage(data)
+    })
   }
 
   private async loadSessions(): Promise<void> {
@@ -76,6 +81,7 @@ export struct ChatPage {
       const original = this.sessions[idx]
       const updated: ChatSessionVO = {
         applicationId: original.applicationId,
+        sessionType: original.sessionType,
         taskId: original.taskId,
         taskTitle: original.taskTitle,
         taskStatus: original.taskStatus,
@@ -107,7 +113,7 @@ export struct ChatPage {
       // 重新赋值触发 @State 刷新，红点立即消失
       this.sessions = [...this.sessions]
       // 异步同步后端已读，失败不影响本地体验
-      ChatService.markSessionRead(session.applicationId).catch((err: Error) => {
+      ChatService.markSessionRead(session.applicationId, session.sessionType).catch((err: Error) => {
         console.error('标记会话已读失败: ' + String(err))
       })
     }
@@ -117,6 +123,7 @@ export struct ChatPage {
         url: 'pages/ChatDetailPage',
         params: {
           applicationId: session.applicationId,
+          sessionType: session.sessionType,
           counterpartName: session.counterpartName,
           counterpartAvatar: session.counterpartAvatar
         }

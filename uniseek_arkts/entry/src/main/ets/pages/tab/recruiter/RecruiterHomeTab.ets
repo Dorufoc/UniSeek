@@ -64,10 +64,12 @@ export struct RecruiterHomeTab {
   @State stats: UserStats = { receivedResumes: 0, hired: 0 }
   @State myJobs: RecruiterJobVO[] = []
   @State incomingRequests: RecruiterRequestVO[] = []
+  // 通过 AppStorage 监听页面返回与首页 Tab 切换，确保统计和待办数据及时更新。
+  @StorageLink('recruiterHomeRefreshTrigger') @Watch('onRefreshTrigger') recruiterHomeRefreshTrigger: number = 0
   // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
   private isFirstPageShow: boolean = true
-  // 标识 /api/user/stats 是否已成功返回（未加载或失败时使用本地聚合兜底）
-  private statsLoaded: boolean = false
+  private isDashboardLoading: boolean = false
+  private pendingDashboardRefresh: boolean = false
 
   aboutToAppear(): void {
     // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
@@ -86,6 +88,10 @@ export struct RecruiterHomeTab {
     void this.loadDashboard()
   }
 
+  private onRefreshTrigger(): void {
+    void this.loadDashboard()
+  }
+
   private loadCachedData(): void {
     const cachedUser: UserVO | null = AuthService.getCachedCurrentUser()
     if (cachedUser) {
@@ -94,6 +100,12 @@ export struct RecruiterHomeTab {
   }
 
   private async loadDashboard(): Promise<void> {
+    if (this.isDashboardLoading) {
+      this.pendingDashboardRefresh = true
+      return
+    }
+    this.isDashboardLoading = true
+    this.pendingDashboardRefresh = false
     this.loadErrorText = ''
     try {
       await Promise.all([
@@ -105,9 +117,15 @@ export struct RecruiterHomeTab {
       ])
     } catch {
       this.loadErrorText = '页面数据加载失败，请重试'
+    } finally {
+      this.isLoading = false
+      this.isRefreshing = false
+      this.isDashboardLoading = false
+      if (this.pendingDashboardRefresh) {
+        this.pendingDashboardRefresh = false
+        void this.loadDashboard()
+      }
     }
-    this.isLoading = false
-    this.isRefreshing = false
   }
 
   private async loadUserInfo(): Promise<void> {
@@ -134,9 +152,7 @@ export struct RecruiterHomeTab {
   private async loadStats(): Promise<void> {
     try {
       this.stats = await UserService.getStats()
-      this.statsLoaded = !this.stats.fromCache
     } catch {
-      this.statsLoaded = false
       if (this.loadErrorText.length === 0) {
         this.loadErrorText = '招聘统计加载失败'
       }
@@ -171,16 +187,12 @@ export struct RecruiterHomeTab {
     return this.incomingRequests.filter((req: RecruiterRequestVO): boolean => req.status === status).length
   }
 
-  /**
-   * 收到简历优先采用 /api/user/stats 真实接口返回的数据；
-   * 当 API 尚未成功返回或失败回退到缓存时使用本地聚合的投递数兜底；
-   * API 真实返回 0 时仍显示 0，不会被本地数量覆盖。
-   */
+  /** 收到简历以首页已加载的全部职位投递记录为准，保证与待办列表口径一致。 */
   private receivedResumeCount(): number {
-    if (this.statsLoaded) {
-      return this.stats.receivedResumes !== undefined ? this.stats.receivedResumes : 0
+    if (this.incomingRequests.length > 0) {
+      return this.incomingRequests.length
     }
-    return this.incomingRequests.length
+    return this.stats.receivedResumes !== undefined ? this.stats.receivedResumes : 0
   }
 
   private goRequestsWithFilter(status: number): void {

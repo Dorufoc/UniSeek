@@ -1,6 +1,8 @@
 // ChatMessageUtils.ets — 聊天模块通用工具函数
 // 纯函数，供会话列表与聊天详情页复用
 
+import { ResumeData } from '../../services/ResumeService';
+
 const ONE_MINUTE: number = 60000;
 const FIVE_MINUTES: number = 5 * ONE_MINUTE;
 const ONE_DAY_MS: number = 86400000;
@@ -119,4 +121,16 @@ export function getAttachmentName(url: string, defaultName: string = '简历附�
     return cleanName.substring(0, ATTACHMENT_TRUNCATE_KEEP) + '...';
   }
   return cleanName;
+}
+
+// 从简历数据中提取用于 messageType=2 的消息内容：返回已保存附件的去除首尾空格 URL，缺失则返回空串
+export function getResumeAttachmentContent(resume: ResumeData | null): string {
+  if (!resume) {
+    return '';
+  }
+  const url: string = resume.attachmentUrl;
+  if (!url || url.trim().length === 0) {
+    return '';
+  }
+  return url.trim();
 }

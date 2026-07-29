@@ -29,6 +29,7 @@ struct ProfileDetailPage {
   @State editInputType: InputType = InputType.Normal
   @State editMaxLength: number = 100
   @State editingField: string = ''
+  @State editOriginalValue: string = ''
 
   // 修改密码弹窗状态
   @State oldPassword: string = ''
@@ -41,10 +42,10 @@ struct ProfileDetailPage {
       primaryTitle: this.editTitle,
       contentBuilder: () => { this.buildEditContent() },
       buttons: [
-        {
-          value: '取消',
-          buttonStyle: ButtonStyleMode.TEXTUAL,
-          action: () => { this.editDialogController.close() }
+         {
+           value: '取消',
+           buttonStyle: ButtonStyleMode.TEXTUAL,
+           action: () => { this.cancelEditDialog() }
         },
         {
           value: '保存',
@@ -157,8 +158,9 @@ struct ProfileDetailPage {
         .height(AppSpacing.INPUT_HEIGHT_STANDARD)
         .width('100%')
         .onChange((value: string) => {
-          this.editValue = value
-        })
+           this.editValue = value
+           this.updateDisplayedField(value)
+         })
 
       if (this.editingField === 'phone' || this.editingField === 'email') {
         TextInput({ placeholder: '请输入当前登录密码', text: this.editPassword })
@@ -214,6 +216,7 @@ struct ProfileDetailPage {
     this.successText = ''
     this.editingField = field
     this.editPassword = ''
+    this.editOriginalValue = this.getFieldValue(field)
 
     if (field === 'username') {
       this.editTitle = '修改昵称'
@@ -251,6 +254,21 @@ struct ProfileDetailPage {
 
   onEditDialogSave(): void {
     void this.saveField(this.editingField, this.editValue.trim(), this.editPassword)
+  }
+
+  cancelEditDialog(): void {
+    this.updateDisplayedField(this.editOriginalValue)
+    this.editDialogController.close()
+  }
+
+  updateDisplayedField(value: string): void {
+    if (this.editingField === 'username') {
+      this.username = value
+    } else if (this.editingField === 'phone') {
+      this.phone = value
+    } else if (this.editingField === 'email') {
+      this.email = value
+    }
   }
 
   onPasswordDialogSave(): void {

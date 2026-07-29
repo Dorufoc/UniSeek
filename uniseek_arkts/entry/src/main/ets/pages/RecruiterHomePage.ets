@@ -11,6 +11,7 @@ struct RecruiterHomePage {
   aboutToAppear(): void {
     // 确保个人页监听 key 在组件创建前存在默认值
     AppStorage.setOrCreate<number>('profileRefreshTrigger', 0)
+    AppStorage.setOrCreate<number>('recruiterHomeRefreshTrigger', 0)
   }
 
   @Builder tabHome() {
@@ -64,6 +65,9 @@ struct RecruiterHomePage {
     .scrollable(false)
     .onChange((index: number) => {
       this.currentIndex = index
+      if (index === 0) {
+        AppStorage.setOrCreate<number>('recruiterHomeRefreshTrigger', Date.now())
+      }
       // 切换到我的 Tab 时，无条件触发个人资料刷新信号
       if (index === 2) {
         AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now())
@@ -74,6 +78,8 @@ struct RecruiterHomePage {
   }
 
   onPageShow(): void {
+    // 从子页面返回时刷新招聘首页的统计和待办数据
+    AppStorage.setOrCreate<number>('recruiterHomeRefreshTrigger', Date.now())
     // 从子页面返回时，无条件触发个人资料刷新信号
     AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now())
   }

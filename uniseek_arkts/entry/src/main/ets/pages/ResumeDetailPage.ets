@@ -575,11 +575,13 @@ struct ResumeDetailPage {
                 .fontSize(AppFontSize.XS)
                 .fontColor(AppColors.PRIMARY)
                 .backgroundColor(AppColors.SELECTED_BG)
-                .onClick((): void => {
-                  void ChatService.downloadAttachment(this.attachmentUrl).then((path: string) => {
-                    this.getUIContext().getPromptAction().showToast({ message: '已下载至：' + path })
+                  .onClick((): void => {
+                    void ChatService.downloadAttachment(this.attachmentUrl).then((path: string) => {
+                      this.getUIContext().getPromptAction().showToast({ message: '已下载至：' + path })
+                    }).catch(() => {
+                      this.getUIContext().getPromptAction().showToast({ message: '附件下载失败，请重试' })
+                    })
                   })
-                })
             }
           }
           .width('100%')

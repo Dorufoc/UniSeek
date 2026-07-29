@@ -84,22 +84,36 @@ export class ChatService {
     const context = getContext()
     const fallbackName: string = serverPath.endsWith('/image') ? 'upload.jpg' : 'upload.pdf'
     const fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
-    const cacheName: string = 'uniseek-' + new Date().getTime() + '-' + fileName
+    const cacheName: string = 'uniseek-' + new Date().getTime() + '-' + ChatService.safeCacheFileName(fileName)
     const cachePath: string = context.cacheDir + '/' + cacheName
 
     // 通过源 URI 与目标缓存文件的 fd 复制内容，避免将 Picker 返回的 URI 直接作为本地路径
     let sourceFile: fileIo.File | undefined = undefined
-    let targetFile: fileIo.File | undefined = undefined
     try {
       sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
-      targetFile = fileIo.openSync(cachePath, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE)
-      fileIo.copyFileSync(sourceFile.fd, targetFile.fd)
+      fileIo.copyFileSync(sourceFile.fd, cachePath)
+    } catch {
+      try {
+        fileIo.unlinkSync(cachePath)
+      } catch {
+        // 复制失败且缓存文件不存在时无需清理
+      }
+      throw new Error('无法读取所选文件')
     } finally {
       if (sourceFile !== undefined) {
         fileIo.closeSync(sourceFile)
       }
-      if (targetFile !== undefined) {
-        fileIo.closeSync(targetFile)
+    }
+
+    if (serverPath === '/api/resume/upload-attachment') {
+      const cacheStat = fileIo.statSync(cachePath)
+      if (cacheStat.size > 10 * 1024 * 1024) {
+        try {
+          fileIo.unlinkSync(cachePath)
+        } catch {
+          // 超限文件清理失败不影响校验结果
+        }
+        throw new Error('文件大小不能超过 10MB')
       }
     }
 
@@ -159,14 +173,15 @@ export class ChatService {
   /** 下载并预览聊天中的简历附件。 */
   static async previewAttachment(url: string): Promise<void> {
     const hostContext = getContext()
-    const localPath = await ChatService.downloadAttachment(url)
-    const previewable: boolean = await filePreview.canPreview(hostContext, localPath)
+    const localPath: string = await ChatService.downloadAttachment(url)
+    const localUri: string = FileTransferPolicy.toFileUri(localPath)
+    const previewable: boolean = await filePreview.canPreview(hostContext, localUri)
     if (!previewable) {
       throw new Error('当前设备不支持预览该附件')
     }
     const fileName: string = FileTransferPolicy.extractFileName(url, '简历附件.pdf')
     await filePreview.openPreview(hostContext, {
-      uri: localPath,
+      uri: localUri,
       mimeType: FileTransferPolicy.getPreviewMimeType(fileName),
       title: '简历附件'
     })
@@ -193,7 +208,7 @@ export class ChatService {
             reject(new Error('附件下载内容为空'))
             return
           }
-          resolve(filePath)
+           resolve(filePath)
         } catch {
           reject(new Error('附件下载文件不存在'))
         }
@@ -202,6 +217,12 @@ export class ChatService {
         reject(new Error('附件下载失败：' + code))
       })
     })
+  }
+
+  private static safeCacheFileName(fileName: string): string {
+    const extensionIndex: number = fileName.lastIndexOf('.')
+    const extension: string = extensionIndex >= 0 ? fileName.substring(extensionIndex) : ''
+    return 'attachment' + extension.toLowerCase()
   }
   static async createDirectSession(targetUserId: number): Promise<number> {
     return ApiClient.post<number>('/api/chat/sessions/direct?targetUserId=' + targetUserId)

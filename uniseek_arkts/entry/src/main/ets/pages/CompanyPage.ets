@@ -26,6 +26,7 @@ export struct CompanyDiscovery {
   @State hasMore: boolean = true
   @State errorText: string = ''
   @State showFilterSheet: boolean = false
+  private shouldApplyDraft: boolean = false
 
   // 从 Java 后端获取的联级筛选数据
   @State regionTree: RegionNode[] = []
@@ -37,6 +38,10 @@ export struct CompanyDiscovery {
   @State selectedIndustry: string = ''
   @State selectedRegionId: number = 0
   @State selectedRegionName: string = '地区'
+
+  // 抽屉打开期间的临时筛选条件，关闭抽屉时一次性提交。
+  @State draftRegionPath: string[] = []
+  @State draftCategoryPath: string[] = []
 
   aboutToAppear(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string>
@@ -128,6 +133,13 @@ export struct CompanyDiscovery {
     return this.regionPath.length > 0 || this.categoryPath.length > 0
   }
 
+  private openFilterSheet(): void {
+    this.draftRegionPath = [...this.regionPath]
+    this.draftCategoryPath = [...this.categoryPath]
+    this.shouldApplyDraft = true
+    this.showFilterSheet = true
+  }
+
   // ===== 筛选条件应用与重置 =====
   private applyFilters(): void {
     if (this.regionPath.length === 0) {
@@ -143,13 +155,19 @@ export struct CompanyDiscovery {
     this.loadEnterprises(false)
   }
 
+  private applyDraftFilters(): void {
+    if (!this.shouldApplyDraft) {
+      return
+    }
+    this.shouldApplyDraft = false
+    this.regionPath = [...this.draftRegionPath]
+    this.categoryPath = [...this.draftCategoryPath]
+    this.applyFilters()
+  }
+
   private resetFilters(): void {
-    this.regionPath = []
-    this.categoryPath = []
-    this.selectedIndustry = ''
-    this.selectedRegionId = 0
-    this.selectedRegionName = '地区'
-    this.loadEnterprises(false)
+    this.draftRegionPath = []
+    this.draftCategoryPath = []
   }
 
   // ===== 原生级联选择器（TextPickerDialog） =====
@@ -160,12 +178,7 @@ export struct CompanyDiscovery {
       onAccept: (value: TextPickerResult): void => {
         const selectedValues = value.value as string[]
         if (selectedValues && selectedValues.length > 0) {
-          this.regionPath = selectedValues
-          const fullName = selectedValues.join('-')
-          const regionId = DataService.getRegionIdByName(fullName)
-          this.selectedRegionId = regionId || 0
-          this.selectedRegionName = fullName || '地区'
-          this.applyFilters()
+          this.draftRegionPath = [...selectedValues]
         }
       }
     })
@@ -178,9 +191,7 @@ export struct CompanyDiscovery {
       onAccept: (value: TextPickerResult): void => {
         const selectedValues = value.value as string[]
         if (selectedValues && selectedValues.length > 0) {
-          this.categoryPath = selectedValues
-          this.selectedIndustry = selectedValues[selectedValues.length - 1]
-          this.applyFilters()
+          this.draftCategoryPath = [...selectedValues]
         }
       }
     })
@@ -230,7 +241,10 @@ export struct CompanyDiscovery {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,
       showClose: true,
-      backgroundColor: AppColors.BG_CARD
+      backgroundColor: AppColors.BG_CARD,
+      onDisappear: () => {
+        this.applyDraftFilters()
+      }
     })
   }
 
@@ -251,7 +265,7 @@ export struct CompanyDiscovery {
       FilterBar({
         title: this.showBack ? '' : '企业发现',
         filterActive: this.hasActiveFilters(),
-        onFilterClick: () => { this.showFilterSheet = true },
+        onFilterClick: () => { this.openFilterSheet() },
         onSearch: () => {
           this.getUIContext().getRouter().pushUrl({
             url: 'pages/SearchPage',
@@ -446,17 +460,17 @@ export struct CompanyDiscovery {
 
             Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
               this.SelectorButton(
-                this.regionPath[0] || '',
+                this.draftRegionPath[0] || '',
                 '省 / 直辖市',
                 () => { this.openRegionPicker() }
               )
               this.SelectorButton(
-                this.regionPath[1] || '',
+                this.draftRegionPath[1] || '',
                 '城市',
                 () => { this.openRegionPicker() }
               )
               this.SelectorButton(
-                this.regionPath[2] || '',
+                this.draftRegionPath[2] || '',
                 '区县',
                 () => { this.openRegionPicker() }
               )
@@ -464,10 +478,9 @@ export struct CompanyDiscovery {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            if (this.regionPath.length > 0) {
-              this.FilterChip(this.regionPath.join(' / ') + ' ' + (this.selectedRegionId ? '' : ''), () => {
-                this.regionPath = []
-                this.applyFilters()
+            if (this.draftRegionPath.length > 0) {
+              this.FilterChip(this.draftRegionPath.join(' / '), () => {
+                this.draftRegionPath = []
               })
             }
           }
@@ -483,12 +496,12 @@ export struct CompanyDiscovery {
 
             Row({ space: AppFilter.CHOICE_CHIP_SPACE }) {
               this.SelectorButton(
-                this.categoryPath[0] || '',
+                this.draftCategoryPath[0] || '',
                 '行业大类',
                 () => { this.openCategoryPicker() }
               )
               this.SelectorButton(
-                this.categoryPath[1] || '',
+                this.draftCategoryPath[1] || '',
                 '子类',
                 () => { this.openCategoryPicker() }
               )
@@ -496,10 +509,9 @@ export struct CompanyDiscovery {
             .width('100%')
             .alignItems(VerticalAlign.Center)
 
-            if (this.categoryPath.length > 0) {
-              this.FilterChip(this.categoryPath.join(' / ') + ' ' + (this.selectedIndustry ? '' : ''), () => {
-                this.categoryPath = []
-                this.applyFilters()
+            if (this.draftCategoryPath.length > 0) {
+              this.FilterChip(this.draftCategoryPath.join(' / '), () => {
+                this.draftCategoryPath = []
               })
             }
           }

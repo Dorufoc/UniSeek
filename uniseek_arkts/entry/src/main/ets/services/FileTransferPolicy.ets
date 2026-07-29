@@ -63,6 +63,18 @@ export class FileTransferPolicy {
     return target.startsWith('/') ? base + target : base + '/' + target
   }
 
+  /** 将应用沙箱路径转换为 PreviewKit 可识别的文件 URI。 */
+  static toFileUri(path: string): string {
+    const target: string = path.trim()
+    if (!target) {
+      return ''
+    }
+    if (target.startsWith('file://')) {
+      return target
+    }
+    return target.startsWith('/') ? 'file://' + target : 'file:///' + target
+  }
+
   static getPreviewMimeType(fileName: string): string {
     return FileTransferPolicy.getMimeType(fileName)
   }

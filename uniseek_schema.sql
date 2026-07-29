@@ -4,7 +4,7 @@
 -- 创建日期: 2026-07-13
 -- V1.2: task 新增 status=5（已驳回锁定）；enterprise 移除 uk_user_id/uk_credit_code 唯一约束
 -- V1.1: user 表新增 email 字段（必填，用于找回密码和通知）及 uk_email 唯一索引
--- 说明: 包含 14 张业务表、完整外键约束、索引、中文注释及种子数据
+-- 说明: 包含 15 张业务表、完整外键约束、索引、中文注释及种子数据
 -- 使用: mysql -u root -p < uniseek_schema.sql
 -- ====================================================================
 
@@ -22,6 +22,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS `operation_log`;
 
+DROP TABLE IF EXISTS `telemetry_data`;
 DROP TABLE IF EXISTS `daily_statistics`;
 DROP TABLE IF EXISTS `chat_message`;
 DROP TABLE IF EXISTS `chat_session`;
@@ -320,6 +321,20 @@ CREATE TABLE `daily_statistics` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_stat_date` (`stat_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='运营日报统计表';
+
+-- -------------------------------------------------------------------
+-- 13. telemetry_data - 传感器温湿度遥测数据表
+-- -------------------------------------------------------------------
+CREATE TABLE `telemetry_data` (
+    `id`           BIGINT(20)   NOT NULL AUTO_INCREMENT  COMMENT '遥测记录ID',
+    `temperature`  DOUBLE       NOT NULL                 COMMENT '温度（摄氏度）',
+    `humidity`     DOUBLE       NOT NULL                 COMMENT '相对湿度（百分比）',
+    `device_id`    VARCHAR(64)  DEFAULT NULL             COMMENT '设备标识',
+    `report_time`  DATETIME     NOT NULL                 COMMENT '传感器上报时间',
+    `create_time`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_report_time_id` (`report_time`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='传感器温湿度遥测数据表';
 
 
 -- -------------------------------------------------------------------

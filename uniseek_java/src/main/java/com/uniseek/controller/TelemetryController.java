@@ -1,5 +1,7 @@
 package com.uniseek.controller;
 
+import com.uniseek.common.ApiResult;
+import com.uniseek.dto.LatestTelemetryResponse;
 import com.uniseek.dto.TelemetryRequest;
 import com.uniseek.service.TelemetryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +15,7 @@ import java.util.Map;
 /**
  * 传感器遥测数据控制器
  *
- * 传感器外设通过 POST 请求定期上报温度和湿度数据
+ * 传感器外设通过 POST 请求定期上报温度和湿度数据；大屏通过 GET 请求读取最新数据
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -40,5 +42,17 @@ public class TelemetryController {
         body.put("code", 0);
         body.put("message", "sensor data accepted");
         return ResponseEntity.ok(body);
+    }
+
+    /**
+     * 查询最新一条温湿度遥测数据
+     * GET /api/v1/telemetry/latest
+     *
+     * @return 项目标准 ApiResult 包装，无数据时 data 为 null
+     */
+    @GetMapping("/telemetry/latest")
+    public ApiResult<LatestTelemetryResponse> latest() {
+        LatestTelemetryResponse data = telemetryService.getLatest();
+        return ApiResult.success(data);
     }
 }

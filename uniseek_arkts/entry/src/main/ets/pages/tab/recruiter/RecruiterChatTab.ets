@@ -18,11 +18,7 @@ export struct RecruiterChatTab {
   private readonly pageListenerId: string = 'chat_list_recruiter_' + Date.now().toString()
 
   aboutToAppear(): void {
-    // 注册新消息回调，收到推送时实时更新会话列表
-    ChatWebSocketService.getInstance().connect()
-    ChatWebSocketService.getInstance().addSessionMessageListener(this.pageListenerId, (data: WsNewMessageData) => {
-      this.handleNewMessage(data)
-    })
+    this.registerSessionListener()
     this.loadSessions()
   }
 
@@ -31,7 +27,16 @@ export struct RecruiterChatTab {
   }
 
   onPageShow(): void {
+    this.registerSessionListener()
     this.loadSessions()
+  }
+
+  private registerSessionListener(): void {
+    // 页面重新显示时恢复监听，避免 Tab 页面隐藏后丢失实时消息回调
+    ChatWebSocketService.getInstance().connect()
+    ChatWebSocketService.getInstance().addSessionMessageListener(this.pageListenerId, (data: WsNewMessageData) => {
+      this.handleNewMessage(data)
+    })
   }
 
   private async loadSessions(): Promise<void> {

@@ -32,53 +32,49 @@ export struct LicenseUploader {
 
       if (this.url) {
         Row({ space: AppSpacing.SM }) {
-          Row({ space: AppSpacing.SM }) {
-            Image(this.getDisplayUrl())
-              .width(72)
-              .height(54)
-              .objectFit(ImageFit.Cover)
-              .borderRadius(AppRadius.SM)
-              .alt($r('sys.symbol.picture'))
-              .onError(() => {
-                this.imageError = true
-              })
+          Image(this.getDisplayUrl())
+            .width(72)
+            .height(54)
+            .objectFit(ImageFit.Cover)
+            .borderRadius(AppRadius.SM)
+            .alt($r('sys.symbol.picture'))
+            .onError(() => {
+              this.imageError = true
+            })
 
-            Column() {
-              Text('营业执照已上传，点击查看')
-                .fontSize(AppFontSize.SM)
-                .fontColor(this.imageError ? AppColors.DANGER : AppColors.PRIMARY)
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-              if (this.imageError) {
-                Text('图片加载失败，请检查网络或重新上传')
-                  .fontSize(AppFontSize.XXS)
-                  .fontColor(AppColors.DANGER)
-                  .margin({ top: AppSpacing.XS })
-              } else {
-                Text('请上传 JPG、JPEG、PNG 或 WebP 图片，不超过 5MB')
-                  .fontSize(AppFontSize.XXS)
-                  .fontColor(AppColors.TEXT_MUTED)
-                  .margin({ top: AppSpacing.XS })
-              }
+          Column() {
+            Text('营业执照')
+              .fontSize(AppFontSize.SM)
+              .fontColor(this.imageError ? AppColors.DANGER : AppColors.TEXT_PRIMARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width('100%')
+            if (this.imageError) {
+              Text('图片加载失败，请检查网络或重新上传')
+                .fontSize(AppFontSize.XXS)
+                .fontColor(AppColors.DANGER)
+                .margin({ top: AppSpacing.XS })
+                .width('100%')
+            } else {
+              Text('请上传 JPG、JPEG、PNG 或 WebP 图片，不超过 5MB')
+                .fontSize(AppFontSize.XXS)
+                .fontColor(AppColors.TEXT_MUTED)
+                .margin({ top: AppSpacing.XS })
+                .width('100%')
             }
-            .alignItems(HorizontalAlign.Start)
-            .layoutWeight(1)
           }
+          .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
-          .height(AppSpacing.INPUT_HEIGHT)
-          .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
-          .backgroundColor(AppColors.SELECTED_BG)
-          .borderRadius(AppRadius.SM)
-          .alignItems(VerticalAlign.Center)
-          .onClick(() => {
-            this.onPreview?.()
-          })
-          .stateStyles({
-            pressed: {
-              .backgroundColor(AppColors.PRIMARY_ALPHA_6)
-            }
-          })
-          .animation({ duration: 150 })
+
+          Button('预览', { type: ButtonType.Capsule })
+            .height(AppSpacing.BUTTON_HEIGHT_MINI)
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.PRIMARY)
+            .backgroundColor(AppColors.SELECTED_BG)
+            .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
+            .onClick(() => {
+              this.onPreview?.()
+            })
 
           Button('删除', { type: ButtonType.Capsule })
             .height(AppSpacing.BUTTON_HEIGHT_MINI)
