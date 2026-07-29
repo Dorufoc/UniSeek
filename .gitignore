@@ -33,3 +33,5 @@ node_modules/
 .trae/
 uniseek-reports/
 AGENTS.md
+uniseek_java/upload/*
+uniseek_vue/node_modules/

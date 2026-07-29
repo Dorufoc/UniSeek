@@ -9,24 +9,6 @@ export interface CacheFileInfo {
   fileName: string
 }
 
-class ImageDataHandler implements photoAccessHelper.MediaAssetDataHandler<ArrayBuffer> {
-  private readonly resolveData: (data: ArrayBuffer) => void
-  private readonly rejectData: (error: Error) => void
-
-  constructor(resolveData: (data: ArrayBuffer) => void, rejectData: (error: Error) => void) {
-    this.resolveData = resolveData
-    this.rejectData = rejectData
-  }
-
-  onDataPrepared(data: ArrayBuffer): void {
-    if (data === undefined) {
-      this.rejectData(new Error('无法读取所选图片'))
-      return
-    }
-    this.resolveData(data)
-  }
-}
-
 export class MediaUriResolver {
   static async copyMediaUriToCache(uri: string): Promise<CacheFileInfo> {
     const context = getContext()
@@ -49,7 +31,15 @@ export class MediaUriResolver {
       const cacheName: string = 'uniseek-media-' + new Date().getTime().toString() + '-' + fileName
       const cachePath: string = context.cacheDir + '/' + cacheName
       const imageData: ArrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-        const handler: ImageDataHandler = new ImageDataHandler(resolve, reject)
+        const handler: photoAccessHelper.MediaAssetDataHandler<ArrayBuffer> = {
+          onDataPrepared: (data: ArrayBuffer): void => {
+            if (data === undefined) {
+              reject(new Error('无法读取所选图片'))
+              return
+            }
+            resolve(data)
+          }
+        }
         const requestOptions: photoAccessHelper.RequestOptions = {
           deliveryMode: photoAccessHelper.DeliveryMode.HIGH_QUALITY_MODE
         }
