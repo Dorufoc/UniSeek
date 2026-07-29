@@ -35,22 +35,42 @@ struct RecruiterApplicationsPage {
   @State isLoading: boolean = true
   @State errorText: string = ''
   private jobId: number = 0
+  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
+  private isFirstPageShow: boolean = true
 
   @State noJobContext: boolean = false
 
   aboutToAppear(): void {
+    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
+    this.isFirstPageShow = true
+    this.parseRouteParams()
+    if (this.jobId > 0) {
+      this.loadApplications()
+    } else {
+      this.noJobContext = true
+      this.isLoading = false
+    }
+  }
+
+  onPageShow(): void {
+    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
+    if (this.isFirstPageShow) {
+      this.isFirstPageShow = false
+      return
+    }
+    // 从简历详情页返回时刷新列表及状态
+    if (this.jobId > 0) {
+      this.loadApplications()
+    }
+  }
+
+  private parseRouteParams(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string> | null
     if (params && params['jobId']) {
       this.jobId = parseInt(params['jobId'])
     }
     if (params && params['jobTitle']) {
       this.jobTitle = params['jobTitle']
-    }
-    if (this.jobId > 0) {
-      this.loadApplications()
-    } else {
-      this.noJobContext = true
-      this.isLoading = false
     }
   }
 
@@ -85,7 +105,11 @@ struct RecruiterApplicationsPage {
       expectedSalary: '',
       description: snapshot.experience,
       attachmentUrl: application.attachmentUrl || snapshot.attachmentUrl,
-      graduationDate: snapshot.graduationDate
+      graduationDate: snapshot.graduationDate,
+      applicationId: application.id,
+      applicationStatus: application.status,
+      jobTitle: this.jobTitle,
+      createTime: application.createTime
     }
     this.getUIContext().getRouter().pushUrl({ url: 'pages/ResumeDetailPage', params: { resumeData: JSON.stringify(resume) } })
   }

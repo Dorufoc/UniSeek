@@ -13,6 +13,7 @@
     "pages/PrivacyPolicyPage",
     "pages/JobDetailPage",
     "pages/ChatDetailPage",
+    "pages/PdfPreviewPage",
     "pages/RealNameAuthPage",
     "pages/RecruiterHomePage",
     "pages/RecruiterPublishJobPage",

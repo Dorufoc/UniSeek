@@ -10,14 +10,14 @@ import { ChatWebSocketService } from '../services/ChatWebSocketService'
 struct MainPage {
   @State currentIndex: number = 0
   @State totalUnreadCount: number = 0
-  // 用于通知我的 Tab 页刷新统计数据
-  @State profileRefreshTrigger: number = 0
 
   private unreadCountCallback: (count: number) => void = (count: number) => {
     this.totalUnreadCount = count
   }
 
   aboutToAppear(): void {
+    // 确保个人页监听 key 在组件创建前存在默认值
+    AppStorage.setOrCreate<number>('profileRefreshTrigger', 0)
     // 注册未读数监听并建立 WebSocket，连接成功后由服务端推送事件驱动刷新
     ChatWebSocketService.getInstance().addOnUnreadCountChanged(this.unreadCountCallback)
     ChatWebSocketService.getInstance().connect()
@@ -31,10 +31,8 @@ struct MainPage {
   onPageShow(): void {
     // 从聊天详情等子页面返回时兜底刷新一次
     ChatWebSocketService.getInstance().refreshUnreadCount()
-    // 返回底部导航页时，触发我的页刷新统计数据
-    if (this.currentIndex === 3) {
-      this.profileRefreshTrigger++
-    }
+    // 从子页面返回时，无条件触发个人资料刷新信号
+    AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now())
   }
 
   @Builder tabHome() {
@@ -121,7 +119,7 @@ struct MainPage {
       .tabBar(this.tabChat)
 
       TabContent() {
-        ProfilePage({ refreshTrigger: this.profileRefreshTrigger })
+        ProfilePage()
       }
       .tabBar(this.tabProfile)
     }
@@ -133,9 +131,9 @@ struct MainPage {
         // 切换到聊天 Tab 时主动刷新一次未读数
         ChatWebSocketService.getInstance().refreshUnreadCount()
       }
-      // 切换到我的 Tab 时，触发 ProfilePage 刷新个人统计数据
+      // 切换到我的 Tab 时，无条件触发个人资料刷新信号
       if (index === 3) {
-        this.profileRefreshTrigger++
+        AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now())
       }
     })
     .width('100%')

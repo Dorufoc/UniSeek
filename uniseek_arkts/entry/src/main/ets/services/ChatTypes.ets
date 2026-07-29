@@ -64,6 +64,7 @@ export interface TaskVO {
 
 export interface ChatSessionVO {
   applicationId: number
+  sessionType?: string
   taskId: number
   taskTitle: string
   taskStatus: number
@@ -171,6 +172,7 @@ export interface ChatMessageVO {
 export interface WsNewMessageData {
   messageId: number
   applicationId: number
+  sessionType?: string
   senderId: number
   senderName: string
   senderAvatar: string

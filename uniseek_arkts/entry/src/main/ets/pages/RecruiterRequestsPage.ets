@@ -46,13 +46,22 @@ struct RecruiterRequestsPage {
 
   // 简历池内状态筛选（兼容首页 filterStatus 传入 0/2/3 的场景）
   @State poolStatusFilter: number = -1
+  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
+  private isFirstPageShow: boolean = true
 
   aboutToAppear(): void {
+    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
+    this.isFirstPageShow = true
     this.parseRouteParams()
     this.loadJobs()
   }
 
   onPageShow(): void {
+    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
+    if (this.isFirstPageShow) {
+      this.isFirstPageShow = false
+      return
+    }
     // 从子页面返回时刷新当前职位投递列表
     if (this.selectedJobIndex >= 0 && this.jobs.length > 0) {
       this.loadApplications()

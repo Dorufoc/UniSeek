@@ -34,11 +34,8 @@ export struct MessageItem {
   }
 
   private getAvatarUrl(): string {
-    // 自己发送的消息优先使用 senderAvatar，缺失时回退到对方头像
-    if (this.isSelf) {
-      return this.msg.senderAvatar || this.counterpartAvatar;
-    }
-    return this.counterpartAvatar;
+    // 优先使用当前消息发送者的自定义头像，缺失时回退到会话头像
+    return this.msg.senderAvatar || this.counterpartAvatar;
   }
 
   build() {
@@ -67,8 +64,8 @@ export struct MessageItem {
         Row({ space: AppChat.MESSAGE_ROW_SPACE }) {
           if (!this.isSelf) {
             Avatar({
-              url: this.counterpartAvatar,
-              name: this.counterpartName,
+              url: this.getAvatarUrl(),
+              name: this.getDisplayName(),
               avatarSize: AppChat.AVATAR_MESSAGE
             })
           }

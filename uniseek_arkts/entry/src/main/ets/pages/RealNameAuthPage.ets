@@ -23,6 +23,8 @@ struct RealNameAuthPage {
   @State cachedIdCard: string = ''
 
   aboutToAppear(): void {
+    // 确保个人中心刷新监听键存在默认值
+    AppStorage.setOrCreate<number>('profileRefreshTrigger', 0)
     AuthService.getRealNameStatus()
       .then((info) => {
         this.authStatus = info.isAuth ? 1 : -1
@@ -343,6 +345,8 @@ struct RealNameAuthPage {
         if (status.isAuth && status.idCard) {
           this.cachedIdCard = status.idCard
         }
+        // 通知个人中心立即刷新实名认证状态
+        AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now())
       } catch {
         this.errorMsg = '认证结果同步失败，请稍后下拉刷新'
       }

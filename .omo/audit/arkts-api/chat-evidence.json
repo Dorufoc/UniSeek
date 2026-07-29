@@ -1,0 +1,698 @@
+{
+  "meta": {
+    "baseline-pending": true,
+    "scope": "聊天、WebSocket、上传下载协议兼容性审计（计划 arkts-api-compatibility-audit 第 7 项）",
+    "gitHead": "476857d65a2f69e1df4668cd4455cb159ee026ff",
+    "generatedAt": "2026-07-29T02:15:00+08:00",
+    "evidencePaths": [
+      ".omo/audit/arkts-api/java-vue-contract.json",
+      ".omo/audit/arkts-api/arkts-surface.json",
+      "uniseek_arkts/entry/src/main/ets/services/ChatService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/ChatTypes.ets",
+      "uniseek_arkts/entry/src/main/ets/services/FileTransferPolicy.ets",
+      "uniseek_arkts/entry/src/main/ets/services/ServerConfig.ets",
+      "uniseek_arkts/entry/src/main/ets/pages/ChatDetailPage.ets",
+      "uniseek_arkts/entry/src/main/ets/pages/tab/recruiter/RecruiterChatTab.ets",
+      "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java",
+      "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java",
+      "uniseek_java/src/main/java/com/uniseek/upload/controller/UploadController.java",
+      "uniseek_java/src/main/java/com/uniseek/upload/service/UploadService.java",
+      "uniseek_java/src/main/java/com/uniseek/controller/ResumeController.java",
+      "uniseek_java/src/main/java/com/uniseek/chat/ChatSessionType.java",
+      "uniseek_vue/src/api/chat.ts",
+      "uniseek_vue/src/api/upload.ts",
+      "uniseek_vue/src/composables/useChatWebSocket.ts",
+      "uniseek_vue/src/pages/Chat.vue",
+      "uniseek_vue/src/pages/Messages.vue",
+      ".omo/audit/arkts-api/scripts/chat-frame-test.js"
+    ],
+    "notes": "审计以当前工作树为准；未启动后端服务，未做端到端集成验证。"
+  },
+  "restEndpoints": [
+    {
+      "name": "会话列表",
+      "method": "GET",
+      "path": "/api/chat/sessions",
+      "description": "获取当前用户所有聊天会话",
+      "authRequired": true,
+      "query": [],
+      "body": [],
+      "response": {
+        "type": "ChatSessionVO[]",
+        "fields": [
+          { "name": "applicationId", "type": "number" },
+          { "name": "sessionType", "type": "string", "nullable": true },
+          { "name": "taskId", "type": "number" },
+          { "name": "taskTitle", "type": "string" },
+          { "name": "taskStatus", "type": "number" },
+          { "name": "applicationStatus", "type": "number" },
+          { "name": "counterpartId", "type": "number" },
+          { "name": "counterpartName", "type": "string" },
+          { "name": "counterpartAvatar", "type": "string" },
+          { "name": "counterpartCompany", "type": "string", "nullable": true },
+          { "name": "enterpriseId", "type": "number", "nullable": true },
+          { "name": "lastMessage", "type": "string" },
+          { "name": "lastMessageTime", "type": "string" },
+          { "name": "unreadCount", "type": "number" },
+          { "name": "canSend", "type": "boolean", "nullable": true }
+        ]
+      },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 28, "symbol": "ChatService.getSessions" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 41, "symbol": "ChatController.getSessions" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 38, "symbol": "getChatSessions" }
+      }
+    },
+    {
+      "name": "会话详情",
+      "method": "GET",
+      "path": "/api/chat/sessions/{applicationId}",
+      "description": "单个会话详情；applicationId 在投递会话中为投递记录 ID，在直接会话中为 chat_session.id",
+      "authRequired": true,
+      "query": [
+        { "name": "sessionType", "type": "string", "required": false, "values": ["application", "direct"], "default": "application" }
+      ],
+      "body": [],
+      "response": { "type": "ChatSessionVO", "fieldsRef": "同上" },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 32, "symbol": "ChatService.getSessionDetail" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 57, "symbol": "ChatController.getSessionDetail" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 42, "symbol": "getChatSession" }
+      }
+    },
+    {
+      "name": "历史消息",
+      "method": "GET",
+      "path": "/api/chat/sessions/{applicationId}/messages",
+      "description": "游标分页历史消息",
+      "authRequired": true,
+      "query": [
+        { "name": "beforeId", "type": "number", "required": false, "description": "最旧消息 ID，首次加载不传" },
+        { "name": "pageSize", "type": "number", "required": false, "default": 20 },
+        { "name": "sessionType", "type": "string", "required": false, "default": "application" }
+      ],
+      "body": [],
+      "response": {
+        "type": "ChatMessageVO[]",
+        "fields": [
+          { "name": "id", "type": "number" },
+          { "name": "senderId", "type": "number" },
+          { "name": "senderName", "type": "string" },
+          { "name": "senderAvatar", "type": "string" },
+          { "name": "messageType", "type": "number", "enum": { "0": "text", "1": "image", "2": "resume/attachment" } },
+          { "name": "content", "type": "string" },
+          { "name": "isRead", "type": "number" },
+          { "name": "sendTime", "type": "string" }
+        ]
+      },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 37, "symbol": "ChatService.getMessages" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 76, "symbol": "ChatController.getMessages" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 48, "symbol": "getChatMessages" }
+      }
+    },
+    {
+      "name": "发送消息",
+      "method": "POST",
+      "path": "/api/chat/sessions/{applicationId}/messages",
+      "description": "发送文本/图片/附件消息",
+      "authRequired": true,
+      "query": [
+        { "name": "sessionType", "type": "string", "required": false, "default": "application" }
+      ],
+      "body": [
+        { "name": "messageType", "type": "number", "required": true, "enum": { "0": "text", "1": "image", "2": "resume/attachment" } },
+        { "name": "content", "type": "string", "required": true }
+      ],
+      "response": { "type": "ChatMessageVO", "fieldsRef": "同上" },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 48, "symbol": "ChatService.sendMessage" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 100, "symbol": "ChatController.sendMessage" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 54, "symbol": "sendMessage" }
+      },
+      "notes": "图片/简历消息的内容为上传后得到的 URL；ArkTS handleSendResume 发送 messageType=2 且 content=''，与 Vue 发送实际 attachmentUrl 不同。"
+    },
+    {
+      "name": "标记已读",
+      "method": "PUT",
+      "path": "/api/chat/sessions/{applicationId}/read",
+      "description": "将会话中对方发送的未读消息批量标记为已读",
+      "authRequired": true,
+      "query": [
+        { "name": "sessionType", "type": "string", "required": false, "default": "application" }
+      ],
+      "body": [],
+      "response": { "type": "ApiResult<Void>" },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 210, "symbol": "ChatService.markSessionRead" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 157, "symbol": "ChatController.markSessionRead" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 60, "symbol": "markSessionRead" }
+      }
+    },
+    {
+      "name": "创建直接会话",
+      "method": "POST",
+      "path": "/api/chat/sessions/direct",
+      "description": "人才库联系求职者时创建直接会话，返回 chat_session.id",
+      "authRequired": true,
+      "query": [
+        { "name": "targetUserId", "type": "number", "required": true }
+      ],
+      "body": [],
+      "response": { "type": "number" },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 206, "symbol": "ChatService.createDirectSession" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 142, "symbol": "ChatController.createDirectSession" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 66, "symbol": "createDirectSession" }
+      }
+    },
+    {
+      "name": "初始化投递会话",
+      "method": "POST",
+      "path": "/api/chat/sessions/{applicationId}/init",
+      "description": "HR 点击联系时确保投递会话已就绪",
+      "authRequired": true,
+      "query": [],
+      "body": [],
+      "response": { "type": "ApiResult<Void>" },
+      "sources": {
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 173, "symbol": "ChatController.initChatSession" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 70, "symbol": "initChatSession" }
+      },
+      "notes": "ArkTS ChatService 中未封装此 endpoint；求职者投递通过 /api/applications 触发会话创建。"
+    },
+    {
+      "name": "未读消息总数",
+      "method": "GET",
+      "path": "/api/chat/unread-count",
+      "description": "服务端聚合的未读消息总数",
+      "authRequired": true,
+      "query": [],
+      "body": [],
+      "response": { "type": "number" },
+      "sources": {
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 185, "symbol": "ChatController.getUnreadCount" },
+        "vue": { "file": "uniseek_vue/src/api/chat.ts", "line": 74, "symbol": "getChatUnreadCount" }
+      },
+      "notes": "ArkTS 未调用此接口，而是通过 ChatWebSocketService.refreshUnreadCount 拉取 /api/chat/sessions 后本地求和。"
+    },
+    {
+      "name": "投递职位（创建会话入口）",
+      "method": "POST",
+      "path": "/api/applications",
+      "description": "求职者投递成功后，服务端自动创建 chat_session 并返回投递记录 ID",
+      "authRequired": true,
+      "query": [],
+      "body": [
+        { "name": "taskId", "type": "number", "required": true }
+      ],
+      "response": { "type": "ApplicationResponse", "fields": [{ "name": "id", "type": "number" }] },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 215, "symbol": "ChatService.createApplication" }
+      }
+    }
+  ],
+  "uploadEndpoints": [
+    {
+      "name": "上传图片",
+      "method": "POST",
+      "path": "/api/upload/image",
+      "description": "聊天图片上传",
+      "authRequired": true,
+      "contentType": "multipart/form-data",
+      "multipart": [
+        {
+          "name": "file",
+          "type": "file",
+          "filename": "原始文件名（ArkTS 缓存后重命名为 uniseek-{time}-{fileName}）",
+          "mimeType": "image/jpeg / image/png / image/gif / image/webp（由 ArkTS FileTransferPolicy.getMimeType 根据扩展名推断）"
+        }
+      ],
+      "serverValidation": {
+        "allowedExtensions": ["jpg", "jpeg", "png", "webp"],
+        "maxSize": "5MB",
+        "source": { "file": "uniseek_java/src/main/java/com/uniseek/upload/service/UploadService.java", "line": 31, "symbol": "UploadService.uploadImage" }
+      },
+      "response": {
+        "wrappers": ["ApiResult"],
+        "dataType": "{ url: string }",
+        "example": { "code": 200, "message": "上传成功", "data": { "url": "/api/files/images/20260729/uuid.png" } }
+      },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 65, "symbol": "ChatService.uploadImage" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/upload/controller/UploadController.java", "line": 38, "symbol": "UploadController.uploadImage" },
+        "vue": { "file": "uniseek_vue/src/api/upload.ts", "line": 9, "symbol": "uploadImage" }
+      }
+    },
+    {
+      "name": "上传通用文件",
+      "method": "POST",
+      "path": "/api/upload/file",
+      "description": "通用附件上传（当前后端实际仅允许 pdf）",
+      "authRequired": true,
+      "contentType": "multipart/form-data",
+      "multipart": [
+        {
+          "name": "file",
+          "type": "file",
+          "filename": "原始文件名",
+          "mimeType": "由 ArkTS FileTransferPolicy 推断，pdf 为 application/pdf"
+        }
+      ],
+      "serverValidation": {
+        "allowedExtensions": ["pdf"],
+        "documentedExtensions": ["pdf", "doc", "docx"],
+        "maxSize": "10MB",
+        "source": { "file": "uniseek_java/src/main/java/com/uniseek/upload/service/UploadService.java", "line": 35, "symbol": "UploadService.uploadFile" }
+      },
+      "response": {
+        "wrappers": ["ApiResult"],
+        "dataType": "{ url: string }",
+        "example": { "code": 200, "message": "上传成功", "data": { "url": "/api/files/files/20260729/uuid.pdf" } }
+      },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 70, "symbol": "ChatService.uploadFile" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/upload/controller/UploadController.java", "line": 54, "symbol": "UploadController.uploadFile" },
+        "vue": { "file": "uniseek_vue/src/api/upload.ts", "line": 19, "symbol": "uploadFile" }
+      }
+    },
+    {
+      "name": "上传简历附件",
+      "method": "POST",
+      "path": "/api/resume/upload-attachment",
+      "description": "简历模块专用附件上传，复用 UploadService.uploadFile 逻辑",
+      "authRequired": true,
+      "contentType": "multipart/form-data",
+      "multipart": [
+        {
+          "name": "file",
+          "type": "file",
+          "filename": "原始文件名",
+          "mimeType": "application/pdf / application/octet-stream"
+        }
+      ],
+      "serverValidation": {
+        "allowedExtensions": ["pdf"],
+        "maxSize": "10MB"
+      },
+      "response": {
+        "wrappers": ["ApiResult"],
+        "dataType": "{ url: string }",
+        "example": { "code": 200, "message": "上传成功", "data": { "url": "/api/files/files/20260729/uuid.pdf" } }
+      },
+      "sources": {
+        "arkts": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 75, "symbol": "ChatService.uploadResumeAttachment" },
+        "java": { "file": "uniseek_java/src/main/java/com/uniseek/controller/ResumeController.java", "line": 123, "symbol": "ResumeController.uploadAttachment" }
+      }
+    }
+  ],
+  "webSocketProtocol": {
+    "description": "基于 Spring WebSocket（非 STOMP）的 JSON 帧协议",
+    "url": {
+      "pattern": "ws(s)://{host}:{port}/ws/chat?token={token}",
+      "arktsConstruction": {
+        "file": "uniseek_arkts/entry/src/main/ets/services/ServerConfig.ets",
+        "line": 30,
+        "symbol": "ServerConfig.toWebSocketUrl",
+        "notes": "将 http 替换为 ws、https 替换为 wss，并对 token 做 encodeURIComponent"
+      },
+      "vueConstruction": {
+        "file": "uniseek_vue/src/composables/useChatWebSocket.ts",
+        "line": 31,
+        "symbol": "useChatWebSocket.connect",
+        "notes": "根据 location.protocol 选择 ws/wss，未对 token 做额外编码"
+      },
+      "javaExtraction": {
+        "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java",
+        "line": 398,
+        "symbol": "ChatWebSocketHandler.extractToken",
+        "notes": "直接按 &/= 拆分取 token 值，不做 URLDecode；JWT 标准字符通常可正常工作"
+      }
+    },
+    "frameEnvelope": {
+      "description": "统一 JSON 帧",
+      "example": "{\"type\":\"NEW_MESSAGE\",\"data\":{...},\"timestamp\":\"2026-07-29 10:00:00\"}",
+      "fields": [
+        { "name": "type", "type": "string", "description": "事件类型" },
+        { "name": "data", "type": "object", "description": "事件载荷" },
+        { "name": "timestamp", "type": "string", "description": "服务端生成时间（Java 特有，ArkTS 未使用但不影响解析）" }
+      ]
+    },
+    "serverToClientEvents": [
+      {
+        "type": "NEW_MESSAGE",
+        "direction": "server -> receiver",
+        "description": "新消息推送",
+        "dataFields": [
+          { "name": "messageId", "type": "number", "mappedTo": "ChatMessageVO.id" },
+          { "name": "applicationId", "type": "number" },
+          { "name": "sessionType", "type": "string", "notes": "服务端缺省时回传 'application'" },
+          { "name": "senderId", "type": "number" },
+          { "name": "senderName", "type": "string" },
+          { "name": "senderAvatar", "type": "string" },
+          { "name": "content", "type": "string" },
+          { "name": "messageType", "type": "number" },
+          { "name": "sendTime", "type": "string" }
+        ],
+        "absentFields": [
+          { "name": "isRead", "expectedByArkTS": true, "javaSends": false, "notes": "ArkTS ChatMessageVO 与 ChatProtocolMappers 期望 isRead，但 Java notifyNewMessage 未发送" }
+        ],
+        "arktsHandler": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 271, "symbol": "ChatWebSocketService.handleMessage" },
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 229, "symbol": "ChatWebSocketHandler.notifyNewMessage / buildMessage" }
+      },
+      {
+        "type": "SEND_ACK",
+        "direction": "server -> sender",
+        "description": "消息发送确认，用于避免发送方重复追加",
+        "dataFields": [
+          { "name": "messageId", "type": "number" },
+          { "name": "applicationId", "type": "number" },
+          { "name": "sessionType", "type": "string" },
+          { "name": "messageType", "type": "number" },
+          { "name": "content", "type": "string" },
+          { "name": "sendTime", "type": "string" }
+        ],
+        "arktsHandler": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 284, "symbol": "ChatWebSocketService.handleMessage" },
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 243, "symbol": "ChatWebSocketHandler.handleSendMessage" }
+      },
+      {
+        "type": "MESSAGE_READ",
+        "direction": "server -> sender",
+        "description": "对方已读回执",
+        "dataFields": [
+          { "name": "applicationId", "type": "number" },
+          { "name": "sessionType", "type": "string" },
+          { "name": "readerId", "type": "number" },
+          { "name": "lastReadMessageId", "type": "number", "required": false }
+        ],
+        "arktsHandler": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 291, "symbol": "ChatWebSocketService.handleMessage" },
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 298, "symbol": "ChatWebSocketHandler.handleReadReceipt" }
+      },
+      {
+        "type": "ERROR",
+        "direction": "server -> client",
+        "description": "错误帧",
+        "dataFields": [
+          { "name": "code", "type": "number" },
+          { "name": "message", "type": "string" }
+        ],
+        "arktsHandler": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 295, "symbol": "ChatWebSocketService.handleMessage", "notes": "当前实现忽略 ERROR 帧，不做错误提示" },
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 459, "symbol": "ChatWebSocketHandler.buildError" }
+      },
+      {
+        "type": "PONG",
+        "direction": "server -> client",
+        "description": "PING 心跳回复",
+        "dataFields": [],
+        "arktsHandler": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 271, "symbol": "ChatWebSocketService.handleMessage", "notes": "未显式处理 PONG，收到后无操作" },
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 321, "symbol": "ChatWebSocketHandler.handlePing" }
+      }
+    ],
+    "clientToServerEvents": [
+      {
+        "type": "PING",
+        "direction": "client -> server",
+        "description": "心跳检测",
+        "dataFields": [],
+        "arktsSender": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 252, "symbol": "ChatWebSocketService.sendPing" },
+        "vueSender": { "file": "uniseek_vue/src/composables/useChatWebSocket.ts", "line": 40, "symbol": "useChatWebSocket.connect pingTimer" },
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 148, "symbol": "ChatWebSocketHandler.handleTextMessage -> handlePing" }
+      },
+      {
+        "type": "SEND_MESSAGE",
+        "direction": "client -> server",
+        "description": "WebSocket 直接发送消息",
+        "dataFields": [
+          { "name": "applicationId", "type": "number" },
+          { "name": "sessionType", "type": "string" },
+          { "name": "messageType", "type": "number" },
+          { "name": "content", "type": "string" }
+        ],
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 142, "symbol": "ChatWebSocketHandler.handleTextMessage -> handleSendMessage" },
+        "notes": "ArkTS 与 Vue 当前均使用 REST /api/chat/sessions/{id}/messages 发送消息，未走 WS SEND_MESSAGE"
+      },
+      {
+        "type": "READ_RECEIPT",
+        "direction": "client -> server",
+        "description": "WebSocket 已读回执",
+        "dataFields": [
+          { "name": "applicationId", "type": "number" },
+          { "name": "sessionType", "type": "string" },
+          { "name": "lastReadMessageId", "type": "number", "required": false }
+        ],
+        "javaHandler": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 145, "symbol": "ChatWebSocketHandler.handleTextMessage -> handleReadReceipt" },
+        "notes": "ArkTS 与 Vue 当前均使用 REST PUT /api/chat/sessions/{id}/read 标记已读，未走 WS READ_RECEIPT"
+      }
+    ]
+  },
+  "reconnectBehavior": {
+    "arkts": {
+      "pingIntervalMs": 30000,
+      "reconnectDelayMs": 5000,
+      "maxReconnectCount": 5,
+      "strategy": "连接关闭后 scheduleReconnect，最多重试 5 次；连接成功后 reconnectCount 清零",
+      "unreadSync": "连接建立后立即调用 refreshUnreadCount => ChatService.getSessions 本地求和，上限 99",
+      "source": { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 53, "symbol": "ChatWebSocketService" }
+    },
+    "vue": {
+      "pingIntervalMs": 30000,
+      "reconnectDelayMs": 5000,
+      "maxReconnectCount": null,
+      "strategy": "socket.onclose 后 setTimeout(connect, 5000)，无最大次数限制",
+      "unreadSync": "由 chatStore 在加载会话列表时更新未读地图；useChatWebSocket 本身不处理未读",
+      "source": { "file": "uniseek_vue/src/composables/useChatWebSocket.ts", "line": 16, "symbol": "useChatWebSocket" }
+    },
+    "java": {
+      "heartBeat": "收到 PING 后回复 PONG；无服务端主动重连或主动断线补偿",
+      "sessionPool": "userId -> Set<WebSocketSession>；afterConnectionClosed / handleTransportError 时 removeSession",
+      "source": { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 78, "symbol": "userSessions" }
+    }
+  },
+  "testResults": [
+    {
+      "name": "chat-frame-test.js 隔离帧解析/构造测试",
+      "type": "isolated-script",
+      "status": "passed",
+      "command": "node .omo/audit/arkts-api/scripts/chat-frame-test.js",
+      "summary": "12 项断言全部通过，覆盖 WS URL、PING/PONG、NEW_MESSAGE、SEND_ACK、MESSAGE_READ、ERROR、消息类型枚举、上传响应解析。",
+      "scriptPath": ".omo/audit/arkts-api/scripts/chat-frame-test.js"
+    },
+    {
+      "name": "Java ChatSessionTypeTest 单元测试",
+      "type": "java-unit",
+      "status": "passed",
+      "command": "mvn test -Dtest=ChatSessionTypeTest -f uniseek_java/pom.xml",
+      "summary": "Tests run: 4, Failures: 0, Errors: 0, Skipped: 0"
+    },
+    {
+      "name": "Java WebSocket 处理器单元/集成测试",
+      "type": "java-integration",
+      "status": "blocked",
+      "reason": "uniseek_java/src/test/java/com/uniseek/chat/ 下仅有 ChatSessionTypeTest，无 ChatWebSocketHandler 相关测试；后端需要 MySQL 等基础设施，当前环境未配置。"
+    },
+    {
+      "name": "ArkTS 端 WebSocket 服务真机/模拟器测试",
+      "type": "arkts-runtime",
+      "status": "blocked",
+      "reason": "当前环境无 DevEco Studio / 鸿蒙模拟器，无法运行 .ets 单元测试；已由 Node 隔离脚本覆盖帧协议逻辑。"
+    }
+  ],
+  "findings": [
+    {
+      "id": "CHAT-001",
+      "status": "confirmed",
+      "severity": "low",
+      "topic": "WebSocket URL 与 token 参数",
+      "description": "ArkTS 通过 ServerConfig.toWebSocketUrl 生成 /ws/chat?token=...，Vue 通过 location.host 生成同样路径，Java ChatWebSocketHandler.extractToken 按 token= 取值。三端路径一致。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ServerConfig.ets", "line": 30 },
+        { "file": "uniseek_vue/src/composables/useChatWebSocket.ts", "line": 31 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 398 }
+      ]
+    },
+    {
+      "id": "CHAT-002",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "JWT token URL 编码",
+      "description": "ArkTS 对 token 调用 encodeURIComponent，而 Java extractToken 未做 URLDecode。标准 JWT 由 base64url 安全字符组成，实践中不会触发异常；若 token 含 +、&、= 等特殊字符则会导致服务端 token 校验失败。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ServerConfig.ets", "line": 38 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 407 }
+      ]
+    },
+    {
+      "id": "CHAT-003",
+      "status": "confirmed",
+      "severity": "low",
+      "topic": "PING/PONG 帧格式",
+      "description": "ArkTS 与 Vue 均每 30 秒发送 {\"type\":\"PING\",\"data\":{}}；Java handlePing 回复 PONG。帧格式一致。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 252 },
+        { "file": "uniseek_vue/src/composables/useChatWebSocket.ts", "line": 40 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 321 }
+      ]
+    },
+    {
+      "id": "CHAT-004",
+      "status": "confirmed",
+      "severity": "low",
+      "topic": "NEW_MESSAGE 核心字段一致",
+      "description": "messageId、applicationId、sessionType、senderId、senderName、senderAvatar、content、messageType、sendTime 在 Java 服务端生成与 ArkTS/Vue 消费端完全一致；ArkTS 通过 mapWsNewMessageToChatMessageVO 映射为 ChatMessageVO。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/common/ChatProtocolMappers.ets", "line": 10 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 229 }
+      ]
+    },
+    {
+      "id": "CHAT-005",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "NEW_MESSAGE 缺少 isRead 字段",
+      "description": "ArkTS ChatMessageVO 与 ChatProtocolMappers 期望 NEW_MESSAGE.data 包含 isRead，但 Java notifyNewMessage 未下发该字段。Vue 端将 isRead 设为可选并使用 ?? 1 兜底，ArkTS 当前会映射成 undefined。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatTypes.ets", "line": 172 },
+        { "file": "uniseek_arkts/entry/src/main/ets/common/ChatProtocolMappers.ets", "line": 16 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 229 }
+      ]
+    },
+    {
+      "id": "CHAT-006",
+      "status": "confirmed",
+      "severity": "low",
+      "topic": "SEND_ACK 帧字段",
+      "description": "SEND_ACK.data 包含 messageId、applicationId、sessionType、messageType、content、sendTime，与 ArkTS WsSendAckData 接口完全一致。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 16 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 243 }
+      ]
+    },
+    {
+      "id": "CHAT-007",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "ERROR 帧在 ArkTS 中被忽略",
+      "description": "Java 在 token 错误、参数缺失、业务异常时均会下发 ERROR 帧，但 ArkTS ChatWebSocketService.handleMessage 对 ERROR 类型不处理，连接被错误关闭时用户无法感知具体原因。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 295 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 459 }
+      ]
+    },
+    {
+      "id": "CHAT-008",
+      "status": "documentation-conflict",
+      "severity": "medium",
+      "topic": "消息发送路径不经过 WebSocket",
+      "description": "Java ChatWebSocketHandler 支持 WS SEND_MESSAGE，但 ArkTS 与 Vue 均使用 REST POST /api/chat/sessions/{id}/messages 发送消息。两端互操作无问题，但协议层面存在“WS 发送能力废弃未用”的文档/实现差异。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 48 },
+        { "file": "uniseek_vue/src/api/chat.ts", "line": 54 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 142 }
+      ]
+    },
+    {
+      "id": "CHAT-009",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "READ_RECEIPT 事件未从客户端发送",
+      "description": "Java 支持 WS READ_RECEIPT，但 ArkTS 与 Vue 均使用 REST PUT /api/chat/sessions/{id}/read 标记已读。MESSAGE_READ 服务端回执仍可被前端收到，但已读动作不通过 WS 上报。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 210 },
+        { "file": "uniseek_vue/src/api/chat.ts", "line": 60 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/websocket/ChatWebSocketHandler.java", "line": 145 }
+      ]
+    },
+    {
+      "id": "CHAT-010",
+      "status": "confirmed",
+      "severity": "low",
+      "topic": "消息类型枚举",
+      "description": "text=0、image=1、resume/attachment=2 在 ArkTS、Vue、Java 中语义一致。ArkTS ChatService.sendMessage 默认 0，handleImageUpload 发送 1，handleSendResume 发送 2。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 51 },
+        { "file": "uniseek_arkts/entry/src/main/ets/pages/ChatDetailPage.ets", "line": 362 },
+        { "file": "uniseek_vue/src/pages/Chat.vue", "line": 134 }
+      ]
+    },
+    {
+      "id": "CHAT-011",
+      "status": "confirmed",
+      "severity": "low",
+      "topic": "上传字段名与响应结构一致",
+      "description": "三端均以 multipart/form-data 字段名 file 上传；服务端返回 ApiResult<{url:string}>，ArkTS FileTransferPolicy.readUploadUrl 按 code===200 && data.url 解析，Vue 直接取 res.data.url。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatService.ets", "line": 112 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/upload/controller/UploadController.java", "line": 39 },
+        { "file": "uniseek_vue/src/api/upload.ts", "line": 11 }
+      ]
+    },
+    {
+      "id": "CHAT-012",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "通用文件上传扩展名限制与注释不符",
+      "description": "UploadController.uploadFile 注释声明支持 pdf/doc/docx，但 UploadService.uploadFile 的 FILE_EXTENSIONS 仅包含 pdf。前端 ArkTS/Vue 发送 doc/docx 时会被服务端拒绝。",
+      "sourceRefs": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/upload/controller/UploadController.java", "line": 51 },
+        { "file": "uniseek_java/src/main/java/com/uniseek/upload/service/UploadService.java", "line": 35 }
+      ]
+    },
+    {
+      "id": "CHAT-013",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "ArkTS 发送简历消息时 content 为空",
+      "description": "Vue Messages.vue/Chat.vue 发送简历消息时 content=resume.attachmentUrl；ArkTS ChatDetailPage.handleSendResume 调用 ChatService.sendMessageWithType(applicationId, 2, '', sessionType)，content 传空字符串。服务端会保存空内容，可能导致 ArkTS 简历消息无法预览/下载。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/pages/ChatDetailPage.ets", "line": 404 },
+        { "file": "uniseek_vue/src/pages/Chat.vue", "line": 134 }
+      ]
+    },
+    {
+      "id": "CHAT-014",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "未读数同步策略不同",
+      "description": "Java 提供 GET /api/chat/unread-count 聚合接口；Vue 定义了 getChatUnreadCount 但当前由 chatStore 在会话列表刷新时计算；ArkTS 完全通过拉取 /api/chat/sessions 本地求和并上限 99。三种策略结果应当一致，但实现路径不同。",
+      "sourceRefs": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/controller/ChatController.java", "line": 185 },
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 228 },
+        { "file": "uniseek_vue/src/api/chat.ts", "line": 74 }
+      ]
+    },
+    {
+      "id": "CHAT-015",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "断线重连次数策略差异",
+      "description": "ArkTS ChatWebSocketService 限制最多 5 次重连；Vue useChatWebSocket 在 onclose 后无限重连。两者均无指数退避。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/ChatWebSocketService.ets", "line": 59 },
+        { "file": "uniseek_vue/src/composables/useChatWebSocket.ts", "line": 61 }
+      ]
+    },
+    {
+      "id": "CHAT-016",
+      "status": "blocked",
+      "severity": "medium",
+      "topic": "pages/ChatPage.ets 不存在",
+      "description": "任务要求读取 pages/ChatPage.ets，但工作树中不存在该文件。聊天会话列表页分别为 pages/tab/recruiter/RecruiterChatTab.ets（招聘方）和 MainPage.ets 中的求职者消息入口。审计仅基于实际存在的 ChatDetailPage.ets 与 RecruiterChatTab.ets 完成。",
+      "sourceRefs": [
+        { "file": "uniseek_arkts/entry/src/main/ets/pages/ChatDetailPage.ets", "line": 1 },
+        { "file": "uniseek_arkts/entry/src/main/ets/pages/tab/recruiter/RecruiterChatTab.ets", "line": 1 }
+      ]
+    },
+    {
+      "id": "CHAT-017",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "topic": "sessionType 默认值兼容",
+      "description": "Java ChatSessionType.isApplication 在 sessionType 为 null 时返回 true 以兼容旧版投递会话；ArkTS ChatDetailPage.normalizeSessionType 空值也返回 'application'。三端默认值一致。",
+      "sourceRefs": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/chat/ChatSessionType.java", "line": 37 },
+        { "file": "uniseek_arkts/entry/src/main/ets/pages/ChatDetailPage.ets", "line": 131 }
+      ]
+    }
+  ]
+}

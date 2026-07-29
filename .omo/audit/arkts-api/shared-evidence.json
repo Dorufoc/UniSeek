@@ -1,0 +1,468 @@
+{
+  "meta": {
+    "status": "baseline-pending",
+    "generatedAt": "2026-07-29T00:00:00+08:00",
+    "gitHead": "476857d65a2f69e1df4668cd4455cb159ee026ff",
+    "scope": "公共数据、通知、收藏、企业发现、分页与页面回归",
+    "dependencies": {
+      "javaVueContract": ".omo/audit/arkts-api/java-vue-contract.json",
+      "arktsSurface": ".omo/audit/arkts-api/arkts-surface.json"
+    },
+    "sources": [
+      "uniseek_arkts/entry/src/main/ets/services/DataService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/TaskService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/EnterpriseDiscoveryService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/NotificationService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/SearchHistoryService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/RecordService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/ResumeService.ets",
+      "uniseek_arkts/entry/src/main/ets/services/ChatTypes.ets",
+      "uniseek_arkts/entry/src/main/ets/services/RecruiterTypes.ets",
+      "uniseek_java/src/main/java/com/uniseek/controller/CategoryController.java",
+      "uniseek_java/src/main/java/com/uniseek/controller/RegionController.java",
+      "uniseek_java/src/main/java/com/uniseek/controller/NotificationController.java",
+      "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java",
+      "uniseek_java/src/main/java/com/uniseek/controller/EnterpriseController.java",
+      "uniseek_java/src/main/java/com/uniseek/controller/TaskController.java",
+      "uniseek_java/src/main/java/com/uniseek/common/PageResult.java",
+      "uniseek_java/src/main/java/com/uniseek/service/impl/FavoriteServiceImpl.java",
+      "uniseek_java/src/main/java/com/uniseek/service/impl/NotificationServiceImpl.java",
+      "uniseek_java/src/main/java/com/uniseek/service/EnterpriseService.java",
+      "uniseek_java/src/main/java/com/uniseek/dto/CategoryVO.java",
+      "uniseek_java/src/main/java/com/uniseek/dto/RegionVO.java",
+      "uniseek_java/src/main/java/com/uniseek/dto/TaskVO.java",
+      "uniseek_java/src/main/java/com/uniseek/entity/Enterprise.java",
+      "uniseek_java/src/main/java/com/uniseek/entity/Notification.java",
+      "uniseek_java/src/main/java/com/uniseek/entity/Favorite.java",
+      "uniseek_vue/src/api/category.ts",
+      "uniseek_vue/src/api/region.ts",
+      "uniseek_vue/src/api/notification.ts",
+      "uniseek_vue/src/api/favorite.ts",
+      "uniseek_vue/src/api/enterprise.ts",
+      "uniseek_vue/src/pages/Notifications.vue",
+      "uniseek_vue/src/pages/Company.vue"
+    ]
+  },
+  "publicDataFlows": [
+    {
+      "id": "category-tree",
+      "name": "职位分类树",
+      "arktsRouteLiteral": "/api/categories",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/DataService.ets:77",
+      "javaEndpoint": "GET /api/categories",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/CategoryController.java:27",
+      "vueApi": "uniseek_vue/src/api/category.ts:12",
+      "javaResponseType": "ApiResult<List<CategoryVO>>",
+      "arktsResponseType": "CategoryNode[]",
+      "fieldMapping": {
+        "id": { "java": "CategoryVO.id", "arkts": "CategoryNode.id", "type": "number/Long", "status": "consistent" },
+        "parentId": { "java": "CategoryVO.parentId", "arkts": "CategoryNode.parentId", "type": "number/Long|null", "status": "consistent" },
+        "name": { "java": "CategoryVO.name", "arkts": "CategoryNode.name", "type": "string", "status": "consistent" },
+        "sortOrder": { "java": "CategoryVO.sortOrder", "arkts": "CategoryNode.sortOrder", "type": "number/Integer", "status": "consistent" },
+        "children": { "java": "CategoryVO.children", "arkts": "CategoryNode.children", "type": "self[]", "status": "consistent" }
+      },
+      "depth": {
+        "java": "种子数据为两级（category.parent_id 自关联）",
+        "arktsUsage": "DataService.toFields 将树扁平为 Field(name) -> Occupation(name) 两级"
+      },
+      "status": "consistent"
+    },
+    {
+      "id": "region-tree",
+      "name": "省市区完整树",
+      "arktsRouteLiteral": "/api/region/tree",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/DataService.ets:62",
+      "javaEndpoint": "GET /api/region/tree",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/RegionController.java:48",
+      "vueApi": "uniseek_vue/src/api/region.ts:24",
+      "javaResponseType": "ApiResult<List<RegionVO>>",
+      "arktsResponseType": "RegionNode[]",
+      "fieldMapping": {
+        "id": { "java": "RegionVO.id", "arkts": "RegionNode.id", "type": "number/Long", "status": "consistent" },
+        "name": { "java": "RegionVO.name", "arkts": "RegionNode.name", "type": "string", "status": "consistent" },
+        "level": { "java": "RegionVO.level", "arkts": "RegionNode.level", "type": "number/Integer", "status": "consistent" },
+        "children": { "java": "RegionVO.children", "arkts": "RegionNode.children", "type": "self[]", "status": "consistent" }
+      },
+      "levelSemantics": {
+        "1": "省/直辖市",
+        "2": "市（直辖市下为同名市）",
+        "3": "区县"
+      },
+      "status": "consistent"
+    },
+    {
+      "id": "region-children",
+      "name": "地区子节点",
+      "arktsRouteLiteral": "/api/region/children/",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/DataService.ets:115",
+      "javaEndpoint": "GET /api/region/children/{parentId}",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/RegionController.java:38",
+      "vueApi": "uniseek_vue/src/api/region.ts:18",
+      "fieldMapping": "与 region-tree 节点结构一致",
+      "status": "consistent"
+    }
+  ],
+  "enterpriseDiscoveryFlows": [
+    {
+      "id": "enterprise-list",
+      "name": "已认证企业列表（分页）",
+      "arktsRouteLiteral": "/api/enterprise/list",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/EnterpriseDiscoveryService.ets:41",
+      "javaEndpoint": "GET /api/enterprise/list",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/EnterpriseController.java:58",
+      "vueApi": "uniseek_vue/src/api/enterprise.ts:62",
+      "javaResponseType": "ApiResult<PageResult<Enterprise>>",
+      "arktsResponseType": "PageResult<EnterpriseListItem>",
+      "requestParams": {
+        "page": { "java": "RequestParam(defaultValue=\"1\") int", "arkts": "number", "status": "consistent" },
+        "pageSize": { "java": "RequestParam(defaultValue=\"12\") int", "arkts": "number (default 20)", "status": "consistent" },
+        "keyword": { "java": "String", "arkts": "string", "status": "consistent" },
+        "industry": { "java": "String", "arkts": "string", "status": "consistent" },
+        "regionId": { "java": "Long", "arkts": "number", "status": "consistent" },
+        "sortBy": { "java": "String", "arkts": "string", "status": "consistent" },
+        "sortOrder": { "java": "String", "arkts": "string", "status": "consistent" },
+        "subCategoryId": { "java": "Long（支持）", "arkts": "未声明", "status": "arkts-missing" }
+      },
+      "fieldMapping": {
+        "id": { "java": "Enterprise.id", "arkts": "EnterpriseListItem.id", "status": "consistent" },
+        "companyName": { "java": "Enterprise.companyName", "arkts": "EnterpriseListItem.companyName", "status": "consistent" },
+        "industry": { "java": "Enterprise.industry", "arkts": "EnterpriseListItem.industry", "status": "consistent" },
+        "regionId": { "java": "Enterprise.regionId", "arkts": "EnterpriseListItem.regionId", "status": "consistent" },
+        "description": { "java": "Enterprise.description", "arkts": "EnterpriseListItem.description", "status": "consistent" }
+      },
+      "notes": "Java 直接返回 Enterprise 实体，包含 creditCode/licenseImgUrl 等敏感字段；ArkTS EnterpriseListItem 不消费这些字段，但后端不会自动脱敏。",
+      "status": "consistent-with-caveat"
+    },
+    {
+      "id": "enterprise-detail",
+      "name": "企业详情",
+      "arktsRouteLiteral": "/api/enterprise/",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/EnterpriseDiscoveryService.ets:45",
+      "javaEndpoint": "GET /api/enterprise/{id}",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/EnterpriseController.java:86",
+      "vueApi": "uniseek_vue/src/api/enterprise.ts:82",
+      "javaResponseType": "ApiResult<Enterprise>",
+      "arktsResponseType": "EnterpriseListItem",
+      "notes": "ArkTS 使用 EnterpriseListItem 子集消费；后端返回 Enterprise 实体全量字段。",
+      "status": "consistent-with-caveat"
+    },
+    {
+      "id": "enterprise-published-jobs",
+      "name": "企业在招职位",
+      "arktsRouteLiteral": "/api/enterprise/",
+      "dynamicSuffix": "{enterpriseId}/tasks",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/EnterpriseDiscoveryService.ets:49",
+      "javaEndpoint": "GET /api/enterprise/{enterpriseId}/tasks",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/TaskController.java:115",
+      "javaResponseType": "ApiResult<List<TaskVO>>",
+      "arktsResponseType": "TaskVO[]",
+      "fieldMapping": "与 TaskVO 字段一致；详情见 TaskVO 定义",
+      "status": "consistent"
+    }
+  ],
+  "notificationFlows": [
+    {
+      "id": "notification-list",
+      "name": "通知/消息列表",
+      "arktsRouteLiteral": "/api/messages",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/NotificationService.ets:15",
+      "javaEndpoint": "GET /api/messages",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/NotificationController.java:29",
+      "vueApi": "uniseek_vue/src/api/notification.ts:24",
+      "javaResponseType": "ApiResult<PageResult<Notification>>",
+      "arktsResponseType": "PageResult<NotificationVO> (records 被摊平为 NotificationVO[])",
+      "requestParams": {
+        "type": { "java": "Integer optional", "arkts": "固定 '0'（投递通知）", "vue": "Integer optional", "status": "role-specific" },
+        "isRead": { "java": "Integer optional", "arkts": "未传", "vue": "Integer optional", "status": "arkts-missing" },
+        "page": { "java": "default 1", "arkts": "default 1", "vue": "optional", "status": "consistent" },
+        "pageSize": { "java": "default 20", "arkts": "default 50", "vue": "optional", "status": "consistent" }
+      },
+      "fieldMapping": {
+        "id": { "java": "Notification.id", "arkts": "NotificationVO.id", "status": "consistent" },
+        "receiverId": { "java": "Notification.receiverId", "arkts": "NotificationVO.receiverId", "status": "consistent" },
+        "senderId": { "java": "Notification.senderId", "arkts": "NotificationVO.senderId", "status": "consistent" },
+        "title": { "java": "Notification.title", "arkts": "NotificationVO.title", "status": "consistent" },
+        "content": { "java": "Notification.content", "arkts": "NotificationVO.content", "status": "consistent" },
+        "type": { "java": "Notification.type", "arkts": "NotificationVO.type", "status": "consistent" },
+        "isRead": { "java": "Notification.isRead", "arkts": "NotificationVO.isRead", "status": "consistent" },
+        "bizId": { "java": "Notification.bizId", "arkts": "NotificationVO.bizId", "status": "consistent" },
+        "createTime": { "java": "Notification.createTime", "arkts": "NotificationVO.createTime", "status": "consistent" }
+      },
+      "status": "consistent"
+    },
+    {
+      "id": "notification-unread-count",
+      "name": "未读通知数",
+      "arktsRouteLiteral": "/api/messages/unread-count",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/NotificationService.ets:29",
+      "javaEndpoint": "GET /api/messages/unread-count",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/NotificationController.java:43",
+      "vueApi": "uniseek_vue/src/api/notification.ts:33",
+      "javaResponseType": "ApiResult<Map<String,Integer>>",
+      "arktsResponseType": "UnreadCountVO",
+      "fieldMapping": {
+        "totalUnread": { "java": "Map.totalUnread", "arkts": "totalUnread", "status": "consistent" },
+        "systemUnread": { "java": "Map.systemUnread", "arkts": "未使用", "status": "arkts-ignores" },
+        "interviewUnread": { "java": "Map.interviewUnread", "arkts": "未使用", "status": "arkts-ignores" },
+        "offerUnread": { "java": "Map.offerUnread", "arkts": "未使用", "status": "arkts-ignores" },
+        "rejectUnread": { "java": "Map.rejectUnread", "arkts": "未使用", "status": "arkts-ignores" }
+      },
+      "status": "consistent"
+    },
+    {
+      "id": "notification-mark-read",
+      "name": "单条标记已读",
+      "arktsRouteLiteral": "/api/messages/",
+      "dynamicSuffix": "{id}/read",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/NotificationService.ets:39",
+      "javaEndpoint": "PUT /api/messages/{id}/read",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/NotificationController.java:54",
+      "vueApi": "uniseek_vue/src/api/notification.ts:43",
+      "status": "consistent"
+    },
+    {
+      "id": "notification-read-all",
+      "name": "一键全部已读",
+      "arktsRouteLiteral": "/api/messages/read-all",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/NotificationService.ets:49",
+      "javaEndpoint": "PUT /api/messages/read-all",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/NotificationController.java:63",
+      "vueApi": "uniseek_vue/src/api/notification.ts:47",
+      "semantics": "Java markAllAsRead(receiverId) 将该接收者所有消息（不区分 type/isRead）全部置为已读；与 Vue/ArkTS ‘全部已读’按钮语义一致。",
+      "status": "consistent"
+    }
+  ],
+  "favoriteFlows": [
+    {
+      "id": "favorite-add",
+      "name": "新增收藏",
+      "arktsRouteLiteral": "/api/favorites/",
+      "dynamicSuffix": "{taskId}",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets:30",
+      "javaEndpoint": "POST /api/favorites/{taskId}",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java:21",
+      "vueApi": "uniseek_vue/src/api/favorite.ts:17",
+      "status": "consistent"
+    },
+    {
+      "id": "favorite-remove",
+      "name": "取消收藏",
+      "arktsRouteLiteral": "/api/favorites/",
+      "dynamicSuffix": "{taskId}",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets:34",
+      "javaEndpoint": "DELETE /api/favorites/{taskId}",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java:30",
+      "vueApi": "uniseek_vue/src/api/favorite.ts:21",
+      "status": "consistent"
+    },
+    {
+      "id": "favorite-check",
+      "name": "检查是否收藏",
+      "arktsRouteLiteral": "/api/favorites/check/",
+      "dynamicSuffix": "{taskId}",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets:38",
+      "javaEndpoint": "GET /api/favorites/check/{taskId}",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java:39",
+      "vueApi": "uniseek_vue/src/api/favorite.ts:25",
+      "responseField": { "java": "data.favorited", "arkts": "FavoriteCheckResult.favorited", "status": "consistent" },
+      "status": "consistent"
+    },
+    {
+      "id": "favorite-list",
+      "name": "收藏列表",
+      "arktsRouteLiteral": "/api/favorites",
+      "arktsService": "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets:47",
+      "javaEndpoint": "GET /api/favorites",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java:49",
+      "vueApi": "uniseek_vue/src/api/favorite.ts:30",
+      "javaResponseType": "ApiResult<PageResult<Task>>",
+      "arktsResponseType": "PageResult<FavoriteTaskItem>（被全量拉平为 JobData[]）",
+      "requestParams": {
+        "page": { "java": "default 1", "arkts": "number (default 1)" },
+        "pageSize": { "java": "default 10", "arkts": "number (default 20)" }
+      },
+      "fieldMapping": {
+        "id": { "java": "Task.id", "arkts": "FavoriteTaskItem.id" },
+        "title": { "java": "Task.title", "arkts": "FavoriteTaskItem.title" },
+        "salaryMin": { "java": "Task.salaryMin", "arkts": "FavoriteTaskItem.salaryMin" },
+        "salaryMax": { "java": "Task.salaryMax", "arkts": "FavoriteTaskItem.salaryMax" },
+        "salaryUnit": { "java": "Task.salaryUnit", "arkts": "FavoriteTaskItem.salaryUnit" },
+        "jobType": { "java": "Task.jobType", "arkts": "FavoriteTaskItem.jobType" },
+        "remainingQuota": { "java": "Task.remainingQuota", "arkts": "FavoriteTaskItem.remainingQuota" },
+        "totalQuota": { "java": "Task.totalQuota", "arkts": "未映射（JobData.totalQuota 被写死 0）" },
+        "address": { "java": "Task.address", "arkts": "FavoriteTaskItem.address" },
+        "tag": { "java": "Task.tag", "arkts": "FavoriteTaskItem.tag (JSON 字符串) -> JobData.tag 空数组" },
+        "status": { "java": "Task.status", "arkts": "FavoriteTaskItem.status -> JobData.status" },
+        "createTime": { "java": "Task.createTime", "arkts": "FavoriteTaskItem.createTime" }
+      },
+      "status": "consistent-with-pagination-issue"
+    },
+    {
+      "id": "favorite-count",
+      "name": "收藏总数",
+      "javaEndpoint": "GET /api/favorites/count",
+      "javaController": "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java:57",
+      "vueApi": "uniseek_vue/src/api/favorite.ts:35",
+      "arktsService": null,
+      "note": "ArkTS 未实现收藏总数查询；FavoriteService 仅通过 task detail 的 hasFavorited 字段感知收藏状态。",
+      "status": "arkts-not-implemented"
+    }
+  ],
+  "localOnlyServices": [
+    {
+      "name": "SearchHistoryService",
+      "file": "uniseek_arkts/entry/src/main/ets/services/SearchHistoryService.ets",
+      "description": "基于 @kit.ArkData preferences 维护职位/公司/人才三种搜索历史的本地持久化；提供 load/save/add/remove/clear 和本地静态热搜词池。无服务端调用，不属于 API 遗漏。",
+      "kind": "local-preference"
+    },
+    {
+      "name": "RecordService",
+      "file": "uniseek_arkts/entry/src/main/ets/services/RecordService.ets",
+      "description": "内存级 Map 缓存‘浏览过的职位’和‘沟通过的职位’；进程退出即丢失，无服务端调用，不属于 API 遗漏。",
+      "kind": "in-memory-cache"
+    }
+  ],
+  "paginationPatterns": {
+    "javaPageResult": {
+      "file": "uniseek_java/src/main/java/com/uniseek/common/PageResult.java",
+      "fields": ["records", "total", "page", "pageSize", "totalPages"],
+      "factory": "PageResult.of(IPage) 计算 totalPages"
+    },
+    "arktsPageResultResume": {
+      "file": "uniseek_arkts/entry/src/main/ets/services/ResumeService.ets:65",
+      "fields": ["records", "total", "page", "pageSize", "totalPages"]
+    },
+    "arktsPageResultChatTypes": {
+      "file": "uniseek_arkts/entry/src/main/ets/services/ChatTypes.ets:203",
+      "fields": ["records", "total", "page", "pageSize", "totalPages"]
+    },
+    "vuePageResultNotification": {
+      "file": "uniseek_vue/src/api/notification.ts:15",
+      "fields": ["records", "total", "page", "pageSize", "totalPages"]
+    },
+    "vuePageResultFavorite": {
+      "file": "uniseek_vue/src/api/favorite.ts:10",
+      "fields": ["records", "total", "page", "pageSize"],
+      "note": "声明中缺少 totalPages，但 Vue 相关页面未使用收藏分页"
+    },
+    "javaControllers": [
+      "FavoriteController.java:49 使用 page/pageSize",
+      "NotificationController.java:29 使用 page/pageSize",
+      "EnterpriseController.java:59 使用 page/pageSize",
+      "TaskController.java:42 通过 TaskSearchRequest 使用 page/pageSize"
+    ],
+    "conclusion": "ArkTS/Vue/Java 在请求参数和响应字段上统一使用 page/pageSize，未发现 current/size 命名不一致。"
+  },
+  "routeCoverage": {
+    "arktsSurface": ".omo/audit/arkts-api/arkts-surface.json",
+    "verifiedAt": "2026-07-29",
+    "sharedDataRoutes": [
+      { "routeLiteral": "/api/categories", "surfaceKind": "rest-route", "surfaceFile": "services/DataService.ets", "surfaceLine": 77, "covered": true },
+      { "routeLiteral": "/api/region/tree", "surfaceKind": "rest-route", "surfaceFile": "services/DataService.ets", "surfaceLine": 62, "covered": true },
+      { "routeLiteral": "/api/region/children/", "surfaceKind": "rest-route", "surfaceFile": "services/DataService.ets", "surfaceLine": 115, "covered": true },
+      { "routeLiteral": "/api/enterprise/list", "surfaceKind": "rest-route", "surfaceFile": "services/EnterpriseDiscoveryService.ets", "surfaceLine": 41, "covered": true },
+      { "routeLiteral": "/api/enterprise/", "surfaceKind": "rest-route", "surfaceFile": "services/EnterpriseDiscoveryService.ets", "surfaceLine": 45, "covered": true, "notes": "同时被企业详情与企业在招职位复用，surface 中记录了两条 /api/enterprise/" },
+      { "routeLiteral": "/api/enterprise/", "surfaceKind": "rest-route", "surfaceFile": "services/EnterpriseDiscoveryService.ets", "surfaceLine": 49, "covered": true, "notes": "企业详情与企业在招职位共享静态前缀" },
+      { "routeLiteral": "/api/messages", "surfaceKind": "rest-route", "surfaceFile": "services/NotificationService.ets", "surfaceLine": 15, "covered": true },
+      { "routeLiteral": "/api/messages/unread-count", "surfaceKind": "rest-route", "surfaceFile": "services/NotificationService.ets", "surfaceLine": 29, "covered": true },
+      { "routeLiteral": "/api/messages/", "surfaceKind": "rest-route", "surfaceFile": "services/NotificationService.ets", "surfaceLine": 39, "covered": true, "notes": "单条已读 /{id}/read 的静态前缀" },
+      { "routeLiteral": "/api/messages/read-all", "surfaceKind": "rest-route", "surfaceFile": "services/NotificationService.ets", "surfaceLine": 49, "covered": true },
+      { "routeLiteral": "/api/favorites/", "surfaceKind": "rest-route", "surfaceFile": "services/FavoriteService.ets", "surfaceLine": 30, "covered": true, "notes": "收藏新增/删除的静态前缀" },
+      { "routeLiteral": "/api/favorites/", "surfaceKind": "rest-route", "surfaceFile": "services/FavoriteService.ets", "surfaceLine": 34, "covered": true, "notes": "收藏新增/删除的静态前缀" },
+      { "routeLiteral": "/api/favorites/check/", "surfaceKind": "rest-route", "surfaceFile": "services/FavoriteService.ets", "surfaceLine": 38, "covered": true },
+      { "routeLiteral": "/api/favorites", "surfaceKind": "rest-route", "surfaceFile": "services/FavoriteService.ets", "surfaceLine": 47, "covered": true, "notes": "收藏列表（无斜杠）" },
+      { "routeLiteral": "/api/tasks/tags/all", "surfaceKind": "rest-route", "surfaceFile": "services/TaskService.ets", "surfaceLine": 13, "covered": true }
+    ],
+    "missingRoutes": [],
+    "conclusion": "DataService/TaskService/EnterpriseDiscoveryService/NotificationService/FavoriteService 中所有共享数据相关 route literal 在 arkts-surface.json 的 routeLiterals 中均有对应条目。"
+  },
+  "findings": [
+    {
+      "id": "FAV-001",
+      "category": "pagination",
+      "status": "confirmed",
+      "severity": "medium",
+      "title": "FavoriteServiceImpl.listFavorites 未设置 totalPages，导致 ArkTS 提前终止分页",
+      "description": "FavoriteServiceImpl.listFavorites 手动构造 PageResult 时只设置了 records/total/page/pageSize，未设置 totalPages（保持默认值 0）。ArkTS FavoriteService.getFavorites 读取 result.totalPages 后执行 do-while(currentPage <= totalPages)，因此只在首次请求时加载一页，后续页被静默丢弃。",
+      "sources": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/service/impl/FavoriteServiceImpl.java", "lines": "80-85", "what": "new PageResult 缺少 setTotalPages" },
+        { "file": "uniseek_java/src/main/java/com/uniseek/common/PageResult.java", "lines": "39-50", "what": "PageResult.of 工厂方法会计算 totalPages，但本处未使用" },
+        { "file": "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets", "lines": "42-54", "what": "依赖 result.totalPages 判断是否需要翻页" }
+      ],
+      "impact": "ArkTS 端‘我的收藏’最多返回第一页（默认 20 条），超出部分不可见。",
+      "recommendation": "在 FavoriteServiceImpl.listFavorites 中使用 PageResult.of(favPage) 或按 total/pageSize 计算 totalPages 后 setTotalPages。"
+    },
+    {
+      "id": "FAV-002",
+      "category": "favorite-fields",
+      "status": "confirmed",
+      "severity": "low",
+      "title": "ArkTS 收藏列表映射丢失 totalQuota/enterpriseName/region/tag 等字段",
+      "description": "FavoriteTaskItem 映射到 JobData 时，totalQuota 被写死为 0、enterpriseName/region/type/category 被置空、tag 被置为空数组，导致收藏卡片展示信息少于职位详情页。",
+      "sources": [
+        { "file": "uniseek_arkts/entry/src/main/ets/services/FavoriteService.ets", "lines": "56-85", "what": "映射函数对非 FavoriteTaskItem 字段使用硬编码空值" }
+      ],
+      "impact": "收藏列表 UI 可能出现空白公司名、地区、标签；但不影响功能可用性。",
+      "recommendation": "扩展 FavoriteTaskItem 以包含 enterpriseName/regionName/categoryName/tag，或在 Java 收藏接口返回 TaskVO 而非 Task。"
+    },
+    {
+      "id": "ENT-001",
+      "category": "role-check",
+      "status": "confirmed",
+      "severity": "medium",
+      "title": "EnterpriseController.getEnterpriseById 返回完整 Enterprise 实体，未脱敏敏感字段",
+      "description": "GET /api/enterprise/{id} 未对访问者做角色/所有权校验，直接返回 Enterprise 实体，包含 creditCode、licenseImgUrl、userId、rejectReason 等敏感字段。ArkTS 企业详情页 EnterpriseListItem 只使用子集字段，但后端接口本身暴露过多数据。",
+      "sources": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/controller/EnterpriseController.java", "lines": "86-93", "what": "公开返回完整 Enterprise" },
+        { "file": "uniseek_arkts/entry/src/main/ets/services/EnterpriseDiscoveryService.ets", "lines": "4-10", "what": "ArkTS 仅消费 id/companyName/industry/regionId/description" },
+        { "file": "uniseek_java/src/main/java/com/uniseek/entity/Enterprise.java", "lines": "17-61", "what": "包含 creditCode、licenseImgUrl、auditStatus、userId 等" }
+      ],
+      "impact": "求职者/访客可能看到企业的统一社会信用代码、营业执照图片、审核状态等不宜公开的信息。",
+      "recommendation": "为公开企业详情新增 EnterprisePublicVO，仅保留可展示字段；敏感字段只对 owner/admin 开放。"
+    },
+    {
+      "id": "DOC-001",
+      "category": "documentation-conflict",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "title": "api.md 未记录收藏相关接口",
+      "description": "FavoriteController 实现了 POST/DELETE/GET /api/favorites/{taskId}、GET /api/favorites/check/{taskId}、GET /api/favorites、GET /api/favorites/count，但 api.md 中搜索不到 /api/favorites 相关条目。",
+      "sources": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/controller/FavoriteController.java", "lines": "15-64", "what": "收藏控制器全量接口" },
+        { "file": "api.md", "what": "未检索到 /api/favorites 路径" }
+      ],
+      "impact": "API 文档与代码不一致，前后端开发者可能遗漏收藏 endpoints。",
+      "recommendation": "在 api.md 中补充收藏接口的请求/响应说明。"
+    },
+    {
+      "id": "DOC-002",
+      "category": "documentation-conflict",
+      "status": "documentation-conflict",
+      "severity": "low",
+      "title": "api.md 未记录企业发现/职位标签公共接口",
+      "description": "api.md 中未记录 GET /api/enterprise/list（求职者浏览已认证企业）、GET /api/enterprise/{id}/tasks（企业在招职位）、GET /api/tasks/tags/all（职位标签），但代码与 ArkTS/Vue 均使用这些接口。",
+      "sources": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/controller/EnterpriseController.java", "lines": "58,86,108?", "what": "enterprise list/detail/update; published tasks 实际在 TaskController.java:115" },
+        { "file": "uniseek_java/src/main/java/com/uniseek/controller/TaskController.java", "lines": "115,125", "what": "企业已发布职位、职位标签" },
+        { "file": "api.md", "what": "未检索到 /api/enterprise/list、/api/tasks/tags/all" }
+      ],
+      "impact": "公共数据与企业发现接口在文档中不可见，影响前后端对接。",
+      "recommendation": "在 api.md 的‘公共数据’或‘企业’章节补充上述 endpoints。"
+    },
+    {
+      "id": "NOT-001",
+      "category": "notification-semantics",
+      "status": "blocked",
+      "severity": "low",
+      "title": "ArkTS NotificationService.getNewDeliveries 未使用 isRead 过滤",
+      "description": "Java 通知列表支持 type 和 isRead 双过滤；ArkTS 招聘端铃铛只固定 type=0，不传递 isRead。若产品设计‘铃铛展示未读新投递’，则当前实现会把已读投递也拉回来；若产品设计‘展示全部投递通知’则正常。",
+      "sources": [
+        { "file": "uniseek_java/src/main/java/com/uniseek/controller/NotificationController.java", "lines": "29-37", "what": "isRead 可选参数" },
+        { "file": "uniseek_arkts/entry/src/main/ets/services/NotificationService.ets", "lines": "13-24", "what": "仅传入 type=0 和分页参数" }
+      ],
+      "impact": "需要产品经理确认铃铛列表语义，否则可能出现已读通知驻留列表。",
+      "recommendation": "明确 ArkTS 招聘端铃铛是否应按未读过滤；若需要，在 getNewDeliveries 中增加 isRead=0。"
+    }
+  ]
+}

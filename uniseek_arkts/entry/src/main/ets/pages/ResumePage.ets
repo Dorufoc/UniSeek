@@ -325,7 +325,7 @@ struct ResumePage {
       this.experience = merged.experience
       this.graduationDate = merged.graduationDate
       this.attachmentUrl = merged.attachmentUrl
-      this.attachmentName = merged.attachmentUrl ? merged.attachmentUrl.split('/').pop() || '' : ''
+       this.attachmentName = merged.attachmentUrl ? this.decodeAttachmentName(merged.attachmentUrl) : ''
     }).catch(() => {
       this.loadError = '简历加载失败，请重新加载'
     }).finally(() => {
@@ -404,8 +404,20 @@ struct ResumePage {
   // 附件上传成功后触发保存
   onAttachmentUploaded(url: string): void {
     this.attachmentUrl = url
-    this.attachmentName = url ? url.split('/').pop() || '' : ''
+    this.attachmentName = url ? this.decodeAttachmentName(url) : ''
     this.scheduleAutoSave()
+  }
+
+  private decodeAttachmentName(url: string): string {
+    const segment: string = url.substring(url.lastIndexOf('/') + 1).split('?')[0]
+    if (!segment) {
+      return ''
+    }
+    try {
+      return decodeURIComponent(segment)
+    } catch {
+      return segment
+    }
   }
 
   completionRate(): number {
@@ -604,7 +616,12 @@ struct ResumePage {
             .fontSize(AppFontSize.XS)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(AppColors.SELECTED_BG)
-            .onClick((): void => { void ChatService.previewAttachment(this.attachmentUrl) })
+             .onClick((): void => {
+               this.getUIContext().getRouter().pushUrl({
+                 url: 'pages/PdfPreviewPage',
+                 params: { attachmentUrl: this.attachmentUrl }
+               })
+             })
            Button('删除', { type: ButtonType.Capsule })
              .height(AppSpacing.BUTTON_HEIGHT_SM)
              .fontSize(AppFontSize.XS)
@@ -803,7 +820,7 @@ struct ResumePage {
         return
       }
       const uri = uris[0]
-      const fileName: string = uri.split('/').pop() || '简历.pdf'
+       const fileName: string = this.decodeAttachmentName(uri) || '简历.pdf'
       let errorText: string = ''
       try {
         const stat = fileIo.statSync(uri)

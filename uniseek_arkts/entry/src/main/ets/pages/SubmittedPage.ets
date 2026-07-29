@@ -14,6 +14,7 @@ interface ApplicationCardCallbacks {
 // 投递记录状态筛选选项：-1 表示全部，其余对应 application status
 const FILTER_OPTIONS: ChoiceOption[] = [
   { value: -1, label: '全部' },
+  { value: 0, label: '已投递' },
   { value: 1, label: '待面试' },
   { value: 2, label: '待定' },
   { value: 3, label: '已录用' },
@@ -102,16 +103,23 @@ struct ApplicationCard {
             .margin({ top: AppSpacing.XS })
         }
 
-        Button('查看职位', { type: ButtonType.Capsule })
-          .height(36)
-          .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
-          .fontSize(AppFontSize.SM)
-          .fontColor('#FFFFFF')
-          .backgroundColor(AppColors.PRIMARY)
-          .margin({ top: AppSpacing.MD })
-          .onClick(() => {
-            this.callbacks.onOpenTask()
-          })
+        if (this.task) {
+          Button('查看职位', { type: ButtonType.Capsule })
+            .height(36)
+            .padding({ left: AppSpacing.LG, right: AppSpacing.LG })
+            .fontSize(AppFontSize.SM)
+            .fontColor('#FFFFFF')
+            .backgroundColor(AppColors.PRIMARY)
+            .margin({ top: AppSpacing.MD })
+            .onClick(() => {
+              this.callbacks.onOpenTask()
+            })
+        } else {
+          Text('职位信息暂不可用')
+            .fontSize(AppFontSize.SM)
+            .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.MD })
+        }
       }
       }
       .width('100%')
@@ -128,6 +136,8 @@ struct SubmittedPage {
   @State expandedId: number = -1
   @State isLoading: boolean = true
   @State loadError: string = ''
+  // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
+  private isFirstPageShow: boolean = true
 
   aboutToAppear(): void {
     const params = this.getUIContext().getRouter().getParams() as Record<string, string>
@@ -140,10 +150,17 @@ struct SubmittedPage {
     } else {
       this.selectedFilter = -1
     }
+    // 首次进入由 aboutToAppear 触发加载；onPageShow 首次到达时通过 isFirstPageShow 跳过，避免重复请求
+    this.isFirstPageShow = true
     this.loadApplications()
   }
 
   onPageShow(): void {
+    // 从子页面返回时需要刷新；首次进入时与 aboutToAppear 重复，直接跳过
+    if (this.isFirstPageShow) {
+      this.isFirstPageShow = false
+      return
+    }
     this.loadApplications()
   }
 
@@ -186,6 +203,7 @@ struct SubmittedPage {
 
   openTask(task: TaskVO | null): void {
     if (!task) {
+      this.getUIContext().getPromptAction().showToast({ message: '职位信息缺失，暂无法查看详情', duration: 2000 })
       return
     }
     this.getUIContext().getRouter().pushUrl({

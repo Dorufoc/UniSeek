@@ -232,6 +232,7 @@ export class AuthService {
     }
     // 先按当前账号清理实名缓存，再清空会话，避免会话清空后无法定位账号导致缓存残留
     AuthService.clearCachedRealNameStatus()
+    AuthService.realNameStatusPromise = null
     ApiClient.clearSession()
     UserSession.clear()
     ChatWebSocketService.getInstance().disconnect()
@@ -245,6 +246,7 @@ export class AuthService {
   static logoutAndRedirect(router: Router): void {
     // 1. 先按当前账号清理实名缓存，再立即清空本地会话、角色缓存与 WebSocket 连接
     AuthService.clearCachedRealNameStatus()
+    AuthService.realNameStatusPromise = null
     ApiClient.clearSession()
     UserSession.clear()
     ChatWebSocketService.getInstance().disconnect()
@@ -297,14 +299,26 @@ export class AuthService {
     pref.flushSync()
   }
 
+  private static realNameStatusPromise: Promise<RealNameStatus> | null = null
+
   static async getRealNameStatus(): Promise<RealNameStatus> {
-    const status = await ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
-    if (status.isAuth) {
-      AuthService.saveCachedRealNameStatus(status)
-    } else {
-      AuthService.clearCachedRealNameStatus()
+    // 若已有正在进行的请求，直接复用，避免并发重复调用与结果竞争
+    if (AuthService.realNameStatusPromise) {
+      return AuthService.realNameStatusPromise
     }
-    return status
+    const requestUserId = AuthService.currentUserId()
+    const promise = ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
+    AuthService.realNameStatusPromise = promise.then((status: RealNameStatus) => {
+      // 始终保存后端返回的权威状态，包括 false；正常 false 不再清除缓存
+      // 仅在发起请求时的账号与当前账号一致时才写入，避免账号切换后串号覆盖
+      if (requestUserId > 0 && requestUserId === AuthService.currentUserId()) {
+        AuthService.saveCachedRealNameStatus(status)
+      }
+      return status
+    }).finally(() => {
+      AuthService.realNameStatusPromise = null
+    })
+    return AuthService.realNameStatusPromise
   }
 
   static async updatePhone(newPhone: string, password: string): Promise<void> {

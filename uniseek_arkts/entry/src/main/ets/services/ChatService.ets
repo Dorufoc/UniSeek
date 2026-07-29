@@ -29,27 +29,33 @@ export class ChatService {
     return ApiClient.get<ChatSessionVO[]>('/api/chat/sessions')
   }
 
-  static async getSessionDetail(applicationId: number): Promise<ChatSessionVO> {
-    return ApiClient.get<ChatSessionVO>('/api/chat/sessions/' + applicationId)
+  static async getSessionDetail(applicationId: number, sessionType?: string): Promise<ChatSessionVO> {
+    const path = ChatService.buildSessionPath('/api/chat/sessions/' + applicationId, sessionType)
+    return ApiClient.get<ChatSessionVO>(path)
   }
 
-  static async getMessages(applicationId: number, beforeId?: number, pageSize: number = 20): Promise<ChatMessageVO[]> {
+  static async getMessages(applicationId: number, beforeId?: number, pageSize: number = 20, sessionType?: string): Promise<ChatMessageVO[]> {
     const params: Array<[string, string]> = [['pageSize', pageSize.toString()]]
     if (beforeId !== undefined) {
       params.push(['beforeId', beforeId.toString()])
     }
+    if (sessionType !== undefined && sessionType.trim().length > 0) {
+      params.push(['sessionType', sessionType])
+    }
     return ApiClient.get<ChatMessageVO[]>('/api/chat/sessions/' + applicationId + '/messages', params)
   }
 
-  static async sendMessage(applicationId: number, content: string): Promise<ChatMessageVO> {
-    return ApiClient.post<ChatMessageVO>('/api/chat/sessions/' + applicationId + '/messages', {
+  static async sendMessage(applicationId: number, content: string, sessionType?: string): Promise<ChatMessageVO> {
+    const path = ChatService.buildSessionPath('/api/chat/sessions/' + applicationId + '/messages', sessionType)
+    return ApiClient.post<ChatMessageVO>(path, {
       messageType: 0,
       content: content
     } as SendMessageRequest)
   }
 
-  static async sendMessageWithType(applicationId: number, messageType: number, content: string): Promise<ChatMessageVO> {
-    return ApiClient.post<ChatMessageVO>('/api/chat/sessions/' + applicationId + '/messages', {
+  static async sendMessageWithType(applicationId: number, messageType: number, content: string, sessionType?: string): Promise<ChatMessageVO> {
+    const path = ChatService.buildSessionPath('/api/chat/sessions/' + applicationId + '/messages', sessionType)
+    return ApiClient.post<ChatMessageVO>(path, {
       messageType: messageType,
       content: content
     } as SendMessageRequest)
@@ -78,10 +84,24 @@ export class ChatService {
     const context = getContext()
     const fallbackName: string = serverPath.endsWith('/image') ? 'upload.jpg' : 'upload.pdf'
     const fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
-    const sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
-    fileIo.closeSync(sourceFile)
-    const cachePath: string = context.cacheDir + '/uniseek-' + new Date().getTime() + '-' + fileName
-    fileIo.copyFileSync(uri, cachePath)
+    const cacheName: string = 'uniseek-' + new Date().getTime() + '-' + fileName
+    const cachePath: string = context.cacheDir + '/' + cacheName
+
+    // 通过源 URI 与目标缓存文件的 fd 复制内容，避免将 Picker 返回的 URI 直接作为本地路径
+    let sourceFile: fileIo.File | undefined = undefined
+    let targetFile: fileIo.File | undefined = undefined
+    try {
+      sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
+      targetFile = fileIo.openSync(cachePath, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE)
+      fileIo.copyFileSync(sourceFile.fd, targetFile.fd)
+    } finally {
+      if (sourceFile !== undefined) {
+        fileIo.closeSync(sourceFile)
+      }
+      if (targetFile !== undefined) {
+        fileIo.closeSync(targetFile)
+      }
+    }
 
     const uploadConfig: request.UploadConfig = {
       url: ApiClient.BASE_URL + serverPath,
@@ -92,11 +112,12 @@ export class ChatService {
       files: [{
         filename: fileName,
         name: 'file',
-        uri: cachePath,
+        uri: 'internal://cache/' + cacheName,
         type: FileTransferPolicy.getMimeType(fileName)
       }],
       data: []
     }
+
     const uploadTask = await request.uploadFile(context, uploadConfig)
     return new Promise<string>((resolve, reject) => {
       uploadTask.on('complete', (states: Array<request.TaskState>): void => {
@@ -107,6 +128,11 @@ export class ChatService {
         const raw: string = states[0].message
         try {
           const response: UploadResponse = JSON.parse(raw) as UploadResponse
+          // 即使 HTTP responseCode 为 2xx，也按业务 code 判断，优先抛出服务端具体错误信息
+          if (response.code !== 200) {
+            reject(new Error(response.message || '文件上传失败'))
+            return
+          }
           const url: string = FileTransferPolicy.readUploadUrl(response)
           if (!url) {
             reject(new Error(response.message || '上传响应无文件地址'))
@@ -124,7 +150,8 @@ export class ChatService {
     }).finally(() => {
       try {
         fileIo.unlinkSync(cachePath)
-      } catch {
+      } catch (err) {
+        // 缓存文件已清理或不存在时忽略，不影响业务结果
       }
     })
   }
@@ -180,11 +207,20 @@ export class ChatService {
     return ApiClient.post<number>('/api/chat/sessions/direct?targetUserId=' + targetUserId)
   }
 
-  static async markSessionRead(applicationId: number): Promise<void> {
-    await ApiClient.put<ApiEmpty>('/api/chat/sessions/' + applicationId + '/read')
+  static async markSessionRead(applicationId: number, sessionType?: string): Promise<void> {
+    const path = ChatService.buildSessionPath('/api/chat/sessions/' + applicationId + '/read', sessionType)
+    await ApiClient.put<ApiEmpty>(path)
   }
 
   static async createApplication(taskId: number): Promise<ApplicationResponse> {
     return ApiClient.post<ApplicationResponse>('/api/applications', { taskId } as CreateApplicationRequest)
+  }
+
+  /** 在路径后追加 sessionType 查询参数，仅用于区分直聊与投递会话。 */
+  private static buildSessionPath(path: string, sessionType?: string): string {
+    if (sessionType === undefined || sessionType.trim().length === 0) {
+      return path
+    }
+    return path + '?sessionType=' + sessionType
   }
 }

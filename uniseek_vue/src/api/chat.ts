@@ -15,6 +15,7 @@ export interface ChatSessionVO {
   lastMessageTime: string
   unreadCount: number
   canSend?: boolean
+  sessionType?: string
 }
 
 export interface ChatMessageVO {
@@ -38,22 +39,28 @@ export const getChatSessions = () =>
   request.get<any, ChatSessionVO[]>('/chat/sessions')
 
 /** GET /chat/sessions/:applicationId 获取聊天会话 */
-export const getChatSession = (applicationId: number) =>
-  request.get<any, ChatSessionVO>(`/chat/sessions/${applicationId}`)
+export const getChatSession = (applicationId: number, sessionType?: string) =>
+  request.get<any, ChatSessionVO>(`/chat/sessions/${applicationId}`, {
+    params: sessionType ? { sessionType } : undefined
+  })
 
 /** GET /chat/sessions/:applicationId/messages 获取聊天消息 */
-export const getChatMessages = (applicationId: number, beforeId?: number, pageSize?: number) =>
+export const getChatMessages = (applicationId: number, beforeId?: number, pageSize?: number, sessionType?: string) =>
   request.get<any, ChatMessageVO[]>(`/chat/sessions/${applicationId}/messages`, {
-    params: { beforeId, pageSize }
+    params: sessionType ? { beforeId, pageSize, sessionType } : { beforeId, pageSize }
   })
 
 /** POST /chat/sessions/:applicationId/messages 发送消息 */
-export const sendMessage = (applicationId: number, params: SendMessageParams) =>
-  request.post<any, ChatMessageVO>(`/chat/sessions/${applicationId}/messages`, params)
+export const sendMessage = (applicationId: number, params: SendMessageParams, sessionType?: string) =>
+  request.post<any, ChatMessageVO>(`/chat/sessions/${applicationId}/messages`, params, {
+    params: sessionType ? { sessionType } : undefined
+  })
 
 /** PUT /chat/sessions/:applicationId/read 标记会话已读 */
-export const markSessionRead = (applicationId: number) =>
-  request.put<any, void>(`/chat/sessions/${applicationId}/read`)
+export const markSessionRead = (applicationId: number, sessionType?: string) =>
+  request.put<any, void>(`/chat/sessions/${applicationId}/read`, null, {
+    params: sessionType ? { sessionType } : undefined
+  })
 
 /** POST /chat/sessions/direct 创建直接会话（人才库联系求职者） */
 export const createDirectSession = (targetUserId: number) =>

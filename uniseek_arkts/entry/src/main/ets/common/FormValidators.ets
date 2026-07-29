@@ -61,7 +61,7 @@ export class InputValidator {
 /** 上传文件的客户端前置校验。 */
 export class UploadPolicy {
   private static readonly RESUME_MAX_SIZE: number = 10 * 1024 * 1024
-  private static readonly IMAGE_MAX_SIZE: number = 10 * 1024 * 1024
+  private static readonly LICENSE_MAX_SIZE: number = 5 * 1024 * 1024
 
   static validateResume(fileName: string, size: number): string {
     if (!fileName.trim().toLowerCase().endsWith('.pdf')) {
@@ -75,13 +75,13 @@ export class UploadPolicy {
 
   static validateLicense(fileName: string, size: number): string {
     const lowerName: string = fileName.trim().toLowerCase()
-    const isImage: boolean = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') ||
-      lowerName.endsWith('.png') || lowerName.endsWith('.gif') || lowerName.endsWith('.webp')
-    if (!isImage) {
-      return '请选择 JPG、PNG、GIF 或 WebP 图片'
+    const isLicenseImage: boolean = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') ||
+      lowerName.endsWith('.png') || lowerName.endsWith('.webp')
+    if (!isLicenseImage) {
+      return '请选择 JPG、JPEG、PNG 或 WebP 图片'
     }
-    if (size > UploadPolicy.IMAGE_MAX_SIZE) {
-      return '图片大小不能超过 10MB'
+    if (size > UploadPolicy.LICENSE_MAX_SIZE) {
+      return '图片大小不能超过 5MB'
     }
     return ''
   }

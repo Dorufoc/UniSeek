@@ -76,6 +76,7 @@ export struct RecruiterChatTab {
       const original = this.sessions[idx]
       const updated: ChatSessionVO = {
         applicationId: original.applicationId,
+        sessionType: original.sessionType,
         taskId: original.taskId,
         taskTitle: original.taskTitle,
         taskStatus: original.taskStatus,
@@ -117,6 +118,7 @@ export struct RecruiterChatTab {
         url: 'pages/ChatDetailPage',
         params: {
           applicationId: session.applicationId,
+          sessionType: session.sessionType,
           counterpartName: session.counterpartName,
           counterpartAvatar: session.counterpartAvatar
         }

@@ -104,3 +104,20 @@ export class ChatMessagePolicy {
     return true
   }
 }
+
+/** 聊天发送互斥控制：避免同一次操作并发发起多个请求。 */
+export class ChatSendGuard {
+  private occupied: boolean = false
+
+  tryAcquire(): boolean {
+    if (this.occupied) {
+      return false
+    }
+    this.occupied = true
+    return true
+  }
+
+  release(): void {
+    this.occupied = false
+  }
+}

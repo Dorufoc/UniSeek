@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-07-28T18:16:58.068Z",
+  "overall": "passed",
+  "tests": [
+    {
+      "test": "GET 带 query + Bearer 头",
+      "status": "passed",
+      "expected": "query 编码且携带 Authorization",
+      "actual": "{\"method\":\"GET\",\"pathname\":\"/api/test/get\",\"query\":{\"page\":\"1\",\"pageSize\":\"20\",\"keyword\":\"兼职\"},\"authHeader\":\"Bearer mock-jwt-token-xyz\",\"contentType\":null,\"body\":\"\"}"
+    },
+    {
+      "test": "POST JSON + Bearer 头",
+      "status": "passed",
+      "expected": "Content-Type application/json 且正文序列化",
+      "actual": "{\"method\":\"POST\",\"pathname\":\"/api/test/post\",\"query\":{},\"authHeader\":\"Bearer mock-jwt-token-xyz\",\"contentType\":\"application/json\",\"body\":\"{\\\"account\\\":\\\"13800138000\\\",\\\"password\\\":\\\"123456\\\"}\"}"
+    },
+    {
+      "test": "PUT JSON + query",
+      "status": "passed",
+      "expected": "PUT 方法、query 保留、JSON 正文",
+      "actual": "{\"method\":\"PUT\",\"pathname\":\"/api/test/put\",\"query\":{\"source\":\"app\"},\"authHeader\":\"Bearer mock-jwt-token-xyz\",\"contentType\":\"application/json\",\"body\":\"{\\\"oldPassword\\\":\\\"123456\\\",\\\"newPassword\\\":\\\"654321\\\",\\\"confirmPassword\\\":\\\"654321\\\"}\"}"
+    },
+    {
+      "test": "multipart 上传 + Bearer 头",
+      "status": "passed",
+      "expected": "Content-Type 包含 boundary 且正文含文件字段",
+      "actual": "{\"hasBoundary\":true,\"hasFileField\":true,\"authHeader\":\"Bearer mock-jwt-token-xyz\"}"
+    },
+    {
+      "test": "HTTP 200 业务 code=400 包装",
+      "status": "passed",
+      "expected": "HTTP 200 但 ApiResult.code=400",
+      "actual": "{\"code\":400,\"message\":\"参数错误\",\"data\":null}"
+    },
+    {
+      "test": "HTTP 401 未授权响应",
+      "status": "passed",
+      "expected": "HTTP 401 + JSON code=401",
+      "actual": "{\"statusCode\":401,\"body\":\"{\\\"code\\\":401,\\\"message\\\":\\\"未提供有效的认证令牌\\\"}\"}"
+    },
+    {
+      "test": "非 JSON 响应场景",
+      "status": "passed",
+      "expected": "服务端返回 text/plain 且非 JSON，客户端应拒绝解析",
+      "actual": "{\"contentType\":\"text/plain\",\"body\":\"not json\"}"
+    }
+  ]
+}

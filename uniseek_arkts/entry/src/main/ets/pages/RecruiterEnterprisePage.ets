@@ -11,6 +11,9 @@ import { RecruiterService } from '../services/RecruiterService';
 import { RecruiterEnterpriseVO, RecruiterEnterpriseRequest } from '../services/RecruiterTypes';
 import { CategoryNode, DataService, RegionNode } from '../services/DataService';
 import { ChatService } from '../services/ChatService';
+import { ServerConfig } from '../services/ServerConfig';
+import { ApiClient } from '../services/ApiClient';
+import { FileTransferPolicy } from '../services/FileTransferPolicy';
 import { StatusBanner } from '../components/enterprise/StatusBanner';
 import { LicenseUploader } from '../components/enterprise/LicenseUploader';
 
@@ -55,6 +58,7 @@ struct RecruiterEnterprisePage {
   @State showRegionSheet: boolean = false
   @State showIndustrySheet: boolean = false
   @State showLicensePreview: boolean = false
+  @State licenseImageError: boolean = false
 
   aboutToAppear(): void {
     void this.loadData()
@@ -151,6 +155,11 @@ struct RecruiterEnterprisePage {
     this.regionName = info.regionName || this.findRegionName(info.regionId)
     this.description = info.description || ''
     this.licenseImgUrl = info.licenseImgUrl || ''
+    this.licenseImageError = false
+  }
+
+  private resolveLicenseUrl(url: string): string {
+    return ServerConfig.toHttpUrl(ApiClient.BASE_URL, url)
   }
 
   private findRegionName(regionId: number | undefined): string {
@@ -257,8 +266,9 @@ struct RecruiterEnterprisePage {
       if (!result.photoUris || result.photoUris.length === 0) {
         return
       }
-      const uri = result.photoUris[0]
-      const fileName = uri.split('/').pop() || '营业执照'
+      const uri: string = result.photoUris[0]
+      // 使用 FileTransferPolicy 提取文件名并去除查询参数，避免 Picker URI 携带时间戳等参数影响扩展名识别
+      const fileName: string = FileTransferPolicy.extractFileName(uri, '营业执照')
       try {
         const stat = fileIo.statSync(uri)
         const validationMessage: string = UploadPolicy.validateLicense(fileName, Number(stat.size))
@@ -270,13 +280,16 @@ struct RecruiterEnterprisePage {
         this.showToast('无法读取营业执照文件，请重新选择')
         return
       }
+      this.licenseImageError = false
       this.uploadingLicense = true
       ChatService.uploadImage(uri).then((url: string) => {
         this.licenseImgUrl = url
+        this.licenseImageError = false
         this.showToast('营业执照上传成功')
-      }).catch(() => {
+      }).catch((err: Error) => {
         this.licenseImgUrl = ''
-        this.showToast('营业执照上传失败，请重试')
+        this.licenseImageError = false
+        this.showToast('营业执照上传失败：' + (err.message || '请重试'))
       }).finally(() => {
         this.uploadingLicense = false
       })
@@ -349,8 +362,12 @@ struct RecruiterEnterprisePage {
           }
         }
         .width('100%')
-        .padding(AppSpacing.MD)
-        .padding({ bottom: AppSpacing.XXL })
+        .padding({
+          top: AppSpacing.MD,
+          left: AppSpacing.MD,
+          right: AppSpacing.MD,
+          bottom: AppSpacing.FOOTER_SPACER
+        })
       }
       .width('100%')
       .layoutWeight(1)
@@ -462,12 +479,23 @@ struct RecruiterEnterprisePage {
         .fontSize(AppFontSize.XS)
         .fontColor(AppColors.TEXT_SECONDARY)
         .width('100%')
+      if (this.licenseImageError) {
+        Text('营业执照图片加载失败，请检查网络或重新上传')
+          .fontSize(AppFontSize.SM)
+          .fontColor(AppColors.DANGER)
+          .width('100%')
+          .margin({ top: AppSpacing.XS })
+      }
       Row({ space: AppSpacing.SM }) {
-        Image(this.licenseImgUrl)
+        Image(this.resolveLicenseUrl(this.licenseImgUrl))
           .width(72)
           .height(54)
           .objectFit(ImageFit.Cover)
           .borderRadius(AppRadius.SM)
+          .alt($r('sys.symbol.picture'))
+          .onError(() => {
+            this.licenseImageError = true
+          })
         Text('点击查看营业执照')
           .fontSize(AppFontSize.SM)
           .fontColor(AppColors.PRIMARY)
@@ -596,7 +624,7 @@ struct RecruiterEnterprisePage {
           .fontSize(AppFontSize.XS)
           .fontColor(AppColors.TEXT_SECONDARY)
         Blank()
-        Text(`${value.length}/${maxLength}`)
+        Text(value.length.toString() + '/' + maxLength.toString())
           .fontSize(AppFontSize.XXS)
           .fontColor(AppColors.TEXT_MUTED)
       }
@@ -657,11 +685,24 @@ struct RecruiterEnterprisePage {
       .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
       .justifyContent(FlexAlign.Center)
 
-      Image(this.licenseImgUrl)
+      Image(this.resolveLicenseUrl(this.licenseImgUrl))
         .width('100%')
         .layoutWeight(1)
         .objectFit(ImageFit.Contain)
+        .alt($r('sys.symbol.picture'))
+        .onError(() => {
+          this.licenseImageError = true
+        })
         .margin(AppSpacing.MD)
+
+      if (this.licenseImageError) {
+        Text('图片加载失败，请检查网络或返回重试')
+          .fontSize(AppFontSize.SM)
+          .fontColor(AppColors.DANGER)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: AppSpacing.MD })
+      }
     }
     .width('100%')
     .height('100%')

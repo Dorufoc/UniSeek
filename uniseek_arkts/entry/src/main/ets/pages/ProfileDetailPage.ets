@@ -288,12 +288,15 @@ struct ProfileDetailPage {
       if (field === 'username') {
         const user: UserVO = await UserService.updateProfile({ nickname: value })
         this.applyUser(user)
+        AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       } else if (field === 'phone') {
         await AuthService.updatePhone(value, password)
         await this.loadProfile(false)
+        AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       } else if (field === 'email') {
         await AuthService.updateEmail(value, password)
         await this.loadProfile(false)
+        AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       }
       this.successText = '资料更新成功'
       this.editDialogController.close()
@@ -358,6 +361,7 @@ struct ProfileDetailPage {
       const url: string = await ChatService.uploadImage(result.photoUris[0])
       const user: UserVO = await UserService.updateProfile({ avatarUrl: url })
       this.applyUser(user)
+      AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       this.getUIContext().getPromptAction().showToast({ message: '头像更新成功', duration: 1800 })
     } catch (error) {
       const message = this.getErrorMessage(error)
