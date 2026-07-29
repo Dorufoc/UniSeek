@@ -113,7 +113,6 @@ export class ChatService {
           fileIo.closeSync(sourceFile)
         }
       }
-      }
       uploadUri = 'internal://cache/' + cacheName
     }
 
