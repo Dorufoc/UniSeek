@@ -337,7 +337,7 @@ struct RealNameAuthPage {
       const result = await AuthService.realNameAuth(submittedName, submittedCard)
       // 提交成功后立即拉回 Java 端权威实名状态，避免前端本地构造状态导致 My/Profile 页显示不一致
       try {
-        const status = await AuthService.getRealNameStatus()
+        const status = await AuthService.getRealNameStatus(true)
         this.authStatus = status.isAuth ? 1 : -1
         if (status.isAuth && status.realName) {
           this.realName = status.realName

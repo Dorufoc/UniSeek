@@ -1,5 +1,5 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
-import { AuthService, UserVO } from '../../../services/AuthService';
+import { AuthService, UserVO, RealNameStatus } from '../../../services/AuthService';
 import { UserService, UserStats } from '../../../services/UserService';
 import { ChatService } from '../../../services/ChatService';
 import { ApiClient } from '../../../services/ApiClient';
@@ -73,21 +73,16 @@ export struct RecruiterProfileTab {
 
   /** 进入页面时优先展示本地缓存数据，避免无网络时整页空白。
    * 仅当缓存用户 ID 与当前登录用户一致时才使用缓存，防止切换账号后显示旧账号信息。
+   * 实名认证状态由 loadAuthStatus 独立优先获取，不依赖本地缓存。
    */
   private loadCachedProfile(): void {
     const cachedUser = AuthService.getCachedCurrentUser()
     if (cachedUser && cachedUser.id === UserSession.userId) {
       this.applyUser(cachedUser)
     }
-    // 仅当存在有效当前用户身份（内存会话或持久化会话）时才使用账号隔离的实名缓存与统计缓存，
-    // 防止未登录态、应用冷启动或切换账号后误用旧数据
     const storedSession = ApiClient.getStoredSession()
     const effectiveUserId: number = UserSession.userId > 0 ? UserSession.userId : (storedSession ? storedSession.userId : 0)
     if (effectiveUserId > 0) {
-      const cachedAuth = AuthService.getCachedRealNameStatus()
-      if (cachedAuth) {
-        this.isVerified = cachedAuth.isAuth
-      }
       this.loadCachedStats(effectiveUserId)
     }
     const cachedEnterprise = RecruiterService.getCachedEnterpriseInfo()
@@ -122,10 +117,11 @@ export struct RecruiterProfileTab {
     this.loadErrorText = ''
     this.isLoading = showLoading
     try {
+      // 实名认证状态独立优先获取，不依赖 Promise.all，避免被其他请求阻塞或跳过
+      await this.loadAuthStatus()
       await Promise.all([
         this.loadUser(),
         this.loadStats(),
-        this.loadAuthStatus(),
         this.loadEnterprise()
       ])
     } finally {
@@ -158,14 +154,11 @@ export struct RecruiterProfileTab {
 
   private async loadAuthStatus(): Promise<void> {
     try {
-      const auth = await AuthService.getRealNameStatus()
+      // 直接发起 API 调用，绕过 AuthService 缓存与 Promise 去重机制，确保获取最新状态
+      const auth = await ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
       this.isVerified = auth.isAuth
     } catch {
-      // 网络请求失败时回退到本地缓存的实名认证状态
-      const cachedAuth = AuthService.getCachedRealNameStatus()
-      if (cachedAuth) {
-        this.isVerified = cachedAuth.isAuth
-      }
+      this.isVerified = false
     }
   }
 
@@ -547,7 +540,9 @@ export struct RecruiterProfileTab {
           .backgroundColor(AppColors.BG_CARD)
           .stateStyles({ pressed: { .backgroundColor(AppColors.INPUT_BG) } })
           .onClick(() => { this.handleMenuClick(item.key) })
-        }, (item: RecruiterMenuItem): string => item.key)
+        }, (item: RecruiterMenuItem): string => item.key === 'realNameAuth'
+          ? item.key + '_' + this.isVerified.toString()
+          : item.key)
       }
       .width('100%')
       .divider({
