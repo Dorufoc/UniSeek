@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,17 +138,74 @@ public class UserServiceImpl implements UserService {
 
         } else if (role == 1) {
             // 招聘者统计覆盖当前账号全部企业记录下的职位，避免企业资质重提后遗漏历史职位的投递数据。
-            List<Long> taskIds = queryTaskIdsByUserId(userId);
-            if (taskIds.isEmpty()) {
+            List<Enterprise> enterprises = enterpriseMapper.selectList(
+                    new QueryWrapper<Enterprise>()
+                            .eq("user_id", userId)
+                            .select("id"));
+            if (enterprises.isEmpty()) {
                 stats.put("receivedResumes", 0);
+                stats.put("interviews", 0);
+                stats.put("pending", 0);
+                stats.put("activeJobs", 0);
                 stats.put("hired", 0);
                 return stats;
             }
 
+            // 提取企业 ID 列表
+            List<Long> enterpriseIds = new ArrayList<>(enterprises.size());
+            for (Enterprise e : enterprises) {
+                if (e.getId() != null) {
+                    enterpriseIds.add(e.getId());
+                }
+            }
+
+            // 招聘中的职位数
+            int activeJobs = taskMapper.selectCount(
+                    new QueryWrapper<Task>()
+                            .in("enterprise_id", enterpriseIds)
+                            .eq("status", 1));
+            stats.put("activeJobs", activeJobs);
+
+            // 查询企业下所有职位 ID（用于投递统计）
+            List<Task> tasks = taskMapper.selectList(
+                    new QueryWrapper<Task>()
+                            .in("enterprise_id", enterpriseIds)
+                            .select("id"));
+            if (tasks.isEmpty()) {
+                stats.put("receivedResumes", 0);
+                stats.put("interviews", 0);
+                stats.put("pending", 0);
+                stats.put("hired", 0);
+                return stats;
+            }
+
+            List<Long> taskIds = new ArrayList<>(tasks.size());
+            for (Task t : tasks) {
+                if (t.getId() != null) {
+                    taskIds.add(t.getId());
+                }
+            }
+
+            // 投递总数
             int receivedResumes = taskApplicationMapper.selectCount(
                     new QueryWrapper<TaskApplication>().in("task_id", taskIds));
             stats.put("receivedResumes", receivedResumes);
 
+            // 待面试（status=1）
+            int interviews = taskApplicationMapper.selectCount(
+                    new QueryWrapper<TaskApplication>()
+                            .in("task_id", taskIds)
+                            .eq("status", 1));
+            stats.put("interviews", interviews);
+
+            // 待定（status=2）
+            int pending = taskApplicationMapper.selectCount(
+                    new QueryWrapper<TaskApplication>()
+                            .in("task_id", taskIds)
+                            .eq("status", 2));
+            stats.put("pending", pending);
+
+            // 已录用（status=3）
             int hired = taskApplicationMapper.selectCount(
                     new QueryWrapper<TaskApplication>()
                             .in("task_id", taskIds)
@@ -158,42 +214,6 @@ public class UserServiceImpl implements UserService {
         }
 
         return stats;
-    }
-
-    /**
-     * 查询指定招聘者全部企业记录下的职位 ID，用于招聘者统计的参数化 IN 查询。
-     */
-    private List<Long> queryTaskIdsByUserId(Long userId) {
-        if (userId == null) {
-            return Collections.emptyList();
-        }
-        List<Enterprise> enterprises = enterpriseMapper.selectList(
-                new QueryWrapper<Enterprise>()
-                        .eq("user_id", userId)
-                        .select("id"));
-        if (enterprises.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<Long> enterpriseIds = new ArrayList<>(enterprises.size());
-        for (Enterprise enterprise : enterprises) {
-            if (enterprise.getId() != null) {
-                enterpriseIds.add(enterprise.getId());
-            }
-        }
-        if (enterpriseIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<Task> tasks = taskMapper.selectList(
-                new QueryWrapper<Task>()
-                        .in("enterprise_id", enterpriseIds)
-                        .select("id"));
-        List<Long> taskIds = new ArrayList<>(tasks.size());
-        for (Task task : tasks) {
-            if (task.getId() != null) {
-                taskIds.add(task.getId());
-            }
-        }
-        return taskIds;
     }
 
     private UserVO buildUserVO(User user) {

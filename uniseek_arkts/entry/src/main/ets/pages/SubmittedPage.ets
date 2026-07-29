@@ -18,7 +18,8 @@ const FILTER_OPTIONS: ChoiceOption[] = [
   { value: 1, label: '待面试' },
   { value: 2, label: '待定' },
   { value: 3, label: '已录用' },
-  { value: 4, label: '已淘汰' }
+  { value: 4, label: '已淘汰' },
+  { value: 5, label: '已完成' }
 ]
 
 @Component
@@ -55,16 +56,25 @@ struct ApplicationCard {
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        Column() {
-          Text(ApplicationService.statusLabel(this.app.status))
-            .fontSize(AppFontSize.XS)
-            .fontColor(ApplicationService.statusColor(this.app.status))
-            .backgroundColor(AppColors.SELECTED_BG)
-            .borderRadius(AppRadius.SM)
-            .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 4, bottom: 4 })
-          Text(ApplicationService.formatTime(this.app.createTime))
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.TEXT_MUTED)
+         Column() {
+           Text(ApplicationService.statusLabel(this.app.status))
+             .fontSize(AppFontSize.XS)
+             .fontColor(ApplicationService.statusColor(this.app.status))
+             .backgroundColor(AppColors.SELECTED_BG)
+             .borderRadius(AppRadius.SM)
+             .padding({ left: AppSpacing.SM, right: AppSpacing.SM, top: 4, bottom: 4 })
+           if (this.task) {
+             Text(ApplicationService.taskStatusLabel(this.task.status))
+               .fontSize(AppFontSize.XXS)
+               .fontColor(ApplicationService.taskStatusColor(this.task.status))
+               .backgroundColor(AppColors.INPUT_BG)
+               .borderRadius(AppRadius.SM)
+               .padding({ left: AppSpacing.XS, right: AppSpacing.XS, top: 3, bottom: 3 })
+               .margin({ top: AppSpacing.XS })
+           }
+           Text(ApplicationService.formatTime(this.app.createTime))
+             .fontSize(AppFontSize.XS)
+             .fontColor(AppColors.TEXT_MUTED)
             .margin({ top: AppSpacing.XS })
         }
         .alignItems(HorizontalAlign.End)

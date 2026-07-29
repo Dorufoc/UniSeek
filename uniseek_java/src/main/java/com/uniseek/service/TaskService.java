@@ -78,6 +78,17 @@ public interface TaskService {
     PageResult<TaskVO> getEnterpriseTasks(Long enterpriseId);
 
     /**
+     * 查询本企业职位列表（支持多企业 ID）
+     * <p>
+     * 用于招聘者仪表盘，覆盖当前账号全部企业记录下的职位，
+     * 防止企业资质驳回重提后遗漏历史职位数据。
+     *
+     * @param enterpriseIds 企业 ID 列表
+     * @return 职位列表
+     */
+    PageResult<TaskVO> getEnterpriseTasks(List<Long> enterpriseIds);
+
+    /**
      * 查询指定企业的已发布职位（供求职者浏览公司详情）
      *
      * @param enterpriseId 企业 ID

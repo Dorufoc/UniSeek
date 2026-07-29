@@ -10,6 +10,12 @@ export interface UploadResponse {
 }
 
 export class FileTransferPolicy {
+  static isMediaUri(uri: string): boolean {
+    const target: string = uri.trim().toLowerCase()
+    return target.startsWith('file://media/') || target.startsWith('datashare://media/') ||
+      target.startsWith('content://media/')
+  }
+
   static extractFileName(uri: string, fallback: string): string {
     const cleanUri: string = uri.split('?')[0]
     const rawName: string = cleanUri.substring(cleanUri.lastIndexOf('/') + 1)

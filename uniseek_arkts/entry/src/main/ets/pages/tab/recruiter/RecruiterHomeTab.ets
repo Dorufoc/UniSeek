@@ -5,12 +5,10 @@ import { ErrorView } from '../../../components/ErrorView'
 import { RecruiterService } from '../../../services/RecruiterService'
 import {
   RecruiterEnterpriseVO,
-  RecruiterJobVO,
   RecruiterRequestVO,
   APPLICATION_STATUS_LABELS,
   AUDIT_STATUS_LABELS
 } from '../../../services/RecruiterTypes'
-import { UserService, UserStats } from '../../../services/UserService'
 import { AuthService, UserVO } from '../../../services/AuthService'
 
 const ACTIVE_APPLICATION_STATUSES: number[] = [0, 1, 2]
@@ -61,10 +59,8 @@ export struct RecruiterHomeTab {
   @State loadErrorText: string = ''
   @State username: string = ''
   @State enterpriseInfo: RecruiterEnterpriseVO | null = null
-  @State stats: UserStats = { receivedResumes: 0, hired: 0 }
-  @State myJobs: RecruiterJobVO[] = []
   @State incomingRequests: RecruiterRequestVO[] = []
-  // 通过 AppStorage 监听页面返回与首页 Tab 切换，确保统计和待办数据及时更新。
+  // 通过 AppStorage 监听页面返回与首页 Tab 切换，确保待办数据及时更新。
   @StorageLink('recruiterHomeRefreshTrigger') @Watch('onRefreshTrigger') recruiterHomeRefreshTrigger: number = 0
   // 用于避免 aboutToAppear 与首次 onPageShow 重复发起请求；从子页面返回时该标识已为 false，可正常刷新
   private isFirstPageShow: boolean = true
@@ -111,8 +107,6 @@ export struct RecruiterHomeTab {
       await Promise.all([
         this.loadUserInfo(),
         this.loadEnterpriseInfo(),
-        this.loadStats(),
-        this.loadMyJobs(),
         this.loadIncomingRequests()
       ])
     } catch {
@@ -149,25 +143,6 @@ export struct RecruiterHomeTab {
     }
   }
 
-  private async loadStats(): Promise<void> {
-    try {
-      this.stats = await UserService.getStats()
-    } catch {
-      if (this.loadErrorText.length === 0) {
-        this.loadErrorText = '招聘统计加载失败'
-      }
-    }
-  }
-
-  private async loadMyJobs(): Promise<void> {
-    try {
-      this.myJobs = await RecruiterService.getMyJobs()
-    } catch {
-      // 不影响主流程，仅职位数量显示为 0
-      this.myJobs = []
-    }
-  }
-
   private async loadIncomingRequests(): Promise<void> {
     try {
       this.incomingRequests = await RecruiterService.getIncomingRequests()
@@ -177,22 +152,6 @@ export struct RecruiterHomeTab {
       }
       this.incomingRequests = []
     }
-  }
-
-  private activeJobCount(): number {
-    return this.myJobs.filter((job: RecruiterJobVO): boolean => job.status === 1).length
-  }
-
-  private countIncomingRequestsByStatus(status: number): number {
-    return this.incomingRequests.filter((req: RecruiterRequestVO): boolean => req.status === status).length
-  }
-
-  /** 收到简历以首页已加载的全部职位投递记录为准，保证与待办列表口径一致。 */
-  private receivedResumeCount(): number {
-    if (this.incomingRequests.length > 0) {
-      return this.incomingRequests.length
-    }
-    return this.stats.receivedResumes !== undefined ? this.stats.receivedResumes : 0
   }
 
   private goRequestsWithFilter(status: number): void {
@@ -358,53 +317,6 @@ export struct RecruiterHomeTab {
       .width('100%')
       .alignItems(VerticalAlign.Center)
     }
-  }
-
-  @Builder
-  statItem(value: number, label: string, filterStatus: number = -2) {
-    Column() {
-      Text(value.toString())
-        .fontSize(AppFontSize.XL)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.PRIMARY)
-      Text(label)
-        .fontSize(AppFontSize.XS)
-        .fontColor(AppColors.TEXT_MUTED)
-        .margin({ top: AppSpacing.XS })
-    }
-    .alignItems(HorizontalAlign.Center)
-    .width('100%')
-    .height(72)
-    .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(AppRadius.LG)
-    .justifyContent(FlexAlign.Center)
-    .shadow(AppShadow.SM)
-    .onClick(() => {
-      if (filterStatus >= -1) {
-        this.goRequestsWithFilter(filterStatus)
-      }
-    })
-    .stateStyles({
-      pressed: {
-        .backgroundColor(AppColors.INPUT_BG)
-        .scale({ x: 0.97, y: 0.97 })
-      }
-    })
-    .animation({ duration: AppAnimation.DURATION_FAST, curve: AppAnimation.CURVE_EMPHASIZED })
-  }
-
-  @Builder
-  statsSection() {
-    Grid() {
-      GridItem() { this.statItem(this.receivedResumeCount(), '收到简历', -1) }
-      GridItem() { this.statItem(this.countIncomingRequestsByStatus(1), '待面试', 1) }
-      GridItem() { this.statItem(this.countIncomingRequestsByStatus(2), '待定', 2) }
-      GridItem() { this.statItem(this.activeJobCount(), '在招职位', -1) }
-    }
-    .columnsTemplate('1fr 1fr 1fr 1fr')
-    .columnsGap(AppSpacing.SM)
-    .rowsGap(AppSpacing.SM)
-    .width('100%')
   }
 
   @Builder
@@ -581,8 +493,6 @@ export struct RecruiterHomeTab {
         ListItem() { this.enterpriseHeader() }
 
         ListItem() { this.quickActions() }
-
-        ListItem() { this.statsSection() }
 
         ListItem() { this.requestsSection() }
 

@@ -73,24 +73,60 @@ struct NotificationListDialog {
 
   build() {
     Column() {
-      // 弹窗标题栏
       Row() {
-        Text('新投递通知')
-          .fontSize(AppFontSize.LG)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(AppColors.TEXT_PRIMARY)
-          .layoutWeight(1)
+        Stack() {
+          SymbolGlyph($r('sys.symbol.bell'))
+            .fontSize(AppSpacing.ICON_MD)
+            .fontColor([AppColors.PRIMARY])
+        }
+        .width(AppSpacing.ICON_XL)
+        .height(AppSpacing.ICON_XL)
+        .borderRadius(AppRadius.LG)
+        .backgroundColor(AppColors.PRIMARY_ALPHA_8)
+        .alignContent(Alignment.Center)
+
+        Column() {
+          Text('新投递通知')
+            .fontSize(AppFontSize.TITLE)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(AppColors.TEXT_PRIMARY)
+          Text(this.notifications.length > 0 ? '及时查看候选人的最新投递' : '暂无需要处理的新投递')
+            .fontSize(AppFontSize.XS)
+            .fontColor(AppColors.TEXT_MUTED)
+            .margin({ top: AppSpacing.XXS })
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+        .margin({ left: AppSpacing.SM })
+
         if (this.notifications.length > 0) {
           Button('全部已读', { type: ButtonType.Normal })
-            .height(AppSpacing.BUTTON_HEIGHT_MINI)
+            .height(AppSpacing.BUTTON_HEIGHT_SM)
             .fontSize(AppFontSize.SM)
             .fontColor(AppColors.PRIMARY)
             .backgroundColor(Color.Transparent)
+            .padding({ left: AppSpacing.SM, right: AppSpacing.SM })
             .onClick(() => { this.handleMarkAll() })
         }
+
+        Button({ type: ButtonType.Circle }) {
+          SymbolGlyph($r('sys.symbol.xmark'))
+            .fontSize(AppFontSize.ICON_MD)
+            .fontColor([AppColors.TEXT_SECONDARY])
+        }
+        .width(AppSpacing.BUTTON_HEIGHT_SM)
+          .height(AppSpacing.BUTTON_HEIGHT_SM)
+          .backgroundColor(Color.Transparent)
+        .margin({ left: AppSpacing.XS })
+        .onClick(() => { this.controller?.close() })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
       .padding({ bottom: AppSpacing.MD })
+
+      Divider()
+        .strokeWidth(AppSpacing.DIVIDER_THICKNESS)
+        .color(AppColors.BORDER)
 
       if (this.isLoading) {
         Column() {
@@ -109,13 +145,25 @@ struct NotificationListDialog {
         .alignItems(HorizontalAlign.Center)
       } else if (this.notifications.length === 0) {
         Column() {
-          SymbolGlyph($r('sys.symbol.bell_slash'))
-            .fontSize(AppFontSize.ICON_LG)
-            .fontColor([AppColors.TEXT_MUTED])
+          Stack() {
+            SymbolGlyph($r('sys.symbol.bell_slash'))
+              .fontSize(AppSpacing.ICON_XL)
+              .fontColor([AppColors.TEXT_MUTED])
+          }
+          .width(64)
+          .height(64)
+          .borderRadius(AppRadius.PILL)
+          .backgroundColor(AppColors.INPUT_BG)
+          .alignContent(Alignment.Center)
           Text('暂无新投递通知')
-            .fontSize(AppFontSize.SM)
+            .fontSize(AppFontSize.MD)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .margin({ top: AppSpacing.MD })
+          Text('新的候选人投递会显示在这里')
+            .fontSize(AppFontSize.XS)
             .fontColor(AppColors.TEXT_MUTED)
-            .margin({ top: AppSpacing.SM })
+            .margin({ top: AppSpacing.XXS })
         }
         .width('100%')
         .layoutWeight(1)
@@ -127,50 +175,68 @@ struct NotificationListDialog {
             ForEach(this.notifications, (item: NotificationVO) => {
               Column() {
                 Row() {
-                  Text(item.title)
-                    .fontSize(AppFontSize.MD)
-                    .fontWeight(item.isRead === 0 ? FontWeight.Bold : FontWeight.Regular)
-                    .fontColor(AppColors.TEXT_PRIMARY)
-                    .layoutWeight(1)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  if (item.isRead === 0) {
-                    Stack()
-                      .width(8)
-                      .height(8)
-                      .borderRadius(AppRadius.PILL)
-                      .backgroundColor(AppColors.DANGER)
-                      .margin({ left: AppSpacing.XS })
+                  Stack() {
+                    SymbolGlyph($r('sys.symbol.person'))
+                      .fontSize(AppFontSize.ICON_MD)
+                      .fontColor([AppColors.PRIMARY])
                   }
+                  .width(AppSpacing.ICON_LG)
+                  .height(AppSpacing.ICON_LG)
+                  .borderRadius(AppRadius.MD)
+                  .backgroundColor(AppColors.PRIMARY_ALPHA_6)
+                  .alignContent(Alignment.Center)
+
+                  Column() {
+                    Row() {
+                      Text(item.title || '新的候选人投递')
+                        .fontSize(AppFontSize.MD)
+                        .fontWeight(item.isRead === 0 ? FontWeight.Bold : FontWeight.Medium)
+                        .fontColor(AppColors.TEXT_PRIMARY)
+                        .layoutWeight(1)
+                        .maxLines(1)
+                        .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      if (item.isRead === 0) {
+                        Stack()
+                          .width(8)
+                          .height(8)
+                          .borderRadius(AppRadius.PILL)
+                          .backgroundColor(AppColors.DANGER)
+                          .margin({ left: AppSpacing.XS })
+                      }
+                    }
+                    .width('100%')
+
+                    Text(item.content)
+                      .fontSize(AppFontSize.SM)
+                      .fontColor(AppColors.TEXT_SECONDARY)
+                      .maxLines(2)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .width('100%')
+                      .margin({ top: AppSpacing.XXS })
+
+                    Text(this.formatTime(item.createTime))
+                      .fontSize(AppFontSize.XS)
+                      .fontColor(AppColors.TEXT_MUTED)
+                      .width('100%')
+                      .margin({ top: AppSpacing.XS })
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+                  .margin({ left: AppSpacing.SM })
                 }
                 .width('100%')
-
-                Text(item.content)
-                  .fontSize(AppFontSize.SM)
-                  .fontColor(AppColors.TEXT_SECONDARY)
-                  .maxLines(2)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .width('100%')
-                  .margin({ top: AppSpacing.XXS })
-
-                Text(this.formatTime(item.createTime))
-                  .fontSize(AppFontSize.XS)
-                  .fontColor(AppColors.TEXT_MUTED)
-                  .width('100%')
-                  .margin({ top: AppSpacing.XXS })
               }
               .width('100%')
-              .padding(AppSpacing.MD)
-              .backgroundColor(AppColors.BG_CARD)
-              .borderRadius(AppRadius.MD)
-              .margin({ bottom: AppSpacing.SM })
+              .padding({ top: AppSpacing.MD, bottom: AppSpacing.MD })
+              .borderWidth({ bottom: AppSpacing.DIVIDER_THICKNESS })
+              .borderColor({ bottom: AppColors.BORDER })
               .onClick(() => { this.handleItemClick(item) })
               .stateStyles({
                 pressed: {
-                  .backgroundColor(AppColors.INPUT_BG)
+                  .opacity(0.7)
                 }
               })
-              .animation({ duration: 150 })
+              .animation({ duration: 180 })
             }, (item: NotificationVO): string => item.id.toString())
           }
           .width('100%')
@@ -180,20 +246,20 @@ struct NotificationListDialog {
         .scrollBar(BarState.Off)
       }
 
-      Button('关闭', { type: ButtonType.Capsule })
+      Button('知道了', { type: ButtonType.Capsule })
         .width('100%')
-        .height(AppSpacing.BUTTON_HEIGHT)
+        .height(AppSpacing.BUTTON_HEIGHT_MD)
         .fontSize(AppFontSize.MD)
-        .fontColor(AppColors.TEXT_SECONDARY)
-        .backgroundColor(AppColors.INPUT_BG)
-        .margin({ top: AppSpacing.SM })
+        .fontColor($r('sys.color.font_on_primary'))
+        .backgroundColor(AppColors.PRIMARY)
+        .margin({ top: AppSpacing.MD })
         .onClick(() => { this.controller?.close() })
     }
-    .padding(AppSpacing.LG)
-    .width('100%')
-    .height(480)
+    .padding({ top: AppSpacing.LG, bottom: AppSpacing.LG, left: AppSpacing.LG, right: AppSpacing.LG })
+    .width('92%')
+    .constraintSize({ maxWidth: 560, minHeight: 420, maxHeight: 600 })
     .backgroundColor(AppColors.BG_CARD)
-    .borderRadius({ topLeft: AppRadius.XL, topRight: AppRadius.XL })
+    .borderRadius(AppRadius.XL)
   }
 }
 
@@ -254,8 +320,8 @@ export struct NotificationBell {
         }
       }),
       autoCancel: true,
-      alignment: DialogAlignment.TopEnd,
-      offset: { dx: -AppSpacing.MD, dy: AppSpacing.BUTTON_HEIGHT_MD },
+      alignment: DialogAlignment.Center,
+      offset: { dx: 0, dy: 0 },
       customStyle: true
     })
     this.listController.open()

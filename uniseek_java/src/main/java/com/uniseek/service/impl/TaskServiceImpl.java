@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -237,8 +238,18 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public PageResult<TaskVO> getEnterpriseTasks(Long enterpriseId) {
-        // 查询本企业所有职位
+        // 查询本企业所有职位（单个企业，兼容原有调用方）
         List<TaskVO> list = taskMapper.selectEnterpriseTasks(enterpriseId);
+        return new PageResult<>(list, list.size(), 1, list.size(), 1);
+    }
+
+    @Override
+    public PageResult<TaskVO> getEnterpriseTasks(List<Long> enterpriseIds) {
+        // 查询本企业所有职位（多企业 ID，覆盖全部企业记录）
+        if (enterpriseIds == null || enterpriseIds.isEmpty()) {
+            return new PageResult<>(Collections.emptyList(), 0, 1, 0, 1);
+        }
+        List<TaskVO> list = taskMapper.selectEnterpriseTasksByIds(enterpriseIds);
         return new PageResult<>(list, list.size(), 1, list.size(), 1);
     }
 

@@ -273,6 +273,31 @@
         ORDER BY jt.tag_value
     </select>
 
+    <!-- 查询本企业职位列表（支持多企业 ID） -->
+    <select id="selectEnterpriseTasksByIds" resultMap="TaskVOResultMap">
+        SELECT
+        <include refid="selectTaskFields"/>,
+        COALESCE(apps.c, 0) AS application_count
+        <include refid="joinTaskRelations"/>
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS c
+            FROM task_application
+            GROUP BY task_id
+        ) AS apps ON task.id = apps.task_id
+        WHERE task.enterprise_id IN
+        <foreach item="eid" collection="enterpriseIds" open="(" separator="," close=")">
+            #{eid}
+        </foreach>
+        AND NOT (task.status = 5 AND EXISTS (
+            SELECT 1 FROM task t2
+            WHERE t2.enterprise_id = task.enterprise_id
+            AND t2.title = task.title
+            AND t2.id != task.id
+            AND t2.status != 5
+        ))
+        ORDER BY task.create_time DESC
+    </select>
+
     <!-- 查询指定企业的已发布职位（供求职者查看） -->
     <select id="selectPublishedEnterpriseTasks" resultMap="TaskVOResultMap">
         SELECT

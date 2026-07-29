@@ -79,7 +79,7 @@ export class FavoriteService {
           remainingQuota: fav.remainingQuota || 0,
           hrName: '',
           hrAvatar: '',
-          enterpriseName: '', totalQuota: 0, address: '', deadline: '',
+          enterpriseName: '', totalQuota: fav.totalQuota || 0, address: '', deadline: '',
           applicationCount: 0, hasFavorited: false
       }
     })

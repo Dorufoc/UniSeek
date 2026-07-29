@@ -22,7 +22,12 @@ public interface UserService {
     UserVO updateProfile(Long userId, String nickname, String avatarUrl, String phone, String email);
 
     /**
-     * 获取用户统计数据（投递数、面试邀请数、收藏数 / 收到简历数、已录取数）
+     * 获取用户统计数据
+     * <p>
+     * 求职者（role=0）：applications（投递总数）、interviews（待面试数）、favorites（收藏数）
+     * <br>
+     * 招聘者（role=1）：receivedResumes（收到简历总数）、interviews（待面试数）、
+     * pending（待定数）、activeJobs（招聘中职位数）、hired（已录用数）
      *
      * @param userId 用户 ID
      * @param role   用户角色

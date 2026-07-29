@@ -309,11 +309,15 @@ struct ProfileDetailPage {
         AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       } else if (field === 'phone') {
         await AuthService.updatePhone(value, password)
-        await this.loadProfile(false)
+        // 手机号保存成功后直接更新页面状态与缓存，不再调用 loadProfile 全覆盖
+        this.phone = value
+        AuthService.saveCachedCurrentUserField('phone', value)
         AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       } else if (field === 'email') {
         await AuthService.updateEmail(value, password)
-        await this.loadProfile(false)
+        // 邮箱保存成功后直接更新页面状态与缓存，不再调用 loadProfile 全覆盖
+        this.email = value
+        AuthService.saveCachedCurrentUserField('email', value)
         AppStorage.setOrCreate<number>('profileRefreshTrigger', Date.now()) // 通知我的页面即时刷新
       }
       this.successText = '资料更新成功'

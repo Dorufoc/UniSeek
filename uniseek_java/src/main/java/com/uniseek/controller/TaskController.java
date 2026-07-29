@@ -12,6 +12,7 @@ import com.uniseek.dto.TaskSearchRequest;
 import com.uniseek.dto.TaskVO;
 import com.uniseek.entity.Enterprise;
 import com.uniseek.entity.Task;
+import com.uniseek.service.EnterpriseService;
 import com.uniseek.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,9 @@ public class TaskController {
 
     @Autowired
     private EnterpriseMapper enterpriseMapper;
+
+    @Autowired
+    private EnterpriseService enterpriseService;
 
     /**
      * 职位搜索
@@ -131,14 +135,19 @@ public class TaskController {
     /**
      * 本企业职位列表
      * GET /api/enterprise/tasks（需要鉴权）
+     * <p>
+     * 覆盖当前账号全部企业记录下的职位，防止企业资质驳回重提后遗漏历史职位数据。
      *
      * @return 职位列表
      */
     @GetMapping("/enterprise/tasks")
     public ApiResult<PageResult<TaskVO>> getEnterpriseTasks() {
         Long userId = UserContext.getUserId();
-        Long enterpriseId = getEnterpriseIdByUserId(userId);
-        PageResult<TaskVO> result = taskService.getEnterpriseTasks(enterpriseId);
+        List<Long> enterpriseIds = enterpriseService.getEnterpriseIdsByUserId(userId);
+        if (enterpriseIds.isEmpty()) {
+            throw new BusinessException("未找到企业信息，请先提交企业资质认证");
+        }
+        PageResult<TaskVO> result = taskService.getEnterpriseTasks(enterpriseIds);
         return ApiResult.success(result);
     }
 

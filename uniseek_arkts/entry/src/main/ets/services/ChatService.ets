@@ -6,6 +6,8 @@ import { http } from '@kit.NetworkKit';
 import { request } from '@kit.BasicServicesKit';
 import { util } from '@kit.ArkTS';
 import { FileTransferPolicy, UploadResponse } from './FileTransferPolicy';
+import { MediaUriResolver, CacheFileInfo } from './MediaUriResolver';
+import { UploadPolicy } from '../common/FormValidators';
 
 export interface SendMessageRequest {
   messageType: number
@@ -84,25 +86,35 @@ export class ChatService {
     }
     const context = getContext()
     const fallbackName: string = serverPath.endsWith('/image') ? 'upload.jpg' : 'upload.pdf'
-    const fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
-    const cacheName: string = 'uniseek-' + new Date().getTime() + '-' + ChatService.safeCacheFileName(fileName)
-    const cachePath: string = context.cacheDir + '/' + cacheName
+    let fileName: string = FileTransferPolicy.extractFileName(uri, fallbackName)
+    let cachePath: string = ''
+    let uploadUri: string = ''
 
-    // 通过源 URI 与目标缓存文件的 fd 复制内容
-    let sourceFile: fileIo.File | undefined = undefined
-    try {
-      sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
-      fileIo.copyFileSync(sourceFile.fd, cachePath)
-    } catch {
+    if (FileTransferPolicy.isMediaUri(uri)) {
+      const mediaFile: CacheFileInfo = await MediaUriResolver.copyMediaUriToCache(uri)
+      fileName = mediaFile.fileName
+      cachePath = mediaFile.cachePath
+      uploadUri = mediaFile.uploadUri
+    } else {
+      const cacheName: string = 'uniseek-' + new Date().getTime().toString() + '-' + ChatService.safeCacheFileName(fileName)
+      cachePath = context.cacheDir + '/' + cacheName
+      let sourceFile: fileIo.File | undefined = undefined
       try {
-        fileIo.unlinkSync(cachePath)
+        sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
+        fileIo.copyFileSync(sourceFile.fd, cachePath)
       } catch {
+        try {
+          fileIo.unlinkSync(cachePath)
+        } catch {
+        }
+        throw new Error('无法读取所选文件')
+      } finally {
+        if (sourceFile !== undefined) {
+          fileIo.closeSync(sourceFile)
+        }
       }
-      throw new Error('无法读取所选文件')
-    } finally {
-      if (sourceFile !== undefined) {
-        fileIo.closeSync(sourceFile)
       }
+      uploadUri = 'internal://cache/' + cacheName
     }
 
     if (serverPath === '/api/resume/upload-attachment') {
@@ -113,6 +125,17 @@ export class ChatService {
         } catch {
         }
         throw new Error('文件大小不能超过 10MB')
+      }
+    } else if (serverPath === '/api/upload/image') {
+      const cacheStat = fileIo.statSync(cachePath)
+      const validationMessage: string = UploadPolicy.validateAvatar(fileName, cacheStat.size)
+      if (validationMessage) {
+        try {
+          fileIo.unlinkSync(cachePath)
+        } catch {
+          // 校验失败后的缓存清理失败不改变用户可见的校验结果
+        }
+        throw new Error(validationMessage)
       }
     }
 
