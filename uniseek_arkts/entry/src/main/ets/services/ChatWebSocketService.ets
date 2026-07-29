@@ -148,8 +148,18 @@ export class ChatWebSocketService {
 
   /** 建立 WebSocket 连接 */
   connect(): void {
-    if (this.connected || this.ws !== null) {
+    if (this.connected) {
       return;
+    }
+
+    // 连接状态异常时清理旧实例，避免旧连接阻塞后续重连。
+    if (this.ws !== null) {
+      try {
+        this.ws.close().catch(() => {});
+      } catch {
+        // 旧连接关闭失败时继续创建新连接
+      }
+      this.ws = null;
     }
 
     const token: string = ApiClient.getToken();
@@ -252,11 +262,28 @@ export class ChatWebSocketService {
   sendPing(): void {
     if (this.ws && this.connected) {
       try {
-        this.ws.send('{"type":"PING","data":{}}').catch(() => {});
+        this.ws.send('{"type":"PING","data":{}}').catch(() => {
+          this.handleConnectionFailure();
+        });
       } catch {
-        // 忽略发送异常
+        this.handleConnectionFailure();
       }
     }
+  }
+
+  /** 发送心跳失败时立即释放失效连接并启动重连。 */
+  private handleConnectionFailure(): void {
+    this.connected = false;
+    this.stopPing();
+    if (this.ws !== null) {
+      try {
+        this.ws.close().catch(() => {});
+      } catch {
+        // 失效连接关闭失败时仍需继续重连
+      }
+      this.ws = null;
+    }
+    this.scheduleReconnect();
   }
 
   /** 处理接收到的 WebSocket 消息 */

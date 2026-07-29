@@ -40,7 +40,10 @@ export struct ChatPage {
   }
 
   private async loadSessions(): Promise<void> {
-    this.isLoading = true
+    const showLoading: boolean = this.sessions.length === 0
+    if (showLoading) {
+      this.isLoading = true
+    }
     this.errorText = ''
     try {
       const list: ChatSessionVO[] = await ChatService.getSessions()
@@ -68,43 +71,8 @@ export struct ChatPage {
   }
 
   private handleNewMessage(data: WsNewMessageData): void {
-    const idx: number = this.sessions.findIndex((s: ChatSessionVO): boolean =>
-      s.applicationId === data.applicationId
-    )
-    if (idx >= 0) {
-      let preview: string = data.content
-      if (data.messageType === 1) {
-        preview = '[图片]'
-      } else if (data.messageType === 2) {
-        preview = '[文件]'
-      }
-      const original = this.sessions[idx]
-      const updated: ChatSessionVO = {
-        applicationId: original.applicationId,
-        sessionType: original.sessionType,
-        taskId: original.taskId,
-        taskTitle: original.taskTitle,
-        taskStatus: original.taskStatus,
-        applicationStatus: original.applicationStatus,
-        counterpartId: original.counterpartId,
-        counterpartName: original.counterpartName,
-        counterpartAvatar: original.counterpartAvatar,
-        counterpartCompany: original.counterpartCompany,
-        enterpriseId: original.enterpriseId,
-        canSend: original.canSend,
-        lastMessage: preview,
-        lastMessageTime: data.sendTime,
-        unreadCount: original.unreadCount + 1
-      }
-      const sorted: ChatSessionVO[] = [...this.sessions]
-      sorted[idx] = updated
-      sorted.sort((a: ChatSessionVO, b: ChatSessionVO): number =>
-        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
-      )
-      this.sessions = sorted
-    } else {
-      this.loadSessions()
-    }
+    // 收到事件后以服务端会话数据为准，确保预览、排序和未读数同步更新。
+    this.loadSessions()
   }
 
   private navigateToDetail(session: ChatSessionVO): void {
