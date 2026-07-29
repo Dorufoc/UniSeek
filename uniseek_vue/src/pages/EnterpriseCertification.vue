@@ -309,6 +309,9 @@ onMounted(async () => {
   border-radius: 12px;
   padding: 40px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-sizing: border-box;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
 }
 .loading-state { text-align: center; padding: 60px 0; font-size: 15px; color: #000; }
 .page-title { font-size: 24px; font-weight: 600; color: #000; margin: 0 0 8px; }

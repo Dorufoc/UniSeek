@@ -300,23 +300,29 @@ export class AuthService {
   }
 
   private static realNameStatusPromise: Promise<RealNameStatus> | null = null
+  private static realNameStatusReqId: number = 0
 
-  static async getRealNameStatus(): Promise<RealNameStatus> {
-    // 若已有正在进行的请求，直接复用，避免并发重复调用与结果竞争
-    if (AuthService.realNameStatusPromise) {
+  static async getRealNameStatus(forceRefresh: boolean = false): Promise<RealNameStatus> {
+    // 若已有正在进行的请求且不强制刷新，直接复用，避免并发重复调用与结果竞争
+    if (!forceRefresh && AuthService.realNameStatusPromise) {
       return AuthService.realNameStatusPromise
     }
     const requestUserId = AuthService.currentUserId()
+    const currentReqId = ++AuthService.realNameStatusReqId
     const promise = ApiClient.get<RealNameStatus>('/api/auth/real-name/status')
     AuthService.realNameStatusPromise = promise.then((status: RealNameStatus) => {
-      // 始终保存后端返回的权威状态，包括 false；正常 false 不再清除缓存
-      // 仅在发起请求时的账号与当前账号一致时才写入，避免账号切换后串号覆盖
-      if (requestUserId > 0 && requestUserId === AuthService.currentUserId()) {
-        AuthService.saveCachedRealNameStatus(status)
+      // 只有最新请求的响应才写入缓存，防止旧请求晚到后覆写新状态
+      if (currentReqId === AuthService.realNameStatusReqId) {
+        // 仅在发起请求时的账号与当前账号一致时才写入，避免账号切换后串号覆盖
+        if (requestUserId > 0 && requestUserId === AuthService.currentUserId()) {
+          AuthService.saveCachedRealNameStatus(status)
+        }
       }
       return status
     }).finally(() => {
-      AuthService.realNameStatusPromise = null
+      if (currentReqId === AuthService.realNameStatusReqId) {
+        AuthService.realNameStatusPromise = null
+      }
     })
     return AuthService.realNameStatusPromise
   }
