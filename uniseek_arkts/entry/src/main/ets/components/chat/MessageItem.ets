@@ -21,7 +21,6 @@ export struct MessageItem {
   @Prop dateLabel: string = '';
   @Prop isAttachmentHandling: boolean = false;
   onImageClick?: () => void;
-  onResumePreview?: () => void;
   onResumeDownload?: () => void;
 
   private getDisplayName(): string {
@@ -84,7 +83,6 @@ export struct MessageItem {
                 url: this.msg.content,
                 isSelf: this.isSelf,
                 isHandling: this.isAttachmentHandling,
-                onPreview: () => { this.onResumePreview?.() },
                 onDownload: () => { this.onResumeDownload?.() }
               })
             } else {

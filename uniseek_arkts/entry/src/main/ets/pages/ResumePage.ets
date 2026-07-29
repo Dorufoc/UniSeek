@@ -610,18 +610,7 @@ struct ResumePage {
       .alignItems(VerticalAlign.Center)
 
       if (this.attachmentUrl) {
-        Row({ space: AppSpacing.SM }) {
-          Button('预览', { type: ButtonType.Capsule })
-            .height(AppSpacing.BUTTON_HEIGHT_SM)
-            .fontSize(AppFontSize.XS)
-            .fontColor(AppColors.PRIMARY)
-            .backgroundColor(AppColors.SELECTED_BG)
-             .onClick((): void => {
-               this.getUIContext().getRouter().pushUrl({
-                 url: 'pages/PdfPreviewPage',
-                 params: { attachmentUrl: this.attachmentUrl }
-               })
-             })
+        Row() {
            Button('删除', { type: ButtonType.Capsule })
              .height(AppSpacing.BUTTON_HEIGHT_SM)
              .fontSize(AppFontSize.XS)
@@ -831,9 +820,10 @@ struct ResumePage {
        ChatService.uploadResumeAttachment(uri).then((url: string) => {
          this.onAttachmentUploaded(url)
          this.getUIContext().getPromptAction().showToast({ message: '简历上传成功' })
-       }).catch(() => {
-         this.getUIContext().getPromptAction().showToast({ message: '简历上传失败，请重试' })
-       }).finally(() => {
+       }).catch((e: Error) => {
+          console.error('简历上传失败:', e.message)
+          this.getUIContext().getPromptAction().showToast({ message: '简历上传失败，请重试' })
+        }).finally(() => {
         this.uploading = false
       })
     }).catch(() => {

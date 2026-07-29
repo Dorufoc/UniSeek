@@ -23,7 +23,6 @@ export struct ChatMessageList {
   @Prop controller: ChatMessageListController = new ChatMessageListController();
   onLoadMore?: () => void;
   onImageClick?: (url: string) => void;
-  onResumePreview?: (url: string) => void;
   onResumeDownload?: (url: string) => void;
 
   private scroller: ListScroller = new ListScroller();
@@ -138,9 +137,6 @@ export struct ChatMessageList {
             isAttachmentHandling: this.isAttachmentHandling,
             onImageClick: () => {
               this.onImageClick?.(msg.content);
-            },
-            onResumePreview: () => {
-              this.onResumePreview?.(msg.content);
             },
             onResumeDownload: () => {
               this.onResumeDownload?.(msg.content);

@@ -240,21 +240,6 @@ struct ChatDetailPage {
 
   // ==================== 附件操作 ====================
 
-  previewAttachment(url: string): void {
-    if (!url || this.isHandlingAttachment) {
-      return
-    }
-    this.isHandlingAttachment = true
-    this.getUIContext().getRouter().pushUrl({
-      url: 'pages/PdfPreviewPage',
-      params: { attachmentUrl: url }
-    }).catch(() => {
-      this.isHandlingAttachment = false
-      this.getUIContext().getPromptAction().showToast({ message: '附件预览页面打开失败，请重试' })
-    })
-    this.isHandlingAttachment = false
-  }
-
   downloadAttachment(url: string): void {
     if (!url || this.isHandlingAttachment) {
       return
@@ -508,7 +493,6 @@ struct ChatDetailPage {
                 this.lightboxImageUrl = url
                 this.showLightbox = true
               },
-              onResumePreview: (url: string) => { this.previewAttachment(url) },
               onResumeDownload: (url: string) => { this.downloadAttachment(url) }
             })
           }

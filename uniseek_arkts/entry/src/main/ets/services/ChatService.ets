@@ -2,8 +2,9 @@ import { ApiClient, ApiEmpty } from './ApiClient';
 import { ServerConfig } from './ServerConfig'
 import { ChatSessionVO, ChatMessageVO } from './ChatTypes';
 import { fileIo } from '@kit.CoreFileKit';
+import { http } from '@kit.NetworkKit';
 import { request } from '@kit.BasicServicesKit';
-import { filePreview } from '@kit.PreviewKit';
+import { util } from '@kit.ArkTS';
 import { FileTransferPolicy, UploadResponse } from './FileTransferPolicy';
 
 export interface SendMessageRequest {
@@ -76,7 +77,7 @@ export class ChatService {
     return ChatService.uploadToServer(uri, '/api/resume/upload-attachment')
   }
 
-  /** 通用文件上传：复制到应用缓存目录后使用系统 multipart 上传。 */
+  /** 通用文件上传：手动构造 multipart/form-data 并通过 http.request 发送。 */
   private static async uploadToServer(uri: string, serverPath: string): Promise<string> {
     if (!uri || uri.trim().length === 0) {
       throw new Error('文件地址为空')
@@ -87,7 +88,7 @@ export class ChatService {
     const cacheName: string = 'uniseek-' + new Date().getTime() + '-' + ChatService.safeCacheFileName(fileName)
     const cachePath: string = context.cacheDir + '/' + cacheName
 
-    // 通过源 URI 与目标缓存文件的 fd 复制内容，避免将 Picker 返回的 URI 直接作为本地路径
+    // 通过源 URI 与目标缓存文件的 fd 复制内容
     let sourceFile: fileIo.File | undefined = undefined
     try {
       sourceFile = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY)
@@ -96,7 +97,6 @@ export class ChatService {
       try {
         fileIo.unlinkSync(cachePath)
       } catch {
-        // 复制失败且缓存文件不存在时无需清理
       }
       throw new Error('无法读取所选文件')
     } finally {
@@ -111,80 +111,70 @@ export class ChatService {
         try {
           fileIo.unlinkSync(cachePath)
         } catch {
-          // 超限文件清理失败不影响校验结果
         }
         throw new Error('文件大小不能超过 10MB')
       }
     }
 
-    const uploadConfig: request.UploadConfig = {
-      url: ApiClient.BASE_URL + serverPath,
-      header: {
-        'Authorization': 'Bearer ' + ApiClient.getToken()
-      },
-      method: 'POST',
-      files: [{
-        filename: fileName,
-        name: 'file',
-        uri: 'internal://cache/' + cacheName,
-        type: FileTransferPolicy.getMimeType(fileName)
-      }],
-      data: []
+    // 读取文件内容到 ArrayBuffer
+    const file = fileIo.openSync(cachePath, fileIo.OpenMode.READ_ONLY)
+    const stat = fileIo.statSync(cachePath)
+    const fileBuffer = new ArrayBuffer(stat.size)
+    fileIo.readSync(file.fd, fileBuffer)
+    fileIo.closeSync(file)
+
+    // 清理缓存文件
+    try {
+      fileIo.unlinkSync(cachePath)
+    } catch {
     }
 
-    const uploadTask = await request.uploadFile(context, uploadConfig)
-    return new Promise<string>((resolve, reject) => {
-      uploadTask.on('complete', (states: Array<request.TaskState>): void => {
-        if (states.length === 0 || states[0].responseCode < 200 || states[0].responseCode >= 300) {
-          reject(new Error('文件上传失败'))
-          return
+    // 手动构造 multipart/form-data 请求体
+    const boundary: string = '----UniSeekBoundary' + new Date().getTime()
+    const encoder: util.TextEncoder = new util.TextEncoder()
+    const headerPart: string = '--' + boundary + '\r\n' +
+      'Content-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n' +
+      'Content-Type: ' + FileTransferPolicy.getMimeType(fileName) + '\r\n\r\n'
+    const footerPart: string = '\r\n--' + boundary + '--\r\n'
+    const headerBytes: Uint8Array = encoder.encodeInto(headerPart)
+    const footerBytes: Uint8Array = encoder.encodeInto(footerPart)
+
+    const totalLength: number = headerBytes.byteLength + fileBuffer.byteLength + footerBytes.byteLength
+    const requestBody: ArrayBuffer = new ArrayBuffer(totalLength)
+    const bodyView: Uint8Array = new Uint8Array(requestBody)
+    bodyView.set(headerBytes, 0)
+    bodyView.set(new Uint8Array(fileBuffer), headerBytes.byteLength)
+    bodyView.set(footerBytes, headerBytes.byteLength + fileBuffer.byteLength)
+
+    // 通过 http.request 发送
+    const httpRequest = http.createHttp()
+    try {
+      const resp: http.HttpResponse = await httpRequest.request(
+        ApiClient.BASE_URL + serverPath,
+        {
+          method: http.RequestMethod.POST,
+          header: {
+            'Authorization': 'Bearer ' + ApiClient.getToken(),
+            'Content-Type': 'multipart/form-data; boundary=' + boundary
+          },
+          extraData: requestBody,
+          connectTimeout: 10000,
+          readTimeout: 30000
         }
-        const raw: string = states[0].message
-        try {
-          const response: UploadResponse = JSON.parse(raw) as UploadResponse
-          // 即使 HTTP responseCode 为 2xx，也按业务 code 判断，优先抛出服务端具体错误信息
-          if (response.code !== 200) {
-            reject(new Error(response.message || '文件上传失败'))
-            return
-          }
-          const url: string = FileTransferPolicy.readUploadUrl(response)
-          if (!url) {
-            reject(new Error(response.message || '上传响应无文件地址'))
-            return
-          }
-          resolve(url)
-        } catch {
-          reject(new Error('上传响应解析失败'))
-        }
-      })
-      uploadTask.on('fail', (states: Array<request.TaskState>): void => {
-        const message: string = states.length > 0 ? states[0].message : '文件上传失败'
-        reject(new Error(message || '文件上传失败'))
-      })
-    }).finally(() => {
-      try {
-        fileIo.unlinkSync(cachePath)
-      } catch (err) {
-        // 缓存文件已清理或不存在时忽略，不影响业务结果
+      )
+      const raw: string = resp.result as string
+      const response: UploadResponse = JSON.parse(raw) as UploadResponse
+      if (response.code !== 200) {
+        throw new Error(response.message || '文件上传失败')
       }
-    })
-  }
-
-  /** 下载并预览聊天中的简历附件。 */
-  static async previewAttachment(url: string): Promise<void> {
-    const hostContext = getContext()
-    const localPath: string = await ChatService.downloadAttachment(url)
-    const localUri: string = FileTransferPolicy.toFileUri(localPath)
-    const previewable: boolean = await filePreview.canPreview(hostContext, localUri)
-    if (!previewable) {
-      throw new Error('当前设备不支持预览该附件')
+      const url: string = FileTransferPolicy.readUploadUrl(response)
+      if (!url) {
+        throw new Error(response.message || '上传响应无文件地址')
+      }
+      return url
+    } finally {
+      httpRequest.destroy()
     }
-    const fileName: string = FileTransferPolicy.extractFileName(url, '简历附件.pdf')
-    await filePreview.openPreview(hostContext, {
-      uri: localUri,
-      mimeType: FileTransferPolicy.getPreviewMimeType(fileName),
-      title: '简历附件'
-    })
   }
 
   /** 将附件下载到应用私有目录并返回本地路径。 */

@@ -8,7 +8,6 @@ export struct AttachmentCard {
   @Prop url: string = '';
   @Prop isSelf: boolean = false;
   @Prop isHandling: boolean = false;
-  onPreview?: () => void;
   onDownload?: () => void;
 
   build() {
@@ -41,23 +40,8 @@ export struct AttachmentCard {
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      // 操作按钮区：预览 / 下载
+      // 操作按钮区：下载
       Row() {
-        Button() {
-          Text(this.isHandling ? '处理中...' : '预览')
-            .fontSize(AppChat.ATTACHMENT_BUTTON_FONT)
-            .fontColor(AppColors.PRIMARY)
-            .fontWeight(FontWeight.Medium)
-        }
-        .height(AppSpacing.BUTTON_HEIGHT_SM)
-        .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
-        .borderRadius(AppRadius.MD)
-        .backgroundColor(AppColors.SELECTED_BG)
-        .enabled(!this.isHandling)
-        .onClick(() => {
-          this.onPreview?.();
-        })
-
         Button() {
           Text(this.isHandling ? '处理中...' : '下载')
             .fontSize(AppChat.ATTACHMENT_BUTTON_FONT)
@@ -68,7 +52,6 @@ export struct AttachmentCard {
         .padding({ left: AppSpacing.MD, right: AppSpacing.MD })
         .borderRadius(AppRadius.MD)
         .backgroundColor(AppColors.SELECTED_BG)
-        .margin({ left: AppSpacing.SM })
         .enabled(!this.isHandling)
         .onClick(() => {
           this.onDownload?.();
