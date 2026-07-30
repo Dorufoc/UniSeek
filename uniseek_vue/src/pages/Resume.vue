@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -110,10 +110,6 @@ const loadResume = async () => {
         if (authBirthDate.value) {
           saveParams.birthDate = authBirthDate.value
         }
-        // 仅当有可覆盖字段时才请求保存
-        if (Object.keys(saveParams).length > 0) {
-          await saveResumeApi(saveParams)
-        }
       }
 
       // 用实名信息覆盖当前表单
@@ -150,36 +146,6 @@ const completionPercent = computed(() => {
     if (val) filled += weight
   })
   return Math.round((filled / total) * 100)
-})
-
-// 简历完整度达到 90% 时自动发布到人才市场
-watch(completionPercent, async (val) => {
-  if (val >= 90) {
-    // 先检查实名认证状态
-    try {
-      const authStatus = await getRealNameAuthStatus()
-      if (!authStatus?.isAuth) {
-        ElMessageBox.confirm(
-          '为了确保您的简历信息能够更好地展示给企业，请先完成身份验证。',
-          '身份验证',
-          {
-            confirmButtonText: '前往验证',
-            cancelButtonText: '稍后再说',
-            type: 'info',
-            distinguishCancelAndClose: true
-          }
-        ).then(() => {
-          router.push('/profile?tab=realNameAuth')
-        }).catch(() => {
-          // 用户取消或关闭，不做处理
-        })
-        return
-      }
-    } catch {
-      // 查询失败则继续尝试发布
-    }
-    publishResumeApi().catch(() => {})
-  }
 })
 
 // 手机号脱敏显示
@@ -248,6 +214,19 @@ const saveResume = async () => {
     }
     await saveResumeApi(params)
     ElMessage.success('简历保存成功')
+
+    // 保存成功后若完整度达到 100%，自动发布到人才市场
+    if (completionPercent.value === 100) {
+      try {
+        const authStatus = await getRealNameAuthStatus()
+        if (authStatus?.isAuth) {
+          await publishResumeApi()
+        }
+      } catch {
+        // 发布失败不影响保存结果
+      }
+    }
+
     isEditing.value = false
   } catch {
     // 错误已在拦截器中处理
@@ -300,7 +279,6 @@ const handleFileChange = async (event: Event) => {
     const result = await uploadAttachment(file)
     resumeForm.attachmentUrl = result.url
     ElMessage.success('附件简历上传成功')
-    await saveResume()
   } catch (e: any) {
     ElMessage.error(e?.message || '附件上传失败，请检查网络或联系管理员')
   }
