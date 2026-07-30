@@ -99,4 +99,15 @@ public interface ChatService {
      * 获取当前用户所有会话中的未读消息总数
      */
     Long getUnreadCount(Long userId);
+
+    /**
+     * 发送系统状态变更聊天消息（自动模拟 HR 发送）
+     * <p>由 ApplicationService 在求职状态变更时调用，向求职者推送状态变更提示消息。</p>
+     *
+     * @param applicationId 投递记录 ID
+     * @param hrUserId      发送者（HR）用户 ID
+     * @param content       消息内容（差异化文案）
+     * @return 发送的消息 VO
+     */
+    ChatMessageVO sendStatusChangeSystemMessage(Long applicationId, Long hrUserId, String content);
 }

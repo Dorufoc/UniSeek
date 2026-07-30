@@ -19,6 +19,7 @@ import com.uniseek.service.ApplicationService;
 import com.uniseek.service.ApplicationStatusMachine;
 import com.uniseek.service.NotificationService;
 import com.uniseek.service.OperationLogService;
+import com.uniseek.service.ChatService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +68,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ChatService chatService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -312,7 +316,28 @@ public class ApplicationServiceImpl implements ApplicationService {
                 application.getId()             // 业务关联 ID
         );
 
-        // 8. 记录操作日志
+        // 8. 通过聊天会话发送状态变更提示消息（模拟 HR 发送）
+        String statusChangeContent;
+        switch (newStatus) {
+            case 1:
+                statusChangeContent = "您的求职状态已更新为【待面试】，请进入求职记录/面试池界面查看";
+                break;
+            case 2:
+                statusChangeContent = "您的求职状态已更新为【待定】，请进入求职记录/面试池界面查看";
+                break;
+            case 3:
+                statusChangeContent = "恭喜！您的求职状态已更新为【已录用】，请进入求职记录/面试池界面查看";
+                break;
+            case 4:
+                statusChangeContent = "您的求职状态已更新为【已淘汰】，请进入求职记录/面试池界面查看";
+                break;
+            default:
+                statusChangeContent = "您的求职岗位状态发生变化，请进入求职记录/面试池界面查看";
+                break;
+        }
+        chatService.sendStatusChangeSystemMessage(application.getId(), userId, statusChangeContent);
+
+        // 9. 记录操作日志
         saveApplicationOperationLog(userId, application, currentStatus, newStatus, request);
     }
 
@@ -396,6 +421,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (rows == 0) {
             throw new BusinessException("结算确认失败，请刷新后重试");
         }
+
+        // 4. 发送系统聊天消息
+        Long hrUserId = UserContext.getUserId();
+        chatService.sendStatusChangeSystemMessage(application.getId(), hrUserId,
+                "您的求职状态已更新为【已完成】，请进入求职记录/面试池界面查看");
     }
 
     @Override

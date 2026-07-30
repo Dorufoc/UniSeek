@@ -20,6 +20,7 @@ import com.uniseek.entity.Resume;
 import com.uniseek.entity.Task;
 import com.uniseek.entity.TaskApplication;
 import com.uniseek.entity.User;
+import com.uniseek.chat.websocket.ChatWebSocketHandler;
 import com.uniseek.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,11 +31,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 聊天服务实现
  */
 @Service
 public class ChatServiceImpl implements ChatService {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatServiceImpl.class);
 
     @Autowired
     private ChatSessionMapper chatSessionMapper;
@@ -56,6 +62,9 @@ public class ChatServiceImpl implements ChatService {
 
     @Autowired
     private ResumeMapper resumeMapper;
+
+    @Autowired
+    private ChatWebSocketHandler chatWebSocketHandler;
 
     @Override
     public List<ChatSessionVO> getSessions(Long userId, Integer role) {
@@ -443,6 +452,51 @@ public class ChatServiceImpl implements ChatService {
             }
         }
 
+    }
+
+    @Override
+    public ChatMessageVO sendStatusChangeSystemMessage(Long applicationId, Long hrUserId, String content) {
+        // 1. 查询关联的聊天会话
+        ChatSession chatSession = chatSessionMapper.selectOne(
+                new LambdaQueryWrapper<ChatSession>()
+                        .eq(ChatSession::getTaskApplicationId, applicationId));
+        if (chatSession == null) {
+            log.warn("投递记录 {} 无关联聊天会话，跳过系统消息发送", applicationId);
+            return null;
+        }
+
+        // 2. 创建消息记录
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setSessionId(chatSession.getId());
+        chatMessage.setSenderId(hrUserId);
+        chatMessage.setMessageType(0); // 文本消息
+        chatMessage.setContent(content);
+        chatMessage.setIsRead(0);
+        chatMessage.setSendTime(LocalDateTime.now());
+        chatMessageMapper.insert(chatMessage);
+
+        // 3. 更新会话最后消息
+        chatSession.setLastMessage(content);
+        chatSession.setLastMessageTime(chatMessage.getSendTime());
+        chatSession.setUpdateTime(LocalDateTime.now());
+        chatSessionMapper.updateById(chatSession);
+
+        // 4. 构建 VO
+        ChatMessageVO vo = buildChatMessageVO(chatMessage);
+
+        // 5. WebSocket 推送给求职者
+        try {
+            chatWebSocketHandler.notifyNewMessage(
+                    chatSession.getSeekerId(),
+                    vo,
+                    applicationId,
+                    ChatSessionType.APPLICATION
+            );
+        } catch (Exception e) {
+            log.warn("WebSocket 推送系统消息失败: applicationId={}, error={}", applicationId, e.getMessage());
+        }
+
+        return vo;
     }
 
     /**

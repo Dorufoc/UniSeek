@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import { useAppStore } from '@/stores/app'
 import { getMyEnterprise } from '@/api/enterprise'
+import { getRealNameAuthStatus } from '@/api/auth'
 import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
 import { WarningFilled } from '@element-plus/icons-vue'
 
@@ -24,6 +25,7 @@ const isAdmin = computed(() => userStore.userInfo?.role >= 9)
 const certDialogVisible = ref(false)
 const certStatusText = ref('')
 const certChecking = ref(false)
+const needRealName = ref(false)
 
 /**
  * 检查当前招聘者的企业资质认证状态。
@@ -41,21 +43,30 @@ const checkEnterpriseCert = async () => {
     certDialogVisible.value = false
     return
   }
-  // 已在认证页面时不弹窗，让用户正常操作表单
-  if (route.path === '/enterprise-cert') {
+  // 已在认证页面时不弹窗
+  if (route.path === '/enterprise-cert' || route.path === '/account-security') {
     certDialogVisible.value = false
     return
   }
 
   certChecking.value = true
   try {
+    // Step 1: 检查实名认证
+    const realNameStatus = await getRealNameAuthStatus()
+    if (!realNameStatus?.isAuth) {
+      needRealName.value = true
+      certStatusText.value = '您尚未完成实名认证，请先完成实名认证后再进行企业资质认证。'
+      certDialogVisible.value = true
+      return
+    }
+
+    // Step 2: 实名已通过，检查企业资质认证
+    needRealName.value = false
     const info = await getMyEnterprise()
     if (info && info.auditStatus === 1) {
-      // 已认证通过 → 关闭弹窗
       certDialogVisible.value = false
       return
     }
-    // 未认证 / 审核中 / 已驳回
     if (!info) {
       certStatusText.value = '您尚未提交企业资质认证，完成认证后方可使用招聘功能。'
     } else if (info.auditStatus === 0) {
@@ -68,7 +79,7 @@ const checkEnterpriseCert = async () => {
     }
     certDialogVisible.value = true
   } catch {
-    // 未找到企业信息或接口异常 → 视为未认证
+    needRealName.value = false
     certStatusText.value = '您尚未提交企业资质认证，完成认证后方可使用招聘功能。'
     certDialogVisible.value = true
   } finally {
@@ -76,9 +87,19 @@ const checkEnterpriseCert = async () => {
   }
 }
 
-/** 跳转到企业资质认证页面 */
+/** 稍后再说：设置 localStorage 标记并关闭弹窗 */
+const dismissCertDialog = () => {
+  localStorage.setItem('uniseek_cert_dialog_dismissed', 'true')
+  certDialogVisible.value = false
+}
+
+/** 跳转到认证页面（实名 or 企业资质） */
 const goToEnterpriseCert = () => {
-  router.push('/enterprise-cert')
+  if (needRealName.value) {
+    router.push('/account-security')
+  } else {
+    router.push('/enterprise-cert')
+  }
 }
 
 // 布局挂载时首次检查
@@ -178,13 +199,11 @@ watch(() => route.path, checkEnterpriseCert)
         <el-icon :size="52" color="#e6a23c">
           <WarningFilled />
         </el-icon>
-        <h3 class="cert-dialog-title">企业资质认证</h3>
+        <h3 class="cert-dialog-title">{{ needRealName ? '实名认证提醒' : '企业资质认证' }}</h3>
         <p class="cert-dialog-desc">{{ certStatusText }}</p>
         <div class="cert-dialog-actions">
-          <button class="cert-dialog-btn cert-dialog-btn-primary" @click="goToEnterpriseCert">
-            前往认证
-          </button>
-          <button class="cert-dialog-btn cert-dialog-btn-default" @click="localStorage.setItem('uniseek_cert_dialog_dismissed', 'true'); certDialogVisible = false">
+          <button class="cert-dialog-btn cert-dialog-btn-primary" @click="goToEnterpriseCert">{{ needRealName ? '去实名认证' : '前往认证' }}</button>
+          <button class="cert-dialog-btn cert-dialog-btn-default" @click="dismissCertDialog">
             稍后再说
           </button>
         </div>
