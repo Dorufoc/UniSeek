@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import {
@@ -18,6 +18,7 @@ import PdfPreview from '@/components/PdfPreview.vue'
 import { View, Download, ChatDotRound, Plus, Picture, Document, Close } from '@element-plus/icons-vue'
 import { uploadImage } from '@/api/upload'
 import type { WsNewMessageData } from '@/composables/useChatWebSocket'
+import { updateApplicationStatus, getApplicationById, type ResumeSnapshot } from '@/api/application'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,6 +43,17 @@ const pdfPreviewVisible = ref(false)
 const imagePreviewVisible = ref(false)
 const imagePreviewUrl = ref('')
 const showActionMenu = ref(false)
+const resumeDialogVisible = ref(false)
+const resumeData = ref<ResumeSnapshot | null>(null)
+const interviewDialogVisible = ref(false)
+const interviewForm = ref({ interviewTime: '', interviewLocation: '' })
+const rejectDialogVisible = ref(false)
+const rejectForm = ref({ rejectReason: '', hrNote: '' })
+
+const parseSnapshot = (json: string | null): ResumeSnapshot | null => {
+  if (!json) return null
+  try { return JSON.parse(json) as ResumeSnapshot } catch { return null }
+}
 
 const toggleActionMenu = () => {
   showActionMenu.value = !showActionMenu.value
@@ -308,6 +320,61 @@ const downloadFileFromMsg = (url: string) => {
   document.body.removeChild(a)
 }
 
+const handleViewProfile = async () => {
+  if (!selectedAppId.value) return
+  try {
+    const res: any = await getApplicationById(selectedAppId.value)
+    const snapshotJson = res?.data?.resumeSnapshot
+    if (!snapshotJson) { ElMessage.warning('暂无简历数据'); return }
+    const parsed = parseSnapshot(snapshotJson)
+    if (parsed) { resumeData.value = parsed; resumeDialogVisible.value = true }
+    else { ElMessage.warning('简历数据无效') }
+  } catch (e: any) { ElMessage.error(e?.message || '获取简历失败') }
+}
+
+const handleInviteInterview = async () => {
+  if (!interviewForm.value.interviewTime || !interviewForm.value.interviewLocation.trim()) {
+    ElMessage.warning('请填写面试时间和地点'); return
+  }
+  if (!selectedAppId.value) return
+  try {
+    await updateApplicationStatus(selectedAppId.value, {
+      status: 1,
+      interviewTime: interviewForm.value.interviewTime,
+      interviewLocation: interviewForm.value.interviewLocation.trim()
+    })
+    ElMessage.success('面试邀请已发送')
+    interviewDialogVisible.value = false
+    interviewForm.value = { interviewTime: '', interviewLocation: '' }
+    await refreshCurrentSession(); await loadSessions()
+  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+}
+
+const handleMarkPending = async () => {
+  if (!selectedAppId.value) return
+  try { await ElMessageBox.confirm('确定要「待定」该候选人吗？', '提示', { type: 'warning' }) }
+  catch { return }
+  try {
+    await updateApplicationStatus(selectedAppId.value, { status: 2 })
+    ElMessage.success('操作成功'); await refreshCurrentSession(); await loadSessions()
+  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+}
+
+const handleReject = async () => {
+  if (!rejectForm.value.rejectReason.trim()) { ElMessage.warning('请填写淘汰原因'); return }
+  if (!selectedAppId.value) return
+  try {
+    await updateApplicationStatus(selectedAppId.value, {
+      status: 4, rejectReason: rejectForm.value.rejectReason.trim(),
+      hrNote: rejectForm.value.hrNote.trim() || undefined
+    })
+    ElMessage.success('已发送淘汰通知')
+    rejectDialogVisible.value = false
+    rejectForm.value = { rejectReason: '', hrNote: '' }
+    await refreshCurrentSession(); await loadSessions()
+  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+}
+
 const refreshCurrentSession = async () => {
   if (!selectedAppId.value) return
   try {
@@ -499,6 +566,22 @@ onUnmounted(() => {
           </div>
         </div>
 
+      <!-- HR 操作按钮栏 -->
+      <div v-if="isHr && selectedAppId" class="hr-action-bar">
+        <el-button size="small" type="info" :disabled="!selectedAppId" @click="handleViewProfile">查看个人简介</el-button>
+        <el-button size="small" type="primary"
+          :disabled="!(selectedAppId && session && (session.applicationStatus === 0 || session.applicationStatus === 2))"
+          @click="handleInviteInterview">
+          {{ session?.applicationStatus === 2 ? '安排面试' : '邀请面试' }}
+        </el-button>
+        <el-button size="small" type="warning"
+          :disabled="!(selectedAppId && session && (session.applicationStatus === 0 || session.applicationStatus === 1))"
+          @click="handleMarkPending">待定</el-button>
+        <el-button size="small" type="danger"
+          :disabled="!(selectedAppId && session && (session.applicationStatus === 0 || session.applicationStatus === 1 || session.applicationStatus === 2))"
+          @click="handleReject">淘汰</el-button>
+      </div>
+
         <div class="message-list" ref="messageListRef">
           <div v-if="chatLoading" class="loading-state">加载中...</div>
           <template v-else>
@@ -635,6 +718,49 @@ onUnmounted(() => {
     </Transition>
 
     <PdfPreview v-model:visible="pdfPreviewVisible" :url="fileDialogUrl" />
+
+    <el-dialog v-model="resumeDialogVisible" title="候选人简历" width="520px" align-center>
+      <div class="resume-detail" v-if="resumeData">
+        <div class="resume-field"><label>姓名</label><span>{{ resumeData.realName || '-' }}</span></div>
+        <div class="resume-field"><label>性别</label><span>{{ resumeData.gender === 0 ? '男' : resumeData.gender === 1 ? '女' : '-' }}</span></div>
+        <div class="resume-field"><label>出生日期</label><span>{{ resumeData.birthDate?.replace('T', ' ')?.substring(0, 10) || '-' }}</span></div>
+        <div class="resume-field"><label>学历</label><span>{{ resumeData.education || '-' }}</span></div>
+        <div class="resume-field"><label>学校</label><span>{{ resumeData.school || '-' }}</span></div>
+        <div class="resume-field"><label>技能标签</label><span>{{ resumeData.skills || '-' }}</span></div>
+        <div class="resume-field"><label>工作经历</label><span v-html="resumeData.experience || '-'"></span></div>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="interviewDialogVisible" title="邀请面试" width="420px" align-center>
+      <el-form label-position="top">
+        <el-form-item label="面试时间">
+          <el-date-picker v-model="interviewForm.interviewTime" type="datetime" placeholder="选择面试时间"
+            value-format="YYYY-MM-DDTHH:mm:ss" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="面试地点">
+          <el-input v-model="interviewForm.interviewLocation" placeholder="请输入面试地点" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="interviewDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleInviteInterview">发送邀请</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="rejectDialogVisible" title="淘汰候选人" width="420px" align-center>
+      <el-form label-position="top">
+        <el-form-item label="淘汰原因">
+          <el-input v-model="rejectForm.rejectReason" type="textarea" :rows="3" placeholder="请输入淘汰原因" />
+        </el-form-item>
+        <el-form-item label="HR备注（可选）">
+          <el-input v-model="rejectForm.hrNote" type="textarea" :rows="2" placeholder="内部备注，仅HR可见" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleReject">确认淘汰</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1765,5 +1891,49 @@ onUnmounted(() => {
   .input-area {
     padding: 12px 16px 16px;
   }
+}
+
+/* HR 操作按钮栏 */
+.hr-action-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 28px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.hr-action-bar .el-button {
+  border-radius: 20px;
+  font-weight: 500;
+  padding: 8px 20px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hr-action-bar .el-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.resume-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.resume-field {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+}
+.resume-field label {
+  width: 80px;
+  color: #8b95a7;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+.resume-field span {
+  flex: 1;
+  color: #1a1a2e;
+  word-break: break-word;
 }
 </style>
