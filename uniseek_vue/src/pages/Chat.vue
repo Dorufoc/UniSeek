@@ -225,8 +225,8 @@ const downloadFile = () => {
 const handleViewProfile = async () => {
   if (!applicationId || isNaN(applicationId)) return
   try {
-    const res: any = await getApplicationById(applicationId)
-    const snapshotJson = res?.data?.resumeSnapshot
+    const app: any = await getApplicationById(applicationId)
+    const snapshotJson = app?.resumeSnapshot
     if (!snapshotJson) { ElMessage.warning('暂无简历数据'); return }
     const parsed = parseSnapshot(snapshotJson)
     if (parsed) { resumeData.value = parsed; resumeDialogVisible.value = true }
