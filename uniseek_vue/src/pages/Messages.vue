@@ -19,6 +19,7 @@ import { View, Download, ChatDotRound, Plus, Picture, Document, Close } from '@e
 import { uploadImage } from '@/api/upload'
 import type { WsNewMessageData } from '@/composables/useChatWebSocket'
 import { updateApplicationStatus, getApplicationById, type ResumeSnapshot } from '@/api/application'
+import { parseSkills } from '@/utils/skillParser'
 
 const route = useRoute()
 const router = useRouter()
@@ -726,7 +727,7 @@ onUnmounted(() => {
         <div class="resume-field"><label>出生日期</label><span>{{ resumeData.birthDate?.replace('T', ' ')?.substring(0, 10) || '-' }}</span></div>
         <div class="resume-field"><label>学历</label><span>{{ resumeData.education || '-' }}</span></div>
         <div class="resume-field"><label>学校</label><span>{{ resumeData.school || '-' }}</span></div>
-        <div class="resume-field"><label>技能标签</label><span>{{ resumeData.skills || '-' }}</span></div>
+        <div class="resume-field"><label>技能标签</label><div class="talent-tags" v-if="parseSkills(resumeData.skills).length"><el-tag v-for="skill in parseSkills(resumeData.skills)" :key="skill" size="small" type="info" class="talent-tag">{{ skill }}</el-tag></div><span v-else>-</span></div>
         <div class="resume-field"><label>工作经历</label><span v-html="resumeData.experience || '-'"></span></div>
       </div>
     </el-dialog>

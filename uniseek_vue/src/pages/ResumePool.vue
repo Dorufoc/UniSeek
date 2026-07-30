@@ -14,6 +14,7 @@ import {
 } from '@/api/application'
 import { getMessages, getUnreadCount, markMessageRead, markAllRead, type NotificationItem } from '@/api/notification'
 import { getRealNameAuthStatus } from '@/api/auth'
+import { parseSkills } from '@/utils/skillParser'
 
 const router = useRouter()
 const route = useRoute()
@@ -455,7 +456,10 @@ const openNotifyPopover = () => {
                   <span>院校：{{ parseSnapshot(app.resumeSnapshot)?.school || '-' }}</span>
                 </div>
                 <div class="info-line meta">
-                  <span>技能：{{ parseSnapshot(app.resumeSnapshot)?.skills || '-' }}</span>
+                  <div class="talent-tags" v-if="parseSkills(parseSnapshot(app.resumeSnapshot)?.skills || '').length">
+                    <el-tag v-for="skill in parseSkills(parseSnapshot(app.resumeSnapshot)?.skills || '')" :key="skill" size="small" type="info" class="talent-tag">{{ skill }}</el-tag>
+                  </div>
+                  <span v-else>-</span>
                 </div>
                 <div class="info-line meta">
                   <span>经历：{{ parseSnapshot(app.resumeSnapshot)?.experience || '-' }}</span>
@@ -618,7 +622,7 @@ const openNotifyPopover = () => {
             <h4 class="talent-section-title">技能标签</h4>
             <div class="talent-tags">
               <el-tag
-                v-for="tag in currentResume.skills.split(/[,，、\s]+/).filter(Boolean)"
+                v-for="tag in parseSkills(currentResume.skills)"
                 :key="tag"
                 size="small"
                 type="info"
