@@ -52,7 +52,7 @@
             t.status AS task_status,
             ta.status AS application_status,
             u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
+            COALESCE(ra.real_name, u.nickname) AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
             NULL AS counterpart_company,
             t.enterprise_id AS enterprise_id,
@@ -65,6 +65,7 @@
         JOIN task t ON ta.task_id = t.id
         JOIN enterprise e ON t.enterprise_id = e.id
         JOIN user u ON cs.seeker_id = u.id
+        LEFT JOIN real_name_auth ra ON u.id = ra.user_id AND ra.status = 1
         <include refid="unreadSubquery"/>
         WHERE e.user_id = #{userId}
         ORDER BY cs.last_message_time DESC
@@ -79,7 +80,7 @@
             t.status AS task_status,
             ta.status AS application_status,
             u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
+            COALESCE(ra.real_name, u.nickname) AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
             e.company_name AS counterpart_company,
             t.enterprise_id AS enterprise_id,
@@ -92,6 +93,7 @@
         JOIN task t ON ta.task_id = t.id
         JOIN enterprise e ON t.enterprise_id = e.id
         JOIN user u ON cs.employer_id = u.id
+        LEFT JOIN real_name_auth ra ON u.id = ra.user_id AND ra.status = 1
         <include refid="unreadSubquery"/>
         WHERE cs.seeker_id = #{userId}
         ORDER BY cs.last_message_time DESC
@@ -106,7 +108,7 @@
             t.status AS task_status,
             ta.status AS application_status,
             u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
+            COALESCE(ra.real_name, u.nickname) AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
         <choose>
             <when test="role == 1">
@@ -128,6 +130,7 @@
             <when test="role == 1">cs.seeker_id</when>
             <otherwise>cs.employer_id</otherwise>
         </choose> = u.id
+        LEFT JOIN real_name_auth ra ON u.id = ra.user_id AND ra.status = 1
         <include refid="unreadSubquery"/>
         WHERE cs.task_application_id = #{applicationId}
         <choose>
@@ -162,7 +165,7 @@
             NULL AS task_status,
             NULL AS application_status,
             u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
+            COALESCE(ra.real_name, u.nickname) AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
             cs.last_message,
             cs.last_message_time,
@@ -170,6 +173,7 @@
             'direct' AS session_type
         FROM chat_session cs
         JOIN user u ON cs.seeker_id = u.id
+        LEFT JOIN real_name_auth ra ON u.id = ra.user_id AND ra.status = 1
         <include refid="unreadSubquery"/>
         WHERE cs.employer_id = #{userId}
           AND cs.task_application_id IS NULL
@@ -185,7 +189,7 @@
             NULL AS task_status,
             NULL AS application_status,
             u.id AS counterpart_id,
-            u.nickname AS counterpart_name,
+            COALESCE(ra.real_name, u.nickname) AS counterpart_name,
             u.avatar_url AS counterpart_avatar,
             cs.last_message,
             cs.last_message_time,
@@ -193,6 +197,7 @@
             'direct' AS session_type
         FROM chat_session cs
         JOIN user u ON cs.employer_id = u.id
+        LEFT JOIN real_name_auth ra ON u.id = ra.user_id AND ra.status = 1
         <include refid="unreadSubquery"/>
         WHERE cs.seeker_id = #{userId}
           AND (cs.task_application_id IS NULL OR cs.task_application_id = 0)

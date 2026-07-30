@@ -348,6 +348,8 @@ const handleInviteInterview = async () => {
     interviewDialogVisible.value = false
     interviewForm.value = { interviewTime: '', interviewLocation: '' }
     await refreshCurrentSession(); await loadSessions()
+    await loadMessages(selectedAppId.value)
+    await nextTick(() => { scrollToBottom() })
   } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
 }
 
@@ -358,6 +360,8 @@ const handleMarkPending = async () => {
   try {
     await updateApplicationStatus(selectedAppId.value, { status: 2 })
     ElMessage.success('操作成功'); await refreshCurrentSession(); await loadSessions()
+    await loadMessages(selectedAppId.value)
+    await nextTick(() => { scrollToBottom() })
   } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
 }
 
@@ -373,6 +377,8 @@ const handleReject = async () => {
     rejectDialogVisible.value = false
     rejectForm.value = { rejectReason: '', hrNote: '' }
     await refreshCurrentSession(); await loadSessions()
+    await loadMessages(selectedAppId.value)
+    await nextTick(() => { scrollToBottom() })
   } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
 }
 
@@ -572,7 +578,7 @@ onUnmounted(() => {
         <el-button size="small" type="info" :disabled="!selectedAppId" @click="handleViewProfile">查看个人简介</el-button>
         <el-button size="small" type="primary"
           :disabled="!(selectedAppId && session && (session.applicationStatus === 0 || session.applicationStatus === 2))"
-          @click="handleInviteInterview">
+          @click="interviewDialogVisible = true">
           {{ session?.applicationStatus === 2 ? '安排面试' : '邀请面试' }}
         </el-button>
         <el-button size="small" type="warning"
@@ -580,7 +586,7 @@ onUnmounted(() => {
           @click="handleMarkPending">待定</el-button>
         <el-button size="small" type="danger"
           :disabled="!(selectedAppId && session && (session.applicationStatus === 0 || session.applicationStatus === 1 || session.applicationStatus === 2))"
-          @click="handleReject">淘汰</el-button>
+          @click="rejectDialogVisible = true">淘汰</el-button>
       </div>
 
         <div class="message-list" ref="messageListRef">
@@ -732,7 +738,7 @@ onUnmounted(() => {
       </div>
     </el-dialog>
 
-    <el-dialog v-model="interviewDialogVisible" title="邀请面试" width="420px" align-center>
+    <el-dialog v-model="interviewDialogVisible" title="邀请面试" width="420px" align-center @open="interviewForm = { interviewTime: '', interviewLocation: '' }">
       <el-form label-position="top">
         <el-form-item label="面试时间">
           <el-date-picker v-model="interviewForm.interviewTime" type="datetime" placeholder="选择面试时间"
@@ -748,7 +754,7 @@ onUnmounted(() => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="rejectDialogVisible" title="淘汰候选人" width="420px" align-center>
+    <el-dialog v-model="rejectDialogVisible" title="淘汰候选人" width="420px" align-center @open="rejectForm = { rejectReason: '', hrNote: '' }">
       <el-form label-position="top">
         <el-form-item label="淘汰原因">
           <el-input v-model="rejectForm.rejectReason" type="textarea" :rows="3" placeholder="请输入淘汰原因" />

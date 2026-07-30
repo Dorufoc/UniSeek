@@ -247,21 +247,25 @@ const handleInviteInterview = async () => {
     ElMessage.success('面试邀请已发送')
     interviewDialogVisible.value = false
     interviewForm.value = { interviewTime: '', interviewLocation: '' }
-    await refreshSession()
-  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
-}
+	    await refreshSession()
+	    await loadMessages()
+	    await nextTick(() => { scrollToBottom() })
+	  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+	}
 
-const handleMarkPending = async () => {
+	const handleMarkPending = async () => {
   if (!applicationId || isNaN(applicationId)) return
   try { await ElMessageBox.confirm('确定要「待定」该候选人吗？', '提示', { type: 'warning' }) }
   catch { return }
   try {
     await updateApplicationStatus(applicationId, { status: 2 })
-    ElMessage.success('操作成功'); await refreshSession()
-  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
-}
+	    ElMessage.success('操作成功'); await refreshSession()
+	    await loadMessages()
+	    await nextTick(() => { scrollToBottom() })
+	  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+	}
 
-const handleReject = async () => {
+	const handleReject = async () => {
   if (!rejectForm.value.rejectReason.trim()) { ElMessage.warning('请填写淘汰原因'); return }
   if (!applicationId || isNaN(applicationId)) return
   try {
@@ -272,11 +276,13 @@ const handleReject = async () => {
     ElMessage.success('已发送淘汰通知')
     rejectDialogVisible.value = false
     rejectForm.value = { rejectReason: '', hrNote: '' }
-    await refreshSession()
-  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
-}
+	    await refreshSession()
+	    await loadMessages()
+	    await nextTick(() => { scrollToBottom() })
+	  } catch (e: any) { ElMessage.error(e?.message || '操作失败') }
+	}
 
-const refreshSession = async () => {
+	const refreshSession = async () => {
   try {
     session.value = await getChatSession(applicationId)
   } catch {
@@ -363,7 +369,7 @@ onUnmounted(() => {
         <el-button size="small" type="info" :disabled="!applicationId" @click="handleViewProfile">查看个人简介</el-button>
         <el-button size="small" type="primary"
           :disabled="!(applicationId && session && (session.applicationStatus === 0 || session.applicationStatus === 2))"
-          @click="handleInviteInterview">
+          @click="interviewDialogVisible = true">
           {{ session?.applicationStatus === 2 ? '安排面试' : '邀请面试' }}
         </el-button>
         <el-button size="small" type="warning"
@@ -371,7 +377,7 @@ onUnmounted(() => {
           @click="handleMarkPending">待定</el-button>
         <el-button size="small" type="danger"
           :disabled="!(applicationId && session && (session.applicationStatus === 0 || session.applicationStatus === 1 || session.applicationStatus === 2))"
-          @click="handleReject">淘汰</el-button>
+          @click="rejectDialogVisible = true">淘汰</el-button>
       </div>
 
       <!-- 消息列表 -->
@@ -510,7 +516,7 @@ onUnmounted(() => {
       </div>
     </el-dialog>
 
-    <el-dialog v-model="interviewDialogVisible" title="邀请面试" width="420px" align-center>
+    <el-dialog v-model="interviewDialogVisible" title="邀请面试" width="420px" align-center @open="interviewForm = { interviewTime: '', interviewLocation: '' }">
       <el-form label-position="top">
         <el-form-item label="面试时间">
           <el-date-picker v-model="interviewForm.interviewTime" type="datetime" placeholder="选择面试时间"
@@ -526,7 +532,7 @@ onUnmounted(() => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="rejectDialogVisible" title="淘汰候选人" width="420px" align-center>
+    <el-dialog v-model="rejectDialogVisible" title="淘汰候选人" width="420px" align-center @open="rejectForm = { rejectReason: '', hrNote: '' }">
       <el-form label-position="top">
         <el-form-item label="淘汰原因">
           <el-input v-model="rejectForm.rejectReason" type="textarea" :rows="3" placeholder="请输入淘汰原因" />

@@ -7,6 +7,7 @@ import com.uniseek.common.exception.BusinessException;
 import com.uniseek.dao.ChatMessageMapper;
 import com.uniseek.dao.ChatSessionMapper;
 import com.uniseek.dao.EnterpriseMapper;
+import com.uniseek.dao.RealNameAuthMapper;
 import com.uniseek.dao.ResumeMapper;
 import com.uniseek.dao.TaskApplicationMapper;
 import com.uniseek.dao.TaskMapper;
@@ -16,6 +17,7 @@ import com.uniseek.dto.ChatSessionVO;
 import com.uniseek.dto.SendMessageRequest;
 import com.uniseek.entity.ChatMessage;
 import com.uniseek.entity.ChatSession;
+import com.uniseek.entity.RealNameAuth;
 import com.uniseek.entity.Resume;
 import com.uniseek.entity.Task;
 import com.uniseek.entity.TaskApplication;
@@ -59,6 +61,9 @@ public class ChatServiceImpl implements ChatService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private RealNameAuthMapper realNameAuthMapper;
 
     @Autowired
     private ResumeMapper resumeMapper;
@@ -517,7 +522,12 @@ public class ChatServiceImpl implements ChatService {
         // 查询发送者信息
         User sender = userMapper.selectById(msg.getSenderId());
         if (sender != null) {
-            vo.setSenderName(sender.getNickname());
+            // 优先使用实名认证的真实姓名，未认证时回退到昵称
+            RealNameAuth auth = realNameAuthMapper.selectOne(
+                new LambdaQueryWrapper<RealNameAuth>()
+                    .eq(RealNameAuth::getUserId, sender.getId())
+                    .eq(RealNameAuth::getStatus, 1));
+            vo.setSenderName(auth != null ? auth.getRealName() : sender.getNickname());
             vo.setSenderAvatar(sender.getAvatarUrl());
         }
         return vo;
@@ -541,7 +551,18 @@ public class ChatServiceImpl implements ChatService {
         ChatSessionVO vo = new ChatSessionVO();
         vo.setApplicationId(session.getId());
         vo.setCounterpartId(counterpartId);
-        vo.setCounterpartName(user != null ? user.getNickname() : "未知用户");
+        // 优先使用实名认证的真实姓名，未认证时回退到昵称
+        String counterpartName = (user != null) ? user.getNickname() : "未知用户";
+        if (user != null) {
+            RealNameAuth auth = realNameAuthMapper.selectOne(
+                new LambdaQueryWrapper<RealNameAuth>()
+                    .eq(RealNameAuth::getUserId, user.getId())
+                    .eq(RealNameAuth::getStatus, 1));
+            if (auth != null) {
+                counterpartName = auth.getRealName();
+            }
+        }
+        vo.setCounterpartName(counterpartName);
         vo.setCounterpartAvatar(user != null ? user.getAvatarUrl() : null);
         vo.setLastMessage(session.getLastMessage());
         vo.setLastMessageTime(session.getLastMessageTime());
