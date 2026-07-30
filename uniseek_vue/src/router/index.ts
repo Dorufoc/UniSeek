@@ -211,8 +211,7 @@ router.beforeEach((to, _from) => {
       return { path: '/admin/dashboard' }
     }
     if (role === 1) {
-      const certStatus = getCertStatus()
-      return { path: certStatus === 'approved' ? '/' : '/enterprise-cert' }
+      return { path: '/' }
     }
     return { path: '/' }
   }

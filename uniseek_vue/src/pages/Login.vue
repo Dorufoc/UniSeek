@@ -105,7 +105,7 @@ const handleRegister = async () => {
     ElMessage.success('注册成功')
     // 注册后跳转：优先使用 redirect 参数，否则招聘者去企业认证、求职者回首页
     const redirect = (router.currentRoute.value.query.redirect as string)
-    const target = redirect || (role.value === 1 ? '/enterprise-cert' : '/')
+    const target = redirect || '/'
     router.replace(target)
   } catch {
     // 错误已在拦截器中处理

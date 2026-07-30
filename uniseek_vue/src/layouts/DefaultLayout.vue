@@ -36,6 +36,11 @@ const checkEnterpriseCert = async () => {
     certDialogVisible.value = false
     return
   }
+  // 用户点击过"稍后再说"→ 不再弹窗
+  if (localStorage.getItem('uniseek_cert_dialog_dismissed')) {
+    certDialogVisible.value = false
+    return
+  }
   // 已在认证页面时不弹窗，让用户正常操作表单
   if (route.path === '/enterprise-cert') {
     certDialogVisible.value = false
@@ -179,7 +184,7 @@ watch(() => route.path, checkEnterpriseCert)
           <button class="cert-dialog-btn cert-dialog-btn-primary" @click="goToEnterpriseCert">
             前往认证
           </button>
-          <button class="cert-dialog-btn cert-dialog-btn-default" @click="certDialogVisible = false">
+          <button class="cert-dialog-btn cert-dialog-btn-default" @click="localStorage.setItem('uniseek_cert_dialog_dismissed', 'true'); certDialogVisible = false">
             稍后再说
           </button>
         </div>
