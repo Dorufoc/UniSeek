@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
 import { useAppStore } from '@/stores/app'
 import { getMyEnterprise } from '@/api/enterprise'
-import { getRealNameAuthStatus } from '@/api/auth'
+import { getRealNameAuthStatus, submitRealNameAuth } from '@/api/auth'
 import { useChatWebSocket, type WsNewMessageData } from '@/composables/useChatWebSocket'
+import { ElMessage } from 'element-plus'
 import { WarningFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -26,6 +27,9 @@ const certDialogVisible = ref(false)
 const certStatusText = ref('')
 const certChecking = ref(false)
 const needRealName = ref(false)
+const showRealNameForm = ref(false)
+const realNameForm = reactive({ realName: '', idCard: '' })
+const submittingRealName = ref(false)
 
 /**
  * 检查当前招聘者的企业资质认证状态。
@@ -39,7 +43,7 @@ const checkEnterpriseCert = async () => {
     return
   }
   // 用户点击过"稍后再说"→ 不再弹窗
-  if (localStorage.getItem('uniseek_cert_dialog_dismissed')) {
+  if (localStorage.getItem(`uniseek_cert_dialog_dismissed_${userStore.userInfo?.id}`)) {
     certDialogVisible.value = false
     return
   }
@@ -89,16 +93,43 @@ const checkEnterpriseCert = async () => {
 
 /** 稍后再说：设置 localStorage 标记并关闭弹窗 */
 const dismissCertDialog = () => {
-  localStorage.setItem('uniseek_cert_dialog_dismissed', 'true')
+  localStorage.setItem(`uniseek_cert_dialog_dismissed_${userStore.userInfo?.id}`, 'true')
   certDialogVisible.value = false
 }
 
 /** 跳转到认证页面（实名 or 企业资质） */
 const goToEnterpriseCert = () => {
   if (needRealName.value) {
-    router.push('/account-security')
+    showRealNameForm.value = true  // 显示内联表单
   } else {
     router.push('/enterprise-cert')
+  }
+}
+
+/** 提交实名认证 */
+const handleSubmitRealName = async () => {
+  if (!realNameForm.realName.trim() || !realNameForm.idCard.trim()) {
+    ElMessage.warning('请填写完整的实名信息')
+    return
+  }
+  if (!/^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/.test(realNameForm.idCard)) {
+    ElMessage.warning('请输入正确的身份证号码')
+    return
+  }
+  submittingRealName.value = true
+  try {
+    await submitRealNameAuth({
+      realName: realNameForm.realName.trim(),
+      idCard: realNameForm.idCard.trim()
+    })
+    ElMessage.success('实名认证提交成功')
+    showRealNameForm.value = false
+    // 重新检查认证状态
+    await checkEnterpriseCert()
+  } catch {
+    // 错误已在拦截器中处理
+  } finally {
+    submittingRealName.value = false
   }
 }
 
@@ -196,17 +227,37 @@ watch(() => route.path, checkEnterpriseCert)
       append-to-body
     >
       <div class="cert-dialog-body">
-        <el-icon :size="52" color="#e6a23c">
-          <WarningFilled />
-        </el-icon>
-        <h3 class="cert-dialog-title">{{ needRealName ? '实名认证提醒' : '企业资质认证' }}</h3>
-        <p class="cert-dialog-desc">{{ certStatusText }}</p>
-        <div class="cert-dialog-actions">
-          <button class="cert-dialog-btn cert-dialog-btn-primary" @click="goToEnterpriseCert">{{ needRealName ? '去实名认证' : '前往认证' }}</button>
-          <button class="cert-dialog-btn cert-dialog-btn-default" @click="dismissCertDialog">
-            稍后再说
-          </button>
-        </div>
+        <template v-if="showRealNameForm">
+          <!-- 实名认证表单 -->
+          <h3 class="cert-dialog-title">实名认证</h3>
+          <div class="realname-form">
+            <div class="form-item">
+              <label class="form-label">真实姓名</label>
+              <el-input v-model="realNameForm.realName" placeholder="请输入真实姓名" maxlength="30" clearable />
+            </div>
+            <div class="form-item">
+              <label class="form-label">身份证号码</label>
+              <el-input v-model="realNameForm.idCard" placeholder="请输入18位身份证号码" maxlength="18" clearable />
+            </div>
+          </div>
+          <div class="cert-dialog-actions">
+            <button class="cert-dialog-btn cert-dialog-btn-default" @click="showRealNameForm = false; realNameForm.realName = ''; realNameForm.idCard = ''">取消</button>
+            <button class="cert-dialog-btn cert-dialog-btn-primary" :disabled="submittingRealName" @click="handleSubmitRealName">{{ submittingRealName ? '提交中...' : '提交认证' }}</button>
+          </div>
+        </template>
+        <template v-else>
+          <el-icon :size="52" color="#e6a23c">
+            <WarningFilled />
+          </el-icon>
+          <h3 class="cert-dialog-title">{{ needRealName ? '实名认证提醒' : '企业资质认证' }}</h3>
+          <p class="cert-dialog-desc">{{ certStatusText }}</p>
+          <div class="cert-dialog-actions">
+            <button class="cert-dialog-btn cert-dialog-btn-primary" @click="goToEnterpriseCert">{{ needRealName ? '去实名认证' : '前往认证' }}</button>
+            <button class="cert-dialog-btn cert-dialog-btn-default" @click="dismissCertDialog">
+              稍后再说
+            </button>
+          </div>
+        </template>
       </div>
     </el-dialog>
 
@@ -468,6 +519,23 @@ watch(() => route.path, checkEnterpriseCert)
 }
 .cert-dialog-logout:hover {
   color: #e74c3c;
+}
+
+/* 实名认证内联表单样式 */
+.realname-form {
+  width: 100%;
+  padding: 8px 0;
+}
+.realname-form .form-item {
+  margin-bottom: 16px;
+  text-align: left;
+}
+.realname-form .form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
 }
 
 @media (max-width: 768px) {

@@ -6,6 +6,7 @@ import { Briefcase, Money, MapLocation, Timer, Collection, Calendar, TrendCharts
 import { getTaskById, createTask, updateTask } from '@/api/task'
 import { getCategories, type CategoryVO } from '@/api/category'
 import { getRegionTree, type RegionVO } from '@/api/region'
+import { getRealNameAuthStatus } from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -187,8 +188,18 @@ const handleSubmit = async () => {
     router.push('/job-management')
   } catch (err: any) {
     if (err?.message?.includes('未找到企业信息')) {
-      ElMessage.warning('请先完成企业资质认证')
-      router.push('/enterprise-cert')
+      // 先检查实名认证状态
+      try {
+        const realNameStatus = await getRealNameAuthStatus()
+        if (realNameStatus?.isAuth) {
+          // 已实名但企业未认证 → 弹 toast
+          ElMessage.warning('请先完成企业资质认证')
+          router.push('/enterprise-cert')
+        }
+        // 未实名 → 不弹toast（DefaultLayout的弹窗会处理）
+      } catch {
+        // 静默
+      }
     }
   } finally {
     loading.value = false

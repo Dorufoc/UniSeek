@@ -13,6 +13,7 @@ import {
   type ResumeSnapshot
 } from '@/api/application'
 import { getMessages, getUnreadCount, markMessageRead, markAllRead, type NotificationItem } from '@/api/notification'
+import { getRealNameAuthStatus } from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -110,8 +111,18 @@ const loadTasks = async () => {
     }
   } catch (err: any) {
     if (err?.message?.includes('未找到企业信息')) {
-      ElMessage.warning('请先完成企业资质认证')
-      router.push('/enterprise-cert')
+      // 先检查实名认证状态
+      try {
+        const realNameStatus = await getRealNameAuthStatus()
+        if (realNameStatus?.isAuth) {
+          // 已实名但企业未认证 → 弹 toast
+          ElMessage.warning('请先完成企业资质认证')
+          router.push('/enterprise-cert')
+        }
+        // 未实名 → 不弹toast（DefaultLayout的弹窗会处理）
+      } catch {
+        // 静默
+      }
     }
   } finally {
     loadingTasks.value = false

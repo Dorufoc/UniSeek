@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { getEnterpriseTasks, updateTaskStatus, resubmitTask, type TaskVO } from '@/api/task'
+import { getRealNameAuthStatus } from '@/api/auth'
 
 const router = useRouter()
 const loading = ref(false)
@@ -55,8 +56,18 @@ const loadTasks = async () => {
     tasks.value = res?.records || []
   } catch (err: any) {
     if (err?.message?.includes('未找到企业信息')) {
-      ElMessage.warning('请先完成企业资质认证')
-      router.push('/enterprise-cert')
+      // 先检查实名认证状态
+      try {
+        const realNameStatus = await getRealNameAuthStatus()
+        if (realNameStatus?.isAuth) {
+          // 已实名但企业未认证 → 弹 toast
+          ElMessage.warning('请先完成企业资质认证')
+          router.push('/enterprise-cert')
+        }
+        // 未实名 → 不弹toast（DefaultLayout的弹窗会处理）
+      } catch {
+        // 静默
+      }
     }
   } finally {
     loading.value = false
