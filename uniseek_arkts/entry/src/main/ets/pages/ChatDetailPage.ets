@@ -9,6 +9,8 @@ import { getResumeAttachmentContent } from '../components/chat/ChatMessageUtils'
 import { ChatWebSocketService, WsChatDetailEvent } from '../services/ChatWebSocketService';
 import { UserSession } from '../services/UserSession';
 import { ApplicationStatusBar } from '../components/application/ApplicationStatusBar';
+import { RecruiterService } from '../services/RecruiterService';
+import { ResumeCardData } from '../services/RecruiterTypes';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { AppColors, AppFontSize, AppSpacing } from '../common/AppStyles';
@@ -209,6 +211,58 @@ struct ChatDetailPage {
     }
     ChatService.markSessionRead(this.applicationId, this.sessionType).catch(() => {
       // 标记已读失败不影响当前消息列表展示，静默失败
+    })
+  }
+
+  // 获取投递详情并跳转到简历详情页
+  private openResumeDetail(): void {
+    const promptAction = this.getUIContext().getPromptAction()
+    RecruiterService.getApplicationById(this.applicationId).then((app) => {
+      if (!app) {
+        promptAction.showToast({ message: '暂无简历数据' })
+        return
+      }
+      let snapshot: Record<string, string> = {}
+      if (app.resumeSnapshot) {
+        try {
+          snapshot = JSON.parse(app.resumeSnapshot) as Record<string, string>
+        } catch {
+          snapshot = {}
+        }
+      }
+      const getAge = (birthDate?: string): number => {
+        if (!birthDate || birthDate.length < 4) return 0
+        const year = Number(birthDate.substring(0, 4))
+        const curYear = new Date().getFullYear()
+        return (year >= 1900 && year <= curYear) ? curYear - year : 0
+      }
+      const resumeData: ResumeCardData = {
+        id: String(app.applicantId),
+        name: app.applicantName || snapshot['realName'] || '匿名求职者',
+        age: getAge(snapshot['birthDate']),
+        avatar: app.applicantAvatar || '',
+        education: snapshot['education'] || '',
+        school: snapshot['school'] || '',
+        major: '',
+        experience: snapshot['experience'] || '',
+        skills: snapshot['skills'] || '',
+        region: '',
+        type: '',
+        category: '',
+        expectedSalary: '',
+        description: '',
+        attachmentUrl: app.attachmentUrl || snapshot['attachmentUrl'] || '',
+        applicationId: app.id,
+        applicationStatus: app.status,
+        jobTitle: this.taskTitle,
+        createTime: app.createTime
+      }
+      this.getUIContext().getRouter().pushUrl({
+        url: 'pages/ResumeDetailPage',
+        params: { resumeData: JSON.stringify(resumeData) }
+      })
+    }).catch(() => {
+      promptAction.showToast({ message: '获取简历失败' })
     })
   }
 
@@ -445,12 +499,33 @@ struct ChatDetailPage {
 
         // HR 操作栏：在顶栏下方固定显示切换求职者状态的按钮
         if (UserSession.role === 1 && this.applicationId > 0 && this.applicationStatus >= 0) {
+          // 查看个人简介按钮行
+          Row() {
+            Button({ type: ButtonType.Capsule }) {
+              Text('查看个人简介')
+                .fontSize(14)
+                .fontColor(Color.White)
+                .fontWeight(FontWeight.Medium)
+            }
+            .height(36)
+            .width('90%')
+            .backgroundColor('#1762FB')
+            .onClick(() => {
+              this.openResumeDetail()
+            })
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+          .padding({ top: 6, bottom: 2 })
+
           ApplicationStatusBar({
             applicationId: this.applicationId,
             currentStatus: this.applicationStatus,
             applicantName: this.counterpartName,
             onStatusChanged: (status: number): void => {
               this.applicationStatus = status
+              // 状态变更后后端会生成一条系统消息存入数据库，需重新加载消息列表以显示该消息
+              this.loadMessages()
             }
           })
         }
